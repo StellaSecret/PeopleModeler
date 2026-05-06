@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/peopleListFragment">
+
+    <fragment
+        android:id="@+id/peopleListFragment"
+        android:name="com.peoplemodeler.ui.screens.PeopleListFragment"
+        android:label="People">
+        <action
+            android:id="@+id/action_list_to_detail"
+            app:destination="@id/personDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right"/>
+        <action
+            android:id="@+id/action_list_to_edit"
+            app:destination="@id/personEditFragment"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/personDetailFragment"
+        android:name="com.peoplemodeler.ui.screens.PersonDetailFragment"
+        android:label="Fiche">
+        <action
+            android:id="@+id/action_detail_to_edit"
+            app:destination="@id/personEditFragment"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/personEditFragment"
+        android:name="com.peoplemodeler.ui.screens.PersonEditFragment"
+        android:label="Éditer"/>
+
+    <fragment
+        android:id="@+id/predictionsFragment"
+        android:name="com.peoplemodeler.ui.screens.PredictionsFragment"
+        android:label="Prédictions"/>
+
+    <fragment
+        android:id="@+id/insightsFragment"
+        android:name="com.peoplemodeler.ui.screens.InsightsFragment"
+        android:label="Insights"/>
+
+</navigation>

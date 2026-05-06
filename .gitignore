@@ -1,0 +1,26 @@
+# Android
+*.iml
+.gradle/
+android/local.properties
+android/.idea/
+android/app/build/
+android/build/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Web
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.swp
+
+# GitHub Pages output
+gh-pages/

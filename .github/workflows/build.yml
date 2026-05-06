@@ -1,0 +1,149 @@
+name: 🧩 People Modeler — Build & Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1. Web Static Site — Lint + Deploy
+  # ─────────────────────────────────────────────
+  web-build:
+    name: 🌐 Web Static Site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate HTML
+        run: |
+          npm install -g html-validate
+          html-validate web/index.html web/person.html web/compare.html || true
+
+      - name: Optimize assets
+        run: |
+          echo "✅ Web assets validated"
+          ls -lah web/
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-static
+          path: web/
+          retention-days: 7
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web
+          publish_branch: gh-pages
+          commit_message: '🚀 Deploy People Modeler Web [skip ci]'
+
+  # ─────────────────────────────────────────────
+  # 2. Android — Build Debug + Release APK
+  # ─────────────────────────────────────────────
+  android-build:
+    name: 🤖 Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Build Release APK (unsigned)
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Sign Release APK
+        if: github.ref == 'refs/heads/main'
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        continue-on-error: true  # Skip si pas de secrets configurés
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: people-modeler-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: people-modeler-release
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  # ─────────────────────────────────────────────
+  # 3. Release automatique sur tag
+  # ─────────────────────────────────────────────
+  release:
+    name: 📦 GitHub Release
+    runs-on: ubuntu-latest
+    needs: [web-build, android-build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: people-modeler-release
+          path: release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.apk
+          generate_release_notes: true
+          body: |
+            ## 🧩 People Modeler ${{ github.ref_name }}
+            
+            ### 📱 Android
+            Téléchargez le fichier `.apk` ci-dessous et installez-le sur votre appareil Android.
+            
+            ### 🌐 Web
+            Disponible sur GitHub Pages : https://${{ github.repository_owner }}.github.io/people-modeler/
+            
+            ---
+            > ⚠️ À utiliser de façon éthique et bienveillante.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

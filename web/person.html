@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" >
+  <title>Fiche Personne — People Modeler</title>
+  <link rel="stylesheet" href="css/main.css" >
+  <link rel="stylesheet" href="css/person.css" >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="noise"></div>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">🧩 <span>People</span>Modeler</a>
+  <div class="nav-links">
+    <a href="index.html">← Retour</a>
+    <a href="compare.html">Comparer</a>
+  </div>
+</nav>
+
+<main class="person-main">
+
+  <!-- ── HEADER PROFILE ── -->
+  <div class="profile-header">
+    <div class="profile-avatar" id="profileAvatar">🧠</div>
+    <div class="profile-info">
+      <h1 id="profileName">Alexandre Dubois</h1>
+      <p id="profileRole">Directeur Commercial · Contexte Pro</p>
+      <div class="profile-tags" id="profileTags">
+        <span class="tag">Business</span>
+        <span class="tag">Décideur</span>
+        <span class="tag">Négociateur</span>
+      </div>
+    </div>
+    <div class="profile-accuracy">
+      <div class="accuracy-ring">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--gold)" stroke-width="8"
+            stroke-dasharray="213.6" stroke-dashoffset="38" stroke-linecap="round"
+            transform="rotate(-90 40 40)"/>
+        </svg>
+        <div class="accuracy-label">82%<br><small>précision</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="tabs">
+    <button type="button" class="tab active" data-tab="motivations">💡 Motivations</button>
+    <button type="button" class="tab" data-tab="biases">🧠 Biais</button>
+    <button type="button" class="tab" data-tab="ocean">🌊 OCEAN</button>
+    <button type="button" class="tab" data-tab="predictions">🔮 Prédictions</button>
+    <button type="button" class="tab" data-tab="insights">✨ Insights</button>
+  </div>
+
+  <!-- ── MOTIVATIONS ── -->
+  <div class="tab-content active" id="tab-motivations">
+    <h2 class="section-label">Motivations profondes</h2>
+    <div class="motivation-list" id="motivationList">
+      <!-- injected by JS -->
+    </div>
+    <div class="add-item-row">
+      <button type="button" class="btn-add" onclick="openAddMotivation()">+ Ajouter une motivation</button>
+    </div>
+  </div>
+
+  <!-- ── BIASES ── -->
+  <div class="tab-content" id="tab-biases">
+    <h2 class="section-label">Biais cognitifs observés</h2>
+    <div class="bias-list" id="biasList"></div>
+    <div class="add-item-row">
+      <button type="button" class="btn-add" onclick="openAddBias()">+ Ajouter un biais</button>
+    </div>
+  </div>
+
+  <!-- ── OCEAN ── -->
+  <div class="tab-content" id="tab-ocean">
+    <h2 class="section-label">Profil de personnalité (Big Five)</h2>
+    <div class="ocean-chart">
+      <div class="ocean-row">
+        <div class="ocean-label">O — Ouverture</div>
+        <input type="range" min="1" max="10" value="8" class="ocean-slider" id="slider-O"
+               oninput="updateOcean('O', this.value)">
+        <div class="ocean-val" id="val-O">8</div>
+      </div>
+      <div class="ocean-row">
+        <div class="ocean-label">C — Consciencieux</div>
+        <input type="range" min="1" max="10" value="6" class="ocean-slider" id="slider-C"
+               oninput="updateOcean('C', this.value)">
+        <div class="ocean-val" id="val-C">6</div>
+      </div>
+      <div class="ocean-row">
+        <div class="ocean-label">E — Extraversion</div>
+        <input type="range" min="1" max="10" value="9" class="ocean-slider" id="slider-E"
+               oninput="updateOcean('E', this.value)">
+        <div class="ocean-val" id="val-E">9</div>
+      </div>
+      <div class="ocean-row">
+        <div class="ocean-label">A — Agréabilité</div>
+        <input type="range" min="1" max="10" value="4" class="ocean-slider" id="slider-A"
+               oninput="updateOcean('A', this.value)">
+        <div class="ocean-val" id="val-A">4</div>
+      </div>
+      <div class="ocean-row">
+        <div class="ocean-label">N — Névrosisme</div>
+        <input type="range" min="1" max="10" value="5" class="ocean-slider" id="slider-N"
+               oninput="updateOcean('N', this.value)">
+        <div class="ocean-val" id="val-N">5</div>
+      </div>
+    </div>
+    <div class="ocean-interpretation" id="oceanInterpretation"></div>
+  </div>
+
+  <!-- ── PREDICTIONS ── -->
+  <div class="tab-content" id="tab-predictions">
+    <h2 class="section-label">Prédictions comportementales</h2>
+    <div class="prediction-list" id="predictionList"></div>
+    <div class="add-prediction-form">
+      <h3>Nouvelle prédiction</h3>
+      <div class="form-row">
+        <label>Contexte / Situation</label>
+        <input type="text" id="predContext" placeholder="Ex: Réunion de budget vendredi…" >
+      </div>
+      <div class="form-row">
+        <label>Comportement prédit</label>
+        <textarea id="predOutcome" placeholder="Je prédis qu'il va…"></textarea>
+      </div>
+      <button type="button" class="btn-primary" onclick="addPrediction()">🔮 Enregistrer la prédiction</button>
+    </div>
+  </div>
+
+  <!-- ── INSIGHTS ── -->
+  <div class="tab-content" id="tab-insights">
+    <h2 class="section-label">Analyse comportementale par contexte</h2>
+    <div class="trigger-grid">
+      <button type="button" class="trigger-btn" onclick="showInsight('stress')">😰 Sous stress</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('conflict')">⚔️ En conflit</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('success')">🏆 En réussite</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('uncertainty')">❓ Incertitude</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('recognition')">⭐ Recherche reconnaissance</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('threat')">🛡️ Se sentant menacé</button>
+    </div>
+    <div class="insight-output" id="insightOutput">
+      <p class="placeholder-text">← Sélectionnez un contexte pour voir l'analyse</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modalTitle">Ajouter</h3>
+    <div id="modalContent"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeModal()">Annuler</button>
+      <button type="button" class="btn-primary" onclick="confirmModal()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/person.js"></script>
+</body>
+</html>

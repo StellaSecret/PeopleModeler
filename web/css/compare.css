@@ -1,0 +1,122 @@
+/* ── COMPARE PAGE ────────────────────────────────────── */
+.compare-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 6rem 2rem 4rem;
+}
+.compare-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+.compare-sub { text-align: center; color: var(--text-muted); margin-bottom: 3rem; }
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 3rem;
+}
+
+.compare-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+}
+.compare-avatar { font-size: 3rem; margin-bottom: 1rem; }
+.compare-card h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; margin-bottom: 0.3rem; }
+.compare-card > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+.compare-section { margin-bottom: 1.25rem; }
+.compare-section h4 { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.compare-chip {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+}
+.compare-chip.green { background: rgba(0,212,170,0.1); color: var(--cyan); border: 1px solid rgba(0,212,170,0.25); }
+.compare-chip.red { background: rgba(233,69,96,0.1); color: var(--primary); border: 1px solid rgba(233,69,96,0.25); }
+
+/* Mini bars */
+.mini-bars { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.mb-row { display: flex; align-items: center; gap: 0.5rem; }
+.mb-row > span { width: 16px; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+.mb-bar { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.mb-bar > div { height: 100%; background: var(--cyan); border-radius: 3px; }
+
+/* VS Divider */
+.vs-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 2rem;
+  gap: 1.5rem;
+}
+.vs-text {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.compat-ring { position: relative; width: 80px; height: 80px; }
+.compat-ring svg { width: 80px; height: 80px; }
+.compat-label {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--green);
+  text-align: center;
+  line-height: 1.2;
+}
+.compat-label small { font-size: 0.52rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+/* ── ANALYSIS ── */
+.analysis-section { margin-bottom: 2rem; }
+.analysis-section h2 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
+.analysis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+
+.analysis-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+}
+.analysis-card.synergy { border-top: 3px solid var(--green); }
+.analysis-card.friction { border-top: 3px solid var(--primary); }
+.analysis-card.strategy { border-top: 3px solid var(--cyan); }
+
+.analysis-card h3 { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+.analysis-card ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+.analysis-card li { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; padding-left: 1rem; position: relative; }
+.analysis-card li::before { content: '—'; position: absolute; left: 0; color: var(--border); }
+.analysis-card strong { color: var(--text); }
+
+/* Ethics banner */
+.ethics-banner {
+  background: rgba(245,166,35,0.06);
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.75rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 2rem;
+}
+.ethics-banner em { color: var(--gold); font-style: normal; }
+
+@media (max-width: 860px) {
+  .compare-grid { grid-template-columns: 1fr; }
+  .vs-divider { flex-direction: row; padding: 0; }
+  .analysis-grid { grid-template-columns: 1fr; }
+}

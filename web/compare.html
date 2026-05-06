@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" >
+  <title>Comparer — People Modeler</title>
+  <link rel="stylesheet" href="css/main.css" >
+  <link rel="stylesheet" href="css/compare.css" >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="noise"></div>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">🧩 <span>People</span>Modeler</a>
+  <div class="nav-links">
+    <a href="index.html">Accueil</a>
+    <a href="person.html">Fiche</a>
+  </div>
+</nav>
+
+<main class="compare-main">
+  <h1 class="compare-title">Comparaison de profils</h1>
+  <p class="compare-sub">Identifiez synergies et points de friction entre deux personnes</p>
+
+  <div class="compare-grid">
+    <!-- Profil A -->
+    <div class="compare-card" id="cardA">
+      <div class="compare-avatar">🧠</div>
+      <h2>Alexandre D.</h2>
+      <p>Directeur Commercial</p>
+
+      <div class="compare-section">
+        <h4>💡 Top Motivation</h4>
+        <div class="compare-chip green">👑 Pouvoir (9/10)</div>
+      </div>
+      <div class="compare-section">
+        <h4>🧠 Biais principal</h4>
+        <div class="compare-chip red">⚓ Ancrage (8/10)</div>
+      </div>
+      <div class="compare-section">
+        <h4>🌊 Profil OCEAN</h4>
+        <div class="mini-bars">
+          <div class="mb-row"><span>O</span><div class="mb-bar"><div class="w-80"></div></div></div>
+          <div class="mb-row"><span>C</span><div class="mb-bar"><div class="w-60"></div></div></div>
+          <div class="mb-row"><span>E</span><div class="mb-bar"><div class="w-90"></div></div></div>
+          <div class="mb-row"><span>A</span><div class="mb-bar"><div class="w-40"></div></div></div>
+          <div class="mb-row"><span>N</span><div class="mb-bar"><div class="w-50"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VS -->
+    <div class="vs-divider">
+      <div class="vs-text">VS</div>
+      <div class="compatibility-score">
+        <div class="compat-ring">
+          <svg viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="8"
+              stroke-dasharray="213.6" stroke-dashoffset="64" stroke-linecap="round"
+              transform="rotate(-90 40 40)"/>
+          </svg>
+          <div class="compat-label">70%<br><small>synergie</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profil B -->
+    <div class="compare-card" id="cardB">
+      <div class="compare-avatar">🎯</div>
+      <h2>Sarah M.</h2>
+      <p>Product Manager</p>
+
+      <div class="compare-section">
+        <h4>💡 Top Motivation</h4>
+        <div class="compare-chip green">📚 Apprentissage (9/10)</div>
+      </div>
+      <div class="compare-section">
+        <h4>🧠 Biais principal</h4>
+        <div class="compare-chip red">👥 Preuve sociale (7/10)</div>
+      </div>
+      <div class="compare-section">
+        <h4>🌊 Profil OCEAN</h4>
+        <div class="mini-bars">
+          <div class="mb-row"><span>O</span><div class="mb-bar"><div class="w-95"></div></div></div>
+          <div class="mb-row"><span>C</span><div class="mb-bar"><div class="w-85"></div></div></div>
+          <div class="mb-row"><span>E</span><div class="mb-bar"><div class="w-65"></div></div></div>
+          <div class="mb-row"><span>A</span><div class="mb-bar"><div class="w-80"></div></div></div>
+          <div class="mb-row"><span>N</span><div class="mb-bar"><div class="w-40"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYSIS ── -->
+  <div class="analysis-section">
+    <h2>🔍 Analyse de la dynamique</h2>
+    <div class="analysis-grid">
+      <div class="analysis-card synergy">
+        <h3>✅ Synergies</h3>
+        <ul>
+          <li>Alexandre apporte la <strong>vision power</strong>, Sarah l'<strong>exécution rigoureuse</strong></li>
+          <li>Complémentarité E–A : l'extraversion d'Alexandre compense le besoin d'harmonie de Sarah</li>
+          <li>Motivations non-concurrentes : pouvoir vs apprentissage — pas de friction directe</li>
+        </ul>
+      </div>
+      <div class="analysis-card friction">
+        <h3>⚠️ Points de friction</h3>
+        <ul>
+          <li>Alexandre (faible A) peut sembler <strong>agressif</strong> pour Sarah (haute A)</li>
+          <li>Biais ancrage vs preuve sociale : désaccords sur les références de décision</li>
+          <li>Neuroticism différentiel : Sarah plus stable, Alexandre plus réactif au stress</li>
+        </ul>
+      </div>
+      <div class="analysis-card strategy">
+        <h3>♟️ Stratégie d'interaction</h3>
+        <ul>
+          <li>Présenter les idées avec <strong>données et consensus</strong> pour convaincre Sarah</li>
+          <li>Permettre à Alexandre de <strong>prendre l'initiative</strong> — satisfait son besoin de pouvoir</li>
+          <li>En cas de conflit : impliquer un médiateur, Sarah cherchera l'harmonie</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="ethics-banner">
+    ⚠️ Ces analyses sont des <em>modèles probabilistes</em>, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler.
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-logo">🧩 PeopleModeler</div>
+  <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

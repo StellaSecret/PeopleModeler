@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">People Modeler</string>
+    <string name="nav_people">People</string>
+    <string name="nav_predictions">Prédictions</string>
+    <string name="nav_insights">Insights</string>
+    <string name="add_person">Ajouter une personne</string>
+    <string name="search_hint">Rechercher…</string>
+    <string name="empty_state">Aucune personne.\nAppuyez sur + pour commencer.</string>
+    <string name="motivations">Motivations</string>
+    <string name="biases">Biais cognitifs</string>
+    <string name="personality">Personnalité (OCEAN)</string>
+    <string name="predictions">Prédictions</string>
+    <string name="add_prediction">Ajouter une prédiction</string>
+    <string name="ethics_notice">⚠️ À utiliser de façon éthique et bienveillante</string>
+</resources>
