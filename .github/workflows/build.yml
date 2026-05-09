@@ -1,149 +1,267 @@
-name: 🧩 People Modeler — Build & Deploy
+name: 🧩 People Modeler — CI/CD
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
-  JAVA_VERSION: '17'
-  NODE_VERSION: '20'
+  JAVA_VERSION: '21'
+  NODE_VERSION: '22'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ─────────────────────────────────────────────
-  # 1. Web Static Site — Lint + Deploy
-  # ─────────────────────────────────────────────
-  web-build:
-    name: 🌐 Web Static Site
+
+  # ── 1. SCAN DE SECRETS ────────────────────────────────────
+  scan-secrets:
+    name: 🔍 Secret Scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog — scan secrets vérifiés
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          head: ${{ github.sha }}
+          extra_args: --only-verified
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+  # ── 2. ANALYSE STATIQUE CODE ──────────────────────────────
+  codeql:
+    name: 🔬 CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, kotlin
+          # On peut spécifier des requêtes de sécurité plus poussées ici si besoin
+          queries: security-extended,security-and-quality
+      - name: Setup Java (pour l'analyse Kotlin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+      - name: Manual Build for CodeQL (Android)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          # On compile seulement ce qui est nécessaire pour l'analyse
+          # assembleDebug est généralement suffisant pour que CodeQL "voit" le code
+          ./gradlew assembleDebug --no-daemon
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # ── 3. VALIDATION HTML + AUDIT NPM ───────────────────────
+  web-quality:
+    name: 🌐 Web Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
       - name: Validate HTML
         run: |
           npm install -g html-validate
-          html-validate web/index.html web/person.html web/compare.html || true
-
-      - name: Optimize assets
+          html-validate web/index.html web/person.html web/compare.html
+      - name: Audit dépendances NPM
+        run: npm audit --audit-level=high
+      - name: Check no secrets in web assets
         run: |
-          echo "✅ Web assets validated"
-          ls -lah web/
+          if grep -rqiE "(api[_-]?key|secret|password|private[_-]?key)\s*[:=]\s*['\"][^'\"]{8,}" web/ --include="*.js" --include="*.html"; then
+            echo "❌ Possible secret détecté dans le web !" && exit 1
+          fi
+          echo "✅ Aucun secret détecté"
 
-      - name: Upload web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-static
-          path: web/
-          retention-days: 7
-
-      - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./web
-          publish_branch: gh-pages
-          commit_message: '🚀 Deploy People Modeler Web [skip ci]'
-
-  # ─────────────────────────────────────────────
-  # 2. Android — Build Debug + Release APK
-  # ─────────────────────────────────────────────
-  android-build:
-    name: 🤖 Android APK
+  # ── 4. TESTS E2E PLAYWRIGHT (Web) ─────────────────────────
+  playwright:
+    name: 🎭 Playwright E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [web-quality]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-          cache: gradle
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: npx playwright test
+      - name: Upload rapport Playwright
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
 
+  # ── 5. ANDROID LINT + UNIT TESTS ─────────────────────────
+  android-quality:
+    name: 🤖 Android Lint & Tests
+    runs-on: ubuntu-latest
+    needs: [scan-secrets, codeql]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle-wrapper.properties') }}
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Build Debug APK
+      - name: Run Android Lint
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Build Release APK (unsigned)
+        run: |
+          chmod +x gradlew
+          ./gradlew lint --no-daemon
+      - name: Run Unit Tests
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
-
-      - name: Sign Release APK
-        if: github.ref == 'refs/heads/main'
-        uses: r0adkll/sign-android-release@v1
+        run: ./gradlew testDebugUnitTest --no-daemon
+      - name: Upload Lint report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          releaseDirectory: android/app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        continue-on-error: true  # Skip si pas de secrets configurés
+          name: lint-report
+          path: android/app/build/reports/lint-results-debug.html
+          retention-days: 14
+      - name: Upload Test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-report
+          path: android/app/build/reports/tests/testDebugUnitTest/
+          retention-days: 14
 
-      - name: Upload Debug APK
+  # ── 6. BUILD ANDROID (APK + AAB) ─────────────────────────
+  build-android:
+    name: 📱 Build Android
+    needs: [android-quality, playwright, codeql]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ steps.artifact-name.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/people-modeler-release.jks
+      - name: Set versionCode
+        run: |
+          sed -i "s/versionCode .*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          echo "versionCode → ${{ github.run_number }}"
+          grep versionCode android/app/build.gradle
+      - name: Build Bundle & APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease assembleDebug \
+            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/people-modeler-release.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
+            --no-daemon
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Set artifact name
+        id: artifact-name
+        run: echo "name=artifacts-${{ github.run_id }}" >> $GITHUB_OUTPUT
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: people-modeler-debug
-          path: android/app/build/outputs/apk/debug/*.apk
-          retention-days: 7
+          name: artifacts-${{ github.run_id }}
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release-signed.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
 
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
+  # ── 7. DEPLOY WEB (GitHub Pages) ──────────────────────────
+  build-web:
+    name: 🌐 Deploy Web
+    runs-on: ubuntu-latest
+    needs: [playwright, codeql]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          name: people-modeler-release
-          path: android/app/build/outputs/apk/release/*.apk
-          retention-days: 30
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web
+          publish_branch: gh-pages
+          commit_message: '🚀 Deploy People Modeler Web v1.0.${{ github.run_number }} [skip ci]'
 
-  # ─────────────────────────────────────────────
-  # 3. Release automatique sur tag
-  # ─────────────────────────────────────────────
+  # ── 8. RELEASE GITHUB ─────────────────────────────────────
   release:
     name: 📦 GitHub Release
+    needs: [build-android, build-web]
     runs-on: ubuntu-latest
-    needs: [web-build, android-build]
-    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     steps:
-      - name: Download APK artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: people-modeler-release
-          path: release/
-
+          name: ${{ needs.build-android.outputs.artifact-name }}
+          path: dist/
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: "🧩 People Modeler v1.0.${{ github.run_number }}"
           generate_release_notes: true
+          files: dist/**/app-release.*
           body: |
-            ## 🧩 People Modeler ${{ github.ref_name }}
-            
+            ## 🧩 People Modeler v1.0.${{ github.run_number }}
+
             ### 📱 Android
-            Téléchargez le fichier `.apk` ci-dessous et installez-le sur votre appareil Android.
-            
+            - **APK Debug** — installation directe pour tests
+            - **APK Release** — production signée
+            - **AAB Release** — format Google Play Store
+
             ### 🌐 Web
-            Disponible sur GitHub Pages : https://${{ github.repository_owner }}.github.io/people-modeler/
-            
+            Déployé sur GitHub Pages : https://${{ github.repository_owner }}.github.io/people-modeler/
+
+            ### ✅ Qualité
+            - 🔍 Secret scan : TruffleHog
+            - 🔬 Analyse statique : CodeQL (JS + Kotlin)
+            - 🎭 Tests E2E : Playwright
+            - 🤖 Lint Android + Unit Tests ViewModel
+
             ---
-            > ⚠️ À utiliser de façon éthique et bienveillante.
+            > ⚠️ À utiliser éthiquement et avec bienveillance.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,7 +19,11 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  max-width: 100%;
+}
 
 body {
   background: var(--bg);
@@ -28,6 +32,7 @@ body {
   font-size: 15px;
   line-height: 1.6;
   overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* ── NOISE TEXTURE ── */
@@ -440,3 +445,32 @@ body {
 .mb-bar > .w-85 { width: 85%; }
 .mb-bar > .w-90 { width: 90%; }
 .mb-bar > .w-95 { width: 95%; }
+
+/* ── MOBILE OVERFLOW FIXES ──────────────────────────────── */
+@media (max-width: 480px) {
+  /* Hero card preview */
+  .hero-visual { width: 100%; max-width: 100%; }
+  .person-card-preview { width: 100%; }
+  .bar-row span { width: 90px; font-size: 0.7rem; }
+
+  /* Nav */
+  .nav { padding: 0.75rem 1rem; }
+  .nav-logo { font-size: 1.1rem; }
+
+  /* Ethics section */
+  .ethics { padding: 2rem 1rem; }
+  .ethics-inner { flex-direction: column; }
+
+  /* Sections */
+  .features, .how, .usecases, .cta-section, .footer { padding: 2rem 1rem; }
+  .hero { padding: 5rem 1rem 2rem; }
+
+  /* Compare grid already collapses at 860px */
+  .compare-grid { grid-template-columns: 1fr; }
+
+  /* Step connector */
+  .step-connector { width: 2px; height: 30px; }
+
+  /* CTA buttons */
+  .cta-buttons { flex-direction: column; align-items: center; }
+}
