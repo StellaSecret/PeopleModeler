@@ -40,25 +40,27 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript, kotlin
-          # On peut spécifier des requêtes de sécurité plus poussées ici si besoin
-          queries: security-extended,security-and-quality
+
       - name: Setup Java (pour l'analyse Kotlin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
           cache: gradle
-      - name: Manual Build for CodeQL (Android)
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, kotlin
+          queries: security-extended,security-and-quality
+          build-mode: none
+
+      - name: Build Android pour CodeQL
         working-directory: android
         run: |
           chmod +x gradlew
-          # On compile seulement ce qui est nécessaire pour l'analyse
-          # assembleDebug est généralement suffisant pour que CodeQL "voit" le code
           ./gradlew assembleDebug --no-daemon
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
@@ -195,7 +197,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease assembleRelease assembleDebug \
+          ./gradlew bundleRelease assembleRelease \
             -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/people-modeler-release.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
@@ -213,7 +215,6 @@ jobs:
           path: |
             android/app/build/outputs/bundle/release/app-release.aab
             android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 1
 
   # ── 7. DEPLOY WEB (GitHub Pages) ──────────────────────────
@@ -257,7 +258,6 @@ jobs:
             ## 🧩 People Modeler v1.0.${{ github.run_number }}
 
             ### 📱 Android
-            - **APK Debug** — installation directe pour tests
             - **APK Release** — production signée
             - **AAB Release** — format Google Play Store
 
