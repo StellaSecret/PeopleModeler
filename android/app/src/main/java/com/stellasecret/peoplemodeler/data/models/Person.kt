@@ -1,4 +1,4 @@
-package com.peoplemodeler.data.models
+package com.stellasecret.peoplemodeler.data.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

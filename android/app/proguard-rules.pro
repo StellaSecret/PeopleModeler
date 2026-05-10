@@ -10,8 +10,8 @@
 -dontwarn androidx.**
 
 # Room — garder les entités et DAOs
--keep class com.peoplemodeler.data.models.** { *; }
--keep class com.peoplemodeler.data.repository.** { *; }
+-keep class com.stellasecret.peoplemodeler.data.models.** { *; }
+-keep class com.stellasecret.peoplemodeler.data.repository.** { *; }
 -keepclassmembers class * {
     @androidx.room.* <fields>;
     @androidx.room.* <methods>;
@@ -62,5 +62,5 @@
 -keep class * extends androidx.lifecycle.AndroidViewModel { *; }
 
 # Garder les noms des Fragments pour la navigation
--keep class com.peoplemodeler.ui.** extends androidx.fragment.app.Fragment { *; }
--keep class com.peoplemodeler.sync.SyncFragment { *; }
+-keep class com.stellasecret.peoplemodeler.ui.** extends androidx.fragment.app.Fragment { *; }
+-keep class com.stellasecret.peoplemodeler.sync.SyncFragment { *; }

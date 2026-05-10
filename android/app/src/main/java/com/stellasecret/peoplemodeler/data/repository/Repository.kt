@@ -1,9 +1,9 @@
-package com.peoplemodeler.data.repository
+package com.stellasecret.peoplemodeler.data.repository
 
 import android.content.Context
 import androidx.room.*
-import com.peoplemodeler.data.models.Person
-import com.peoplemodeler.data.models.PersonConverters
+import com.stellasecret.peoplemodeler.data.models.Person
+import com.stellasecret.peoplemodeler.data.models.PersonConverters
 import kotlinx.coroutines.flow.Flow
 
 // ─── DAOs ─────────────────────────────────────────────────

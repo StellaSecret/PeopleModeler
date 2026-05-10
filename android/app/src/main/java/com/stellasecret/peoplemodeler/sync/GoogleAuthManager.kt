@@ -1,4 +1,4 @@
-package com.peoplemodeler.sync
+package com.stellasecret.peoplemodeler.sync
 
 import android.content.Context
 import android.util.Log
@@ -11,7 +11,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.util.ExponentialBackOff
 import com.google.api.services.drive.DriveScopes
-import com.peoplemodeler.R
+import com.stellasecret.peoplemodeler.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 

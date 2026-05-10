@@ -1,4 +1,4 @@
-package com.peoplemodeler.ui.screens
+package com.stellasecret.peoplemodeler.ui.screens
 
 import android.os.Bundle
 import android.view.*
@@ -6,11 +6,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.chip.Chip
-import com.peoplemodeler.R
-import com.peoplemodeler.data.models.BehaviorTrigger
-import com.peoplemodeler.data.models.Person
-import com.peoplemodeler.databinding.FragmentPersonDetailBinding
-import com.peoplemodeler.viewmodels.PersonViewModel
+import com.stellasecret.peoplemodeler.R
+import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
+import com.stellasecret.peoplemodeler.data.models.Person
+import com.stellasecret.peoplemodeler.databinding.FragmentPersonDetailBinding
+import com.stellasecret.peoplemodeler.viewmodels.PersonViewModel
 
 class PersonDetailFragment : Fragment() {
     private var _binding: FragmentPersonDetailBinding? = null

@@ -1,6 +1,6 @@
-package com.peoplemodeler
+package com.stellasecret.peoplemodeler
 
-import com.peoplemodeler.data.models.*
+import com.stellasecret.peoplemodeler.data.models.*
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test

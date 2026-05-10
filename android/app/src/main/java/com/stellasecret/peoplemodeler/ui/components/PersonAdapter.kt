@@ -1,12 +1,12 @@
-package com.peoplemodeler.ui.components
+package com.stellasecret.peoplemodeler.ui.components
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.peoplemodeler.data.models.Person
-import com.peoplemodeler.databinding.ItemPersonBinding
+import com.stellasecret.peoplemodeler.data.models.Person
+import com.stellasecret.peoplemodeler.databinding.ItemPersonBinding
 
 class PersonAdapter(
     private val onPersonClick: (Person) -> Unit,

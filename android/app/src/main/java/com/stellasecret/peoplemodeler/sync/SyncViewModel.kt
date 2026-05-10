@@ -1,11 +1,11 @@
-package com.peoplemodeler.sync
+package com.stellasecret.peoplemodeler.sync
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.peoplemodeler.data.models.Person
-import com.peoplemodeler.data.repository.AppDatabase
-import com.peoplemodeler.data.repository.PersonRepository
+import com.stellasecret.peoplemodeler.data.models.Person
+import com.stellasecret.peoplemodeler.data.repository.AppDatabase
+import com.stellasecret.peoplemodeler.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

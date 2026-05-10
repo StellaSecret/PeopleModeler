@@ -1,4 +1,4 @@
-package com.peoplemodeler.ui.screens
+package com.stellasecret.peoplemodeler.ui.screens
 
 import android.os.Bundle
 import android.view.*
@@ -8,11 +8,11 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.peoplemodeler.R
-import com.peoplemodeler.data.models.Person
-import com.peoplemodeler.databinding.FragmentPeopleListBinding
-import com.peoplemodeler.ui.components.PersonAdapter
-import com.peoplemodeler.viewmodels.PersonViewModel
+import com.stellasecret.peoplemodeler.R
+import com.stellasecret.peoplemodeler.data.models.Person
+import com.stellasecret.peoplemodeler.databinding.FragmentPeopleListBinding
+import com.stellasecret.peoplemodeler.ui.components.PersonAdapter
+import com.stellasecret.peoplemodeler.viewmodels.PersonViewModel
 
 class PeopleListFragment : Fragment() {
 

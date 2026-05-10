@@ -1,4 +1,4 @@
-package com.peoplemodeler.ui
+package com.stellasecret.peoplemodeler.ui
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -6,8 +6,8 @@ import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.peoplemodeler.R
-import com.peoplemodeler.databinding.ActivityMainBinding
+import com.stellasecret.peoplemodeler.R
+import com.stellasecret.peoplemodeler.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 

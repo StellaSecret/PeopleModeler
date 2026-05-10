@@ -6,7 +6,7 @@
 
     <fragment
         android:id="@+id/peopleListFragment"
-        android:name="com.peoplemodeler.ui.screens.PeopleListFragment"
+        android:name="com.stellasecret.peoplemodeler.ui.screens.PeopleListFragment"
         android:label="People">
         <action
             android:id="@+id/action_list_to_detail"
@@ -22,7 +22,7 @@
 
     <fragment
         android:id="@+id/personDetailFragment"
-        android:name="com.peoplemodeler.ui.screens.PersonDetailFragment"
+        android:name="com.stellasecret.peoplemodeler.ui.screens.PersonDetailFragment"
         android:label="Fiche">
         <action
             android:id="@+id/action_detail_to_edit"
@@ -31,22 +31,22 @@
 
     <fragment
         android:id="@+id/personEditFragment"
-        android:name="com.peoplemodeler.ui.screens.PersonEditFragment"
+        android:name="com.stellasecret.peoplemodeler.ui.screens.PersonEditFragment"
         android:label="Éditer"/>
 
     <fragment
         android:id="@+id/predictionsFragment"
-        android:name="com.peoplemodeler.ui.screens.PredictionsFragment"
+        android:name="com.stellasecret.peoplemodeler.ui.screens.PredictionsFragment"
         android:label="Prédictions"/>
 
     <fragment
         android:id="@+id/insightsFragment"
-        android:name="com.peoplemodeler.ui.screens.InsightsFragment"
+        android:name="com.stellasecret.peoplemodeler.ui.screens.InsightsFragment"
         android:label="Insights"/>
 
     <fragment
         android:id="@+id/syncFragment"
-        android:name="com.peoplemodeler.sync.SyncFragment"
+        android:name="com.stellasecret.peoplemodeler.sync.SyncFragment"
         android:label="Sync"/>
 
 </navigation>

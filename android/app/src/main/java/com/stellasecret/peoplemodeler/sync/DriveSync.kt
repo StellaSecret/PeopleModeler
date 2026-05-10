@@ -1,4 +1,4 @@
-package com.peoplemodeler.sync
+package com.stellasecret.peoplemodeler.sync
 
 import android.content.Context
 import android.util.Log
@@ -8,7 +8,7 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.peoplemodeler.data.models.Person
+import com.stellasecret.peoplemodeler.data.models.Person
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream

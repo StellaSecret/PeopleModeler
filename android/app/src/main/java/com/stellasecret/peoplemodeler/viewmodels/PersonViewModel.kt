@@ -1,11 +1,11 @@
-package com.peoplemodeler.viewmodels
+package com.stellasecret.peoplemodeler.viewmodels
 
 import android.app.Application
 import androidx.lifecycle.*
-import com.peoplemodeler.data.models.*
-import com.peoplemodeler.data.repository.AppDatabase
-import com.peoplemodeler.data.repository.PersonRepository
-import com.peoplemodeler.data.repository.PredictionEntity
+import com.stellasecret.peoplemodeler.data.models.*
+import com.stellasecret.peoplemodeler.data.repository.AppDatabase
+import com.stellasecret.peoplemodeler.data.repository.PersonRepository
+import com.stellasecret.peoplemodeler.data.repository.PredictionEntity
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest

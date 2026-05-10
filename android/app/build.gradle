@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace 'com.peoplemodeler'
+    namespace 'com.stellasecret.peoplemodeler'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.peoplemodeler"
+        applicationId "com.stellasecret.peoplemodeler"
         minSdk 26
         targetSdk 34
         versionCode 1

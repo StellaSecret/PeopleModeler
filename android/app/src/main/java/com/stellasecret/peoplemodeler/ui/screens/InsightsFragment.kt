@@ -1,11 +1,11 @@
-package com.peoplemodeler.ui.screens
+package com.stellasecret.peoplemodeler.ui.screens
 
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.peoplemodeler.databinding.FragmentInsightsBinding
-import com.peoplemodeler.viewmodels.PersonViewModel
+import com.stellasecret.peoplemodeler.databinding.FragmentInsightsBinding
+import com.stellasecret.peoplemodeler.viewmodels.PersonViewModel
 
 class InsightsFragment : Fragment() {
     private var _binding: FragmentInsightsBinding? = null

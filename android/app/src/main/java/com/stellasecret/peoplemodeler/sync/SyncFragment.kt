@@ -1,4 +1,4 @@
-package com.peoplemodeler.sync
+package com.stellasecret.peoplemodeler.sync
 
 import android.os.Bundle
 import android.view.*
@@ -7,7 +7,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import com.peoplemodeler.databinding.FragmentSyncBinding
+import com.stellasecret.peoplemodeler.databinding.FragmentSyncBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
