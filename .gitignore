@@ -24,3 +24,8 @@ Thumbs.db
 
 # GitHub Pages output
 gh-pages/
+
+# Tests
+playwright-report/
+test-results/
+*.zip

@@ -44,4 +44,9 @@
         android:name="com.peoplemodeler.ui.screens.InsightsFragment"
         android:label="Insights"/>
 
+    <fragment
+        android:id="@+id/syncFragment"
+        android:name="com.peoplemodeler.sync.SyncFragment"
+        android:label="Sync"/>
+
 </navigation>

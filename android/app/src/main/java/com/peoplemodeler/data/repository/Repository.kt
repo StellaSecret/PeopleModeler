@@ -13,6 +13,9 @@ interface PersonDao {
     @Query("SELECT * FROM persons ORDER BY updatedAt DESC")
     fun getAllPersons(): Flow<List<Person>>
 
+    @Query("SELECT * FROM persons ORDER BY updatedAt DESC")
+    suspend fun getAllPersonsOnce(): List<Person>
+
     @Query("SELECT * FROM persons WHERE id = :id")
     suspend fun getPersonById(id: String): Person?
 
@@ -92,6 +95,8 @@ abstract class AppDatabase : RoomDatabase() {
 
 class PersonRepository(private val db: AppDatabase) {
     val allPersons = db.personDao().getAllPersons()
+
+    suspend fun getAllPersonsOnce() = db.personDao().getAllPersonsOnce()
 
     fun searchPersons(query: String) = db.personDao().searchPersons(query)
 

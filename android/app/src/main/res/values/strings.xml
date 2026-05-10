@@ -4,6 +4,7 @@
     <string name="nav_people">People</string>
     <string name="nav_predictions">Prédictions</string>
     <string name="nav_insights">Insights</string>
+    <string name="nav_sync">Drive</string>
     <string name="add_person">Ajouter une personne</string>
     <string name="search_hint">Rechercher…</string>
     <string name="empty_state">Aucune personne.\nAppuyez sur + pour commencer.</string>
@@ -13,4 +14,6 @@
     <string name="predictions">Prédictions</string>
     <string name="add_prediction">Ajouter une prédiction</string>
     <string name="ethics_notice">⚠️ À utiliser de façon éthique et bienveillante</string>
+    <!-- Remplacer par votre Web Client ID depuis Google Cloud Console -->
+    <string name="google_client_id" translatable="false">__GOOGLE_CLIENT_ID__</string>
 </resources>

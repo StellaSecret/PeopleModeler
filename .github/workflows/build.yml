@@ -177,6 +177,13 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-
+      - name: Inject Google Client ID
+        run: |
+          sed -i "s|__GOOGLE_CLIENT_ID__|${{ secrets.GOOGLE_CLIENT_ID }}|g" \
+            android/app/src/main/res/values/strings.xml
+          sed -i "s|__GOOGLE_CLIENT_ID__|${{ secrets.GOOGLE_CLIENT_ID }}|g" \
+            android/app/build.gradle
+          echo "✅ Google Client ID injecté"
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/people-modeler-release.jks
       - name: Set versionCode
