@@ -42,11 +42,6 @@ android {
     packaging {
         resources {
             excludes += [
-                'META-INF/DEPENDENCIES',
-                'META-INF/LICENSE',
-                'META-INF/LICENSE.txt',
-                'META-INF/NOTICE',
-                'META-INF/NOTICE.txt',
                 'META-INF/*.kotlin_module',
             ]
         }
@@ -96,16 +91,12 @@ dependencies {
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
     // ── Google Sign-In + Drive ──────────────────────────────
-    // Google Identity Services (OAuth 2.0 moderne)
-    implementation 'com.google.android.gms:play-services-auth:21.0.0'
-    // Google Drive REST API client
-    implementation 'com.google.api-client:google-api-client-android:2.2.0'
-    implementation 'com.google.apis:google-api-services-drive:v3-rev20231128-2.0.0'
-    implementation 'com.google.http-client:google-http-client-gson:1.43.3'
-    // Credentials API (recommandé par Google pour le Sign-In moderne)
+    // Credentials API — Sign-In moderne
     implementation 'androidx.credentials:credentials:1.2.2'
     implementation 'androidx.credentials:credentials-play-services-auth:1.2.2'
     implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.0'
+    // Drive REST via HTTP direct (pas de google-api-client — évite le conflit Account null)
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'
