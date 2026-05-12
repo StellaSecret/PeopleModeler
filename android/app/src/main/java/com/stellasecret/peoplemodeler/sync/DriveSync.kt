@@ -7,7 +7,6 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.stellasecret.peoplemodeler.data.models.Person
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,16 +28,19 @@ class DriveSync(
 ) {
     private val gson = Gson()
 
-    // App Data folder — visible only by this app, not browsable by user
-    // Pas besoin de permission Drive complète, juste drive.appdata
     private val BACKUP_FILENAME = "people_modeler_backup.json"
-    private val MIME_JSON = "application/json"
-    private val FOLDER_APPDATA = "appDataFolder"
+    private val MIME_JSON       = "application/json"
+    private val FOLDER_APPDATA  = "appDataFolder"
 
-    // ── Build Drive service ───────────────────────────────
+    // ── Build Drive service via GoogleAccountCredential ───
+    // GoogleSignIn already obtained drive.appdata scope —
+    // GoogleAccountCredential uses the token from GMS directly.
 
     private fun buildDriveService(): Drive? {
-        val credential = authManager.getDriveCredential() ?: return null
+        val credential = authManager.getDriveCredential() ?: run {
+            Log.w(TAG, "⚠️ No Drive credential — user not signed in or scope missing")
+            return null
+        }
         return Drive.Builder(
             com.google.api.client.http.javanet.NetHttpTransport(),
             GsonFactory.getDefaultInstance(),
@@ -55,39 +57,26 @@ class DriveSync(
 
         return@withContext try {
             val drive = buildDriveService()
-                ?: return@withContext SyncResult.Error("Impossible de créer le service Drive")
+                ?: return@withContext SyncResult.Error("Non connecté ou scope Drive manquant")
 
-            val payload = BackupPayload(
-                version = BACKUP_VERSION,
-                timestamp = System.currentTimeMillis(),
-                persons = persons
-            )
-            val json = gson.toJson(payload)
+            val payload = BackupPayload(BACKUP_VERSION, System.currentTimeMillis(), persons)
+            val json    = gson.toJson(payload)
             val content = ByteArrayContent(MIME_JSON, json.toByteArray(Charsets.UTF_8))
 
-            // Check if backup already exists
             val existingId = findBackupFileId(drive)
-
             if (existingId != null) {
-                // Update existing file
                 drive.files().update(existingId, null, content).execute()
                 Log.i(TAG, "✅ Backup mis à jour (${persons.size} profils)")
             } else {
-                // Create new file in App Data folder
-                val fileMetadata = File().apply {
-                    name = BACKUP_FILENAME
+                val meta = File().apply {
+                    name    = BACKUP_FILENAME
                     parents = listOf(FOLDER_APPDATA)
                 }
-                drive.files().create(fileMetadata, content)
-                    .setFields("id, name, modifiedTime")
-                    .execute()
+                drive.files().create(meta, content).setFields("id,name").execute()
                 Log.i(TAG, "✅ Backup créé (${persons.size} profils)")
             }
 
-            SyncResult.Success(
-                "Sauvegarde réussie — ${persons.size} profil(s) sur Google Drive",
-                persons.size
-            )
+            SyncResult.Success("Sauvegarde réussie — ${persons.size} profil(s)", persons.size)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Backup failed", e)
             SyncResult.Error("Échec de la sauvegarde : ${e.message}", e)
@@ -101,80 +90,62 @@ class DriveSync(
 
         return@withContext try {
             val drive = buildDriveService()
-                ?: return@withContext Pair(SyncResult.Error("Impossible de créer le service Drive"), null)
+                ?: return@withContext Pair(SyncResult.Error("Non connecté ou scope Drive manquant"), null)
 
             val fileId = findBackupFileId(drive)
-                ?: return@withContext Pair(
-                    SyncResult.Error("Aucune sauvegarde trouvée sur Drive"),
-                    null
-                )
+                ?: return@withContext Pair(SyncResult.Error("Aucune sauvegarde trouvée sur Drive"), null)
 
-            val outputStream = ByteArrayOutputStream()
-            drive.files().get(fileId).executeMediaAndDownloadTo(outputStream)
-            val json = outputStream.toString(Charsets.UTF_8.name())
+            val out = ByteArrayOutputStream()
+            drive.files().get(fileId).executeMediaAndDownloadTo(out)
+            val payload = gson.fromJson(out.toString(Charsets.UTF_8.name()), BackupPayload::class.java)
 
-            val payload = gson.fromJson(json, BackupPayload::class.java)
-            val persons = payload.persons
-
-            Log.i(TAG, "✅ Restore réussi (${persons.size} profils, v${payload.version})")
+            Log.i(TAG, "✅ Restore réussi (${payload.persons.size} profils, v${payload.version})")
             Pair(
-                SyncResult.Success(
-                    "Restauration réussie — ${persons.size} profil(s) importés",
-                    persons.size
-                ),
-                persons
+                SyncResult.Success("Restauration réussie — ${payload.persons.size} profil(s)", payload.persons.size),
+                payload.persons
             )
         } catch (e: Exception) {
             Log.e(TAG, "❌ Restore failed", e)
-            Pair(SyncResult.Error("Échec de la restauration : ${e.message}", e), null)
+            Pair(SyncResult.Error("Échec : ${e.message}", e), null)
         }
     }
 
-    // ── Get backup info ───────────────────────────────────
+    // ── Backup info ───────────────────────────────────────
 
     suspend fun getBackupInfo(): BackupInfo? = withContext(Dispatchers.IO) {
         if (!authManager.isSignedIn) return@withContext null
         return@withContext try {
-            val drive = buildDriveService() ?: return@withContext null
+            val drive  = buildDriveService() ?: return@withContext null
             val fileId = findBackupFileId(drive) ?: return@withContext null
-            val file = drive.files().get(fileId)
-                .setFields("id, name, modifiedTime, size")
+            val file   = drive.files().get(fileId)
+                .setFields("id,name,modifiedTime,size")
                 .execute()
             BackupInfo(
-                fileId = file.id,
+                fileId       = file.id,
                 modifiedTime = file.modifiedTime?.value ?: 0L,
-                sizeBytes = file.getSize() ?: 0L,
+                sizeBytes    = file.getSize() ?: 0L,
             )
         } catch (e: Exception) {
-            Log.e(TAG, "getBackupInfo failed", e)
+            Log.e(TAG, "getBackupInfo failed: ${e.message}")
             null
         }
     }
 
-    // ── Internal helpers ──────────────────────────────────
+    // ── Internal ──────────────────────────────────────────
 
     private fun findBackupFileId(drive: Drive): String? {
         val result = drive.files().list()
             .setSpaces(FOLDER_APPDATA)
             .setQ("name = '$BACKUP_FILENAME'")
-            .setFields("files(id, name)")
+            .setFields("files(id,name)")
             .execute()
         return result.files?.firstOrNull()?.id
     }
 
-    // ── Data models ───────────────────────────────────────
+    // ── Models ────────────────────────────────────────────
 
-    data class BackupPayload(
-        val version: Int,
-        val timestamp: Long,
-        val persons: List<Person>,
-    )
-
-    data class BackupInfo(
-        val fileId: String,
-        val modifiedTime: Long,
-        val sizeBytes: Long,
-    )
+    data class BackupPayload(val version: Int, val timestamp: Long, val persons: List<Person>)
+    data class BackupInfo(val fileId: String, val modifiedTime: Long, val sizeBytes: Long)
 
     companion object {
         private const val TAG = "DriveSync"

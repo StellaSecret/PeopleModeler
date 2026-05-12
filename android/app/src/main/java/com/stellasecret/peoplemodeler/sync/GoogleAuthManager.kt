@@ -1,19 +1,21 @@
 package com.stellasecret.peoplemodeler.sync
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.util.Log
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.util.ExponentialBackOff
 import com.google.api.services.drive.DriveScopes
-import com.stellasecret.peoplemodeler.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.tasks.await
 
 // ─── Auth State ───────────────────────────────────────────
 
@@ -22,14 +24,20 @@ sealed class AuthState {
     data class SignedIn(
         val email: String,
         val displayName: String,
-        val idToken: String,
     ) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
 // ─── GoogleAuthManager ────────────────────────────────────
+// Uses GoogleSignIn (not Credential Manager) to properly request
+// drive.appdata scope alongside the user identity.
 
 class GoogleAuthManager(private val context: Context) {
+
+    companion object {
+        private const val TAG = "GoogleAuthManager"
+        const val RC_SIGN_IN = 9001
+    }
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.SignedOut)
     val authState: StateFlow<AuthState> = _authState
@@ -40,109 +48,104 @@ class GoogleAuthManager(private val context: Context) {
     val currentEmail: String?
         get() = (_authState.value as? AuthState.SignedIn)?.email
 
-    // Google Credential Manager (API moderne, remplace GoogleSignInClient)
-    private val credentialManager = CredentialManager.create(context)
+    // ── GoogleSignIn client with drive.appdata scope ───────
+    private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestEmail()
+        .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
+        .build()
 
-    // Restore session from SharedPreferences
+    private val signInClient: GoogleSignInClient =
+        GoogleSignIn.getClient(context, gso)
+
     init {
-        restoreSession()
+        // Restore session from last signed-in account
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+        if (lastAccount != null && lastAccount.email != null) {
+            _authState.value = AuthState.SignedIn(
+                email = lastAccount.email!!,
+                displayName = lastAccount.displayName ?: lastAccount.email!!,
+            )
+            Log.i(TAG, "✅ Session restaurée : ${lastAccount.email}")
+        }
     }
 
-    // ── Sign In ───────────────────────────────────────────
+    // ── Sign In Intent — launch from Activity ─────────────
+    // Call this from SyncFragment, then handle result in onActivityResult
 
-    suspend fun signIn(activityContext: Context): Result<AuthState.SignedIn> {
+    fun getSignInIntent(): Intent = signInClient.signInIntent
+
+    // ── Handle result from onActivityResult ───────────────
+
+    fun handleSignInResult(data: Intent?): Result<AuthState.SignedIn> {
         return try {
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false) // allow new accounts
-                .setServerClientId(context.getString(R.string.google_client_id))
-                .setAutoSelectEnabled(false)
-                .build()
-
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
-
-            val result = credentialManager.getCredential(
-                request = request,
-                context = activityContext,
-            )
-
-            val credential = result.credential
-            if (credential is CustomCredential &&
-                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-            ) {
-                val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
-                val signedIn = AuthState.SignedIn(
-                    email = googleIdToken.id,
-                    displayName = googleIdToken.displayName ?: googleIdToken.id,
-                    idToken = googleIdToken.idToken,
-                )
-                _authState.value = signedIn
-                saveSession(signedIn)
-                Log.i(TAG, "✅ Signed in: ${signedIn.email}")
-                Result.success(signedIn)
-            } else {
-                Result.failure(Exception("Type de credential non supporté"))
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            val account = task.getResult(ApiException::class.java)
+            if (account?.email == null) {
+                return Result.failure(Exception("Email null après connexion"))
             }
-        } catch (e: GetCredentialException) {
-            val error = "Échec de la connexion Google : ${e.message}"
-            _authState.value = AuthState.Error(error)
-            Log.e(TAG, error, e)
+            val signedIn = AuthState.SignedIn(
+                email = account.email!!,
+                displayName = account.displayName ?: account.email!!,
+            )
+            _authState.value = signedIn
+            Log.i(TAG, "✅ Signed in: ${account.email}")
+            Result.success(signedIn)
+        } catch (e: ApiException) {
+            val msg = "Échec connexion Google (code ${e.statusCode}): ${e.message}"
+            _authState.value = AuthState.Error(msg)
+            Log.e(TAG, msg, e)
             Result.failure(e)
+        }
+    }
+
+    // ── Silent sign-in (token refresh) ────────────────────
+
+    suspend fun silentSignIn(): Boolean {
+        return try {
+            val account = signInClient.silentSignIn().await()
+            if (account?.email != null) {
+                _authState.value = AuthState.SignedIn(
+                    email = account.email!!,
+                    displayName = account.displayName ?: account.email!!,
+                )
+                true
+            } else false
+        } catch (e: Exception) {
+            Log.w(TAG, "Silent sign-in failed: ${e.message}")
+            false
         }
     }
 
     // ── Sign Out ──────────────────────────────────────────
 
-    fun signOut() {
+    suspend fun signOut() {
+        try {
+            signInClient.signOut().await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Sign out error: ${e.message}")
+        }
         _authState.value = AuthState.SignedOut
-        clearSession()
         Log.i(TAG, "✅ Signed out")
     }
 
     // ── Drive Credential ──────────────────────────────────
-    // Pour les appels à l'API Drive REST
+    // Returns a credential usable with the Drive REST API client.
+    // GoogleSignIn ensures the drive.appdata scope was granted.
 
     fun getDriveCredential(): GoogleAccountCredential? {
-        val email = currentEmail ?: return null
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return null
+        if (account.email == null) return null
+
+        // Verify drive.appdata scope was granted
+        val hasScope = GoogleSignIn.hasPermissions(account, Scope(DriveScopes.DRIVE_APPDATA))
+        if (!hasScope) {
+            Log.w(TAG, "⚠️ drive.appdata scope not granted")
+            return null
+        }
+
         return GoogleAccountCredential
             .usingOAuth2(context, listOf(DriveScopes.DRIVE_APPDATA))
             .setBackOff(ExponentialBackOff())
-            .also { it.selectedAccountName = email }
-    }
-
-    // ── Session persistence ───────────────────────────────
-
-    private fun saveSession(state: AuthState.SignedIn) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_EMAIL, state.email)
-            .putString(KEY_NAME, state.displayName)
-            .putString(KEY_TOKEN, state.idToken)
-            .apply()
-    }
-
-    private fun restoreSession() {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val email = prefs.getString(KEY_EMAIL, null)
-        val name = prefs.getString(KEY_NAME, null)
-        val token = prefs.getString(KEY_TOKEN, null)
-        if (email != null && name != null && token != null) {
-            _authState.value = AuthState.SignedIn(email, name, token)
-            Log.i(TAG, "✅ Session restaurée : $email")
-        }
-    }
-
-    private fun clearSession() {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().clear().apply()
-    }
-
-    companion object {
-        private const val TAG = "GoogleAuthManager"
-        private const val PREFS = "pm_auth_prefs"
-        private const val KEY_EMAIL = "email"
-        private const val KEY_NAME = "display_name"
-        private const val KEY_TOKEN = "id_token"
+            .also { it.selectedAccount = account.account }
     }
 }

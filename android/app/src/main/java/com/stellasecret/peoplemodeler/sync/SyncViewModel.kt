@@ -3,7 +3,6 @@ package com.stellasecret.peoplemodeler.sync
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.data.repository.AppDatabase
 import com.stellasecret.peoplemodeler.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,10 +16,8 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
     private val driveSync = DriveSync(application, authManager)
     private val repo = PersonRepository(AppDatabase.getInstance(application))
 
-    // ── Auth state (delegated from AuthManager) ────────────
     val authState = authManager.authState
 
-    // ── Sync UI state ──────────────────────────────────────
     private val _syncState = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
     val syncState: StateFlow<SyncUiState> = _syncState.asStateFlow()
 
@@ -29,7 +26,7 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
 
     // ── Actions ────────────────────────────────────────────
 
-    fun signOut() {
+    fun signOut() = viewModelScope.launch {
         authManager.signOut()
         _syncState.value = SyncUiState.Idle
         _backupInfo.value = null
@@ -39,9 +36,9 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
         _syncState.value = SyncUiState.Loading("Sauvegarde en cours…")
         val persons = repo.getAllPersonsOnce()
         _syncState.value = when (val result = driveSync.backup(persons)) {
-            is SyncResult.Success -> SyncUiState.Done(result.message)
-            is SyncResult.Error -> SyncUiState.Failure(result.message)
-            SyncResult.NotAuthenticated -> SyncUiState.Failure("Non connecté")
+            is SyncResult.Success        -> SyncUiState.Done(result.message)
+            is SyncResult.Error          -> SyncUiState.Failure(result.message)
+            is SyncResult.NotAuthenticated -> SyncUiState.Failure("Non connecté")
         }
         refreshBackupInfo()
     }
@@ -54,8 +51,8 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
                 persons?.forEach { repo.savePerson(it) }
                 _syncState.value = SyncUiState.Done(result.message)
             }
-            is SyncResult.Error -> _syncState.value = SyncUiState.Failure(result.message)
-            SyncResult.NotAuthenticated -> _syncState.value = SyncUiState.Failure("Non connecté")
+            is SyncResult.Error          -> _syncState.value = SyncUiState.Failure(result.message)
+            is SyncResult.NotAuthenticated -> _syncState.value = SyncUiState.Failure("Non connecté")
         }
     }
 
