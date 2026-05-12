@@ -1,5 +1,7 @@
 package com.stellasecret.peoplemodeler.sync
 
+import com.stellasecret.peoplemodeler.R
+
 import android.content.Context
 import android.util.Log
 import androidx.credentials.CredentialManager
@@ -8,10 +10,6 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.util.ExponentialBackOff
-import com.google.api.services.drive.DriveScopes
-import com.stellasecret.peoplemodeler.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -23,6 +21,9 @@ sealed class AuthState {
         val email: String,
         val displayName: String,
         val idToken: String,
+        // Access token obtenu via authorization code exchange
+        // Null tant qu'on utilise uniquement l'idToken
+        val accessToken: String? = null,
     ) : AuthState()
     data class Error(val message: String) : AuthState()
 }
@@ -40,20 +41,19 @@ class GoogleAuthManager(private val context: Context) {
     val currentEmail: String?
         get() = (_authState.value as? AuthState.SignedIn)?.email
 
-    // Google Credential Manager (API moderne, remplace GoogleSignInClient)
+    val currentIdToken: String?
+        get() = (_authState.value as? AuthState.SignedIn)?.idToken
+
     private val credentialManager = CredentialManager.create(context)
 
-    // Restore session from SharedPreferences
-    init {
-        restoreSession()
-    }
+    init { restoreSession() }
 
     // ── Sign In ───────────────────────────────────────────
 
     suspend fun signIn(activityContext: Context): Result<AuthState.SignedIn> {
         return try {
             val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false) // allow new accounts
+                .setFilterByAuthorizedAccounts(false)
                 .setServerClientId(context.getString(R.string.google_client_id))
                 .setAutoSelectEnabled(false)
                 .build()
@@ -73,9 +73,9 @@ class GoogleAuthManager(private val context: Context) {
             ) {
                 val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
                 val signedIn = AuthState.SignedIn(
-                    email = googleIdToken.id,
+                    email       = googleIdToken.id,
                     displayName = googleIdToken.displayName ?: googleIdToken.id,
-                    idToken = googleIdToken.idToken,
+                    idToken     = googleIdToken.idToken,
                 )
                 _authState.value = signedIn
                 saveSession(signedIn)
@@ -100,22 +100,10 @@ class GoogleAuthManager(private val context: Context) {
         Log.i(TAG, "✅ Signed out")
     }
 
-    // ── Drive Credential ──────────────────────────────────
-    // Pour les appels à l'API Drive REST
-
-    fun getDriveCredential(): GoogleAccountCredential? {
-        val email = currentEmail ?: return null
-        return GoogleAccountCredential
-            .usingOAuth2(context, listOf(DriveScopes.DRIVE_APPDATA))
-            .setBackOff(ExponentialBackOff())
-            .also { it.selectedAccountName = email }
-    }
-
     // ── Session persistence ───────────────────────────────
 
     private fun saveSession(state: AuthState.SignedIn) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_EMAIL, state.email)
             .putString(KEY_NAME, state.displayName)
             .putString(KEY_TOKEN, state.idToken)
@@ -125,7 +113,7 @@ class GoogleAuthManager(private val context: Context) {
     private fun restoreSession() {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val email = prefs.getString(KEY_EMAIL, null)
-        val name = prefs.getString(KEY_NAME, null)
+        val name  = prefs.getString(KEY_NAME, null)
         val token = prefs.getString(KEY_TOKEN, null)
         if (email != null && name != null && token != null) {
             _authState.value = AuthState.SignedIn(email, name, token)
@@ -134,15 +122,14 @@ class GoogleAuthManager(private val context: Context) {
     }
 
     private fun clearSession() {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().clear().apply()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }
 
     companion object {
-        private const val TAG = "GoogleAuthManager"
-        private const val PREFS = "pm_auth_prefs"
+        private const val TAG    = "GoogleAuthManager"
+        private const val PREFS  = "pm_auth_prefs"
         private const val KEY_EMAIL = "email"
-        private const val KEY_NAME = "display_name"
+        private const val KEY_NAME  = "display_name"
         private const val KEY_TOKEN = "id_token"
     }
 }
