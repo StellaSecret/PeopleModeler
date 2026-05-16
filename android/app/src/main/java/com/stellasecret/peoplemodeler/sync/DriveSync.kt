@@ -7,6 +7,7 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.stellasecret.peoplemodeler.data.models.Person
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -97,7 +98,9 @@ class DriveSync(
 
             val out = ByteArrayOutputStream()
             drive.files().get(fileId).executeMediaAndDownloadTo(out)
-            val payload = gson.fromJson(out.toString(Charsets.UTF_8.name()), BackupPayload::class.java)
+            val json = out.toString(Charsets.UTF_8.name())
+            val type = object : TypeToken<BackupPayload>() {}.type
+            val payload: BackupPayload = gson.fromJson(json, type)
 
             Log.i(TAG, "✅ Restore réussi (${payload.persons.size} profils, v${payload.version})")
             Pair(
