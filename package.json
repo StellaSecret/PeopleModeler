@@ -5,10 +5,29 @@
   "scripts": {
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "prepare": "husky",
+    "lint:html": "html-validate web/index.html web/person.html web/compare.html",
+    "lint:secrets": "node scripts/check-secrets.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10"
+  },
+  "lint-staged": {
+    "web/**/*.html": [
+      "html-validate"
+    ],
+    "web/**/*.{js,css}": [
+      "node scripts/check-secrets.js --staged"
+    ],
+    "**/*.{kt,gradle}": [
+      "node scripts/check-placeholder.js --staged"
+    ],
+    "package.json": [
+      "node scripts/check-lockfile.js"
+    ]
   }
 }

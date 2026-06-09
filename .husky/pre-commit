@@ -1,0 +1,61 @@
+set +e
+# ── 1. lint-staged — checks par type de fichier ───────────
+npx lint-staged --quiet
+LINT_EXIT=$?
+
+# If lint-staged fails (and it's not just "no files matched" which usually exits 0 in newer versions,
+# but we check just in case), we might want to block.
+# However, if LINT_EXIT is non-zero, we should check if it's a real error.
+if [ $LINT_EXIT -ne 0 ]; then
+  echo "❌ lint-staged a échoué. Vérifiez les erreurs ci-dessus."
+  exit $LINT_EXIT
+fi
+
+# ── 2. ktlint — formatage Kotlin (si installé) ────────────
+if command -v ktlint > /dev/null 2>&1; then
+  STAGED_KT=$(git diff --cached --name-only | grep '\.kt$' || true)
+  if [ -n "$STAGED_KT" ]; then
+    echo "🔍 ktlint sur les fichiers Kotlin stagés..."
+    echo "$STAGED_KT" | xargs ktlint --relative
+    KTLINT_EXIT=$?
+    if [ $KTLINT_EXIT -ne 0 ]; then
+      echo ""
+      echo "💡 Pour corriger automatiquement : ktlint --format <fichier>"
+      exit 1
+    fi
+  fi
+else
+  echo "ℹ️  ktlint non installé — ignoré (brew install ktlint pour l'activer)"
+fi
+
+# ── 3. Gitleaks — scan de secrets (si installé) ───────────
+# if command -v gitleaks > /dev/null 2>&1; then
+#   echo "🔍 Gitleaks scan..."
+#   gitleaks protect --staged --config=.gitleaks.toml -v
+#   GITLEAKS_EXIT=$?
+#   if [ $GITLEAKS_EXIT -ne 0 ]; then
+#     echo "❌ Gitleaks a détecté un secret — commit bloqué."
+#     exit 1
+#   fi
+# else
+#   echo "ℹ️  gitleaks non installé — ignoré (brew install gitleaks pour l'activer)"
+# fi
+
+# ── 4. Fichiers volumineux ─────────────────────────────────
+LARGE=$(git diff --cached --name-only | while read f; do
+  [ -f "$f" ] && size=$(wc -c < "$f") && [ "$size" -gt 512000 ] && echo "$f ($((size/1024)) KB)"
+done)
+if [ -n "$LARGE" ]; then
+  echo "❌ Fichier(s) trop volumineux stagé(s) (> 500 KB) :"
+  echo "$LARGE"
+  echo "   Les APK, keystore et binaires ne doivent pas être commités."
+  exit 1
+fi
+
+# ── 5. Reminder éthique ───────────────────────────────────
+echo ""
+echo "⚠️  People Modeler — rappel éthique"
+echo "   Utilisez cet outil avec bienveillance et responsabilité."
+echo ""
+
+exit $LINT_EXIT
