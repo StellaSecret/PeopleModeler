@@ -22,11 +22,16 @@ const staged = getStagedFiles();
 const hasPackageJson  = staged.includes('package.json');
 const hasLockfile     = staged.includes('package-lock.json');
 
+// Only error if package.json is staged, lockfile is NOT staged,
+// AND the lockfile actually has unstaged changes.
 if (hasPackageJson && !hasLockfile) {
-  console.error('❌ package.json is staged but package-lock.json is not.');
-  console.error('   Run: npm install --package-lock-only');
-  console.error('   Then: git add package-lock.json\n');
-  process.exit(1);
+  const lockfileHasChanges = execSync('git diff --name-only package-lock.json', { encoding: 'utf8' }).trim() !== '';
+  if (lockfileHasChanges) {
+    console.error('❌ package.json is staged but package-lock.json is not.');
+    console.error('   Run: npm install --package-lock-only');
+    console.error('   Then: git add package-lock.json\n');
+    process.exit(1);
+  }
 }
 
 console.log('✅ check-lockfile: OK');

@@ -1,31 +1,62 @@
-# Android
+# ── Android ───────────────────────────────────────────────
 *.iml
 .gradle/
 android/local.properties
 android/.idea/
 android/app/build/
 android/build/
+
+# APK / AAB — never commit binaries
 *.apk
 *.aab
+
+# Keystores — NEVER commit signing keys
 *.keystore
 *.jks
+android/app/people-modeler-release.jks
 
-# Web
+# google-services.json — contains API keys, never commit the real one
+android/app/google-services.json
+# The template is safe to commit
+!android/app/google-services.json.template
+
+# ── Secrets / Environment ──────────────────────────────────
+.env
+.env.local
+.env.production
+*.env
+
+# ── Node / Web ─────────────────────────────────────────────
 node_modules/
 dist/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-*.swp
-
-# GitHub Pages output
-gh-pages/
-
-# Tests
 playwright-report/
 test-results/
-*.zip
+
+# ── OS ────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ── IDE ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Gradle ────────────────────────────────────────────────
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ── Test / Coverage ───────────────────────────────────────
+coverage/
+*.lcov
+htmlcov/
+
+# ── GitHub Pages output ───────────────────────────────────
+gh-pages/

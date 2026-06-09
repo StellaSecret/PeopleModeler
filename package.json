@@ -6,6 +6,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
+    "build": "echo 'Static site - no build needed'",
+    "preview": "serve web -p 4173",
     "prepare": "husky",
     "lint:html": "html-validate web/index.html web/person.html web/compare.html",
     "lint:secrets": "node scripts/check-secrets.js"

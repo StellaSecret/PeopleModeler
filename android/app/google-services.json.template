@@ -1,0 +1,65 @@
+{
+  "__INSTRUCTIONS__": [
+    "CE FICHIER EST UN TEMPLATE — ne le commite pas tel quel.",
+    "1. Va sur https://console.firebase.google.com (ou Google Cloud Console)",
+    "2. Sélectionne ton projet People Modeler",
+    "3. Project Settings → Tes applications → Android",
+    "4. Package : com.stellasecret.peoplemodeler",
+    "5. Télécharge le vrai google-services.json",
+    "6. Place-le dans android/app/google-services.json",
+    "7. NE COMMITE JAMAIS ce fichier — il est dans .gitignore"
+  ],
+  "project_info": {
+    "project_number": "__PROJECT_NUMBER__",
+    "project_id": "__PROJECT_ID__",
+    "storage_bucket": "__PROJECT_ID__.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:__PROJECT_NUMBER__:android:__APP_HASH__",
+        "android_client_info": {
+          "package_name": "com.stellasecret.peoplemodeler"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "__ANDROID_CLIENT_ID__.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.stellasecret.peoplemodeler",
+            "certificate_hash": "__SHA1_RELEASE__"
+          }
+        },
+        {
+          "client_id": "__ANDROID_DEBUG_CLIENT_ID__.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.stellasecret.peoplemodeler.debug",
+            "certificate_hash": "__SHA1_DEBUG__"
+          }
+        },
+        {
+          "client_id": "__WEB_CLIENT_ID__.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "__API_KEY__"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "__WEB_CLIENT_ID__.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
