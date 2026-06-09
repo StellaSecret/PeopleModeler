@@ -29,14 +29,35 @@ test.describe('Navigation & Accessibilité', () => {
       expect(critical).toHaveLength(0);
     });
 
-    test(`${name} — responsive mobile (375px)`, async ({ page }) => {
+    test(`${name} — responsive mobile 375px — pas de scroll horizontal`, async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(path);
       await page.waitForLoadState('networkidle');
-      // scrollWidth ne doit pas dépasser 20% la largeur du viewport
-      // (tolérance généreuse car certains éléments peuvent légèrement déborder)
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(scrollWidth).toBeLessThanOrEqual(500);
+
+      // Measure scroll width vs viewport width
+      const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      }));
+
+      // Tolerance: max 20px overflow (scrollbar, rounding artifacts)
+      expect(
+        scrollWidth,
+        `Overflow horizontal sur ${name} à 375px : scrollWidth=${scrollWidth} > clientWidth=${clientWidth}`
+      ).toBeLessThanOrEqual(clientWidth + 20);
+    });
+
+    test(`${name} — responsive tablette 768px`, async ({ page }) => {
+      await page.setViewportSize({ width: 768, height: 1024 });
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+
+      const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      }));
+
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 5);
     });
 
     test(`${name} — meta viewport présent`, async ({ page }) => {
@@ -60,5 +81,23 @@ test.describe('Navigation & Accessibilité', () => {
       const response = await page.request.get(`/${href}`);
       expect(response.status(), `Lien cassé: ${href}`).toBe(200);
     }
+  });
+
+  test('navigation Landing → Person fonctionne', async ({ page }) => {
+    await page.goto('/');
+    await page.click('text=Démo');
+    await expect(page).toHaveURL(/person/);
+  });
+
+  test('navigation Landing → Compare fonctionne', async ({ page }) => {
+    await page.goto('/');
+    await page.click('text=Comparer');
+    await expect(page).toHaveURL(/compare/);
+  });
+
+  test('navigation retour Compare → Landing fonctionne', async ({ page }) => {
+    await page.goto('/compare.html');
+    await page.click('.nav-logo');
+    await expect(page).toHaveURL(/index\.html|\/$/);
   });
 });

@@ -428,7 +428,9 @@ body {
 }
 @media (max-width: 600px) {
   .features-grid, .usecase-grid { grid-template-columns: 1fr; }
-  .nav-links a:not(.btn-nav):not(:last-child) { display: none; }
+  /* Keep all nav links visible on mobile — wrap and shrink instead of hiding */
+  .nav-links { flex-wrap: wrap; gap: 0.5rem; }
+  .nav-links a { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
 }
 
 /* ── BAR WIDTH UTILITIES (replaces inline styles) ──────── */
