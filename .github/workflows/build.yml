@@ -64,7 +64,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Run Unit Tests
-        run: ./android/gradlew test -p android
+        run: |
+          export JAVA_HOME=$JAVA_HOME_21_X64
+          ./android/gradlew test -p android
 
   web-tests:
     name: Web E2E Tests
@@ -124,8 +126,8 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/peoplemodeler-${{ github.run_number }}.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab dist/peoplemodeler-${{ github.run_number }}.aab
+          find android/app/build/outputs/apk/release -name "*.apk" -exec cp {} dist/peoplemodeler-${{ github.run_number }}.apk \;
+          find android/app/build/outputs/bundle/release -name "*.aab" -exec cp {} dist/peoplemodeler-${{ github.run_number }}.aab \;
       - name: Upload Release Artifacts
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
