@@ -9,7 +9,7 @@
     "build": "echo 'Static site - no build needed'",
     "preview": "serve web -p 4173",
     "prepare": "husky",
-    "lint:html": "html-validate web/index.html web/person.html web/compare.html",
+    "lint:html": "html-validate web/index.html web/app.html web/person.html web/compare.html",
     "lint:secrets": "node scripts/check-secrets.js"
   },
   "devDependencies": {

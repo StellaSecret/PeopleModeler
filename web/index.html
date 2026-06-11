@@ -1,199 +1,1148 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" >
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" >
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>People Modeler — Comprendre les systèmes humains</title>
-  <link rel="stylesheet" href="css/main.css" >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png">
+  <style>
+/* ── DESIGN SYSTEM ── */
+:root {
+  --bg: #080C14;
+  --surface: #0D1525;
+  --surface2: #121E35;
+  --border: rgba(255,255,255,0.07);
+  --text: #E8EDF5;
+  --text-muted: #6B7A9A;
+  --primary: #E94560;
+  --cyan: #00D4AA;
+  --gold: #F5A623;
+  --purple: #7C5CBF;
+  --green: #2ECC71;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --radius: 12px;
+  --radius-lg: 20px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 15px; line-height: 1.6; overflow-x: hidden; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── NOISE ── */
+.noise {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 3rem;
+  background: rgba(8,12,20,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; color: var(--text); cursor: pointer; }
+.nav-logo span { color: var(--primary); }
+.nav-links { display: flex; align-items: center; gap: 2rem; }
+.nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; cursor: pointer; }
+.nav-links a:hover { color: var(--text); }
+.btn-nav { background: var(--primary) !important; color: white !important; padding: 0.5rem 1.2rem; border-radius: var(--radius); font-size: 0.8rem !important; }
+
+/* ── BUTTONS ── */
+.btn-primary {
+  display: inline-block; background: var(--primary); color: white;
+  padding: 0.8rem 1.8rem; border-radius: var(--radius);
+  text-decoration: none; font-family: var(--font-mono); font-size: 0.88rem; font-weight: 700;
+  transition: transform 0.15s, box-shadow 0.15s; border: none; cursor: pointer;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(233,69,96,0.4); }
+.btn-primary.large { padding: 1rem 2.2rem; font-size: 1rem; }
+.btn-ghost {
+  display: inline-block; background: transparent; color: var(--text);
+  padding: 0.8rem 1.8rem; border-radius: var(--radius);
+  text-decoration: none; font-family: var(--font-mono); font-size: 0.88rem;
+  border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s; cursor: pointer;
+}
+.btn-ghost:hover { border-color: var(--text-muted); background: var(--surface); }
+.btn-ghost.large { padding: 1rem 2.2rem; font-size: 1rem; }
+
+/* ── TAGS ── */
+.tag { display: inline-block; padding: 0.25rem 0.7rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; font-size: 0.75rem; color: var(--text-muted); margin: 0.2rem; }
+
+/* ── SECTION TITLE ── */
+.section-title { font-family: var(--font-display); font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 800; text-align: center; margin-bottom: 3rem; letter-spacing: -0.02em; }
+.section-title em { font-style: normal; color: var(--cyan); }
+
+/* ── FOOTER ── */
+.footer { padding: 2rem 6rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.footer-logo { font-family: var(--font-display); font-weight: 800; }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; cursor: pointer; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { color: var(--text-muted); font-size: 0.78rem; }
+
+/* ══════════════════════════════════════════
+   LANDING PAGE
+══════════════════════════════════════════ */
+.hero {
+  min-height: 100vh; display: flex; align-items: center; justify-content: space-between;
+  gap: 4rem; padding: 8rem 6rem 4rem; position: relative; overflow: hidden;
+}
+.hero-grid-bg {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(233,69,96,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(233,69,96,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+}
+.hero-content { flex: 1; max-width: 600px; }
+.hero-tag { display: inline-block; padding: 0.4rem 1rem; background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.3); border-radius: 100px; font-size: 0.75rem; color: var(--gold); margin-bottom: 2rem; font-family: var(--font-mono); }
+.hero-title { font-family: var(--font-display); font-size: clamp(2.8rem, 5vw, 4.5rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; margin-bottom: 1.5rem; }
+.hero-title em { font-style: normal; color: var(--primary); position: relative; }
+.hero-title em::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 3px; background: var(--primary); border-radius: 2px; }
+.hero-sub { color: var(--text-muted); font-size: 1rem; margin-bottom: 2.5rem; line-height: 1.8; }
+.hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
+.hero-visual { flex: 0 0 340px; }
+.person-card-preview { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; position: relative; overflow: hidden; }
+.person-card-preview::before { content: ''; position: absolute; top: -60px; right: -60px; width: 160px; height: 160px; background: radial-gradient(circle, rgba(233,69,96,0.15), transparent 70%); border-radius: 50%; }
+.pcp-avatar { font-size: 3rem; width: 72px; height: 72px; background: var(--surface2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; border: 2px solid var(--border); }
+.pcp-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
+.pcp-role { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1.5rem; }
+.bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; font-size: 0.75rem; color: var(--text-muted); }
+.bar-row span { width: 130px; white-space: nowrap; }
+.bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.fill { height: 100%; background: var(--cyan); border-radius: 3px; transition: width 1s ease; }
+.fill.red { background: var(--primary); }
+.fill.gold { background: var(--gold); }
+.fill-90 { width: 90%; } .fill-75 { width: 75%; } .fill-82 { width: 82%; }
+.pcp-badge { margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.25); border-radius: 8px; font-size: 0.78rem; color: var(--gold); }
+
+.features { padding: 6rem; background: var(--surface); }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+.feature-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; transition: transform 0.2s, border-color 0.2s; }
+.feature-card:hover { transform: translateY(-4px); border-color: rgba(0,212,170,0.3); }
+.feature-card.accent { border-color: rgba(233,69,96,0.3); background: rgba(233,69,96,0.05); }
+.feature-card.accent2 { border-color: rgba(245,166,35,0.3); background: rgba(245,166,35,0.05); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.feature-card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.7; }
+
+.how { padding: 6rem; }
+.steps { display: flex; align-items: center; max-width: 1000px; margin: 0 auto; }
+.step { flex: 1; text-align: center; padding: 1.5rem; }
+.step-num { font-family: var(--font-display); font-size: 3rem; font-weight: 800; color: var(--primary); opacity: 0.4; line-height: 1; margin-bottom: 0.5rem; }
+.step-body h3 { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.step-body p { color: var(--text-muted); font-size: 0.82rem; line-height: 1.6; }
+.step-connector { width: 60px; height: 2px; background: linear-gradient(90deg, var(--primary), var(--cyan)); flex-shrink: 0; }
+
+.usecases { padding: 6rem; background: var(--surface); }
+.usecase-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; max-width: 1000px; margin: 0 auto; }
+.usecase { text-align: center; padding: 2rem 1.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.uc-icon { font-size: 2.5rem; display: block; margin-bottom: 1rem; }
+.usecase h4 { font-family: var(--font-display); font-weight: 700; margin-bottom: 0.5rem; }
+.usecase p { color: var(--text-muted); font-size: 0.82rem; line-height: 1.6; }
+
+.ethics { padding: 3rem 6rem; background: rgba(245,166,35,0.06); border-top: 1px solid rgba(245,166,35,0.2); border-bottom: 1px solid rgba(245,166,35,0.2); }
+.ethics-inner { display: flex; align-items: center; gap: 2rem; max-width: 900px; margin: 0 auto; }
+.ethics-icon { font-size: 3rem; flex-shrink: 0; }
+.ethics h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--gold); }
+.ethics p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; }
+.ethics strong { color: var(--text); }
+
+.cta-section { padding: 8rem 6rem; text-align: center; background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(233,69,96,0.08), transparent); }
+.cta-section h2 { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
+.cta-section p { color: var(--text-muted); margin-bottom: 2.5rem; }
+.cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+/* ══════════════════════════════════════════
+   PERSON PAGE
+══════════════════════════════════════════ */
+.person-main { max-width: 860px; margin: 0 auto; padding: 6rem 2rem 4rem; }
+.profile-header { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; position: relative; overflow: hidden; }
+.profile-header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(233,69,96,0.2), transparent 70%); border-radius: 50%; }
+.profile-avatar { font-size: 3.5rem; width: 80px; height: 80px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--border); flex-shrink: 0; }
+.profile-info { flex: 1; }
+.profile-info h1 { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; margin-bottom: 0.3rem; }
+.profile-info p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+.profile-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.accuracy-ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.accuracy-ring svg { width: 80px; height: 80px; }
+.accuracy-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 1rem; color: var(--gold); text-align: center; line-height: 1.2; }
+.accuracy-label small { font-size: 0.55rem; color: var(--text-muted); font-family: var(--font-mono); font-weight: 400; }
+.tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.tab { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 1.2rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.tab:hover { border-color: var(--text-muted); color: var(--text); }
+.tab.active { background: var(--primary); border-color: var(--primary); color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.section-label { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text); }
+.motivation-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1.5rem; }
+.mot-icon { font-size: 1.8rem; flex-shrink: 0; }
+.mot-info { flex: 1; }
+.mot-name { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; }
+.mot-bar-wrap { display: flex; align-items: center; gap: 0.75rem; }
+.mot-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.mot-bar-fill { height: 100%; background: var(--cyan); border-radius: 3px; }
+.mot-intensity { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+.mot-notes { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic; }
+.bias-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1.5rem; }
+.bias-bar-fill { height: 100%; background: var(--primary); border-radius: 3px; }
+.add-item-row { margin-top: 1rem; }
+.btn-add { background: transparent; border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.75rem 1.5rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; width: 100%; transition: border-color 0.2s, color 0.2s; }
+.btn-add:hover { border-color: var(--cyan); color: var(--cyan); }
+.ocean-chart { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem; }
+.ocean-row { display: flex; align-items: center; gap: 1rem; }
+.ocean-label { width: 180px; font-size: 0.85rem; color: var(--text-muted); flex-shrink: 0; }
+.ocean-slider { flex: 1; -webkit-appearance: none; height: 6px; background: var(--surface2); border-radius: 3px; outline: none; cursor: pointer; }
+.ocean-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--cyan); border-radius: 50%; cursor: pointer; border: 2px solid var(--bg); }
+.ocean-val { width: 24px; font-family: var(--font-display); font-weight: 700; color: var(--cyan); text-align: right; }
+.ocean-interpretation { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--purple); border-radius: var(--radius); padding: 1.5rem; font-size: 0.88rem; line-height: 1.8; color: var(--text-muted); }
+.ocean-interpretation strong { color: var(--text); }
+.prediction-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+.pred-context { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.pred-outcome { font-size: 0.92rem; margin-bottom: 0.75rem; }
+.pred-status { display: flex; align-items: center; gap: 0.75rem; font-size: 0.78rem; flex-wrap: wrap; }
+.pred-badge { padding: 0.25rem 0.7rem; border-radius: 100px; font-size: 0.72rem; }
+.pred-badge.pending { background: rgba(245,166,35,0.15); color: var(--gold); }
+.pred-badge.resolved { background: rgba(46,204,113,0.15); color: var(--green); }
+.add-prediction-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; margin-top: 2rem; }
+.add-prediction-form h3 { font-family: var(--font-display); font-weight: 700; margin-bottom: 1.5rem; }
+.form-row { margin-bottom: 1.25rem; }
+.form-row label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.form-row input, .form-row textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; color: var(--text); font-family: var(--font-mono); font-size: 0.88rem; outline: none; transition: border-color 0.2s; resize: vertical; }
+.form-row input:focus, .form-row textarea:focus { border-color: var(--cyan); }
+.form-row textarea { min-height: 100px; }
+.trigger-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 2rem; }
+.trigger-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.82rem; cursor: pointer; transition: all 0.15s; text-align: center; }
+.trigger-btn:hover, .trigger-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,170,0.07); }
+.insight-output { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: var(--radius); padding: 1.75rem; min-height: 140px; font-size: 0.9rem; line-height: 1.9; white-space: pre-line; }
+.placeholder-text { color: var(--text-muted); font-style: italic; }
+.btn-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: color 0.15s; }
+.btn-delete:hover { color: var(--primary); }
+.btn-resolve { background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.3); border-radius: 8px; color: var(--cyan); font-family: var(--font-mono); font-size: .75rem; padding: .25rem .7rem; cursor: pointer; transition: background .15s; }
+.btn-resolve:hover { background: rgba(0,212,170,0.2); }
+
+/* ── MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: min(500px, 90vw); max-height: 80vh; overflow-y: auto; }
+.modal h3 { font-family: var(--font-display); font-weight: 700; margin-bottom: 1.5rem; }
+.modal-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
+.modal select, .modal input[type=range] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; color: var(--text); font-family: var(--font-mono); font-size: 0.88rem; outline: none; margin-bottom: 1rem; }
+.modal label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; margin-top: 1rem; }
+
+/* ══════════════════════════════════════════
+   COMPARE PAGE
+══════════════════════════════════════════ */
+.compare-main { max-width: 1100px; margin: 0 auto; padding: 6rem 2rem 4rem; }
+.compare-title { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; text-align: center; margin-bottom: 0.75rem; }
+.compare-sub { text-align: center; color: var(--text-muted); margin-bottom: 3rem; }
+.compare-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5rem; align-items: start; margin-bottom: 3rem; }
+.compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; }
+.compare-avatar { font-size: 3rem; margin-bottom: 1rem; }
+.compare-card h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; margin-bottom: 0.3rem; }
+.compare-card > p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+.compare-section { margin-bottom: 1.25rem; }
+.compare-section h4 { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.compare-chip { display: inline-block; padding: 0.35rem 0.9rem; border-radius: 100px; font-size: 0.82rem; font-family: var(--font-mono); }
+.compare-chip.green { background: rgba(0,212,170,0.1); color: var(--cyan); border: 1px solid rgba(0,212,170,0.25); }
+.compare-chip.red { background: rgba(233,69,96,0.1); color: var(--primary); border: 1px solid rgba(233,69,96,0.25); }
+.mini-bars { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.mb-row { display: flex; align-items: center; gap: 0.5rem; }
+.mb-row > span { width: 16px; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+.mb-bar { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.mb-bar > div { height: 100%; background: var(--cyan); border-radius: 3px; }
+.mb-bar > .w-40 { width: 40%; } .mb-bar > .w-50 { width: 50%; } .mb-bar > .w-60 { width: 60%; }
+.mb-bar > .w-65 { width: 65%; } .mb-bar > .w-80 { width: 80%; } .mb-bar > .w-85 { width: 85%; }
+.mb-bar > .w-90 { width: 90%; } .mb-bar > .w-95 { width: 95%; }
+.vs-divider { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 2rem; gap: 1.5rem; }
+.vs-text { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; color: var(--text-muted); }
+.compat-ring { position: relative; width: 80px; height: 80px; }
+.compat-ring svg { width: 80px; height: 80px; }
+.compat-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 1rem; color: var(--green); text-align: center; line-height: 1.2; }
+.compat-label small { font-size: 0.52rem; color: var(--text-muted); font-family: var(--font-mono); }
+.analysis-section { margin-bottom: 2rem; }
+.analysis-section h2 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
+.analysis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+.analysis-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; }
+.analysis-card.synergy { border-top: 3px solid var(--green); }
+.analysis-card.friction { border-top: 3px solid var(--primary); }
+.analysis-card.strategy { border-top: 3px solid var(--cyan); }
+.analysis-card h3 { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+.analysis-card ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+.analysis-card li { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; padding-left: 1rem; position: relative; }
+.analysis-card li::before { content: '—'; position: absolute; left: 0; color: var(--border); }
+.analysis-card strong { color: var(--text); }
+.ethics-banner { background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.2); border-radius: var(--radius); padding: 1.25rem 1.75rem; font-size: 0.88rem; color: var(--text-muted); text-align: center; margin-top: 2rem; }
+.ethics-banner em { color: var(--gold); font-style: normal; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .hero { flex-direction: column; padding: 6rem 2rem 3rem; }
+  .hero-visual { width: 100%; }
+  .features-grid, .usecase-grid { grid-template-columns: 1fr 1fr; }
+  .features, .how, .usecases, .cta-section, .footer { padding: 3rem 2rem; }
+  .steps { flex-direction: column; }
+  .step-connector { width: 2px; height: 40px; }
+  .nav { padding: 1rem 1.5rem; }
+  .nav-links { gap: 1rem; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .vs-divider { flex-direction: row; padding: 0; }
+  .analysis-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .features-grid, .usecase-grid { grid-template-columns: 1fr; }
+  .nav-links { flex-wrap: wrap; gap: 0.5rem; }
+  .nav-links a { font-size: 0.8rem; }
+  .trigger-grid { grid-template-columns: 1fr 1fr; }
+  .profile-header { flex-wrap: wrap; }
+  .ocean-label { width: 130px; font-size: 0.75rem; }
+  .bar-row span { width: 90px; font-size: 0.7rem; }
+  .ethics { padding: 2rem 1rem; }
+  .ethics-inner { flex-direction: column; }
+  .features, .how, .usecases, .cta-section, .footer { padding: 2rem 1rem; }
+  .hero { padding: 5rem 1rem 2rem; }
+  .cta-buttons { flex-direction: column; align-items: center; }
+}
+
+  </style>
 </head>
 <body>
 
-<!-- ── NOISE OVERLAY ── -->
 <div class="noise"></div>
 
 <!-- ── NAV ── -->
-<nav class="nav">
-  <div class="nav-logo">🧩 <span>People</span>Modeler</div>
+<nav class="nav" aria-label="Navigation principale">
+  <div class="nav-logo" onclick="navigate('landing')">🧩 <span>People</span>Modeler</div>
   <div class="nav-links">
-    <a href="#features">Fonctionnalités</a>
-    <a href="#how">Comment</a>
-    <a href="person.html">Démo</a>
-    <a href="compare.html">Comparer</a>
-    <a class="btn-nav" href="#">Télécharger</a>
+    <a href="index.html" onclick="navigate('landing'); scrollToId('features'); return false;">Fonctionnalités</a>
+    <a href="index.html" onclick="navigate('landing'); scrollToId('how'); return false;">Comment</a>
+    <a href="person.html" onclick="navigate('person'); return false;">Démo</a>
+    <a href="compare.html" onclick="navigate('compare'); return false;">Comparer</a>
+    <a class="btn-nav" href="app.html">Ouvrir l'app</a>
   </div>
 </nav>
 
-<!-- ── HERO ── -->
-<section class="hero">
-  <div class="hero-grid-bg"></div>
-  <div class="hero-content">
-    <div class="hero-tag">⚠️ Éthique d'abord · Ultra-puissant ensuite</div>
-    <h1 class="hero-title">
-      Modéliser les gens<br>
-      comme des <em>systèmes</em>
-    </h1>
-    <p class="hero-sub">
-      Motivations · Biais · Comportements<br>
-      Prédire avec précision. Comprendre avec empathie.
-    </p>
-    <div class="hero-cta">
-      <a href="#" class="btn-primary">📱 Android APK</a>
-      <a href="person.html" class="btn-ghost">Voir une démo →</a>
-    </div>
-  </div>
-  <div class="hero-visual">
-    <div class="person-card-preview">
-      <div class="pcp-avatar">🧠</div>
-      <div class="pcp-name">Système : Alexandre D.</div>
-      <div class="pcp-role">Décideur · Contexte pro</div>
-      <div class="pcp-bars">
-        <div class="bar-row"><span>Pouvoir 👑</span><div class="bar"><div class="fill fill-90"></div></div></div>
-        <div class="bar-row"><span>Biais ancrage ⚓</span><div class="bar"><div class="fill red fill-75"></div></div></div>
-        <div class="bar-row"><span>Précision prédictions</span><div class="bar"><div class="fill gold fill-82"></div></div></div>
-      </div>
-      <div class="pcp-badge">🔮 3 prédictions en attente</div>
-    </div>
-  </div>
-</section>
+<!-- ══════════════════════════════════
+     PAGE: LANDING
+══════════════════════════════════ -->
+<div id="page-landing" class="page active">
 
-<!-- ── FEATURES ── -->
-<section class="features" id="features">
-  <h2 class="section-title">Ce que vous <em>gagnez</em></h2>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">🗂️</div>
-      <h3>Fiches personnalisées</h3>
-      <p>Chaque personne est un modèle : motivations profondes, biais cognitifs, patterns comportementaux. Un profil OCEAN complet.</p>
-    </div>
-    <div class="feature-card accent">
-      <div class="feature-icon">🔮</div>
-      <h3>Prédictions comportementales</h3>
-      <p>Anticipez les réactions dans chaque contexte — stress, conflit, succès, incertitude. Avec un indice de confiance.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔄</div>
-      <h3>Feedback Loop</h3>
-      <p>Notez la précision de vos prédictions. Le système apprend de vos retours. Votre modèle mental s'affine.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📊</div>
-      <h3>Insights &amp; comparaisons</h3>
-      <p>Comparez deux profils, identifiez les synergies et les points de friction. Parfait pour les équipes et les négociations.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔒</div>
-      <h3>100% local</h3>
-      <p>Vos données restent sur votre appareil. Aucun serveur, aucune synchronisation cloud. Votre modèle mental est privé.</p>
-    </div>
-    <div class="feature-card accent2">
-      <div class="feature-icon">⚠️</div>
-      <h3>Éthique by design</h3>
-      <p>Rappels intégrés. Conçu pour améliorer vos relations, pas pour manipuler. Le pouvoir implique la responsabilité.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ── HOW IT WORKS ── -->
-<section class="how" id="how">
-  <h2 class="section-title">Comment ça <em>fonctionne</em></h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">01</div>
-      <div class="step-body">
-        <h3>Créez une fiche</h3>
-        <p>Nom, rôle, contexte. Choisissez un avatar. C'est votre point de départ.</p>
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-content">
+      <div class="hero-tag">⚠️ Éthique d'abord · Ultra-puissant ensuite</div>
+      <h1 class="hero-title">
+        Modéliser les gens<br>
+        comme des <em>systèmes</em>
+      </h1>
+      <p class="hero-sub">
+        Motivations · Biais · Comportements<br>
+        Prédire avec précision. Comprendre avec empathie.
+      </p>
+      <div class="hero-cta">
+        <a href="app.html" class="btn-primary">🚀 Lancer l'app web</a>
+        <button type="button" class="btn-ghost" onclick="navigate('person')">Voir la démo →</button>
       </div>
     </div>
-    <div class="step-connector"></div>
-    <div class="step">
-      <div class="step-num">02</div>
-      <div class="step-body">
-        <h3>Modélisez le système</h3>
-        <p>Ajoutez les motivations (intensité 1–10), les biais observés, les patterns comportementaux selon le contexte.</p>
+    <div class="hero-visual">
+      <div class="person-card-preview">
+        <div class="pcp-avatar">🧠</div>
+        <div class="pcp-name">Système : Alexandre D.</div>
+        <div class="pcp-role">Décideur · Contexte pro</div>
+        <div class="pcp-bars">
+          <div class="bar-row"><span>Pouvoir 👑</span><div class="bar"><div class="fill fill-90"></div></div></div>
+          <div class="bar-row"><span>Biais ancrage ⚓</span><div class="bar"><div class="fill red fill-75"></div></div></div>
+          <div class="bar-row"><span>Précision prédictions</span><div class="bar"><div class="fill gold fill-82"></div></div></div>
+        </div>
+        <div class="pcp-badge">🔮 3 prédictions en attente</div>
       </div>
     </div>
-    <div class="step-connector"></div>
-    <div class="step">
-      <div class="step-num">03</div>
-      <div class="step-body">
-        <h3>Prédisez &amp; testez</h3>
-        <p>Avant une réunion, un conflit, une négociation — notez votre prédiction. Observez. Notez la précision.</p>
+  </section>
+
+  <section class="features" id="features">
+    <h2 class="section-title">Ce que vous <em>gagnez</em></h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🗂️</div>
+        <h3>Fiches personnalisées</h3>
+        <p>Chaque personne est un modèle : motivations profondes, biais cognitifs, patterns comportementaux. Un profil OCEAN complet.</p>
+      </div>
+      <div class="feature-card accent">
+        <div class="feature-icon">🔮</div>
+        <h3>Prédictions comportementales</h3>
+        <p>Anticipez les réactions dans chaque contexte — stress, conflit, succès, incertitude. Avec un indice de confiance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Feedback Loop</h3>
+        <p>Notez la précision de vos prédictions. Le système apprend de vos retours. Votre modèle mental s'affine.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Insights &amp; comparaisons</h3>
+        <p>Comparez deux profils, identifiez les synergies et les points de friction. Parfait pour les équipes et les négociations.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>100% local</h3>
+        <p>Vos données restent sur votre appareil. Aucun serveur, aucune synchronisation cloud. Votre modèle mental est privé.</p>
+      </div>
+      <div class="feature-card accent2">
+        <div class="feature-icon">⚠️</div>
+        <h3>Éthique by design</h3>
+        <p>Rappels intégrés. Conçu pour améliorer vos relations, pas pour manipuler. Le pouvoir implique la responsabilité.</p>
       </div>
     </div>
-    <div class="step-connector"></div>
-    <div class="step">
-      <div class="step-num">04</div>
-      <div class="step-body">
-        <h3>Affinez le modèle</h3>
-        <p>Le feedback loop améliore votre compréhension. Avec le temps, vous prédisez à 80%+.</p>
+  </section>
+
+  <section class="how" id="how">
+    <h2 class="section-title">Comment ça <em>fonctionne</em></h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h3>Créez une fiche</h3>
+          <p>Nom, rôle, contexte. Choisissez un avatar. C'est votre point de départ.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h3>Modélisez le système</h3>
+          <p>Ajoutez les motivations (intensité 1–10), les biais observés, les patterns comportementaux selon le contexte.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h3>Prédisez &amp; testez</h3>
+          <p>Avant une réunion, un conflit, une négociation — notez votre prédiction. Observez. Notez la précision.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h3>Affinez le modèle</h3>
+          <p>Le feedback loop améliore votre compréhension. Avec le temps, vous prédisez à 80%+.</p>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ── USE CASES ── -->
-<section class="usecases">
-  <h2 class="section-title">Ultra-puissant pour…</h2>
-  <div class="usecase-grid">
-    <div class="usecase">
-      <span class="uc-icon">💼</span>
-      <h4>Business</h4>
-      <p>Négociations, clients, partenaires. Anticipez les objections, adaptez votre approche.</p>
+  <section class="usecases">
+    <h2 class="section-title">Ultra-puissant pour…</h2>
+    <div class="usecase-grid">
+      <div class="usecase"><span class="uc-icon">💼</span><h4>Business</h4><p>Négociations, clients, partenaires. Anticipez les objections, adaptez votre approche.</p></div>
+      <div class="usecase"><span class="uc-icon">💞</span><h4>Relations</h4><p>Comprenez vos proches en profondeur. Réduisez les conflits. Créez des connexions durables.</p></div>
+      <div class="usecase"><span class="uc-icon">♟️</span><h4>Stratégie</h4><p>Leadership, politique d'équipe, gestion de conflits. Prenez des décisions informées.</p></div>
+      <div class="usecase"><span class="uc-icon">🧘</span><h4>Introspection</h4><p>Modélisez-vous vous-même. Identifiez vos propres biais. Devenez plus conscient.</p></div>
     </div>
-    <div class="usecase">
-      <span class="uc-icon">💞</span>
-      <h4>Relations</h4>
-      <p>Comprenez vos proches en profondeur. Réduisez les conflits. Créez des connexions durables.</p>
+  </section>
+
+  <section class="ethics">
+    <div class="ethics-inner">
+      <div class="ethics-icon">⚖️</div>
+      <div>
+        <h3>Note éthique importante</h3>
+        <p>People Modeler est un outil de compréhension, pas de manipulation. Utilisez-le pour <strong>améliorer vos relations</strong>, pas pour exploiter les failles des autres. La connaissance des systèmes humains est une responsabilité.</p>
+      </div>
     </div>
-    <div class="usecase">
-      <span class="uc-icon">♟️</span>
-      <h4>Stratégie</h4>
-      <p>Leadership, politique d'équipe, gestion de conflits. Prenez des décisions informées.</p>
+  </section>
+
+  <section class="cta-section">
+    <h2>Prêt à comprendre les systèmes humains ?</h2>
+    <p>Application web. Données 100% locales. Gratuit.</p>
+    <div class="cta-buttons">
+      <a href="app.html" class="btn-primary large">🚀 Lancer l'application</a>
+      <button type="button" class="btn-ghost large" onclick="navigate('person')">👁️ Voir la démo</button>
     </div>
-    <div class="usecase">
-      <span class="uc-icon">🧘</span>
-      <h4>Introspection</h4>
-      <p>Modélisez-vous vous-même. Identifiez vos propres biais. Devenez plus conscient.</p>
+  </section>
+
+  <footer class="footer" aria-label="Pied de page — Accueil">
+    <div class="footer-logo">🧩 PeopleModeler</div>
+    <div class="footer-links">
+      <a onclick="navigate('person')">Démo fiche</a>
+      <a onclick="navigate('compare')">Comparaison</a>
+    </div>
+    <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE: PERSON APP
+══════════════════════════════════ -->
+<div id="page-person" class="page">
+  <div class="person-main">
+
+    <div class="profile-header">
+      <div class="profile-avatar" id="profileAvatar">🧠</div>
+      <div class="profile-info">
+        <h1 id="profileName">Alexandre Dubois</h1>
+        <p id="profileRole">Directeur Commercial · Contexte Pro</p>
+        <div class="profile-tags" id="profileTags">
+          <span class="tag">Business</span><span class="tag">Décideur</span><span class="tag">Négociateur</span>
+        </div>
+      </div>
+      <div class="profile-accuracy">
+        <div class="accuracy-ring">
+          <svg viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--gold)" stroke-width="8"
+              stroke-dasharray="213.6" stroke-dashoffset="38" stroke-linecap="round"
+              transform="rotate(-90 40 40)"/>
+          </svg>
+          <div class="accuracy-label">82%<br><small>précision</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="motivations">💡 Motivations</button>
+      <button type="button" class="tab" data-tab="biases">🧠 Biais</button>
+      <button type="button" class="tab" data-tab="ocean">🌊 OCEAN</button>
+      <button type="button" class="tab" data-tab="predictions">🔮 Prédictions</button>
+      <button type="button" class="tab" data-tab="insights">✨ Insights</button>
+    </div>
+
+    <div class="tab-content active" id="tab-motivations">
+      <h2 class="section-label">Motivations profondes</h2>
+      <div id="motivationList"></div>
+      <div class="add-item-row">
+        <button type="button" class="btn-add" onclick="openAddMotivation()">+ Ajouter une motivation</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-biases">
+      <h2 class="section-label">Biais cognitifs observés</h2>
+      <div id="biasList"></div>
+      <div class="add-item-row">
+        <button type="button" class="btn-add" onclick="openAddBias()">+ Ajouter un biais</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-ocean">
+      <h2 class="section-label">Profil de personnalité (Big Five)</h2>
+      <div class="ocean-chart">
+        <div class="ocean-row"><div class="ocean-label">O — Ouverture</div><input type="range" min="1" max="10" value="8" class="ocean-slider" id="slider-O" oninput="updateOcean('O', this.value)"><div class="ocean-val" id="val-O">8</div></div>
+        <div class="ocean-row"><div class="ocean-label">C — Consciencieux</div><input type="range" min="1" max="10" value="6" class="ocean-slider" id="slider-C" oninput="updateOcean('C', this.value)"><div class="ocean-val" id="val-C">6</div></div>
+        <div class="ocean-row"><div class="ocean-label">E — Extraversion</div><input type="range" min="1" max="10" value="9" class="ocean-slider" id="slider-E" oninput="updateOcean('E', this.value)"><div class="ocean-val" id="val-E">9</div></div>
+        <div class="ocean-row"><div class="ocean-label">A — Agréabilité</div><input type="range" min="1" max="10" value="4" class="ocean-slider" id="slider-A" oninput="updateOcean('A', this.value)"><div class="ocean-val" id="val-A">4</div></div>
+        <div class="ocean-row"><div class="ocean-label">N — Névrosisme</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="slider-N" oninput="updateOcean('N', this.value)"><div class="ocean-val" id="val-N">5</div></div>
+      </div>
+      <div class="ocean-interpretation" id="oceanInterpretation"></div>
+    </div>
+
+    <div class="tab-content" id="tab-predictions">
+      <h2 class="section-label">Prédictions comportementales</h2>
+      <div id="predictionList"></div>
+      <div class="add-prediction-form">
+        <h3>Nouvelle prédiction</h3>
+        <div class="form-row"><label>Contexte / Situation</label><input type="text" id="predContext" placeholder="Ex: Réunion de budget vendredi…"></div>
+        <div class="form-row"><label>Comportement prédit</label><textarea id="predOutcome" placeholder="Je prédis qu'il va…"></textarea></div>
+        <button type="button" class="btn-primary" onclick="addPrediction()">🔮 Enregistrer la prédiction</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-insights">
+      <h2 class="section-label">Analyse comportementale par contexte</h2>
+      <div class="trigger-grid">
+        <button type="button" class="trigger-btn" onclick="showInsight('stress', this)">😰 Sous stress</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('conflict', this)">⚔️ En conflit</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('success', this)">🏆 En réussite</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('uncertainty', this)">❓ Incertitude</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('recognition', this)">⭐ Recherche reconnaissance</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('threat', this)">🛡️ Se sentant menacé</button>
+      </div>
+      <div class="insight-output" id="insightOutput">
+        <p class="placeholder-text">← Sélectionnez un contexte pour voir l'analyse</p>
+      </div>
+    </div>
+  </div><!-- /.person-main -->
+
+  <footer class="footer" aria-label="Pied de page — Fiche personne">
+    <div class="footer-logo">🧩 PeopleModeler</div>
+    <div class="footer-links">
+      <a onclick="navigate('landing')">← Accueil</a>
+      <a onclick="navigate('compare')">Comparer</a>
+    </div>
+    <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE: COMPARE
+══════════════════════════════════ -->
+<div id="page-compare" class="page">
+  <div class="compare-main">
+    <h1 class="compare-title">Comparaison de profils</h1>
+    <p class="compare-sub">Identifiez synergies et points de friction entre deux personnes</p>
+
+    <div class="compare-grid">
+      <div class="compare-card" id="cardA">
+        <div class="compare-avatar">🧠</div>
+        <h2>Alexandre D.</h2>
+        <p>Directeur Commercial</p>
+        <div class="compare-section"><h4>💡 Top Motivation</h4><div class="compare-chip green">👑 Pouvoir (9/10)</div></div>
+        <div class="compare-section"><h4>🧠 Biais principal</h4><div class="compare-chip red">⚓ Ancrage (8/10)</div></div>
+        <div class="compare-section">
+          <h4>🌊 Profil OCEAN</h4>
+          <div class="mini-bars">
+            <div class="mb-row"><span>O</span><div class="mb-bar"><div class="w-80"></div></div></div>
+            <div class="mb-row"><span>C</span><div class="mb-bar"><div class="w-60"></div></div></div>
+            <div class="mb-row"><span>E</span><div class="mb-bar"><div class="w-90"></div></div></div>
+            <div class="mb-row"><span>A</span><div class="mb-bar"><div class="w-40"></div></div></div>
+            <div class="mb-row"><span>N</span><div class="mb-bar"><div class="w-50"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vs-divider">
+        <div class="vs-text">VS</div>
+        <div class="compat-ring">
+          <svg viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="8"
+              stroke-dasharray="213.6" stroke-dashoffset="64" stroke-linecap="round"
+              transform="rotate(-90 40 40)"/>
+          </svg>
+          <div class="compat-label">70%<br><small>synergie</small></div>
+        </div>
+      </div>
+
+      <div class="compare-card" id="cardB">
+        <div class="compare-avatar">🎯</div>
+        <h2>Sarah M.</h2>
+        <p>Product Manager</p>
+        <div class="compare-section"><h4>💡 Top Motivation</h4><div class="compare-chip green">📚 Apprentissage (9/10)</div></div>
+        <div class="compare-section"><h4>🧠 Biais principal</h4><div class="compare-chip red">👥 Preuve sociale (7/10)</div></div>
+        <div class="compare-section">
+          <h4>🌊 Profil OCEAN</h4>
+          <div class="mini-bars">
+            <div class="mb-row"><span>O</span><div class="mb-bar"><div class="w-95"></div></div></div>
+            <div class="mb-row"><span>C</span><div class="mb-bar"><div class="w-85"></div></div></div>
+            <div class="mb-row"><span>E</span><div class="mb-bar"><div class="w-65"></div></div></div>
+            <div class="mb-row"><span>A</span><div class="mb-bar"><div class="w-80"></div></div></div>
+            <div class="mb-row"><span>N</span><div class="mb-bar"><div class="w-40"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="analysis-section">
+      <h2>🔍 Analyse de la dynamique</h2>
+      <div class="analysis-grid">
+        <div class="analysis-card synergy">
+          <h3>✅ Synergies</h3>
+          <ul>
+            <li>Alexandre apporte la <strong>vision power</strong>, Sarah l'<strong>exécution rigoureuse</strong></li>
+            <li>Complémentarité E–A : l'extraversion d'Alexandre compense le besoin d'harmonie de Sarah</li>
+            <li>Motivations non-concurrentes : pouvoir vs apprentissage — pas de friction directe</li>
+          </ul>
+        </div>
+        <div class="analysis-card friction">
+          <h3>⚠️ Points de friction</h3>
+          <ul>
+            <li>Alexandre (faible A) peut sembler <strong>agressif</strong> pour Sarah (haute A)</li>
+            <li>Biais ancrage vs preuve sociale : désaccords sur les références de décision</li>
+            <li>Neuroticism différentiel : Sarah plus stable, Alexandre plus réactif au stress</li>
+          </ul>
+        </div>
+        <div class="analysis-card strategy">
+          <h3>♟️ Stratégie d'interaction</h3>
+          <ul>
+            <li>Présenter les idées avec <strong>données et consensus</strong> pour convaincre Sarah</li>
+            <li>Permettre à Alexandre de <strong>prendre l'initiative</strong> — satisfait son besoin de pouvoir</li>
+            <li>En cas de conflit : impliquer un médiateur, Sarah cherchera l'harmonie</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="ethics-banner">
+      ⚠️ Ces analyses sont des <em>modèles probabilistes</em>, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler.
     </div>
   </div>
-</section>
 
-<!-- ── ETHICS BANNER ── -->
-<section class="ethics">
-  <div class="ethics-inner">
-    <div class="ethics-icon">⚖️</div>
-    <div>
-      <h3>Note éthique importante</h3>
-      <p>People Modeler est un outil de compréhension, pas de manipulation. Utilisez-le pour <strong>améliorer vos relations</strong>, pas pour exploiter les failles des autres. La connaissance des systèmes humains est une responsabilité.</p>
+  <footer class="footer" aria-label="Pied de page — Comparaison">
+    <div class="footer-logo">🧩 PeopleModeler</div>
+    <div class="footer-links">
+      <a onclick="navigate('landing')">Accueil</a>
+      <a onclick="navigate('person')">Fiche</a>
+    </div>
+    <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+  </footer>
+</div>
+
+
+<!-- ── MODAL (demo) ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modalTitle">Ajouter</h3>
+    <div id="modalContent"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeModal()">Annuler</button>
+      <button type="button" class="btn-primary" onclick="confirmModal()">Confirmer</button>
     </div>
   </div>
-</section>
+</div>
 
-<!-- ── CTA ── -->
-<section class="cta-section">
-  <h2>Prêt à comprendre les systèmes humains ?</h2>
-  <p>Disponible sur Android. Données 100% locales. Gratuit.</p>
-  <div class="cta-buttons">
-    <a href="#" class="btn-primary large">📱 Télécharger l'APK Android</a>
-    <a href="https://github.com/yourusername/people-modeler" class="btn-ghost large">⭐ GitHub</a>
-  </div>
-</section>
+<script>
+// ── ROUTING ──────────────────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  window.scrollTo(0, 0);
+  if (page === 'person') {
+    currentPerson = JSON.parse(JSON.stringify(Storage.getCurrent()));
+    renderAll();
+    setupTabs();
+    updateOceanInterpretation();
+  }
+}
 
-<!-- ── FOOTER ── -->
-<footer class="footer">
-  <div class="footer-logo">🧩 PeopleModeler</div>
-  <div class="footer-links">
-    <a href="person.html">Démo fiche</a>
-    <a href="compare.html">Comparaison</a>
-    <a href="#">GitHub</a>
-  </div>
-  <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
-</footer>
+function navigate(page) {
+  const base = location.pathname.replace(/\/(index\.html|person|compare)?$/, '') || '/';
+  const path = page === 'landing' ? base + '/' : base + '/' + page;
+  history.pushState({ page }, '', path);
+  showPage(page);
+}
 
-<script src="js/main.js"></script>
+function scrollToId(id) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, 50);
+}
+
+window.addEventListener('popstate', (e) => {
+  const page = e.state?.page || pageFromPath(location.pathname);
+  showPage(page);
+});
+
+function pageFromPath(pathname) {
+  if (pathname.includes('person')) return 'person';
+  if (pathname.includes('compare')) return 'compare';
+  return 'landing';
+}
+
+// Handle direct URL access (e.g. navigating to /person directly)
+(function initRoute() {
+  const page = pageFromPath(location.pathname);
+  history.replaceState({ page }, '', location.pathname);
+  showPage(page);
+})();
+
+// ── DATA & CONSTANTS ─────────────────────────────────────
+const MOTIVATIONS = [
+  { id: 'POWER',       label: 'Pouvoir',          emoji: '👑' },
+  { id: 'ACHIEVEMENT', label: 'Accomplissement',   emoji: '🏆' },
+  { id: 'AFFILIATION', label: 'Appartenance',      emoji: '🤝' },
+  { id: 'SECURITY',    label: 'Sécurité',          emoji: '🛡️' },
+  { id: 'AUTONOMY',    label: 'Autonomie',          emoji: '🦅' },
+  { id: 'RECOGNITION', label: 'Reconnaissance',    emoji: '⭐' },
+  { id: 'LEARNING',    label: 'Apprentissage',     emoji: '📚' },
+  { id: 'HELPING',     label: 'Aider les autres',  emoji: '❤️' },
+];
+
+const BIASES = [
+  { id: 'CONFIRMATION',   label: 'Biais de confirmation', emoji: '🔄' },
+  { id: 'ANCHORING',      label: 'Ancrage cognitif',       emoji: '⚓' },
+  { id: 'AVAILABILITY',   label: 'Disponibilité',           emoji: '📱' },
+  { id: 'SUNK_COST',      label: 'Coût irrécupérable',     emoji: '💸' },
+  { id: 'DUNNING_KRUGER', label: 'Dunning-Kruger',         emoji: '🎭' },
+  { id: 'LOSS_AVERSION',  label: 'Aversion aux pertes',    emoji: '😰' },
+  { id: 'SOCIAL_PROOF',   label: 'Preuve sociale',         emoji: '👥' },
+  { id: 'AUTHORITY',      label: 'Autorité',                emoji: '🎖️' },
+  { id: 'RECENCY',        label: 'Récence',                 emoji: '⏰' },
+  { id: 'IN_GROUP',       label: 'Endogroupe',             emoji: '🏠' },
+];
+
+const OCEAN_DESCRIPTIONS = {
+  O: { high: 'très ouvert aux nouvelles idées, créatif et curieux', low: 'pragmatique, préfère les routines et le concret' },
+  C: { high: 'organisé, fiable, orienté résultats et détails', low: 'flexible et spontané, peut manquer de rigueur' },
+  E: { high: 'extraverti, énergique, cherche la stimulation sociale', low: 'introverti, réfléchi, préfère les interactions limitées' },
+  A: { high: 'coopératif, empathique, cherche l\'harmonie', low: 'direct voire abrasif, met ses objectifs avant les relations' },
+  N: { high: 'émotionnellement réactif, stressable, sensible aux critiques', low: 'stable émotionnellement, calme sous pression' },
+};
+
+const DEMO_PERSON = {
+  id: 'demo-001', name: 'Alexandre Dubois', role: 'Directeur Commercial',
+  context: 'Contexte pro · Partenaire', avatarEmoji: '🧠',
+  tags: ['Business', 'Décideur', 'Négociateur'],
+  motivations: [
+    { type: 'POWER',       intensity: 9, notes: 'Cherche toujours à être en position de force' },
+    { type: 'RECOGNITION', intensity: 7, notes: 'A besoin de validation publique de ses succès' },
+    { type: 'ACHIEVEMENT', intensity: 8, notes: 'Très orienté résultats et KPIs' },
+  ],
+  biases: [
+    { type: 'ANCHORING',     intensity: 8, evidence: 'Reste bloqué sur le premier chiffre annoncé en négo' },
+    { type: 'CONFIRMATION',  intensity: 6, evidence: 'Ignore les données qui contredisent sa vision' },
+    { type: 'LOSS_AVERSION', intensity: 7, evidence: 'Très réticent à annuler des engagements déjà pris' },
+  ],
+  ocean: { O: 8, C: 6, E: 9, A: 4, N: 5 },
+  predictions: [
+    { id: 'p1', context: 'Réunion budget Q3 — annonce de coupe budgétaire', predictedOutcome: 'Va tenter de négocier pour garder son budget, en mettant en avant les résultats passés.', actualOutcome: 'A négocié comme prévu, mais a aussi attaqué les autres départements.', accuracy: 7, createdAt: Date.now() - 864e5 * 10, resolved: true },
+    { id: 'p2', context: 'Présentation du nouveau concurrent X au marché', predictedOutcome: 'Va minimiser la menace par biais de confirmation. Dira que "notre produit est différent".', actualOutcome: null, accuracy: null, createdAt: Date.now() - 864e5 * 2, resolved: false },
+  ],
+  accuracyScore: 82,
+};
+
+// In-memory storage (localStorage not available in artifacts)
+const _store = { persons: [DEMO_PERSON], currentId: 'demo-001' };
+
+const Storage = {
+  getAll() { return _store.persons; },
+  save(persons) { _store.persons = persons; },
+  getCurrent() {
+    return _store.persons.find(p => p.id === _store.currentId) || DEMO_PERSON;
+  },
+  saveCurrent(person) {
+    _store.persons = _store.persons.filter(p => p.id !== person.id);
+    _store.persons.unshift(person);
+    _store.currentId = person.id;
+  },
+};
+
+// ── PERSON APP ───────────────────────────────────────────
+let currentPerson = null;
+
+function renderAll() {
+  renderHeader();
+  renderMotivations();
+  renderBiases();
+  renderOcean();
+  renderPredictions();
+}
+
+function renderHeader() {
+  const p = currentPerson;
+  document.getElementById('profileAvatar').textContent = p.avatarEmoji || '🧑';
+  document.getElementById('profileName').textContent = p.name;
+  document.getElementById('profileRole').textContent = [p.role, p.context].filter(Boolean).join(' · ');
+  const tagsEl = document.getElementById('profileTags');
+  tagsEl.innerHTML = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+  const score = p.accuracyScore || 0;
+  const circumference = 2 * Math.PI * 34;
+  const offset = circumference - (score / 100) * circumference;
+  const circle = document.querySelector('.accuracy-ring circle:last-child');
+  if (circle) circle.style.strokeDashoffset = offset;
+  const label = document.querySelector('.accuracy-label');
+  if (label) label.innerHTML = `${score}%<br/><small>précision</small>`;
+}
+
+function setupTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`tab-${tab.dataset.tab}`)?.classList.add('active');
+    };
+  });
+}
+
+function renderMotivations() {
+  const list = document.getElementById('motivationList');
+  const motivations = currentPerson.motivations || [];
+  if (motivations.length === 0) { list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">Aucune motivation ajoutée.</p>`; return; }
+  list.innerHTML = motivations.map((m, i) => {
+    const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji: '?', label: m.type };
+    return `<div class="motivation-item"><div class="mot-icon">${def.emoji}</div><div class="mot-info"><div class="mot-name">${def.label}</div><div class="mot-bar-wrap"><div class="mot-bar"><div class="mot-bar-fill" style="width:${m.intensity*10}%"></div></div><div class="mot-intensity">${m.intensity}/10</div></div>${m.notes ? `<div class="mot-notes">"${m.notes}"</div>` : ''}</div><button type="button" class="btn-delete" onclick="deleteMotivation(${i})">✕</button></div>`;
+  }).join('');
+}
+
+function openAddMotivation() {
+  document.getElementById('modalTitle').textContent = '💡 Ajouter une motivation';
+  document.getElementById('modalContent').innerHTML = `
+    <label>Type de motivation</label>
+    <select id="motType">${MOTIVATIONS.map(m => `<option value="${m.id}">${m.emoji} ${m.label}</option>`).join('')}</select>
+    <label>Intensité : <span id="motIntensityVal">5</span>/10</label>
+    <input type="range" min="1" max="10" value="5" id="motIntensity" oninput="document.getElementById('motIntensityVal').textContent=this.value">
+    <label>Notes (optionnel)</label>
+    <input type="text" id="motNotes" placeholder="Comportement observé…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;">`;
+  window._modalConfirm = () => {
+    const type = document.getElementById('motType').value;
+    const intensity = parseInt(document.getElementById('motIntensity').value);
+    const notes = document.getElementById('motNotes').value;
+    currentPerson.motivations = currentPerson.motivations || [];
+    currentPerson.motivations.push({ type, intensity, notes });
+    savePerson(); renderMotivations(); closeModal();
+  };
+  openModal();
+}
+
+function deleteMotivation(index) {
+  currentPerson.motivations.splice(index, 1);
+  savePerson(); renderMotivations();
+}
+
+function renderBiases() {
+  const list = document.getElementById('biasList');
+  const biases = currentPerson.biases || [];
+  if (biases.length === 0) { list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">Aucun biais ajouté.</p>`; return; }
+  list.innerHTML = biases.map((b, i) => {
+    const def = BIASES.find(x => x.id === b.type) || { emoji: '?', label: b.type };
+    return `<div class="bias-item"><div class="mot-icon">${def.emoji}</div><div class="mot-info"><div class="mot-name">${def.label}</div><div class="mot-bar-wrap"><div class="mot-bar"><div class="bias-bar-fill" style="width:${b.intensity*10}%"></div></div><div class="mot-intensity">${b.intensity}/10</div></div>${b.evidence ? `<div class="mot-notes">"${b.evidence}"</div>` : ''}</div><button type="button" class="btn-delete" onclick="deleteBias(${i})">✕</button></div>`;
+  }).join('');
+}
+
+function openAddBias() {
+  document.getElementById('modalTitle').textContent = '🧠 Ajouter un biais cognitif';
+  document.getElementById('modalContent').innerHTML = `
+    <label>Type de biais</label>
+    <select id="biasType">${BIASES.map(b => `<option value="${b.id}">${b.emoji} ${b.label}</option>`).join('')}</select>
+    <label>Intensité observée : <span id="biasIntensityVal">5</span>/10</label>
+    <input type="range" min="1" max="10" value="5" id="biasIntensity" oninput="document.getElementById('biasIntensityVal').textContent=this.value">
+    <label>Preuve / exemple observé</label>
+    <input type="text" id="biasEvidence" placeholder="Situation concrète observée…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;">`;
+  window._modalConfirm = () => {
+    const type = document.getElementById('biasType').value;
+    const intensity = parseInt(document.getElementById('biasIntensity').value);
+    const evidence = document.getElementById('biasEvidence').value;
+    currentPerson.biases = currentPerson.biases || [];
+    currentPerson.biases.push({ type, intensity, evidence });
+    savePerson(); renderBiases(); closeModal();
+  };
+  openModal();
+}
+
+function deleteBias(index) {
+  currentPerson.biases.splice(index, 1);
+  savePerson(); renderBiases();
+}
+
+function renderOcean() {
+  const ocean = currentPerson.ocean || { O: 5, C: 5, E: 5, A: 5, N: 5 };
+  Object.entries(ocean).forEach(([key, val]) => {
+    const slider = document.getElementById(`slider-${key}`);
+    const valEl = document.getElementById(`val-${key}`);
+    if (slider) slider.value = val;
+    if (valEl) valEl.textContent = val;
+  });
+  updateOceanInterpretation();
+}
+
+function updateOcean(key, value) {
+  if (!currentPerson.ocean) currentPerson.ocean = { O:5, C:5, E:5, A:5, N:5 };
+  currentPerson.ocean[key] = parseInt(value);
+  document.getElementById(`val-${key}`).textContent = value;
+  updateOceanInterpretation();
+  savePerson();
+}
+
+function updateOceanInterpretation() {
+  const el = document.getElementById('oceanInterpretation');
+  if (!el || !currentPerson || !currentPerson.ocean) return;
+  const o = currentPerson.ocean;
+  const name = currentPerson.name.split(' ')[0];
+  const desc = key => { const val = o[key]; const d = OCEAN_DESCRIPTIONS[key]; return val >= 6 ? d.high : d.low; };
+  el.innerHTML = `<strong>${name}</strong> est ${desc('O')}. ${o.C >= 6 ? `Consciencieux·se, ${desc('C')}.` : `${desc('C').charAt(0).toUpperCase()+desc('C').slice(1)}.`} ${o.E >= 6 ? `Très ${desc('E')}.` : `Plutôt ${desc('E')}.`} En termes relationnels, ${name} est ${desc('A')}. Sur le plan émotionnel : ${desc('N')}.<br><br><strong>À retenir :</strong> ${o.E >= 7 && o.A <= 4 ? `⚡ Profil "dominant" — direct, assertif, peut sembler intimidant.` : ''} ${o.O >= 8 && o.C >= 7 ? `🚀 Profil innovateur rigoureux — rare et précieux.` : ''} ${o.N >= 7 ? `⚠️ Attention en situation de stress — réactivité émotionnelle élevée.` : ''} ${o.A >= 8 && o.N <= 4 ? `🤝 Profil stable et coopératif — excellent médiateur.` : ''}`;
+}
+
+function renderPredictions() {
+  const list = document.getElementById('predictionList');
+  const preds = currentPerson.predictions || [];
+  if (preds.length === 0) { list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1rem;">Aucune prédiction enregistrée.</p>`; return; }
+  list.innerHTML = preds.map((p, i) => `
+    <div class="prediction-item">
+      <div class="pred-context">📍 ${p.context}</div>
+      <div class="pred-outcome">🔮 ${p.predictedOutcome}</div>
+      <div class="pred-status">
+        <span class="pred-badge ${p.resolved ? 'resolved' : 'pending'}">${p.resolved ? '✅ Résolue' : '⏳ En attente'}</span>
+        ${p.resolved && p.accuracy ? `<span style="color:var(--gold);font-size:.78rem;">Précision : ${p.accuracy}/10</span>` : ''}
+        ${p.resolved && p.actualOutcome ? `<span style="color:var(--text-muted);font-size:.78rem;">→ ${p.actualOutcome}</span>` : ''}
+        ${!p.resolved ? `<button type="button" class="btn-resolve" onclick="openResolvePrediction(${i})">Résoudre →</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function addPrediction() {
+  const context = document.getElementById('predContext').value.trim();
+  const outcome = document.getElementById('predOutcome').value.trim();
+  if (!context || !outcome) { alert('Remplissez le contexte et la prédiction.'); return; }
+  currentPerson.predictions = currentPerson.predictions || [];
+  currentPerson.predictions.unshift({ id: 'p'+Date.now(), context, predictedOutcome: outcome, actualOutcome: null, accuracy: null, createdAt: Date.now(), resolved: false });
+  document.getElementById('predContext').value = '';
+  document.getElementById('predOutcome').value = '';
+  savePerson(); renderPredictions();
+}
+
+function openResolvePrediction(index) {
+  document.getElementById('modalTitle').textContent = '✅ Résoudre la prédiction';
+  const pred = currentPerson.predictions[index];
+  document.getElementById('modalContent').innerHTML = `
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem;">Prédiction : <em>"${pred.predictedOutcome}"</em></p>
+    <label>Ce qui s'est réellement passé</label>
+    <input type="text" id="resolveActual" placeholder="Résultat réel…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin:.5rem 0 1rem;">
+    <label>Précision de la prédiction : <span id="resolveAccVal">7</span>/10</label>
+    <input type="range" min="1" max="10" value="7" id="resolveAcc" oninput="document.getElementById('resolveAccVal').textContent=this.value">`;
+  window._modalConfirm = () => {
+    const actual = document.getElementById('resolveActual').value.trim();
+    const accuracy = parseInt(document.getElementById('resolveAcc').value);
+    if (!actual) { alert("Décrivez ce qui s'est passé."); return; }
+    currentPerson.predictions[index].actualOutcome = actual;
+    currentPerson.predictions[index].accuracy = accuracy;
+    currentPerson.predictions[index].resolved = true;
+    currentPerson.predictions[index].resolvedAt = Date.now();
+    const resolved = currentPerson.predictions.filter(p => p.resolved && p.accuracy);
+    if (resolved.length > 0) currentPerson.accuracyScore = Math.round(resolved.reduce((sum, p) => sum + p.accuracy, 0) / resolved.length * 10);
+    savePerson(); renderPredictions(); renderHeader(); closeModal();
+  };
+  openModal();
+}
+
+const INSIGHT_TEMPLATES = {
+  stress: { label: 'sous stress', generate(p) {
+    const topMot = getTopMotivation(p); const topBias = getTopBias(p);
+    const lines = [`Sous stress, ${p.name.split(' ')[0]} aura tendance à :`];
+    if (p.ocean?.N >= 7) lines.push('• Réagir émotionnellement et perdre de la recul');
+    if (p.ocean?.E >= 7) lines.push('• Exprimer verbalement son stress, chercher à en parler');
+    if (p.ocean?.E <= 4) lines.push('• Se replier sur soi, éviter les interactions');
+    if (p.ocean?.C >= 7) lines.push('• Sur-contrôler, micro-manager, demander des updates constants');
+    if (topMot?.type === 'POWER') lines.push("• Reprendre le contrôle par l'autorité");
+    if (topMot?.type === 'SECURITY') lines.push('• Chercher des garanties et certitudes');
+    if (topBias) lines.push(`• Être particulièrement sujet au biais "${BIASES.find(b=>b.id===topBias.type)?.label}"`);
+    lines.push('\n💡 Stratégie : ' + (p.ocean?.A >= 6 ? 'Offrez du soutien émotionnel avant les solutions.' : 'Proposez des actions concrètes et rapides.'));
+    return lines.join('\n');
+  }},
+  conflict: { label: 'en conflit', generate(p) {
+    const lines = [`En situation de conflit, ${p.name.split(' ')[0]} :`];
+    if (p.ocean?.A <= 4) lines.push("• N'hésite pas à s'opposer frontalement");
+    if (p.ocean?.A >= 7) lines.push("• Cherche à éviter l'affrontement, cherche le compromis");
+    if (p.ocean?.N >= 7) lines.push('• Peut prendre les choses personnellement');
+    if (p.ocean?.E >= 7) lines.push("• Exprime le conflit ouvertement, ne laisse pas traîner");
+    const topMot = getTopMotivation(p);
+    if (topMot?.type === 'POWER') lines.push('• Cherche à "gagner" le conflit plutôt qu\'à le résoudre');
+    if (topMot?.type === 'AFFILIATION') lines.push('• Souffre du conflit relationnel, veut préserver le lien');
+    const lossBias = p.biases?.find(b => b.type === 'LOSS_AVERSION');
+    if (lossBias?.intensity >= 6) lines.push('• Fort biais de perte : refusera de "lâcher" même si rationnel');
+    lines.push('\n💡 Approche : ' + (p.ocean?.A >= 6 ? 'Cadrez comme "résolution commune", pas opposition.' : 'Soyez direct·e et factuel·le, évitez les ambiguïtés.'));
+    return lines.join('\n');
+  }},
+  success: { label: 'en réussite', generate(p) {
+    const lines = [`En période de réussite, ${p.name.split(' ')[0]} :`];
+    const recMot = p.motivations?.find(m => m.type === 'RECOGNITION');
+    if (recMot?.intensity >= 7) lines.push('• A besoin que le succès soit reconnu publiquement');
+    const powMot = p.motivations?.find(m => m.type === 'POWER');
+    if (powMot?.intensity >= 7) lines.push('• Va capitaliser sur le succès pour renforcer son influence');
+    if (p.ocean?.O >= 7) lines.push('• Cherche déjà le prochain défi ou projet ambitieux');
+    if (p.ocean?.C >= 7) lines.push('• Analyse ce qui a fonctionné pour le répliquer');
+    const dkBias = p.biases?.find(b => b.type === 'DUNNING_KRUGER');
+    if (dkBias?.intensity >= 6) lines.push('⚠️ Risque de surconfiance après le succès');
+    lines.push("\n💡 C'est le bon moment pour proposer de nouveaux projets ou renforcer la relation.");
+    return lines.join('\n');
+  }},
+  uncertainty: { label: "dans l'incertitude", generate(p) {
+    const lines = [`Face à l'incertitude, ${p.name.split(' ')[0]} :`];
+    if (p.ocean?.N >= 7) lines.push('• Génère de l\'anxiété, peut paralyser la décision');
+    if (p.ocean?.N <= 3) lines.push('• Reste remarquablement calme, peut sous-estimer les risques');
+    if (p.ocean?.O >= 7) lines.push("• Voit l'incertitude comme une opportunité de créativité");
+    if (p.ocean?.O <= 4) lines.push('• Très inconfortable, cherche à revenir à des routines connues');
+    const secMot = p.motivations?.find(m => m.type === 'SECURITY');
+    if (secMot?.intensity >= 7) lines.push('• Forte anxiété — cherche des certitudes à tout prix');
+    const ancBias = p.biases?.find(b => b.type === 'ANCHORING');
+    if (ancBias?.intensity >= 6) lines.push("• S'accroche aux dernières données connues comme ancre");
+    lines.push("\n💡 Réduisez l'incertitude perçue : donnez un maximum de contexte et de repères.");
+    return lines.join('\n');
+  }},
+  recognition: { label: 'cherchant la reconnaissance', generate(p) {
+    const recMot = p.motivations?.find(m => m.type === 'RECOGNITION');
+    const lines = [`Quand ${p.name.split(' ')[0]} cherche de la reconnaissance :`];
+    if (recMot) {
+      if (recMot.intensity >= 8) lines.push('• Besoin intense — sera démotivé·e si ignoré·e longtemps');
+      else if (recMot.intensity >= 5) lines.push('• Besoin modéré — apprécie la reconnaissance sans en dépendre');
+      else lines.push('• Peu motivé·e par la reconnaissance externe');
+    }
+    if (p.ocean?.E >= 7) lines.push("• Préfère la reconnaissance publique, devant l'équipe");
+    if (p.ocean?.E <= 4) lines.push('• Préfère une reconnaissance privée et sincère');
+    const spBias = p.biases?.find(b => b.type === 'SOCIAL_PROOF');
+    if (spBias?.intensity >= 6) lines.push("• Très sensible à l'opinion des pairs et au statut");
+    lines.push("\n💡 Nommez explicitement la contribution. La reconnaissance vague est contre-productive.");
+    return lines.join('\n');
+  }},
+  threat: { label: 'se sentant menacé·e', generate(p) {
+    const lines = [`Quand ${p.name.split(' ')[0]} se sent menacé·e :`];
+    const powMot = p.motivations?.find(m => m.type === 'POWER');
+    if (powMot?.intensity >= 7) lines.push('• Réaction dominante : attaque ou contre-offensive');
+    if (p.ocean?.A <= 4) lines.push('• Peut devenir défensif·ve et agressif·ve');
+    if (p.ocean?.A >= 7) lines.push("• Cherche d'abord à désamorcer, peut sur-accommoder");
+    if (p.ocean?.N >= 7) lines.push("• Rumination, peut lire des menaces là où il n'y en a pas");
+    const laBias = p.biases?.find(b => b.type === 'LOSS_AVERSION');
+    if (laBias?.intensity >= 6) lines.push('• L\'aversion aux pertes amplifie la réaction : "je ne peux pas perdre ça"');
+    const confBias = p.biases?.find(b => b.type === 'CONFIRMATION');
+    if (confBias?.intensity >= 6) lines.push('• Cherche des preuves qui confirment la menace, ignore le reste');
+    lines.push("\n💡 Approche : rassurez sur ce qui n'est PAS menacé avant d'aborder le problème.");
+    return lines.join('\n');
+  }},
+};
+
+function getTopMotivation(p) { return (p.motivations || []).reduce((top, m) => (!top || m.intensity > top.intensity) ? m : top, null); }
+function getTopBias(p) { return (p.biases || []).reduce((top, b) => (!top || b.intensity > top.intensity) ? b : top, null); }
+
+function showInsight(triggerKey, btn) {
+  document.querySelectorAll('.trigger-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const template = INSIGHT_TEMPLATES[triggerKey];
+  if (!template || !currentPerson) return;
+  const output = document.getElementById('insightOutput');
+  output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">Analyse comportementale — contexte : <strong style="color:var(--cyan)">${template.label}</strong></div>` + template.generate(currentPerson).replace(/\n/g, '<br/>');
+}
+
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function confirmModal() { if (window._modalConfirm) window._modalConfirm(); }
+
+function savePerson() {
+  currentPerson.updatedAt = Date.now();
+  Storage.saveCurrent(currentPerson);
+}
+
+// ── LANDING ANIMATIONS ───────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Animate hero bars
+  setTimeout(() => {
+    document.querySelectorAll('.fill').forEach(bar => {
+      const cls = [...bar.classList].find(c => c.startsWith('fill-'));
+      if (!cls) return;
+      bar.style.width = '0';
+      setTimeout(() => {
+        const pct = cls.replace('fill-', '') + '%';
+        bar.style.width = pct;
+      }, 100);
+    });
+  }, 400);
+
+  // Intersection observer for cards
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }, i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .step, .usecase').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+});
+</script>
 </body>
 </html>

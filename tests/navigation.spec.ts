@@ -7,6 +7,7 @@ test.describe('Navigation & Accessibilité', () => {
     { name: 'Landing', path: '/' },
     { name: 'Person',  path: '/person.html' },
     { name: 'Compare', path: '/compare.html' },
+    { name: 'App',     path: '/app.html' },
   ];
 
   for (const { name, path } of pages) {
@@ -34,13 +35,11 @@ test.describe('Navigation & Accessibilité', () => {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
 
-      // Measure scroll width vs viewport width
       const { scrollWidth, clientWidth } = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
       }));
 
-      // Tolerance: max 20px overflow (scrollbar, rounding artifacts)
       expect(
         scrollWidth,
         `Overflow horizontal sur ${name} à 375px : scrollWidth=${scrollWidth} > clientWidth=${clientWidth}`
@@ -68,17 +67,23 @@ test.describe('Navigation & Accessibilité', () => {
   }
 
   test('tous les liens internes ne sont pas cassés', async ({ page }) => {
-    await page.goto('/');
-    const links = await page.locator('a[href]').all();
-    const internalLinks: string[] = [];
-    for (const link of links) {
-      const href = await link.getAttribute('href');
-      if (href && !href.startsWith('http') && !href.startsWith('#') && href.endsWith('.html')) {
-        internalLinks.push(href);
+    const pagesToCrawl = ['/', '/person.html', '/compare.html', '/app.html'];
+    const allLinks = new Set<string>();
+
+    for (const path of pagesToCrawl) {
+      await page.goto(path);
+      const links = await page.locator('a[href]').all();
+      for (const link of links) {
+        const href = await link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && href.endsWith('.html')) {
+          allLinks.add(href);
+        }
       }
     }
-    for (const href of [...new Set(internalLinks)]) {
-      const response = await page.request.get(`/${href}`);
+
+    for (const href of allLinks) {
+      // href is already relative (e.g. "app.html"), resolve against baseURL
+      const response = await page.request.get(href);
       expect(response.status(), `Lien cassé: ${href}`).toBe(200);
     }
   });
@@ -95,9 +100,21 @@ test.describe('Navigation & Accessibilité', () => {
     await expect(page).toHaveURL(/compare/);
   });
 
+  test('navigation Landing → App fonctionne', async ({ page }) => {
+    await page.goto('/');
+    await page.click('text=Ouvrir l\'app');
+    await expect(page).toHaveURL(/app/);
+  });
+
   test('navigation retour Compare → Landing fonctionne', async ({ page }) => {
     await page.goto('/compare.html');
     await page.click('.nav-logo');
-    await expect(page).toHaveURL(/index\.html|\/$/);
+    await expect(page).toHaveURL(/index\.html|\/$/)
+  });
+
+  test('navigation retour App → Landing fonctionne', async ({ page }) => {
+    await page.goto('/app.html');
+    await page.click('.nav-logo');
+    await expect(page).toHaveURL(/index\.html|\/$/)
   });
 });
