@@ -11,8 +11,9 @@
   --gold: #F5A623;
   --purple: #7C5CBF;
   --green: #2ECC71;
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'Space Mono', monospace;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'Lexend', sans-serif;
+  --font-data: 'JetBrains Mono', monospace;
   --radius: 12px;
   --radius-lg: 20px;
 }
@@ -224,7 +225,7 @@ body {
   padding: 0.8rem 1.8rem;
   border-radius: var(--radius);
   text-decoration: none;
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 0.88rem;
   font-weight: 700;
   transition: transform 0.15s, box-shadow 0.15s;

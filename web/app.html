@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>People Modeler — Application</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
 /* ── DESIGN SYSTEM ── */
 :root {
@@ -13,12 +14,13 @@
   --border: rgba(255,255,255,0.07); --text: #E8EDF5; --text-muted: #6B7A9A;
   --primary: #E94560; --cyan: #00D4AA; --gold: #F5A623;
   --purple: #7C5CBF; --green: #2ECC71;
-  --font-display: 'Syne', sans-serif; --font-mono: 'Space Mono', monospace;
+  --font-display: 'Outfit', sans-serif; --font-mono: 'Lexend', sans-serif;
+  --font-data: 'JetBrains Mono', monospace;
   --radius: 12px; --radius-lg: 20px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow-x: hidden; }
-body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 15px; line-height: 1.6; overflow-x: hidden; height: 100vh; display: flex; flex-direction: column; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-mono); letter-spacing: 0.01em; font-size: 15px; line-height: 1.6; overflow-x: hidden; height: 100vh; display: flex; flex-direction: column; }
 
 /* ── NOISE ── */
 .noise { position: fixed; inset: 0; z-index: 9999; pointer-events: none;
@@ -69,7 +71,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .pe-info { flex: 1; min-width: 0; }
 .pe-name { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pe-meta { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pe-score { font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+.pe-score { font-family: var(--font-data); font-size: 0.75rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
 .sidebar-empty { padding: 1.5rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; line-height: 1.7; }
 .sidebar-footer { padding: 0.5rem; border-top: 1px solid var(--border); }
 .sidebar-action { display: flex; align-items: center; gap: 0.65rem; background: none; border: none;
@@ -101,7 +103,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .profile-actions { display: flex; gap: 0.5rem; }
 .accuracy-pill { display: flex; align-items: center; gap: 0.5rem; background: var(--surface);
   border: 1px solid var(--border); border-radius: 100px; padding: 0.4rem 1rem; font-size: 0.8rem; }
-.accuracy-pill strong { color: var(--gold); font-family: var(--font-display); }
+.accuracy-pill strong { color: var(--gold); font-family: var(--font-data); }
 
 /* ── TABS ── */
 .tabs { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
@@ -130,7 +132,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .item-bar-fill { height: 100%; border-radius: 3px; }
 .item-bar-fill.cyan { background: var(--cyan); }
 .item-bar-fill.red  { background: var(--primary); }
-.item-intensity { font-size: 0.75rem; color: var(--text-muted); }
+.item-intensity { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-data); }
 .item-notes { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; font-style: italic; }
 .btn-delete { background: none; border: none; color: var(--text-muted); cursor: pointer;
   font-size: 0.75rem; padding: 0.3rem 0.5rem; border-radius: 4px; transition: color 0.15s; flex-shrink: 0; }
@@ -146,7 +148,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .ocean-label { width: 175px; font-size: 0.82rem; color: var(--text-muted); flex-shrink: 0; }
 .ocean-slider { flex: 1; -webkit-appearance: none; height: 5px; background: var(--surface2); border-radius: 3px; outline: none; cursor: pointer; }
 .ocean-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--cyan); border-radius: 50%; cursor: pointer; border: 2px solid var(--bg); }
-.ocean-val { width: 20px; font-family: var(--font-display); font-weight: 700; color: var(--cyan); text-align: right; }
+.ocean-val { width: 20px; font-family: var(--font-data); font-weight: 700; color: var(--cyan); text-align: right; }
 .ocean-interpretation { background: var(--surface); border: 1px solid var(--border);
   border-left: 3px solid var(--purple); border-radius: var(--radius);
   padding: 1.35rem; font-size: 0.85rem; line-height: 1.85; color: var(--text-muted); }
