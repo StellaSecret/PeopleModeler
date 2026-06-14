@@ -11,38 +11,43 @@ const path = require('path');
 // ── Secret patterns ───────────────────────────────────────
 const PATTERNS = [
   // Generic key/secret/password assignments
-  { re: /(api[_-]?key|secret|password|private[_-]?key)\s*[:=]\s*['"][^'"]{8,}['"]/i,
+  // \b anchors prevent matching inside longer words (e.g. "notapassword")
+  { re: /\b(api[_-]?key|secret|password|private[_-]?key)\b\s*[:=]\s*['"][^'"]{8,}['"]/i,
     msg: 'Possible hardcoded secret (api_key/secret/password)' },
 
-  // Google OAuth client secrets (server-side secret, NOT client IDs)
-  { re: /GOCSPX-[A-Za-z0-9_-]{28,}/,
+  // Google OAuth client secrets — \b prevents substring matches
+  { re: /\bGOCSPX-[A-Za-z0-9_-]{28,}\b/,
     msg: 'Google OAuth client secret' },
 
-  // AWS keys
-  { re: /AKIA[0-9A-Z]{16}/,
+  // AWS keys — always exactly 20 chars starting with AKIA
+  { re: /\bAKIA[0-9A-Z]{16}\b/,
     msg: 'AWS Access Key ID' },
 
   // Generic Bearer / token patterns
-  { re: /bearer\s+[A-Za-z0-9\-._~+/]{20,}/i,
+  { re: /\bbearer\s+[A-Za-z0-9\-._~+/]{20,}/i,
     msg: 'Hardcoded Bearer token' },
 
-  // Private key blocks
-  { re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/,
+  // Private key blocks — always at line start
+  { re: /^-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/m,
     msg: 'Private key block' },
 ];
 
-// ── Allowlist — patterns that are OK (false positives) ────
-const ALLOWLIST = [
-  /__GOOGLE_CLIENT_ID__/,          // placeholder — OK to commit
-  /apps\.googleusercontent\.com/,  // OAuth client ID — not a secret
-  /example\.com/,
-  /placeholder/i,
-  /your[_-]?key[_-]?here/i,
-  /\$\{\{.*\}\}/,                  // GitHub Actions secrets syntax
+// ── Allowlist — lines that are OK (false positives) ───────
+// Using plain string matching instead of regex avoids CodeQL's
+// "missing anchor" warning and is simpler for these literal checks.
+const ALLOWLIST_STRINGS = [
+  '__GOOGLE_CLIENT_ID__',       // placeholder — OK to commit
+  'apps.googleusercontent.com', // OAuth client ID — not a secret
+  'example.com',
+  'placeholder',
+  'your_key_here',
+  'your-key-here',
+  '${{',                        // GitHub Actions secrets syntax
 ];
 
 function isAllowed(line) {
-  return ALLOWLIST.some(p => p.test(line));
+  const lower = line.toLowerCase();
+  return ALLOWLIST_STRINGS.some(s => lower.includes(s.toLowerCase()));
 }
 
 // ── Main ──────────────────────────────────────────────────

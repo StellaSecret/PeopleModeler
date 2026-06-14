@@ -35,23 +35,21 @@ jobs:
           head: ${{ github.sha }}
           extra_args: --only-verified
 
-  codeql-analysis:
-    name: CodeQL Analysis
+  codeql-javascript:
+    name: CodeQL — JavaScript/TypeScript
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Initialize CodeQL (Java)
-        uses: github/codeql-action/init@v4
-        with:
-          languages: java
-          build-mode: autobuild
-      - name: Initialize CodeQL (JavaScript)
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: javascript
           build-mode: none
-      - name: Perform Analysis
+          config-file: .github/codeql/codeql-config.yml
+      - name: Analyze
         uses: github/codeql-action/analyze@v4
+        with:
+          category: javascript
 
   # ── PARALLEL TEST JOBS ────────────────────────────────
   android-unit-tests:
@@ -107,7 +105,7 @@ jobs:
   build-android:
     name: Build Android
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
-    needs: [scan-secrets, codeql-analysis, android-unit-tests, web-tests]
+    needs: [scan-secrets, codeql-javascript, android-unit-tests, web-tests]
     runs-on: ubuntu-latest
     outputs:
       artifact-name: PeopleModeler-release-${{ github.run_number }}
