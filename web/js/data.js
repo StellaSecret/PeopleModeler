@@ -1,27 +1,27 @@
 // ── PEOPLE MODELER — Data & Constants ────────────────────
 
 const MOTIVATIONS = [
-  { id: 'POWER',       label: 'Pouvoir',          emoji: '👑' },
-  { id: 'ACHIEVEMENT', label: 'Accomplissement',   emoji: '🏆' },
-  { id: 'AFFILIATION', label: 'Appartenance',      emoji: '🤝' },
-  { id: 'SECURITY',    label: 'Sécurité',          emoji: '🛡️' },
-  { id: 'AUTONOMY',    label: 'Autonomie',          emoji: '🦅' },
-  { id: 'RECOGNITION', label: 'Reconnaissance',    emoji: '⭐' },
-  { id: 'LEARNING',    label: 'Apprentissage',     emoji: '📚' },
-  { id: 'HELPING',     label: 'Aider les autres',  emoji: '❤️' },
+  { id: 'POWER',       label: 'Pouvoir',          emoji: '👑', desc: 'Contrôle des décisions, influence et autorité' },
+  { id: 'ACHIEVEMENT', label: 'Accomplissement',   emoji: '🏆', desc: 'Atteinte d\'objectifs ambitieux et performance' },
+  { id: 'AFFILIATION', label: 'Appartenance',      emoji: '🤝', desc: 'Relations harmonieuses et appartenance au groupe' },
+  { id: 'SECURITY',    label: 'Sécurité',          emoji: '🛡️', desc: 'Stabilité, prévisibilité et évitement des risques' },
+  { id: 'AUTONOMY',    label: 'Autonomie',          emoji: '🦅', desc: 'Indépendance et liberté d\'action' },
+  { id: 'RECOGNITION', label: 'Reconnaissance',    emoji: '⭐', desc: 'Validation et estime des autres' },
+  { id: 'LEARNING',    label: 'Apprentissage',     emoji: '📚', desc: 'Connaissances et développement personnel' },
+  { id: 'HELPING',     label: 'Aider les autres',  emoji: '❤️', desc: 'Aider et soutenir les autres' },
 ];
 
 const BIASES = [
-  { id: 'CONFIRMATION',  label: 'Biais de confirmation', emoji: '🔄' },
-  { id: 'ANCHORING',     label: 'Ancrage cognitif',       emoji: '⚓' },
-  { id: 'AVAILABILITY',  label: 'Disponibilité',           emoji: '📱' },
-  { id: 'SUNK_COST',     label: 'Coût irrécupérable',     emoji: '💸' },
-  { id: 'DUNNING_KRUGER',label: 'Dunning-Kruger',         emoji: '🎭' },
-  { id: 'LOSS_AVERSION', label: 'Aversion aux pertes',    emoji: '😰' },
-  { id: 'SOCIAL_PROOF',  label: 'Preuve sociale',         emoji: '👥' },
-  { id: 'AUTHORITY',     label: 'Autorité',                emoji: '🎖️' },
-  { id: 'RECENCY',       label: 'Récence',                 emoji: '⏰' },
-  { id: 'IN_GROUP',      label: 'Endogroupe',             emoji: '🏠' },
+  { id: 'CONFIRMATION',  label: 'Biais de confirmation', emoji: '🔄', desc: 'Cherche et interprète les infos qui confirment ses croyances' },
+  { id: 'ANCHORING',     label: 'Ancrage cognitif',       emoji: '⚓', desc: 'Se focalise sur la première information reçue' },
+  { id: 'AVAILABILITY',  label: 'Disponibilité',           emoji: '📱', desc: 'Surestime la probabilité d\'événements récents' },
+  { id: 'SUNK_COST',     label: 'Coût irrécupérable',     emoji: '💸', desc: 'Poursuit un investissement à cause des ressources déjà engagées' },
+  { id: 'DUNNING_KRUGER',label: 'Dunning-Kruger',         emoji: '🎭', desc: 'Les incompétents surestiment leurs compétences, les experts les sous-estiment' },
+  { id: 'LOSS_AVERSION', label: 'Aversion aux pertes',    emoji: '😰', desc: 'Préfère éviter les pertes plutôt que chercher des gains' },
+  { id: 'SOCIAL_PROOF',  label: 'Preuve sociale',         emoji: '👥', desc: 'Se conforme aux comportements du groupe' },
+  { id: 'AUTHORITY',     label: 'Autorité',                emoji: '🎖️', desc: 'Confiance excessive aux figures d\'autorité' },
+  { id: 'RECENCY',       label: 'Récence',                 emoji: '⏰', desc: 'Accorde plus d\'importance aux informations récentes' },
+  { id: 'IN_GROUP',      label: 'Endogroupe',             emoji: '🏠', desc: 'Favorise les membres de son propre groupe' },
 ];
 
 let OCEAN_DESCRIPTIONS = {

@@ -315,6 +315,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   .cta-buttons { flex-direction: column; align-items: center; }
 }
 
+.type-desc { font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin: -0.5rem 0 1rem 0; padding: 0.3rem 0.75rem; background: var(--bg); border-radius: var(--radius); }
   </style>
   <script src="js/i18n.js"></script>
 </head>
@@ -750,27 +751,27 @@ function pageFromPath(pathname) {
 
 // ── DATA & CONSTANTS ─────────────────────────────────────
 const MOTIVATIONS = [
-  { id: 'POWER',       label: 'Pouvoir',          emoji: '👑' },
-  { id: 'ACHIEVEMENT', label: 'Accomplissement',   emoji: '🏆' },
-  { id: 'AFFILIATION', label: 'Appartenance',      emoji: '🤝' },
-  { id: 'SECURITY',    label: 'Sécurité',          emoji: '🛡️' },
-  { id: 'AUTONOMY',    label: 'Autonomie',          emoji: '🦅' },
-  { id: 'RECOGNITION', label: 'Reconnaissance',    emoji: '⭐' },
-  { id: 'LEARNING',    label: 'Apprentissage',     emoji: '📚' },
-  { id: 'HELPING',     label: 'Aider les autres',  emoji: '❤️' },
+  { id: 'POWER',       label: 'Pouvoir',          emoji: '👑', desc: 'Contrôle des décisions, influence et autorité' },
+  { id: 'ACHIEVEMENT', label: 'Accomplissement',   emoji: '🏆', desc: 'Atteinte d\'objectifs ambitieux et performance' },
+  { id: 'AFFILIATION', label: 'Appartenance',      emoji: '🤝', desc: 'Relations harmonieuses et appartenance au groupe' },
+  { id: 'SECURITY',    label: 'Sécurité',          emoji: '🛡️', desc: 'Stabilité, prévisibilité et évitement des risques' },
+  { id: 'AUTONOMY',    label: 'Autonomie',          emoji: '🦅', desc: 'Indépendance et liberté d\'action' },
+  { id: 'RECOGNITION', label: 'Reconnaissance',    emoji: '⭐', desc: 'Validation et estime des autres' },
+  { id: 'LEARNING',    label: 'Apprentissage',     emoji: '📚', desc: 'Connaissances et développement personnel' },
+  { id: 'HELPING',     label: 'Aider les autres',  emoji: '❤️', desc: 'Aider et soutenir les autres' },
 ];
 
 const BIASES = [
-  { id: 'CONFIRMATION',   label: 'Biais de confirmation', emoji: '🔄' },
-  { id: 'ANCHORING',      label: 'Ancrage cognitif',       emoji: '⚓' },
-  { id: 'AVAILABILITY',   label: 'Disponibilité',           emoji: '📱' },
-  { id: 'SUNK_COST',      label: 'Coût irrécupérable',     emoji: '💸' },
-  { id: 'DUNNING_KRUGER', label: 'Dunning-Kruger',         emoji: '🎭' },
-  { id: 'LOSS_AVERSION',  label: 'Aversion aux pertes',    emoji: '😰' },
-  { id: 'SOCIAL_PROOF',   label: 'Preuve sociale',         emoji: '👥' },
-  { id: 'AUTHORITY',      label: 'Autorité',                emoji: '🎖️' },
-  { id: 'RECENCY',        label: 'Récence',                 emoji: '⏰' },
-  { id: 'IN_GROUP',       label: 'Endogroupe',             emoji: '🏠' },
+  { id: 'CONFIRMATION',   label: 'Biais de confirmation', emoji: '🔄', desc: 'Cherche et interprète les infos qui confirment ses croyances' },
+  { id: 'ANCHORING',      label: 'Ancrage cognitif',       emoji: '⚓', desc: 'Se focalise sur la première information reçue' },
+  { id: 'AVAILABILITY',   label: 'Disponibilité',           emoji: '📱', desc: 'Surestime la probabilité d\'événements récents' },
+  { id: 'SUNK_COST',      label: 'Coût irrécupérable',     emoji: '💸', desc: 'Poursuit un investissement à cause des ressources déjà engagées' },
+  { id: 'DUNNING_KRUGER', label: 'Dunning-Kruger',         emoji: '🎭', desc: 'Les incompétents surestiment leurs compétences, les experts les sous-estiment' },
+  { id: 'LOSS_AVERSION',  label: 'Aversion aux pertes',    emoji: '😰', desc: 'Préfère éviter les pertes plutôt que chercher des gains' },
+  { id: 'SOCIAL_PROOF',   label: 'Preuve sociale',         emoji: '👥', desc: 'Se conforme aux comportements du groupe' },
+  { id: 'AUTHORITY',      label: 'Autorité',                emoji: '🎖️', desc: 'Confiance excessive aux figures d\'autorité' },
+  { id: 'RECENCY',        label: 'Récence',                 emoji: '⏰', desc: 'Accorde plus d\'importance aux informations récentes' },
+  { id: 'IN_GROUP',       label: 'Endogroupe',             emoji: '🏠', desc: 'Favorise les membres de son propre groupe' },
 ];
 
 let OCEAN_DESCRIPTIONS = {
@@ -872,7 +873,8 @@ function openAddMotivation() {
   document.getElementById('modalTitle').textContent = '💡 Ajouter une motivation';
   document.getElementById('modalContent').innerHTML = `
     <label>Type de motivation</label>
-    <select id="motType">${MOTIVATIONS.map(m => `<option value="${m.id}">${m.emoji} ${m.label}</option>`).join('')}</select>
+    <select id="motType" onchange="document.getElementById('motDesc').textContent=(MOTIVATIONS.find(m=>m.id===this.value)||{}).desc||''">${MOTIVATIONS.map(m => `<option value="${m.id}">${m.emoji} ${m.label}</option>`).join('')}</select>
+    <p id="motDesc" class="type-desc">${MOTIVATIONS[0].desc}</p>
     <label>Intensité : <span id="motIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="motIntensity" oninput="document.getElementById('motIntensityVal').textContent=this.value">
     <label>Notes (optionnel)</label>
@@ -895,7 +897,8 @@ function openEditMotivation(index) {
   const notes = (m.notes || '').replace(/"/g, '&quot;');
   document.getElementById('modalContent').innerHTML = `
     <label>Type de motivation</label>
-    <select id="motType">${MOTIVATIONS.map(x => `<option value="${x.id}" ${x.id === m.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}</select>
+    <select id="motType" onchange="document.getElementById('motDesc').textContent=(MOTIVATIONS.find(m=>m.id===this.value)||{}).desc||''">${MOTIVATIONS.map(x => `<option value="${x.id}" ${x.id === m.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}</select>
+    <p id="motDesc" class="type-desc">${(MOTIVATIONS.find(m=>m.id===m.type)||{}).desc||''}</p>
     <label>Intensité : <span id="motIntensityVal">${m.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${m.intensity}" id="motIntensity" oninput="document.getElementById('motIntensityVal').textContent=this.value">
     <label>Notes (optionnel)</label>
@@ -929,7 +932,8 @@ function openAddBias() {
   document.getElementById('modalTitle').textContent = '🧠 Ajouter un biais cognitif';
   document.getElementById('modalContent').innerHTML = `
     <label>Type de biais</label>
-    <select id="biasType">${BIASES.map(b => `<option value="${b.id}">${b.emoji} ${b.label}</option>`).join('')}</select>
+    <select id="biasType" onchange="document.getElementById('biasDesc').textContent=(BIASES.find(b=>b.id===this.value)||{}).desc||''">${BIASES.map(b => `<option value="${b.id}">${b.emoji} ${b.label}</option>`).join('')}</select>
+    <p id="biasDesc" class="type-desc">${BIASES[0].desc}</p>
     <label>Intensité observée : <span id="biasIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="biasIntensity" oninput="document.getElementById('biasIntensityVal').textContent=this.value">
     <label>Preuve / exemple observé</label>
@@ -952,7 +956,8 @@ function openEditBias(index) {
   const evidence = (b.evidence || '').replace(/"/g, '&quot;');
   document.getElementById('modalContent').innerHTML = `
     <label>Type de biais</label>
-    <select id="biasType">${BIASES.map(x => `<option value="${x.id}" ${x.id === b.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}</select>
+    <select id="biasType" onchange="document.getElementById('biasDesc').textContent=(BIASES.find(b=>b.id===this.value)||{}).desc||''">${BIASES.map(x => `<option value="${x.id}" ${x.id === b.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}</select>
+    <p id="biasDesc" class="type-desc">${(BIASES.find(b=>b.id===b.type)||{}).desc||''}</p>
     <label>Intensité observée : <span id="biasIntensityVal">${b.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${b.intensity}" id="biasIntensity" oninput="document.getElementById('biasIntensityVal').textContent=this.value">
     <label>Preuve / exemple observé</label>

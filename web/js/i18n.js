@@ -223,6 +223,15 @@ const FR = {
   mot_learning: 'Apprentissage',
   mot_helping: 'Aider les autres',
 
+  mot_power_desc: 'Contrôle des décisions, influence et autorité',
+  mot_achievement_desc: 'Atteinte d\'objectifs ambitieux et performance',
+  mot_affiliation_desc: 'Relations harmonieuses et appartenance au groupe',
+  mot_security_desc: 'Stabilité, prévisibilité et évitement des risques',
+  mot_autonomy_desc: 'Indépendance et liberté d\'action',
+  mot_recognition_desc: 'Validation et estime des autres',
+  mot_learning_desc: 'Connaissances et développement personnel',
+  mot_helping_desc: 'Aider et soutenir les autres',
+
   // Biases enum labels
   bias_confirmation: 'Biais de confirmation',
   bias_anchoring: 'Ancrage cognitif',
@@ -234,6 +243,17 @@ const FR = {
   bias_authority: 'Autorité',
   bias_recency: 'Récence',
   bias_in_group: 'Endogroupe',
+
+  bias_confirmation_desc: 'Cherche et interprète les infos qui confirment ses croyances',
+  bias_anchoring_desc: 'Se focalise sur la première information reçue',
+  bias_availability_desc: 'Surestime la probabilité d\'événements récents',
+  bias_sunk_cost_desc: 'Poursuit un investissement à cause des ressources déjà engagées',
+  bias_dunning_kruger_desc: 'Les incompétents surestiment leurs compétences, les experts les sous-estiment',
+  bias_loss_aversion_desc: 'Préfère éviter les pertes plutôt que chercher des gains',
+  bias_social_proof_desc: 'Se conforme aux comportements du groupe',
+  bias_authority_desc: 'Confiance excessive aux figures d\'autorité',
+  bias_recency_desc: 'Accorde plus d\'importance aux informations récentes',
+  bias_in_group_desc: 'Favorise les membres de son propre groupe',
 
   // OCEAN descriptions
   ocean_o_high: 'très ouvert aux nouvelles idées, créatif et curieux',
@@ -471,6 +491,15 @@ const EN = {
   mot_learning: 'Learning',
   mot_helping: 'Helping others',
 
+  mot_power_desc: 'Control over decisions, influence and authority',
+  mot_achievement_desc: 'Ambitious goals and high performance',
+  mot_affiliation_desc: 'Harmonious relationships and group belonging',
+  mot_security_desc: 'Stability, predictability and risk avoidance',
+  mot_autonomy_desc: 'Independence and freedom of action',
+  mot_recognition_desc: 'Validation and esteem from others',
+  mot_learning_desc: 'Knowledge and personal growth',
+  mot_helping_desc: 'Helping and supporting others',
+
   bias_confirmation: 'Confirmation bias',
   bias_anchoring: 'Cognitive anchoring',
   bias_availability: 'Availability',
@@ -481,6 +510,17 @@ const EN = {
   bias_authority: 'Authority',
   bias_recency: 'Recency',
   bias_in_group: 'In-group',
+
+  bias_confirmation_desc: 'Seeks and interprets info that confirms existing beliefs',
+  bias_anchoring_desc: 'Fixes on the first piece of information received',
+  bias_availability_desc: 'Overestimates probability of recent events',
+  bias_sunk_cost_desc: 'Continues investing because of resources already spent',
+  bias_dunning_kruger_desc: 'Incompetent overestimate skill, experts underestimate it',
+  bias_loss_aversion_desc: 'Prefers avoiding losses over seeking equivalent gains',
+  bias_social_proof_desc: 'Conforms to group behaviors',
+  bias_authority_desc: 'Excessive trust in authority figures',
+  bias_recency_desc: 'Overweights recent information',
+  bias_in_group_desc: 'Favors members of one\'s own group',
 
   ocean_o_high: 'very open to new ideas, creative and curious',
   ocean_o_low: 'pragmatic, prefers routines and concrete things',
@@ -541,17 +581,21 @@ function setLang(lang) {
       N: { high: L.ocean_n_high, low: L.ocean_n_low },
     };
   }
-  // Update enum labels
+  // Update enum labels + descriptions
   if (typeof MOTIVATIONS !== 'undefined') {
     MOTIVATIONS.forEach(m => {
       const key = 'mot_' + m.id.toLowerCase();
       if (L[key]) m.label = L[key];
+      const dk = key + '_desc';
+      if (L[dk]) m.desc = L[dk];
     });
   }
   if (typeof BIASES !== 'undefined') {
     BIASES.forEach(b => {
       const key = 'bias_' + b.id.toLowerCase();
       if (L[key]) b.label = L[key];
+      const dk = key + '_desc';
+      if (L[dk]) b.desc = L[dk];
     });
   }
   // Re-translate compare page

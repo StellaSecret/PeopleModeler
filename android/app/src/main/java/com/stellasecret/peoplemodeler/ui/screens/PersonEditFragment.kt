@@ -5,6 +5,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
@@ -218,6 +219,7 @@ class PersonEditFragment : Fragment() {
         val intensityLabel = view.findViewById<TextView>(R.id.labelMotivationIntensity)
         val notesInput = view.findViewById<EditText>(R.id.inputMotivationNotes)
 
+        val descLabel = view.findViewById<TextView>(R.id.labelMotivationDesc)
         typeSpinner.adapter =
             ArrayAdapter(
                 requireContext(),
@@ -225,6 +227,20 @@ class PersonEditFragment : Fragment() {
                 MotivationType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
             )
         typeSpinner.setSelection(MotivationType.entries.indexOf(m.type).coerceAtLeast(0))
+        typeSpinner.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: android.view.View?,
+                    pos: Int,
+                    id: Long,
+                ) {
+                    descLabel.text = getString(MotivationType.entries[pos].descResId)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        descLabel.text = getString(m.type.descResId)
         intensitySlider.value = m.intensity.toFloat()
         intensityLabel.text = "${m.intensity}/10"
         notesInput.setText(m.notes)
@@ -321,6 +337,7 @@ class PersonEditFragment : Fragment() {
         val intensitySlider = view.findViewById<Slider>(R.id.sliderBiasIntensity)
         val intensityLabel = view.findViewById<TextView>(R.id.labelBiasIntensity)
         val evidenceInput = view.findViewById<EditText>(R.id.inputBiasEvidence)
+        val descLabel = view.findViewById<TextView>(R.id.labelBiasDesc)
 
         typeSpinner.adapter =
             ArrayAdapter(
@@ -329,6 +346,20 @@ class PersonEditFragment : Fragment() {
                 BiasType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
             )
         typeSpinner.setSelection(BiasType.entries.indexOf(b.type).coerceAtLeast(0))
+        typeSpinner.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: android.view.View?,
+                    pos: Int,
+                    id: Long,
+                ) {
+                    descLabel.text = getString(BiasType.entries[pos].descResId)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        descLabel.text = getString(b.type.descResId)
         intensitySlider.value = b.intensity.toFloat()
         intensityLabel.text = "${b.intensity}/10"
         evidenceInput.setText(b.evidence)
@@ -359,6 +390,7 @@ class PersonEditFragment : Fragment() {
         val intensitySlider = view.findViewById<Slider>(R.id.sliderMotivationIntensity)
         val intensityLabel = view.findViewById<TextView>(R.id.labelMotivationIntensity)
         val notesInput = view.findViewById<EditText>(R.id.inputMotivationNotes)
+        val descLabel = view.findViewById<TextView>(R.id.labelMotivationDesc)
 
         typeSpinner.adapter =
             ArrayAdapter(
@@ -366,6 +398,20 @@ class PersonEditFragment : Fragment() {
                 android.R.layout.simple_spinner_dropdown_item,
                 MotivationType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
             )
+        typeSpinner.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: android.view.View?,
+                    pos: Int,
+                    id: Long,
+                ) {
+                    descLabel.text = getString(MotivationType.entries[pos].descResId)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        descLabel.text = getString(MotivationType.entries[0].descResId)
         intensitySlider.addOnChangeListener { _, v, _ ->
             intensityLabel.text = "${v.toInt()}/10"
         }
@@ -397,6 +443,7 @@ class PersonEditFragment : Fragment() {
         val intensitySlider = view.findViewById<Slider>(R.id.sliderBiasIntensity)
         val intensityLabel = view.findViewById<TextView>(R.id.labelBiasIntensity)
         val evidenceInput = view.findViewById<EditText>(R.id.inputBiasEvidence)
+        val descLabel = view.findViewById<TextView>(R.id.labelBiasDesc)
 
         typeSpinner.adapter =
             ArrayAdapter(
@@ -404,6 +451,20 @@ class PersonEditFragment : Fragment() {
                 android.R.layout.simple_spinner_dropdown_item,
                 BiasType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
             )
+        typeSpinner.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: android.view.View?,
+                    pos: Int,
+                    id: Long,
+                ) {
+                    descLabel.text = getString(BiasType.entries[pos].descResId)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        descLabel.text = getString(BiasType.entries[0].descResId)
         intensitySlider.addOnChangeListener { _, v, _ ->
             intensityLabel.text = "${v.toInt()}/10"
         }

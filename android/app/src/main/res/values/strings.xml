@@ -138,6 +138,28 @@
     <string name="mot_learning">Apprentissage</string>
     <string name="mot_helping">Aider les autres</string>
 
+    <!-- Motivation type descriptions -->
+    <string name="mot_power_desc">Contrôle des décisions, influence et autorité</string>
+    <string name="mot_achievement_desc">Atteinte d\'objectifs ambitieux et performance</string>
+    <string name="mot_affiliation_desc">Relations harmonieuses et appartenance au groupe</string>
+    <string name="mot_security_desc">Stabilité, prévisibilité et évitement des risques</string>
+    <string name="mot_autonomy_desc">Indépendance et liberté d\'action</string>
+    <string name="mot_recognition_desc">Validation et estime des autres</string>
+    <string name="mot_learning_desc">Connaissances et développement personnel</string>
+    <string name="mot_helping_desc">Aider et soutenir les autres</string>
+
+    <!-- Bias type descriptions -->
+    <string name="bias_confirmation_desc">Cherche et interprète les infos qui confirment ses croyances</string>
+    <string name="bias_anchoring_desc">Se focalise sur la première information reçue</string>
+    <string name="bias_availability_desc">Surestime la probabilité d\'événements récents</string>
+    <string name="bias_sunk_cost_desc">Poursuit un investissement à cause des ressources déjà engagées</string>
+    <string name="bias_dunning_kruger_desc">Les incompétents surestiment leurs compétences, les experts les sous-estiment</string>
+    <string name="bias_loss_aversion_desc">Préfère éviter les pertes plutôt que chercher des gains</string>
+    <string name="bias_social_proof_desc">Se conforme aux comportements du groupe</string>
+    <string name="bias_authority_desc">Confiance excessive aux figures d\'autorité</string>
+    <string name="bias_recency_desc">Accorde plus d\'importance aux informations récentes</string>
+    <string name="bias_in_group_desc">Favorise les membres de son propre groupe</string>
+
     <!-- Bias types -->
     <string name="bias_confirmation">Confirmation</string>
     <string name="bias_anchoring">Ancrage</string>

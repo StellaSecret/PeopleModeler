@@ -14,31 +14,33 @@ import java.util.UUID
 enum class MotivationType(
     val labelResId: Int,
     val emoji: String,
+    val descResId: Int,
 ) {
-    POWER(R.string.mot_power, "👑"),
-    ACHIEVEMENT(R.string.mot_achievement, "🏆"),
-    AFFILIATION(R.string.mot_affiliation, "🤝"),
-    SECURITY(R.string.mot_security, "🛡️"),
-    AUTONOMY(R.string.mot_autonomy, "🦅"),
-    RECOGNITION(R.string.mot_recognition, "⭐"),
-    LEARNING(R.string.mot_learning, "📚"),
-    HELPING(R.string.mot_helping, "❤️"),
+    POWER(R.string.mot_power, "👑", R.string.mot_power_desc),
+    ACHIEVEMENT(R.string.mot_achievement, "🏆", R.string.mot_achievement_desc),
+    AFFILIATION(R.string.mot_affiliation, "🤝", R.string.mot_affiliation_desc),
+    SECURITY(R.string.mot_security, "🛡️", R.string.mot_security_desc),
+    AUTONOMY(R.string.mot_autonomy, "🦅", R.string.mot_autonomy_desc),
+    RECOGNITION(R.string.mot_recognition, "⭐", R.string.mot_recognition_desc),
+    LEARNING(R.string.mot_learning, "📚", R.string.mot_learning_desc),
+    HELPING(R.string.mot_helping, "❤️", R.string.mot_helping_desc),
 }
 
 enum class BiasType(
     val labelResId: Int,
     val emoji: String,
+    val descResId: Int,
 ) {
-    CONFIRMATION(R.string.bias_confirmation, "🔄"),
-    ANCHORING(R.string.bias_anchoring, "⚓"),
-    AVAILABILITY(R.string.bias_availability, "📱"),
-    SUNK_COST(R.string.bias_sunk_cost, "💸"),
-    DUNNING_KRUGER(R.string.bias_dunning_kruger, "🎭"),
-    LOSS_AVERSION(R.string.bias_loss_aversion, "😰"),
-    SOCIAL_PROOF(R.string.bias_social_proof, "👥"),
-    AUTHORITY(R.string.bias_authority, "🎖️"),
-    RECENCY(R.string.bias_recency, "⏰"),
-    IN_GROUP(R.string.bias_in_group, "🏠"),
+    CONFIRMATION(R.string.bias_confirmation, "🔄", R.string.bias_confirmation_desc),
+    ANCHORING(R.string.bias_anchoring, "⚓", R.string.bias_anchoring_desc),
+    AVAILABILITY(R.string.bias_availability, "📱", R.string.bias_availability_desc),
+    SUNK_COST(R.string.bias_sunk_cost, "💸", R.string.bias_sunk_cost_desc),
+    DUNNING_KRUGER(R.string.bias_dunning_kruger, "🎭", R.string.bias_dunning_kruger_desc),
+    LOSS_AVERSION(R.string.bias_loss_aversion, "😰", R.string.bias_loss_aversion_desc),
+    SOCIAL_PROOF(R.string.bias_social_proof, "👥", R.string.bias_social_proof_desc),
+    AUTHORITY(R.string.bias_authority, "🎖️", R.string.bias_authority_desc),
+    RECENCY(R.string.bias_recency, "⏰", R.string.bias_recency_desc),
+    IN_GROUP(R.string.bias_in_group, "🏠", R.string.bias_in_group_desc),
 }
 
 enum class BehaviorTrigger(

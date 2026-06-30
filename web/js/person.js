@@ -84,9 +84,10 @@ function openAddMotivation() {
   document.getElementById('modalTitle').textContent = t('mot_dialog_title');
   document.getElementById('modalContent').innerHTML = `
     <label>${t('mot_type_label')}</label>
-    <select id="motType">
+    <select id="motType" onchange="document.getElementById('motDesc').textContent=(MOTIVATIONS.find(m=>m.id===this.value)||{}).desc||''">
       ${MOTIVATIONS.map(m => `<option value="${m.id}">${m.emoji} ${m.label}</option>`).join('')}
     </select>
+    <p id="motDesc" class="type-desc">${MOTIVATIONS[0].desc}</p>
     <label>${t('mot_intensity_label')} : <span id="motIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="motIntensity"
            oninput="document.getElementById('motIntensityVal').textContent=this.value" />
@@ -115,9 +116,10 @@ function openEditMotivation(index) {
   const notes = (m.notes || '').replace(/"/g, '&quot;');
   document.getElementById('modalContent').innerHTML = `
     <label>${t('mot_type_label')}</label>
-    <select id="motType">
+    <select id="motType" onchange="document.getElementById('motDesc').textContent=(MOTIVATIONS.find(m=>m.id===this.value)||{}).desc||''">
       ${MOTIVATIONS.map(x => `<option value="${x.id}" ${x.id === m.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}
     </select>
+    <p id="motDesc" class="type-desc">${def.desc||''}</p>
     <label>${t('mot_intensity_label')} : <span id="motIntensityVal">${m.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${m.intensity}" id="motIntensity"
            oninput="document.getElementById('motIntensityVal').textContent=this.value" />
@@ -175,9 +177,10 @@ function openAddBias() {
   document.getElementById('modalTitle').textContent = t('bias_dialog_title');
   document.getElementById('modalContent').innerHTML = `
     <label>${t('bias_type_label')}</label>
-    <select id="biasType">
+    <select id="biasType" onchange="document.getElementById('biasDesc').textContent=(BIASES.find(b=>b.id===this.value)||{}).desc||''">
       ${BIASES.map(b => `<option value="${b.id}">${b.emoji} ${b.label}</option>`).join('')}
     </select>
+    <p id="biasDesc" class="type-desc">${BIASES[0].desc}</p>
     <label>${t('bias_intensity_label')} : <span id="biasIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="biasIntensity"
            oninput="document.getElementById('biasIntensityVal').textContent=this.value" />
@@ -206,9 +209,10 @@ function openEditBias(index) {
   const evidence = (b.evidence || '').replace(/"/g, '&quot;');
   document.getElementById('modalContent').innerHTML = `
     <label>${t('bias_type_label')}</label>
-    <select id="biasType">
+    <select id="biasType" onchange="document.getElementById('biasDesc').textContent=(BIASES.find(b=>b.id===this.value)||{}).desc||''">
       ${BIASES.map(x => `<option value="${x.id}" ${x.id === b.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}
     </select>
+    <p id="biasDesc" class="type-desc">${def.desc||''}</p>
     <label>${t('bias_intensity_label')} : <span id="biasIntensityVal">${b.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${b.intensity}" id="biasIntensity"
            oninput="document.getElementById('biasIntensityVal').textContent=this.value" />

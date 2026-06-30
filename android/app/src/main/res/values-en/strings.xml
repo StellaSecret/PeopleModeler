@@ -127,6 +127,26 @@
     <string name="mot_learning">Learning</string>
     <string name="mot_helping">Helping others</string>
 
+    <string name="mot_power_desc">Control over decisions, influence and authority</string>
+    <string name="mot_achievement_desc">Ambitious goals and high performance</string>
+    <string name="mot_affiliation_desc">Harmonious relationships and group belonging</string>
+    <string name="mot_security_desc">Stability, predictability and risk avoidance</string>
+    <string name="mot_autonomy_desc">Independence and freedom of action</string>
+    <string name="mot_recognition_desc">Validation and esteem from others</string>
+    <string name="mot_learning_desc">Knowledge and personal growth</string>
+    <string name="mot_helping_desc">Helping and supporting others</string>
+
+    <string name="bias_confirmation_desc">Seeks and interprets info that confirms existing beliefs</string>
+    <string name="bias_anchoring_desc">Fixes on the first piece of information received</string>
+    <string name="bias_availability_desc">Overestimates probability of recent events</string>
+    <string name="bias_sunk_cost_desc">Continues investing because of resources already spent</string>
+    <string name="bias_dunning_kruger_desc">Incompetent overestimate skill, experts underestimate it</string>
+    <string name="bias_loss_aversion_desc">Prefers avoiding losses over seeking equivalent gains</string>
+    <string name="bias_social_proof_desc">Conforms to group behaviors</string>
+    <string name="bias_authority_desc">Excessive trust in authority figures</string>
+    <string name="bias_recency_desc">Overweights recent information</string>
+    <string name="bias_in_group_desc">Favors members of one\'s own group</string>
+
     <string name="bias_confirmation">Confirmation</string>
     <string name="bias_anchoring">Anchoring</string>
     <string name="bias_availability">Availability</string>

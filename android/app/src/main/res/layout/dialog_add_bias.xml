@@ -18,7 +18,18 @@
         android:id="@+id/spinnerBiasType"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/labelBiasDesc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="@color/colorTextSecondary"
+        android:fontFamily="sans-serif"
+        android:textStyle="italic"
+        android:paddingHorizontal="4dp"
+        android:paddingBottom="12dp"/>
 
     <TextView
         android:layout_width="wrap_content"

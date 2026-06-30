@@ -310,6 +310,8 @@
 }
 .modal label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; margin-top: 1rem; }
 
+.type-desc { font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin: -0.5rem 0 1rem 0; padding: 0.3rem 0.75rem; background: var(--bg); border-radius: var(--radius); }
+
 @media (max-width: 600px) {
   .trigger-grid { grid-template-columns: 1fr 1fr; }
   .profile-header { flex-wrap: wrap; }
