@@ -91,7 +91,7 @@
     <string name="sync_restore_merge">Merge</string>
     <string name="sync_restore_fail">Failed: %s</string>
     <string name="sync_no_backup">No backup on Drive</string>
-    <string name="sync_last_backup_format">Last backup: %s (%s)</string>
+    <string name="sync_last_backup_format">Last backup: %1$s (%2$s)</string>
     <string name="sync_not_connected_error">Not connected or missing Drive scope</string>
     <string name="sync_no_backup_found">No backup found on Drive</string>
     <string name="sync_error_connection">Connection failed: %s</string>
@@ -143,9 +143,9 @@
     <string name="trigger_recognition">Seeking recognition</string>
     <string name="trigger_threatened">Feeling threatened</string>
 
-    <string name="insight_header_format">Under \'%s\', %s is likely to:\n\n</string>
-    <string name="insight_motivation_line">• Seek to satisfy: %s %s\n</string>
-    <string name="insight_bias_line">• Be influenced by: %s %s\n</string>
+    <string name="insight_header_format">Under \'%1$s\', %2$s is likely to:\n\n</string>
+    <string name="insight_motivation_line">• Seek to satisfy: %1$s %2$s\n</string>
+    <string name="insight_bias_line">• Be influenced by: %1$s %2$s\n</string>
     <string name="insight_neuroticism_line">• React emotionally\n</string>
     <string name="insight_conscientiousness_line">• Seek control and planning\n</string>
     <string name="insight_agreeableness_line">• Avoid conflict, seek harmony\n</string>

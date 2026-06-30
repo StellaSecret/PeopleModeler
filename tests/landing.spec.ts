@@ -9,7 +9,7 @@ test.describe('Landing Page', () => {
 
   test('affiche le titre principal', async ({ page }) => {
     await expect(page.locator('.hero-title')).toBeVisible();
-    await expect(page.locator('.hero-title')).toHaveAttribute('data-i18n', 'hero_title');
+    await expect(page.locator('.hero-title [data-i18n="hero_title_1"]')).toBeVisible();
   });
 
   test('affiche les 6 feature cards', async ({ page }) => {

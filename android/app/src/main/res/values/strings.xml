@@ -97,7 +97,7 @@
     <string name="sync_restore_merge">Fusionner</string>
     <string name="sync_restore_fail">Échec : %s</string>
     <string name="sync_no_backup">Aucune sauvegarde sur Drive</string>
-    <string name="sync_last_backup_format">Dernière sauvegarde : %s (%s)</string>
+    <string name="sync_last_backup_format">Dernière sauvegarde : %1$s (%2$s)</string>
     <string name="sync_not_connected_error">Non connecté ou scope Drive manquant</string>
     <string name="sync_no_backup_found">Aucune sauvegarde trouvée sur Drive</string>
     <string name="sync_error_connection">Connexion échouée : %s</string>
@@ -157,9 +157,9 @@
     <string name="trigger_threatened">Se sentant menacé</string>
 
     <!-- Behavioral insights -->
-    <string name="insight_header_format">Sous \'%s\', %s est susceptible de :\n\n</string>
-    <string name="insight_motivation_line">• Chercher à satisfaire : %s %s\n</string>
-    <string name="insight_bias_line">• Être influencé par : %s %s\n</string>
+    <string name="insight_header_format">Sous \'%1$s\', %2$s est susceptible de :\n\n</string>
+    <string name="insight_motivation_line">• Chercher à satisfaire : %1$s %2$s\n</string>
+    <string name="insight_bias_line">• Être influencé par : %1$s %2$s\n</string>
     <string name="insight_neuroticism_line">• Réagir de façon émotionnelle\n</string>
     <string name="insight_conscientiousness_line">• Chercher à contrôler et planifier\n</string>
     <string name="insight_agreeableness_line">• Éviter le conflit, rechercher l\'harmonie\n</string>

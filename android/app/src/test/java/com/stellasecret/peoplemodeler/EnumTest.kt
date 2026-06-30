@@ -15,11 +15,11 @@ class EnumTest {
     // ── MotivationType ─────────────────────────────────────
 
     @Test
-    fun `tous les MotivationType ont un label non vide`() {
+    fun `tous les MotivationType ont un labelResId valide`() {
         for (type in MotivationType.values()) {
             assertTrue(
-                "Label vide pour $type",
-                type.label.isNotBlank(),
+                "labelResId invalide pour $type",
+                type.labelResId != 0,
             )
         }
     }
@@ -40,8 +40,8 @@ class EnumTest {
     }
 
     @Test
-    fun `POWER a le bon label`() {
-        assertEquals("Pouvoir", MotivationType.POWER.label)
+    fun `POWER a le bon labelResId`() {
+        assertEquals(R.string.mot_power, MotivationType.POWER.labelResId)
     }
 
     @Test
@@ -52,11 +52,11 @@ class EnumTest {
     // ── BiasType ───────────────────────────────────────────
 
     @Test
-    fun `tous les BiasType ont un label non vide`() {
+    fun `tous les BiasType ont un labelResId valide`() {
         for (type in BiasType.values()) {
             assertTrue(
-                "Label vide pour $type",
-                type.label.isNotBlank(),
+                "labelResId invalide pour $type",
+                type.labelResId != 0,
             )
         }
     }
@@ -77,18 +77,18 @@ class EnumTest {
     }
 
     @Test
-    fun `ANCHORING a le bon label`() {
-        assertEquals("Ancrage", BiasType.ANCHORING.label)
+    fun `ANCHORING a le bon labelResId`() {
+        assertEquals(R.string.bias_anchoring, BiasType.ANCHORING.labelResId)
     }
 
     // ── BehaviorTrigger ────────────────────────────────────
 
     @Test
-    fun `tous les BehaviorTrigger ont un label non vide`() {
+    fun `tous les BehaviorTrigger ont un labelResId valide`() {
         for (trigger in BehaviorTrigger.values()) {
             assertTrue(
-                "Label vide pour $trigger",
-                trigger.label.isNotBlank(),
+                "labelResId invalide pour $trigger",
+                trigger.labelResId != 0,
             )
         }
     }

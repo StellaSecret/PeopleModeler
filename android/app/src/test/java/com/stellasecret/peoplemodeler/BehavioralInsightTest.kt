@@ -27,12 +27,12 @@ class BehavioralInsightTest {
         val topMotivation = person.motivations.maxByOrNull { it.intensity }
         val topBias = person.biases.maxByOrNull { it.intensity }
         return buildString {
-            append("Sous '${trigger.label}', ${person.name} est susceptible de :\n\n")
+            append("Sous '${trigger.name}', ${person.name} est susceptible de :\n\n")
             topMotivation?.let {
-                append("• Chercher à satisfaire : ${it.type.label} ${it.type.emoji}\n")
+                append("• Chercher à satisfaire : ${it.type.name} ${it.type.emoji}\n")
             }
             topBias?.let {
-                append("• Être influencé par : ${it.type.label} ${it.type.emoji}\n")
+                append("• Être influencé par : ${it.type.name} ${it.type.emoji}\n")
             }
             if (person.neuroticism > 7) append("• Réagir de façon émotionnelle\n")
             if (person.conscientiousness > 7) append("• Chercher à contrôler et planifier\n")
@@ -80,19 +80,19 @@ class BehavioralInsightTest {
     @Test
     fun `l'insight contient le trigger`() {
         val insight = generateInsight(basePerson, BehaviorTrigger.STRESS)
-        assertTrue(insight.contains(BehaviorTrigger.STRESS.label))
+        assertTrue(insight.contains(BehaviorTrigger.STRESS.name))
     }
 
     @Test
     fun `l'insight mentionne la motivation principale`() {
         val insight = generateInsight(basePerson, BehaviorTrigger.CONFLICT)
-        assertTrue(insight.contains(MotivationType.POWER.label))
+        assertTrue(insight.contains(MotivationType.POWER.name))
     }
 
     @Test
     fun `l'insight mentionne le biais principal`() {
         val insight = generateInsight(basePerson, BehaviorTrigger.STRESS)
-        assertTrue(insight.contains(BiasType.ANCHORING.label))
+        assertTrue(insight.contains(BiasType.ANCHORING.name))
     }
 
     // ── Traits OCEAN ──────────────────────────────────────

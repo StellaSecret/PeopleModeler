@@ -526,9 +526,9 @@ function setLang(lang) {
     renderAll();
     if (typeof updateOceanInterpretation === 'function') updateOceanInterpretation();
   }
+  const L = getLang();
   // Update OCEAN descriptions reference
   if (typeof OCEAN_DESCRIPTIONS !== 'undefined') {
-    const L = getLang();
     OCEAN_DESCRIPTIONS = {
       O: { high: L.ocean_o_high, low: L.ocean_o_low },
       C: { high: L.ocean_c_high, low: L.ocean_c_low },

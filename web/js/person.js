@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function renderAll() {
+  if (!currentPerson) return;
   renderHeader();
   renderMotivations();
   renderBiases();
@@ -195,7 +196,7 @@ function updateOcean(key, value) {
 
 function updateOceanInterpretation() {
   const el = document.getElementById('oceanInterpretation');
-  if (!el || !currentPerson.ocean) return;
+  if (!el || !currentPerson || !currentPerson.ocean) return;
   const o = currentPerson.ocean;
   const name = currentPerson.name.split(' ')[0];
 

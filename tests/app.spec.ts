@@ -122,7 +122,7 @@ test.describe('Web App', () => {
     await page.fill('#fName', 'Test');
     await page.click('.modal-actions .btn-primary');
     await page.click('[data-panel="biases"]');
-    await page.click('.btn-add');
+    await page.click('#panel-biases .btn-add');
     await page.click('.modal-actions .btn-primary');
     await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
     await page.click('#biasList .btn-delete');
@@ -136,7 +136,7 @@ test.describe('Web App', () => {
     await page.fill('#fName', 'Test');
     await page.click('.modal-actions .btn-primary');
     await page.click('[data-panel="biases"]');
-    await page.click('.btn-add');
+    await page.click('#panel-biases .btn-add');
     await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
     await page.click('.modal-actions .btn-primary');
     await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);

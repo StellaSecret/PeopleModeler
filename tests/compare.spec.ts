@@ -25,7 +25,7 @@ test.describe('Compare Page', () => {
 
   test('affiche la note éthique en bas', async ({ page }) => {
     await expect(page.locator('.ethics-banner')).toBeVisible();
-    await expect(page.locator('.ethics-banner [data-i18n="compare_ethics"]')).toBeVisible();
+    await expect(page.locator('.ethics-banner[data-i18n="compare_ethics"]')).toBeVisible();
   });
 
   test('les mini-bars OCEAN sont présentes pour les deux profils', async ({ page }) => {

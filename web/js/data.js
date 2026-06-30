@@ -24,7 +24,7 @@ const BIASES = [
   { id: 'IN_GROUP',      label: 'Endogroupe',             emoji: '🏠' },
 ];
 
-const OCEAN_DESCRIPTIONS = {
+let OCEAN_DESCRIPTIONS = {
   O: { high: 'très ouvert aux nouvelles idées, créatif et curieux', low: 'pragmatique, préfère les routines et le concret' },
   C: { high: 'organisé, fiable, orienté résultats et détails', low: 'flexible et spontané, peut manquer de rigueur' },
   E: { high: 'extraverti, énergique, cherche la stimulation sociale', low: 'introverti, réfléchi, préfère les interactions limitées' },
