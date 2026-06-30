@@ -106,6 +106,29 @@ test.describe('Web App', () => {
     await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
   });
 
+  test('peut supprimer une motivation', async ({ page }) => {
+    await page.click('button:has-text("Créer un profil")');
+    await page.fill('#fName', 'Test');
+    await page.click('button:has-text("Confirmer")');
+    await page.click('button:has-text("Ajouter une motivation")');
+    await page.click('button:has-text("Confirmer")');
+    await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
+    await page.click('#motivationList .mot-delete');
+    await expect(page.locator('#motivationList .mot-item')).toHaveCount(0);
+  });
+
+  test('peut supprimer un biais', async ({ page }) => {
+    await page.click('button:has-text("Créer un profil")');
+    await page.fill('#fName', 'Test');
+    await page.click('button:has-text("Confirmer")');
+    await page.click('[data-panel="biases"]');
+    await page.click('button:has-text("Ajouter un biais")');
+    await page.click('button:has-text("Confirmer")');
+    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
+    await page.click('#biasList .bias-delete');
+    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(0);
+  });
+
   // ── Biais ──────────────────────────────────────────────
 
   test('peut ajouter un biais', async ({ page }) => {

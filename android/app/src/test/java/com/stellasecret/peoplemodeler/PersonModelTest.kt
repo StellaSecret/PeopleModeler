@@ -118,6 +118,77 @@ class PersonModelTest {
         assertTrue(person.extraversion > 7)
     }
 
+    // ── Motivations ─────────────────────────────────────────
+
+    @Test
+    fun `motivations sont vides par défaut`() {
+        val person = makePerson()
+        assertTrue(person.motivations.isEmpty())
+    }
+
+    @Test
+    fun `motivations sont préservées après copy`() {
+        val motivations =
+            listOf(
+                Motivation(MotivationType.POWER, 9, "Aime diriger"),
+                Motivation(MotivationType.HELPING, 7),
+            )
+        val person = makePerson(motivations = motivations)
+        assertEquals(2, person.motivations.size)
+        assertEquals(MotivationType.POWER, person.motivations[0].type)
+        assertEquals(9, person.motivations[0].intensity)
+        assertEquals("Aime diriger", person.motivations[0].notes)
+    }
+
+    // ── Biases ──────────────────────────────────────────────
+
+    @Test
+    fun `biases sont vides par défaut`() {
+        val person = makePerson()
+        assertTrue(person.biases.isEmpty())
+    }
+
+    @Test
+    fun `biases sont préservés après copy`() {
+        val biases =
+            listOf(
+                Bias(BiasType.CONFIRMATION, 8, "Ne voit que ce qui confirme ses idées"),
+                Bias(BiasType.AUTHORITY, 6),
+            )
+        val person = makePerson(biases = biases)
+        assertEquals(2, person.biases.size)
+        assertEquals(BiasType.CONFIRMATION, person.biases[0].type)
+        assertEquals(8, person.biases[0].intensity)
+        assertEquals("Ne voit que ce qui confirme ses idées", person.biases[0].evidence)
+    }
+
+    // ── Motivation + Bias combinés ──────────────────────────
+
+    @Test
+    fun `personne avec motivations et biais préserve les deux`() {
+        val motivations = listOf(Motivation(MotivationType.AFFILIATION, 5))
+        val biases = listOf(Bias(BiasType.SOCIAL_PROOF, 6, "Suit le groupe"))
+        val person = makePerson(motivations = motivations, biases = biases)
+        assertEquals(1, person.motivations.size)
+        assertEquals(1, person.biases.size)
+        assertEquals(MotivationType.AFFILIATION, person.topMotivation)
+        assertEquals(BiasType.SOCIAL_PROOF, person.topBias)
+    }
+
+    // ── motivation / bias intensity bounds ──────────────────
+
+    @Test
+    fun `motivation avec intensité 1 est valide`() {
+        val m = Motivation(MotivationType.SECURITY, 1)
+        assertTrue(m.intensity in 1..10)
+    }
+
+    @Test
+    fun `bias avec intensité 10 est valide`() {
+        val b = Bias(BiasType.RECENCY, 10, "Se souvient surtout du dernier événement")
+        assertTrue(b.intensity in 1..10)
+    }
+
     // ── copy / immutabilité ────────────────────────────────
 
     @Test
