@@ -13,11 +13,23 @@
         android:layout_height="56dp"
         android:background="@color/colorPrimary"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
+        android:paddingStart="4dp"
         android:paddingEnd="16dp"
         android:gravity="center_vertical"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="←"
+            android:textColor="@color/colorText"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"/>
 
         <TextView
             android:id="@+id/appTitle"
@@ -30,17 +42,15 @@
             android:fontFamily="sans-serif-medium"/>
 
         <TextView
-            android:id="@+id/ethicsTag"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/ethics_tag"
-            android:textColor="@color/colorAccent"
-            android:textSize="11sp"
-            android:background="@drawable/tag_background"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"/>
+            android:id="@+id/btnLang"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:text="FR"
+            android:textColor="@color/colorText"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"/>
     </LinearLayout>
 
     <!-- NavHost Fragment -->
