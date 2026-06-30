@@ -26,6 +26,17 @@
   --font-data: 'JetBrains Mono', monospace;
   --radius: 12px;
   --radius-lg: 20px;
+  --nav-bg: rgba(8, 12, 20, 0.85);
+}
+
+[data-theme="light"] {
+  --bg: #F7F3EE;
+  --surface: #FFFFFF;
+  --surface2: #EFEBE5;
+  --border: rgba(0,0,0,0.08);
+  --text: #2C2C2C;
+  --text-muted: #8A8580;
+  --nav-bg: rgba(255,255,255,0.85);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -41,13 +52,14 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   opacity: 0.4;
 }
+[data-theme="light"] .noise { opacity: 0.12; }
 
 /* ── NAV ── */
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 1rem 3rem;
-  background: rgba(8,12,20,0.85);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
@@ -57,6 +69,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; cursor: pointer; }
 .nav-links a:hover { color: var(--text); }
 .btn-nav { background: var(--primary) !important; color: white !important; padding: 0.5rem 1.2rem; border-radius: var(--radius); font-size: 0.8rem !important; }
+
+.theme-toggle {
+  font-size:0.9rem; padding:0.3rem 0.5rem;
+  color:var(--text-muted);
+  background:none; border:1px solid var(--border);
+  border-radius:6px; cursor:pointer;
+  margin-left:0.3rem;
+  transition: color 0.15s, background 0.15s;
+  line-height:1;
+}
+.theme-toggle:hover { color:var(--text); background:var(--surface); }
+
+[data-theme="light"] .feature-card.accent { background: rgba(233,69,96,0.04); }
+[data-theme="light"] .feature-card.accent2 { background: rgba(245,166,35,0.04); }
+[data-theme="light"] .ethics { background: rgba(245,166,35,0.03); }
 
 /* ── BUTTONS ── */
 .btn-primary {
@@ -334,6 +361,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
     <a class="btn-nav" href="app.html" data-i18n="nav_open_app">Ouvrir l'app</a>
   </div>
   <button type="button" class="lang-toggle" onclick="toggleLang()">🌐</button>
+  <button type="button" class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
 </nav>
 
 <!-- ══════════════════════════════════

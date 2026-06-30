@@ -627,10 +627,41 @@ function toggleLang() {
   setLang(next);
 }
 
+// ── Theme toggle ──────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('theme', 'light');
+  }
+  updateThemeBtn();
+}
+
+function updateThemeBtn() {
+  const btn = document.getElementById('themeBtn');
+  if (!btn) return;
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  btn.textContent = isLight ? '☀️' : '🌙';
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else if (!saved && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('theme', 'light');
+  }
+  updateThemeBtn();
+}
+
 function initI18n() {
   const stored = localStorage.getItem(LANG_KEY) || 'fr';
   setLang(stored);
 }
 
 // Auto-init
-document.addEventListener('DOMContentLoaded', initI18n);
+document.addEventListener('DOMContentLoaded', () => { initI18n(); initTheme(); });
