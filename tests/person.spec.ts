@@ -94,4 +94,42 @@ test.describe('Person Page — Fiche', () => {
     await sliderE.dispatchEvent('input');
     await expect(interpretation).not.toBeEmpty();
   });
+
+  test('modifier une motivation ouvre la modale pré-remplie', async ({ page }) => {
+    const before = await page.locator('.motivation-item').count();
+    await page.click('.btn-add');
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('.motivation-item')).toHaveCount(before + 1);
+    await page.locator('.motivation-item').last().click();
+    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
+    await expect(page.locator('#motIntensityVal')).toHaveText('5');
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('.motivation-item')).toHaveCount(before + 1);
+  });
+
+  test('modifier un biais ouvre la modale pré-remplie', async ({ page }) => {
+    await page.click('.tab[data-tab="biases"]');
+    const before = await page.locator('.bias-item').count();
+    await page.locator('#tab-biases .btn-add').click();
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('.bias-item')).toHaveCount(before + 1);
+    await page.locator('.bias-item').last().click();
+    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
+    await expect(page.locator('#biasIntensityVal')).toHaveText('5');
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('.bias-item')).toHaveCount(before + 1);
+  });
+
+  test('supprimer une motivation', async ({ page }) => {
+    const before = await page.locator('.motivation-item').count();
+    await page.locator('.btn-delete').first().click();
+    await expect(page.locator('.motivation-item')).toHaveCount(before - 1);
+  });
+
+  test('supprimer un biais', async ({ page }) => {
+    await page.click('.tab[data-tab="biases"]');
+    const before = await page.locator('.bias-item').count();
+    await page.locator('#tab-biases .btn-delete').first().click();
+    await expect(page.locator('.bias-item')).toHaveCount(before - 1);
+  });
 });

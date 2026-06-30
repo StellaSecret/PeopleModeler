@@ -65,7 +65,7 @@ function renderMotivations() {
   list.innerHTML = motivations.map((m, i) => {
     const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji: '?', label: m.type };
     return `
-      <div class="motivation-item" data-index="${i}">
+      <div class="motivation-item" data-index="${i}" onclick="openEditMotivation(${i})">
         <div class="mot-icon">${def.emoji}</div>
         <div class="mot-info">
           <div class="mot-name">${def.label}</div>
@@ -75,7 +75,7 @@ function renderMotivations() {
           </div>
           ${m.notes ? `<div class="mot-notes">"${m.notes}"</div>` : ''}
         </div>
-        <button class="btn-delete" onclick="deleteMotivation(${i})" title="Supprimer">✕</button>
+        <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteMotivation(${i})" title="Supprimer">✕</button>
       </div>`;
   }).join('');
 }
@@ -107,6 +107,36 @@ function openAddMotivation() {
   openModal();
 }
 
+function openEditMotivation(index) {
+  const m = currentPerson.motivations[index];
+  if (!m) return;
+  document.getElementById('modalTitle').textContent = t('mot_edit_title');
+  const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji: '?', label: m.type };
+  const notes = (m.notes || '').replace(/"/g, '&quot;');
+  document.getElementById('modalContent').innerHTML = `
+    <label>${t('mot_type_label')}</label>
+    <select id="motType">
+      ${MOTIVATIONS.map(x => `<option value="${x.id}" ${x.id === m.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}
+    </select>
+    <label>${t('mot_intensity_label')} : <span id="motIntensityVal">${m.intensity}</span>/10</label>
+    <input type="range" min="1" max="10" value="${m.intensity}" id="motIntensity"
+           oninput="document.getElementById('motIntensityVal').textContent=this.value" />
+    <label>Notes (optionnel)</label>
+    <input type="text" id="motNotes" value="${notes}" placeholder="${t('mot_notes_placeholder')}"
+           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;"/>
+  `;
+  window._modalConfirm = () => {
+    const type = document.getElementById('motType').value;
+    const intensity = parseInt(document.getElementById('motIntensity').value);
+    const notes = document.getElementById('motNotes').value;
+    currentPerson.motivations[index] = { type, intensity, notes };
+    savePerson();
+    renderMotivations();
+    closeModal();
+  };
+  openModal();
+}
+
 function deleteMotivation(index) {
   currentPerson.motivations.splice(index, 1);
   savePerson();
@@ -126,7 +156,7 @@ function renderBiases() {
   list.innerHTML = biases.map((b, i) => {
     const def = BIASES.find(x => x.id === b.type) || { emoji: '?', label: b.type };
     return `
-      <div class="bias-item" data-index="${i}">
+      <div class="bias-item" data-index="${i}" onclick="openEditBias(${i})">
         <div class="mot-icon">${def.emoji}</div>
         <div class="mot-info">
           <div class="mot-name">${def.label}</div>
@@ -136,7 +166,7 @@ function renderBiases() {
           </div>
           ${b.evidence ? `<div class="mot-notes">"${b.evidence}"</div>` : ''}
         </div>
-        <button class="btn-delete" onclick="deleteBias(${i})" title="Supprimer">✕</button>
+        <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteBias(${i})" title="Supprimer">✕</button>
       </div>`;
   }).join('');
 }
@@ -161,6 +191,36 @@ function openAddBias() {
     const evidence = document.getElementById('biasEvidence').value;
     currentPerson.biases = currentPerson.biases || [];
     currentPerson.biases.push({ type, intensity, evidence });
+    savePerson();
+    renderBiases();
+    closeModal();
+  };
+  openModal();
+}
+
+function openEditBias(index) {
+  const b = currentPerson.biases[index];
+  if (!b) return;
+  document.getElementById('modalTitle').textContent = t('bias_edit_title');
+  const def = BIASES.find(x => x.id === b.type) || { emoji: '?', label: b.type };
+  const evidence = (b.evidence || '').replace(/"/g, '&quot;');
+  document.getElementById('modalContent').innerHTML = `
+    <label>${t('bias_type_label')}</label>
+    <select id="biasType">
+      ${BIASES.map(x => `<option value="${x.id}" ${x.id === b.type ? 'selected' : ''}>${x.emoji} ${x.label}</option>`).join('')}
+    </select>
+    <label>${t('bias_intensity_label')} : <span id="biasIntensityVal">${b.intensity}</span>/10</label>
+    <input type="range" min="1" max="10" value="${b.intensity}" id="biasIntensity"
+           oninput="document.getElementById('biasIntensityVal').textContent=this.value" />
+    <label>${t('bias_evidence_label')}</label>
+    <input type="text" id="biasEvidence" value="${evidence}" placeholder="${t('bias_evidence_placeholder')}"
+           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;"/>
+  `;
+  window._modalConfirm = () => {
+    const type = document.getElementById('biasType').value;
+    const intensity = parseInt(document.getElementById('biasIntensity').value);
+    const evidence = document.getElementById('biasEvidence').value;
+    currentPerson.biases[index] = { type, intensity, evidence };
     savePerson();
     renderBiases();
     closeModal();

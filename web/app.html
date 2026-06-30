@@ -594,14 +594,14 @@ function renderMotivations(p) {
   if (!p.motivations.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('mot_empty') : 'Aucune motivation ajoutée.'}</p>`; return; }
   el.innerHTML = p.motivations.map((m, i) => {
     const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji:'?', label: m.type };
-    return `<div class="mot-item">
+    return `<div class="mot-item" onclick="openEditMotivation(${i})">
       <div class="item-icon">${def.emoji}</div>
       <div class="item-info">
         <div class="item-name">${def.label}</div>
         <div class="item-bar-row"><div class="item-bar"><div class="item-bar-fill cyan" style="width:${m.intensity*10}%"></div></div><div class="item-intensity">${m.intensity}/10</div></div>
         ${m.notes ? `<div class="item-notes">"${esc(m.notes)}"</div>` : ''}
       </div>
-      <button type="button" class="btn-delete" onclick="deleteMotivation(${i})" aria-label="Supprimer">✕</button>
+      <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteMotivation(${i})" aria-label="Supprimer">✕</button>
     </div>`;
   }).join('');
 }
@@ -621,6 +621,25 @@ function openAddMotivation() {
   });
 }
 
+function openEditMotivation(i) {
+  const p = active(); if (!p) return;
+  const m = p.motivations[i];
+  if (!m) return;
+  const notes = esc(m.notes || '');
+  openModal('✏️ Modifier la motivation', `
+    <label class="modal-label">Type</label>
+    <select id="mType" class="modal-select">${MOTIVATIONS.map(x=>`<option value="${x.id}" ${x.id===m.type?'selected':''}>${x.emoji} ${x.label}</option>`).join('')}</select>
+    <label class="modal-label">Intensité : <span id="mIntLbl">${m.intensity}</span>/10</label>
+    <input type="range" min="1" max="10" value="${m.intensity}" id="mInt" style="width:100%;margin:.5rem 0" oninput="document.getElementById('mIntLbl').textContent=this.value">
+    <label class="modal-label">Notes (optionnel)</label>
+    <input type="text" id="mNotes" class="modal-input" value="${notes}" placeholder="Comportement observé…">`,
+  () => {
+    const p = active(); if (!p) return;
+    p.motivations[i] = { type: val('mType'), intensity: +val('mInt'), notes: val('mNotes') };
+    save(); renderMotivations(p); closeModal();
+  });
+}
+
 function deleteMotivation(i) {
   const p = active(); if (!p) return;
   p.motivations.splice(i, 1); save(); renderMotivations(p);
@@ -632,14 +651,14 @@ function renderBiases(p) {
   if (!p.biases.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('bias_empty') : 'Aucun biais ajouté.'}</p>`; return; }
   el.innerHTML = p.biases.map((b, i) => {
     const def = BIASES.find(x => x.id === b.type) || { emoji:'?', label: b.type };
-    return `<div class="bias-item-row">
+    return `<div class="bias-item-row" onclick="openEditBias(${i})">
       <div class="item-icon">${def.emoji}</div>
       <div class="item-info">
         <div class="item-name">${def.label}</div>
         <div class="item-bar-row"><div class="item-bar"><div class="item-bar-fill red" style="width:${b.intensity*10}%"></div></div><div class="item-intensity">${b.intensity}/10</div></div>
         ${b.evidence ? `<div class="item-notes">"${esc(b.evidence)}"</div>` : ''}
       </div>
-      <button type="button" class="btn-delete" onclick="deleteBias(${i})" aria-label="Supprimer">✕</button>
+      <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteBias(${i})" aria-label="Supprimer">✕</button>
     </div>`;
   }).join('');
 }
@@ -655,6 +674,25 @@ function openAddBias() {
   () => {
     const p = active(); if (!p) return;
     p.biases.push({ type: val('bType'), intensity: +val('bInt'), evidence: val('bEvidence') });
+    save(); renderBiases(p); closeModal();
+  });
+}
+
+function openEditBias(i) {
+  const p = active(); if (!p) return;
+  const b = p.biases[i];
+  if (!b) return;
+  const evidence = esc(b.evidence || '');
+  openModal('✏️ Modifier le biais', `
+    <label class="modal-label">Type</label>
+    <select id="bType" class="modal-select">${BIASES.map(x=>`<option value="${x.id}" ${x.id===b.type?'selected':''}>${x.emoji} ${x.label}</option>`).join('')}</select>
+    <label class="modal-label">Intensité observée : <span id="bIntLbl">${b.intensity}</span>/10</label>
+    <input type="range" min="1" max="10" value="${b.intensity}" id="bInt" style="width:100%;margin:.5rem 0" oninput="document.getElementById('bIntLbl').textContent=this.value">
+    <label class="modal-label">Preuve / exemple</label>
+    <input type="text" id="bEvidence" class="modal-input" value="${evidence}" placeholder="Situation concrète observée…">`,
+  () => {
+    const p = active(); if (!p) return;
+    p.biases[i] = { type: val('bType'), intensity: +val('bInt'), evidence: val('bEvidence') };
     save(); renderBiases(p); closeModal();
   });
 }

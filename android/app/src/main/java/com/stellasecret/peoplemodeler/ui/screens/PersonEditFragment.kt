@@ -192,6 +192,7 @@ class PersonEditFragment : Fragment() {
                     },
                 )
             }
+            row.setOnClickListener { showEditMotivationDialog(i) }
             row.addView(
                 ImageButton(requireContext()).apply {
                     setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
@@ -206,6 +207,45 @@ class PersonEditFragment : Fragment() {
             )
             binding.listMotivations.addView(row)
         }
+    }
+
+    private fun showEditMotivationDialog(index: Int) {
+        val m = motivations[index] ?: return
+        val inflater = LayoutInflater.from(requireContext())
+        val view = inflater.inflate(R.layout.dialog_add_motivation, null)
+        val typeSpinner = view.findViewById<Spinner>(R.id.spinnerMotivationType)
+        val intensitySlider = view.findViewById<Slider>(R.id.sliderMotivationIntensity)
+        val intensityLabel = view.findViewById<TextView>(R.id.labelMotivationIntensity)
+        val notesInput = view.findViewById<EditText>(R.id.inputMotivationNotes)
+
+        typeSpinner.adapter =
+            ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                MotivationType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
+            )
+        typeSpinner.setSelection(MotivationType.entries.indexOf(m.type).coerceAtLeast(0))
+        intensitySlider.value = m.intensity.toFloat()
+        intensityLabel.text = "${m.intensity}/10"
+        notesInput.setText(m.notes)
+
+        androidx.appcompat.app.AlertDialog
+            .Builder(requireContext())
+            .setTitle(getString(R.string.edit_edit_motivation_title))
+            .setView(view)
+            .setPositiveButton(getString(R.string.edit_save)) { _, _ ->
+                val idx = typeSpinner.selectedItemPosition
+                if (idx >= 0) {
+                    motivations[index] =
+                        Motivation(
+                            type = MotivationType.entries[idx],
+                            intensity = intensitySlider.value.toInt(),
+                            notes = notesInput.text.toString().trim(),
+                        )
+                    renderMotivations()
+                }
+            }.setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun renderBiases() {
@@ -256,6 +296,7 @@ class PersonEditFragment : Fragment() {
                     },
                 )
             }
+            row.setOnClickListener { showEditBiasDialog(i) }
             row.addView(
                 ImageButton(requireContext()).apply {
                     setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
@@ -270,6 +311,45 @@ class PersonEditFragment : Fragment() {
             )
             binding.listBiases.addView(row)
         }
+    }
+
+    private fun showEditBiasDialog(index: Int) {
+        val b = biases[index] ?: return
+        val inflater = LayoutInflater.from(requireContext())
+        val view = inflater.inflate(R.layout.dialog_add_bias, null)
+        val typeSpinner = view.findViewById<Spinner>(R.id.spinnerBiasType)
+        val intensitySlider = view.findViewById<Slider>(R.id.sliderBiasIntensity)
+        val intensityLabel = view.findViewById<TextView>(R.id.labelBiasIntensity)
+        val evidenceInput = view.findViewById<EditText>(R.id.inputBiasEvidence)
+
+        typeSpinner.adapter =
+            ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                BiasType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
+            )
+        typeSpinner.setSelection(BiasType.entries.indexOf(b.type).coerceAtLeast(0))
+        intensitySlider.value = b.intensity.toFloat()
+        intensityLabel.text = "${b.intensity}/10"
+        evidenceInput.setText(b.evidence)
+
+        androidx.appcompat.app.AlertDialog
+            .Builder(requireContext())
+            .setTitle(getString(R.string.edit_edit_bias_title))
+            .setView(view)
+            .setPositiveButton(getString(R.string.edit_save)) { _, _ ->
+                val idx = typeSpinner.selectedItemPosition
+                if (idx >= 0) {
+                    biases[index] =
+                        Bias(
+                            type = BiasType.entries[idx],
+                            intensity = intensitySlider.value.toInt(),
+                            evidence = evidenceInput.text.toString().trim(),
+                        )
+                    renderBiases()
+                }
+            }.setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun showAddMotivationDialog() {

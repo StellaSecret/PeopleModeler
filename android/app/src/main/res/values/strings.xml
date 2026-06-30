@@ -49,6 +49,8 @@
     <string name="edit_name_required">Nom requis</string>
     <string name="edit_add_motivation_title">💡 Ajouter une motivation</string>
     <string name="edit_add_bias_title">🧠 Ajouter un biais</string>
+    <string name="edit_edit_motivation_title">✏️ Modifier la motivation</string>
+    <string name="edit_edit_bias_title">✏️ Modifier le biais</string>
     <string name="edit_add_confirm">Ajouter</string>
 
     <!-- Predictions -->

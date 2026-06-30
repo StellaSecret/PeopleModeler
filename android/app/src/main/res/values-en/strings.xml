@@ -46,6 +46,8 @@
     <string name="edit_name_required">Name required</string>
     <string name="edit_add_motivation_title">💡 Add a motivation</string>
     <string name="edit_add_bias_title">🧠 Add a bias</string>
+    <string name="edit_edit_motivation_title">✏️ Edit motivation</string>
+    <string name="edit_edit_bias_title">✏️ Edit bias</string>
     <string name="edit_add_confirm">Add</string>
 
     <string name="predictions_pending_count">⏳ 0 prediction(s) pending</string>

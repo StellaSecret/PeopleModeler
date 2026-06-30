@@ -142,6 +142,33 @@ test.describe('Web App', () => {
     await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
   });
 
+  test('modifier une motivation conserve le nombre d\'items', async ({ page }) => {
+    await page.click('.app-empty .btn-primary');
+    await page.fill('#fName', 'Test');
+    await page.click('.modal-actions .btn-primary');
+    await page.click('.btn-add');
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
+    await page.click('#motivationList .mot-item');
+    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
+  });
+
+  test('modifier un biais conserve le nombre d\'items', async ({ page }) => {
+    await page.click('.app-empty .btn-primary');
+    await page.fill('#fName', 'Test');
+    await page.click('.modal-actions .btn-primary');
+    await page.click('[data-panel="biases"]');
+    await page.click('#panel-biases .btn-add');
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
+    await page.click('#biasList .bias-item-row');
+    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
+    await page.click('.modal-actions .btn-primary');
+    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
+  });
+
   // ── OCEAN ──────────────────────────────────────────────
 
   test('les 5 sliders OCEAN sont présents', async ({ page }) => {
