@@ -170,12 +170,25 @@ class SyncFragment : Fragment() {
         }
 
         binding.btnRestore.setOnClickListener {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("⬇️ Restaurer depuis Drive")
-                .setMessage("Les profils de votre sauvegarde Drive seront fusionnés avec vos données locales.")
-                .setPositiveButton("Restaurer") { _, _ -> viewModel.restore() }
-                .setNegativeButton("Annuler", null)
-                .show()
+            lifecycleScope.launch {
+                val count = viewModel.countPersons()
+                if (count > 0) {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("⬇️ Restaurer depuis Drive")
+                        .setMessage("$count profil(s) existent déjà. Voulez-vous remplacer ou fusionner ?")
+                        .setPositiveButton("Remplacer") { _, _ -> viewModel.restore(overwrite = true) }
+                        .setNeutralButton("Fusionner") { _, _ -> viewModel.restore(overwrite = false) }
+                        .setNegativeButton("Annuler", null)
+                        .show()
+                } else {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("⬇️ Restaurer depuis Drive")
+                        .setMessage("Les profils de votre sauvegarde Drive seront restaurés.")
+                        .setPositiveButton("Restaurer") { _, _ -> viewModel.restore() }
+                        .setNegativeButton("Annuler", null)
+                        .show()
+                }
+            }
         }
     }
 

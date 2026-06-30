@@ -47,12 +47,15 @@ class SyncViewModel(
             refreshBackupInfo()
         }
 
-    fun restore() =
+    suspend fun countPersons() = repo.countPersons()
+
+    fun restore(overwrite: Boolean = false) =
         viewModelScope.launch {
             _syncState.value = SyncUiState.Loading("Restauration en cours…")
             val (result, persons) = driveSync.restore()
             when (result) {
                 is SyncResult.Success -> {
+                    if (overwrite) repo.deleteAllPersons()
                     persons?.forEach { repo.savePerson(it) }
                     _syncState.value = SyncUiState.Done(result.message)
                 }

@@ -33,6 +33,9 @@ interface PersonDao {
     @Query("SELECT * FROM persons WHERE name LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%'")
     fun searchPersons(query: String): Flow<List<Person>>
 
+    @Query("SELECT COUNT(*) FROM persons")
+    suspend fun countPersons(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPerson(person: Person)
 
@@ -41,6 +44,9 @@ interface PersonDao {
 
     @Delete
     suspend fun deletePerson(person: Person)
+
+    @Query("DELETE FROM persons")
+    suspend fun deleteAllPersons()
 }
 
 @Dao
@@ -113,6 +119,8 @@ class PersonRepository(
 
     suspend fun getAllPersonsOnce() = db.personDao().getAllPersonsOnce()
 
+    suspend fun countPersons() = db.personDao().countPersons()
+
     fun searchPersons(query: String) = db.personDao().searchPersons(query)
 
     suspend fun getPersonById(id: String) = db.personDao().getPersonById(id)
@@ -122,6 +130,8 @@ class PersonRepository(
     }
 
     suspend fun deletePerson(person: Person) = db.personDao().deletePerson(person)
+
+    suspend fun deleteAllPersons() = db.personDao().deleteAllPersons()
 
     fun getPredictionsForPerson(personId: String) = db.predictionDao().getPredictionsForPerson(personId)
 
