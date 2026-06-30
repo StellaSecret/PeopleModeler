@@ -64,3 +64,6 @@
 # Garder les noms des Fragments pour la navigation
 -keep class com.stellasecret.peoplemodeler.ui.** extends androidx.fragment.app.Fragment { *; }
 -keep class com.stellasecret.peoplemodeler.sync.SyncFragment { *; }
+
+# DriveSync BackupPayload — keep field generic signatures for Gson deserialisation
+-keep class com.stellasecret.peoplemodeler.sync.DriveSync$BackupPayload { <fields>; }
