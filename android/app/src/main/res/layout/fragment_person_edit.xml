@@ -152,6 +152,58 @@
             <TextView android:id="@+id/valN" android:layout_width="24dp" android:layout_height="wrap_content" android:text="5" android:textColor="@color/colorBias" android:gravity="center"/>
         </LinearLayout>
 
+        <!-- Motivations -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💡 Motivations"
+            android:textColor="@color/colorMotivation"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/listMotivations"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddMotivation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+ Ajouter une motivation"
+            android:layout_marginBottom="20dp"
+            app:backgroundTint="@color/colorMotivation"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
+        <!-- Biases -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🧠 Biais cognitifs"
+            android:textColor="@color/colorBias"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/listBiases"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddBias"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+ Ajouter un biais"
+            android:layout_marginBottom="20dp"
+            app:backgroundTint="@color/colorBias"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
         <!-- Actions -->
         <LinearLayout
             android:layout_width="match_parent"
