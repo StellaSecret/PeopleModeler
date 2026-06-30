@@ -15,6 +15,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.data.models.Bias
@@ -80,6 +81,11 @@ class PersonEditFragment : Fragment() {
         binding.btnAddBias.setOnClickListener { showAddBiasDialog() }
         binding.btnSave.setOnClickListener { savePerson() }
         binding.btnCancel.setOnClickListener { findNavController().navigateUp() }
+
+        if (editingPerson != null) {
+            binding.btnDelete.visibility = View.VISIBLE
+            binding.btnDelete.setOnClickListener { confirmDelete() }
+        }
     }
 
     private fun populateForm(p: Person) {
@@ -338,6 +344,18 @@ class PersonEditFragment : Fragment() {
                     )
                     renderBiases()
                 }
+            }.setNegativeButton("Annuler", null)
+            .show()
+    }
+
+    private fun confirmDelete() {
+        val p = editingPerson ?: return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Supprimer ${p.name} ?")
+            .setMessage("Cette action est irréversible.")
+            .setPositiveButton("Supprimer") { _, _ ->
+                viewModel.deletePerson(p)
+                findNavController().navigateUp()
             }.setNegativeButton("Annuler", null)
             .show()
     }

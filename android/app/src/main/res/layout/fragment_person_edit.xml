@@ -209,24 +209,39 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="end"
+            android:gravity="space_between"
             android:layout_marginBottom="16dp">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCancel"
+                android:id="@+id/btnDelete"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Annuler"
-                android:layout_marginEnd="12dp"
-                app:backgroundTint="@color/colorCardBackground"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                android:text="🗑 Supprimer"
+                android:visibility="gone"
+                app:backgroundTint="@color/colorBias"
+                style="@style/Widget.MaterialComponents.Button.TextButton"/>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSave"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💾 Enregistrer"
-                app:backgroundTint="@color/colorSecondary"/>
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Annuler"
+                    android:layout_marginEnd="12dp"
+                    app:backgroundTint="@color/colorCardBackground"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSave"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💾 Enregistrer"
+                    app:backgroundTint="@color/colorSecondary"/>
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>
