@@ -36,7 +36,7 @@ function renderHeader() {
   const circle = document.querySelector('.accuracy-ring circle:last-child');
   if (circle) circle.style.strokeDashoffset = offset;
   const label = document.querySelector('.accuracy-label');
-  if (label) label.innerHTML = `${score}%<br/><small>précision</small>`;
+  if (label) label.innerHTML = `${score}%<br/><small>${t('person_accuracy')}</small>`;
 }
 
 // ── TABS ──────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function renderMotivations() {
   const motivations = currentPerson.motivations || [];
 
   if (motivations.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">Aucune motivation ajoutée.</p>`;
+    list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">${t('mot_empty')}</p>`;
     return;
   }
 
@@ -80,17 +80,17 @@ function renderMotivations() {
 }
 
 function openAddMotivation() {
-  document.getElementById('modalTitle').textContent = '💡 Ajouter une motivation';
+  document.getElementById('modalTitle').textContent = t('mot_dialog_title');
   document.getElementById('modalContent').innerHTML = `
-    <label>Type de motivation</label>
+    <label>${t('mot_type_label')}</label>
     <select id="motType">
       ${MOTIVATIONS.map(m => `<option value="${m.id}">${m.emoji} ${m.label}</option>`).join('')}
     </select>
-    <label>Intensité : <span id="motIntensityVal">5</span>/10</label>
+    <label>${t('mot_intensity_label')} : <span id="motIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="motIntensity"
            oninput="document.getElementById('motIntensityVal').textContent=this.value" />
     <label>Notes (optionnel)</label>
-    <input type="text" id="motNotes" placeholder="Comportement observé…"
+    <input type="text" id="motNotes" placeholder="${t('mot_notes_placeholder')}"
            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;"/>
   `;
   window._modalConfirm = () => {
@@ -118,7 +118,7 @@ function renderBiases() {
   const biases = currentPerson.biases || [];
 
   if (biases.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">Aucun biais ajouté.</p>`;
+    list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">${t('bias_empty')}</p>`;
     return;
   }
 
@@ -141,17 +141,17 @@ function renderBiases() {
 }
 
 function openAddBias() {
-  document.getElementById('modalTitle').textContent = '🧠 Ajouter un biais cognitif';
+  document.getElementById('modalTitle').textContent = t('bias_dialog_title');
   document.getElementById('modalContent').innerHTML = `
-    <label>Type de biais</label>
+    <label>${t('bias_type_label')}</label>
     <select id="biasType">
       ${BIASES.map(b => `<option value="${b.id}">${b.emoji} ${b.label}</option>`).join('')}
     </select>
-    <label>Intensité observée : <span id="biasIntensityVal">5</span>/10</label>
+    <label>${t('bias_intensity_label')} : <span id="biasIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="biasIntensity"
            oninput="document.getElementById('biasIntensityVal').textContent=this.value" />
-    <label>Preuve / exemple observé (optionnel)</label>
-    <input type="text" id="biasEvidence" placeholder="Situation concrète observée…"
+    <label>${t('bias_evidence_label')}</label>
+    <input type="text" id="biasEvidence" placeholder="${t('bias_evidence_placeholder')}"
            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;"/>
   `;
   window._modalConfirm = () => {
@@ -226,7 +226,7 @@ function renderPredictions() {
   const preds = currentPerson.predictions || [];
 
   if (preds.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1rem;">Aucune prédiction enregistrée.</p>`;
+    list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1rem;">${t('pred_empty')}</p>`;
     return;
   }
 
@@ -236,11 +236,11 @@ function renderPredictions() {
       <div class="pred-outcome">🔮 ${p.predictedOutcome}</div>
       <div class="pred-status">
         <span class="pred-badge ${p.resolved ? 'resolved' : 'pending'}">
-          ${p.resolved ? '✅ Résolue' : '⏳ En attente'}
+          ${p.resolved ? t('pred_resolved') : t('pred_pending')}
         </span>
-        ${p.resolved && p.accuracy ? `<span style="color:var(--gold);font-size:.78rem;">Précision : ${p.accuracy}/10</span>` : ''}
+        ${p.resolved && p.accuracy ? `<span style="color:var(--gold);font-size:.78rem;">${t('pred_accuracy')} : ${p.accuracy}/10</span>` : ''}
         ${p.resolved && p.actualOutcome ? `<span style="color:var(--text-muted);font-size:.78rem;">→ ${p.actualOutcome}</span>` : ''}
-        ${!p.resolved ? `<button class="btn-resolve" onclick="openResolvePrediction(${i})">Résoudre →</button>` : ''}
+        ${!p.resolved ? `<button class="btn-resolve" onclick="openResolvePrediction(${i})">${t('pred_resolve_btn')}</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -249,7 +249,7 @@ function renderPredictions() {
 function addPrediction() {
   const context = document.getElementById('predContext').value.trim();
   const outcome = document.getElementById('predOutcome').value.trim();
-  if (!context || !outcome) { alert('Remplissez le contexte et la prédiction.'); return; }
+  if (!context || !outcome) { alert(t('pred_alert_fill')); return; }
 
   currentPerson.predictions = currentPerson.predictions || [];
   currentPerson.predictions.unshift({
@@ -269,23 +269,23 @@ function addPrediction() {
 }
 
 function openResolvePrediction(index) {
-  document.getElementById('modalTitle').textContent = '✅ Résoudre la prédiction';
+  document.getElementById('modalTitle').textContent = t('pred_resolve_title');
   const pred = currentPerson.predictions[index];
   document.getElementById('modalContent').innerHTML = `
     <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem;">
-      Prédiction : <em>"${pred.predictedOutcome}"</em>
+      ${t('pred_insight_context')} : <em>"${pred.predictedOutcome}"</em>
     </p>
-    <label>Ce qui s'est réellement passé</label>
-    <input type="text" id="resolveActual" placeholder="Résultat réel…"
+    <label>${t('pred_resolve_actual_label')}</label>
+    <input type="text" id="resolveActual" placeholder="${t('pred_resolve_actual_placeholder')}"
            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin:.5rem 0 1rem;"/>
-    <label>Précision de la prédiction : <span id="resolveAccVal">7</span>/10</label>
+    <label>${t('pred_resolve_acc_label')} : <span id="resolveAccVal">7</span>/10</label>
     <input type="range" min="1" max="10" value="7" id="resolveAcc"
            oninput="document.getElementById('resolveAccVal').textContent=this.value" />
   `;
   window._modalConfirm = () => {
     const actual = document.getElementById('resolveActual').value.trim();
     const accuracy = parseInt(document.getElementById('resolveAcc').value);
-    if (!actual) { alert('Décrivez ce qui s\'est passé.'); return; }
+    if (!actual) { alert(t('pred_alert_describe')); return; }
     currentPerson.predictions[index].actualOutcome = actual;
     currentPerson.predictions[index].accuracy = accuracy;
     currentPerson.predictions[index].resolved = true;
@@ -427,7 +427,7 @@ function showInsight(triggerKey) {
 
   const output = document.getElementById('insightOutput');
   output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">
-    Analyse comportementale — contexte : <strong style="color:var(--cyan)">${template.label}</strong>
+    ${t('insight_context_label')} : <strong style="color:var(--cyan)">${template.label}</strong>
   </div>` + template.generate(currentPerson).replace(/\n/g, '<br/>');
 }
 

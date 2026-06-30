@@ -102,7 +102,7 @@ class PersonDetailFragment : Fragment() {
             }
         row.addView(
             TextView(requireContext()).apply {
-                text = "${m.type.emoji} ${m.type.label}"
+                text = "${m.type.emoji} ${getString(m.type.labelResId)}"
                 textSize = 14f
                 setTextColor(resources.getColor(R.color.colorText, null))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -137,7 +137,7 @@ class PersonDetailFragment : Fragment() {
             }
         row.addView(
             TextView(requireContext()).apply {
-                text = "${b.type.emoji} ${b.type.label}"
+                text = "${b.type.emoji} ${getString(b.type.labelResId)}"
                 textSize = 14f
                 setTextColor(resources.getColor(R.color.colorText, null))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)

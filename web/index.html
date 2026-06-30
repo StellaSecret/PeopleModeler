@@ -316,6 +316,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 }
 
   </style>
+  <script src="js/i18n.js"></script>
 </head>
 <body>
 
@@ -325,12 +326,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 <nav class="nav" aria-label="Navigation principale">
   <div class="nav-logo" onclick="navigate('landing')">🧩 <span>People</span>Modeler</div>
   <div class="nav-links">
-    <a href="index.html" onclick="navigate('landing'); scrollToId('features'); return false;">Fonctionnalités</a>
-    <a href="index.html" onclick="navigate('landing'); scrollToId('how'); return false;">Comment</a>
-    <a href="person.html" onclick="navigate('person'); return false;">Démo</a>
-    <a href="compare.html" onclick="navigate('compare'); return false;">Comparer</a>
-    <a class="btn-nav" href="app.html">Ouvrir l'app</a>
+    <a href="index.html" onclick="navigate('landing'); scrollToId('features'); return false;" data-i18n="nav_features">Fonctionnalités</a>
+    <a href="index.html" onclick="navigate('landing'); scrollToId('how'); return false;" data-i18n="nav_how">Comment</a>
+    <a href="person.html" onclick="navigate('person'); return false;" data-i18n="nav_demo">Démo</a>
+    <a href="compare.html" onclick="navigate('compare'); return false;" data-i18n="nav_compare">Comparer</a>
+    <a class="btn-nav" href="app.html" data-i18n="nav_open_app">Ouvrir l'app</a>
   </div>
+  <button type="button" class="lang-toggle" onclick="toggleLang()">🌐</button>
 </nav>
 
 <!-- ══════════════════════════════════
@@ -341,115 +343,115 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   <section class="hero">
     <div class="hero-grid-bg"></div>
     <div class="hero-content">
-      <div class="hero-tag">⚠️ Éthique d'abord · Ultra-puissant ensuite</div>
+      <div class="hero-tag" data-i18n="hero_tag">⚠️ Éthique d'abord · Ultra-puissant ensuite</div>
       <h1 class="hero-title">
-        Modéliser les gens<br>
-        comme des <em>systèmes</em>
+        <span data-i18n="hero_title_1">Modéliser les gens</span><br>
+        <span data-i18n="hero_title_2">comme des <em>systèmes</em></span>
       </h1>
-      <p class="hero-sub">
+      <p class="hero-sub" data-i18n="hero_sub">
         Motivations · Biais · Comportements<br>
         Prédire avec précision. Comprendre avec empathie.
       </p>
       <div class="hero-cta">
-        <a href="app.html" class="btn-primary">🚀 Lancer l'app web</a>
-        <button type="button" class="btn-ghost" onclick="navigate('person')">Voir la démo →</button>
+        <a href="app.html" class="btn-primary" data-i18n="hero_cta_app">🚀 Lancer l'app web</a>
+        <button type="button" class="btn-ghost" onclick="navigate('person')" data-i18n="hero_cta_demo">Voir la démo →</button>
       </div>
     </div>
     <div class="hero-visual">
       <div class="person-card-preview">
         <div class="pcp-avatar">🧠</div>
-        <div class="pcp-name">Système : Alexandre D.</div>
-        <div class="pcp-role">Décideur · Contexte pro</div>
+        <div class="pcp-name" data-i18n="preview_name">Système : Alexandre D.</div>
+        <div class="pcp-role" data-i18n="preview_role">Décideur · Contexte pro</div>
         <div class="pcp-bars">
-          <div class="bar-row"><span>Pouvoir 👑</span><div class="bar"><div class="fill fill-90"></div></div></div>
-          <div class="bar-row"><span>Biais ancrage ⚓</span><div class="bar"><div class="fill red fill-75"></div></div></div>
-          <div class="bar-row"><span>Précision prédictions</span><div class="bar"><div class="fill gold fill-82"></div></div></div>
+          <div class="bar-row"><span data-i18n="preview_power">Pouvoir 👑</span><div class="bar"><div class="fill fill-90"></div></div></div>
+          <div class="bar-row"><span data-i18n="preview_anchor">Biais ancrage ⚓</span><div class="bar"><div class="fill red fill-75"></div></div></div>
+          <div class="bar-row"><span data-i18n="preview_accuracy">Précision prédictions</span><div class="bar"><div class="fill gold fill-82"></div></div></div>
         </div>
-        <div class="pcp-badge">🔮 3 prédictions en attente</div>
+        <div class="pcp-badge" data-i18n="preview_badge">🔮 3 prédictions en attente</div>
       </div>
     </div>
   </section>
 
   <section class="features" id="features">
-    <h2 class="section-title">Ce que vous <em>gagnez</em></h2>
+    <h2 class="section-title" data-i18n="features_title">Ce que vous <em>gagnez</em></h2>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">🗂️</div>
-        <h3>Fiches personnalisées</h3>
-        <p>Chaque personne est un modèle : motivations profondes, biais cognitifs, patterns comportementaux. Un profil OCEAN complet.</p>
+        <h3 data-i18n="f1_title">Fiches personnalisées</h3>
+        <p data-i18n="f1_desc">Chaque personne est un modèle : motivations profondes, biais cognitifs, patterns comportementaux. Un profil OCEAN complet.</p>
       </div>
       <div class="feature-card accent">
         <div class="feature-icon">🔮</div>
-        <h3>Prédictions comportementales</h3>
-        <p>Anticipez les réactions dans chaque contexte — stress, conflit, succès, incertitude. Avec un indice de confiance.</p>
+        <h3 data-i18n="f2_title">Prédictions comportementales</h3>
+        <p data-i18n="f2_desc">Anticipez les réactions dans chaque contexte — stress, conflit, succès, incertitude. Avec un indice de confiance.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔄</div>
-        <h3>Feedback Loop</h3>
-        <p>Notez la précision de vos prédictions. Le système apprend de vos retours. Votre modèle mental s'affine.</p>
+        <h3 data-i18n="f3_title">Feedback Loop</h3>
+        <p data-i18n="f3_desc">Notez la précision de vos prédictions. Le système apprend de vos retours. Votre modèle mental s'affine.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
-        <h3>Insights &amp; comparaisons</h3>
-        <p>Comparez deux profils, identifiez les synergies et les points de friction. Parfait pour les équipes et les négociations.</p>
+        <h3 data-i18n="f4_title">Insights &amp; comparaisons</h3>
+        <p data-i18n="f4_desc">Comparez deux profils, identifiez les synergies et les points de friction. Parfait pour les équipes et les négociations.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔒</div>
-        <h3>100% local</h3>
-        <p>Vos données restent sur votre appareil. Aucun serveur, aucune synchronisation cloud. Votre modèle mental est privé.</p>
+        <h3 data-i18n="f5_title">100% local</h3>
+        <p data-i18n="f5_desc">Vos données restent sur votre appareil. Aucun serveur, aucune synchronisation cloud. Votre modèle mental est privé.</p>
       </div>
       <div class="feature-card accent2">
         <div class="feature-icon">⚠️</div>
-        <h3>Éthique by design</h3>
-        <p>Rappels intégrés. Conçu pour améliorer vos relations, pas pour manipuler. Le pouvoir implique la responsabilité.</p>
+        <h3 data-i18n="f6_title">Éthique by design</h3>
+        <p data-i18n="f6_desc">Rappels intégrés. Conçu pour améliorer vos relations, pas pour manipuler. Le pouvoir implique la responsabilité.</p>
       </div>
     </div>
   </section>
 
   <section class="how" id="how">
-    <h2 class="section-title">Comment ça <em>fonctionne</em></h2>
+    <h2 class="section-title" data-i18n="how_title">Comment ça <em>fonctionne</em></h2>
     <div class="steps">
       <div class="step">
         <div class="step-num">01</div>
         <div class="step-body">
-          <h3>Créez une fiche</h3>
-          <p>Nom, rôle, contexte. Choisissez un avatar. C'est votre point de départ.</p>
+          <h3 data-i18n="step1_title">Créez une fiche</h3>
+          <p data-i18n="step1_desc">Nom, rôle, contexte. Choisissez un avatar. C'est votre point de départ.</p>
         </div>
       </div>
       <div class="step-connector"></div>
       <div class="step">
         <div class="step-num">02</div>
         <div class="step-body">
-          <h3>Modélisez le système</h3>
-          <p>Ajoutez les motivations (intensité 1–10), les biais observés, les patterns comportementaux selon le contexte.</p>
+          <h3 data-i18n="step2_title">Modélisez le système</h3>
+          <p data-i18n="step2_desc">Ajoutez les motivations (intensité 1–10), les biais observés, les patterns comportementaux selon le contexte.</p>
         </div>
       </div>
       <div class="step-connector"></div>
       <div class="step">
         <div class="step-num">03</div>
         <div class="step-body">
-          <h3>Prédisez &amp; testez</h3>
-          <p>Avant une réunion, un conflit, une négociation — notez votre prédiction. Observez. Notez la précision.</p>
+          <h3 data-i18n="step3_title">Prédisez &amp; testez</h3>
+          <p data-i18n="step3_desc">Avant une réunion, un conflit, une négociation — notez votre prédiction. Observez. Notez la précision.</p>
         </div>
       </div>
       <div class="step-connector"></div>
       <div class="step">
         <div class="step-num">04</div>
         <div class="step-body">
-          <h3>Affinez le modèle</h3>
-          <p>Le feedback loop améliore votre compréhension. Avec le temps, vous prédisez à 80%+.</p>
+          <h3 data-i18n="step4_title">Affinez le modèle</h3>
+          <p data-i18n="step4_desc">Le feedback loop améliore votre compréhension. Avec le temps, vous prédisez à 80%+.</p>
         </div>
       </div>
     </div>
   </section>
 
   <section class="usecases">
-    <h2 class="section-title">Ultra-puissant pour…</h2>
+    <h2 class="section-title" data-i18n="usecases_title">Ultra-puissant pour…</h2>
     <div class="usecase-grid">
-      <div class="usecase"><span class="uc-icon">💼</span><h4>Business</h4><p>Négociations, clients, partenaires. Anticipez les objections, adaptez votre approche.</p></div>
-      <div class="usecase"><span class="uc-icon">💞</span><h4>Relations</h4><p>Comprenez vos proches en profondeur. Réduisez les conflits. Créez des connexions durables.</p></div>
-      <div class="usecase"><span class="uc-icon">♟️</span><h4>Stratégie</h4><p>Leadership, politique d'équipe, gestion de conflits. Prenez des décisions informées.</p></div>
-      <div class="usecase"><span class="uc-icon">🧘</span><h4>Introspection</h4><p>Modélisez-vous vous-même. Identifiez vos propres biais. Devenez plus conscient.</p></div>
+      <div class="usecase"><span class="uc-icon">💼</span><h4 data-i18n="uc1_title">Business</h4><p data-i18n="uc1_desc">Négociations, clients, partenaires. Anticipez les objections, adaptez votre approche.</p></div>
+      <div class="usecase"><span class="uc-icon">💞</span><h4 data-i18n="uc2_title">Relations</h4><p data-i18n="uc2_desc">Comprenez vos proches en profondeur. Réduisez les conflits. Créez des connexions durables.</p></div>
+      <div class="usecase"><span class="uc-icon">♟️</span><h4 data-i18n="uc3_title">Stratégie</h4><p data-i18n="uc3_desc">Leadership, politique d'équipe, gestion de conflits. Prenez des décisions informées.</p></div>
+      <div class="usecase"><span class="uc-icon">🧘</span><h4 data-i18n="uc4_title">Introspection</h4><p data-i18n="uc4_desc">Modélisez-vous vous-même. Identifiez vos propres biais. Devenez plus conscient.</p></div>
     </div>
   </section>
 
@@ -457,28 +459,28 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
     <div class="ethics-inner">
       <div class="ethics-icon">⚖️</div>
       <div>
-        <h3>Note éthique importante</h3>
-        <p>People Modeler est un outil de compréhension, pas de manipulation. Utilisez-le pour <strong>améliorer vos relations</strong>, pas pour exploiter les failles des autres. La connaissance des systèmes humains est une responsabilité.</p>
+        <h3 data-i18n="ethics_title">Note éthique importante</h3>
+        <p data-i18n="ethics_desc">People Modeler est un outil de compréhension, pas de manipulation. Utilisez-le pour <strong>améliorer vos relations</strong>, pas pour exploiter les failles des autres. La connaissance des systèmes humains est une responsabilité.</p>
       </div>
     </div>
   </section>
 
   <section class="cta-section">
-    <h2>Prêt à comprendre les systèmes humains ?</h2>
-    <p>Application web. Données 100% locales. Gratuit.</p>
+    <h2 data-i18n="cta_title">Prêt à comprendre les systèmes humains ?</h2>
+    <p data-i18n="cta_sub">Application web. Données 100% locales. Gratuit.</p>
     <div class="cta-buttons">
-      <a href="app.html" class="btn-primary large">🚀 Lancer l'application</a>
-      <button type="button" class="btn-ghost large" onclick="navigate('person')">👁️ Voir la démo</button>
+      <a href="app.html" class="btn-primary large" data-i18n="cta_app_btn">🚀 Lancer l'application</a>
+      <button type="button" class="btn-ghost large" onclick="navigate('person')" data-i18n="cta_demo_btn">👁️ Voir la démo</button>
     </div>
   </section>
 
   <footer class="footer" aria-label="Pied de page — Accueil">
     <div class="footer-logo">🧩 PeopleModeler</div>
     <div class="footer-links">
-      <a onclick="navigate('person')">Démo fiche</a>
-      <a onclick="navigate('compare')">Comparaison</a>
+      <a onclick="navigate('person')" data-i18n="nav_demo">Démo fiche</a>
+      <a onclick="navigate('compare')" data-i18n="nav_compare">Comparaison</a>
     </div>
-    <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+    <p class="footer-copy" data-i18n="footer_copy">Open Source · MIT License · À utiliser éthiquement</p>
   </footer>
 </div>
 
@@ -505,70 +507,70 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
               stroke-dasharray="213.6" stroke-dashoffset="38" stroke-linecap="round"
               transform="rotate(-90 40 40)"/>
           </svg>
-          <div class="accuracy-label">82%<br><small>précision</small></div>
+          <div class="accuracy-label">82%<br><small data-i18n="person_accuracy">précision</small></div>
         </div>
       </div>
     </div>
 
     <div class="tabs">
-      <button type="button" class="tab active" data-tab="motivations">💡 Motivations</button>
-      <button type="button" class="tab" data-tab="biases">🧠 Biais</button>
-      <button type="button" class="tab" data-tab="ocean">🌊 OCEAN</button>
-      <button type="button" class="tab" data-tab="predictions">🔮 Prédictions</button>
-      <button type="button" class="tab" data-tab="insights">✨ Insights</button>
+      <button type="button" class="tab active" data-tab="motivations" data-i18n="tab_motivations">💡 Motivations</button>
+      <button type="button" class="tab" data-tab="biases" data-i18n="tab_biases">🧠 Biais</button>
+      <button type="button" class="tab" data-tab="ocean" data-i18n="tab_ocean">🌊 OCEAN</button>
+      <button type="button" class="tab" data-tab="predictions" data-i18n="tab_predictions">🔮 Prédictions</button>
+      <button type="button" class="tab" data-tab="insights" data-i18n="tab_insights">✨ Insights</button>
     </div>
 
     <div class="tab-content active" id="tab-motivations">
-      <h2 class="section-label">Motivations profondes</h2>
+      <h2 class="section-label" data-i18n="mot_section_title">Motivations profondes</h2>
       <div id="motivationList"></div>
       <div class="add-item-row">
-        <button type="button" class="btn-add" onclick="openAddMotivation()">+ Ajouter une motivation</button>
+        <button type="button" class="btn-add" onclick="openAddMotivation()" data-i18n="mot_add">+ Ajouter une motivation</button>
       </div>
     </div>
 
     <div class="tab-content" id="tab-biases">
-      <h2 class="section-label">Biais cognitifs observés</h2>
+      <h2 class="section-label" data-i18n="bias_section_title">Biais cognitifs observés</h2>
       <div id="biasList"></div>
       <div class="add-item-row">
-        <button type="button" class="btn-add" onclick="openAddBias()">+ Ajouter un biais</button>
+        <button type="button" class="btn-add" onclick="openAddBias()" data-i18n="bias_add">+ Ajouter un biais</button>
       </div>
     </div>
 
     <div class="tab-content" id="tab-ocean">
-      <h2 class="section-label">Profil de personnalité (Big Five)</h2>
+      <h2 class="section-label" data-i18n="ocean_section_title">Profil de personnalité (Big Five)</h2>
       <div class="ocean-chart">
-        <div class="ocean-row"><div class="ocean-label">O — Ouverture</div><input type="range" min="1" max="10" value="8" class="ocean-slider" id="slider-O" oninput="updateOcean('O', this.value)"><div class="ocean-val" id="val-O">8</div></div>
-        <div class="ocean-row"><div class="ocean-label">C — Consciencieux</div><input type="range" min="1" max="10" value="6" class="ocean-slider" id="slider-C" oninput="updateOcean('C', this.value)"><div class="ocean-val" id="val-C">6</div></div>
-        <div class="ocean-row"><div class="ocean-label">E — Extraversion</div><input type="range" min="1" max="10" value="9" class="ocean-slider" id="slider-E" oninput="updateOcean('E', this.value)"><div class="ocean-val" id="val-E">9</div></div>
-        <div class="ocean-row"><div class="ocean-label">A — Agréabilité</div><input type="range" min="1" max="10" value="4" class="ocean-slider" id="slider-A" oninput="updateOcean('A', this.value)"><div class="ocean-val" id="val-A">4</div></div>
-        <div class="ocean-row"><div class="ocean-label">N — Névrosisme</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="slider-N" oninput="updateOcean('N', this.value)"><div class="ocean-val" id="val-N">5</div></div>
+        <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_o">O — Ouverture</div><input type="range" min="1" max="10" value="8" class="ocean-slider" id="slider-O" oninput="updateOcean('O', this.value)"><div class="ocean-val" id="val-O">8</div></div>
+        <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_c">C — Consciencieux</div><input type="range" min="1" max="10" value="6" class="ocean-slider" id="slider-C" oninput="updateOcean('C', this.value)"><div class="ocean-val" id="val-C">6</div></div>
+        <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_e">E — Extraversion</div><input type="range" min="1" max="10" value="9" class="ocean-slider" id="slider-E" oninput="updateOcean('E', this.value)"><div class="ocean-val" id="val-E">9</div></div>
+        <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_a">A — Agréabilité</div><input type="range" min="1" max="10" value="4" class="ocean-slider" id="slider-A" oninput="updateOcean('A', this.value)"><div class="ocean-val" id="val-A">4</div></div>
+        <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_n">N — Névrosisme</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="slider-N" oninput="updateOcean('N', this.value)"><div class="ocean-val" id="val-N">5</div></div>
       </div>
       <div class="ocean-interpretation" id="oceanInterpretation"></div>
     </div>
 
     <div class="tab-content" id="tab-predictions">
-      <h2 class="section-label">Prédictions comportementales</h2>
+      <h2 class="section-label" data-i18n="pred_section_title">Prédictions comportementales</h2>
       <div id="predictionList"></div>
       <div class="add-prediction-form">
-        <h3>Nouvelle prédiction</h3>
-        <div class="form-row"><label>Contexte / Situation</label><input type="text" id="predContext" placeholder="Ex: Réunion de budget vendredi…"></div>
-        <div class="form-row"><label>Comportement prédit</label><textarea id="predOutcome" placeholder="Je prédis qu'il va…"></textarea></div>
-        <button type="button" class="btn-primary" onclick="addPrediction()">🔮 Enregistrer la prédiction</button>
+        <h3 data-i18n="pred_form_title">Nouvelle prédiction</h3>
+        <div class="form-row"><label data-i18n="pred_ctx_label">Contexte / Situation</label><input type="text" id="predContext" data-i18n="pred_ctx_placeholder" placeholder="Ex: Réunion de budget vendredi…"></div>
+        <div class="form-row"><label data-i18n="pred_out_label">Comportement prédit</label><textarea id="predOutcome" data-i18n="pred_out_placeholder" placeholder="Je prédis qu'il va…"></textarea></div>
+        <button type="button" class="btn-primary" onclick="addPrediction()" data-i18n="person_pred_add">🔮 Enregistrer la prédiction</button>
       </div>
     </div>
 
     <div class="tab-content" id="tab-insights">
-      <h2 class="section-label">Analyse comportementale par contexte</h2>
+      <h2 class="section-label" data-i18n="insight_section_title">Analyse comportementale par contexte</h2>
       <div class="trigger-grid">
-        <button type="button" class="trigger-btn" onclick="showInsight('stress', this)">😰 Sous stress</button>
-        <button type="button" class="trigger-btn" onclick="showInsight('conflict', this)">⚔️ En conflit</button>
-        <button type="button" class="trigger-btn" onclick="showInsight('success', this)">🏆 En réussite</button>
-        <button type="button" class="trigger-btn" onclick="showInsight('uncertainty', this)">❓ Incertitude</button>
-        <button type="button" class="trigger-btn" onclick="showInsight('recognition', this)">⭐ Recherche reconnaissance</button>
-        <button type="button" class="trigger-btn" onclick="showInsight('threat', this)">🛡️ Se sentant menacé</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('stress', this)" data-i18n="insight_stress">😰 Sous stress</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('conflict', this)" data-i18n="insight_conflict">⚔️ En conflit</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('success', this)" data-i18n="insight_success">🏆 En réussite</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('uncertainty', this)" data-i18n="insight_uncertainty">❓ Incertitude</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('recognition', this)" data-i18n="insight_recognition">⭐ Recherche reconnaissance</button>
+        <button type="button" class="trigger-btn" onclick="showInsight('threat', this)" data-i18n="insight_threat">🛡️ Se sentant menacé</button>
       </div>
       <div class="insight-output" id="insightOutput">
-        <p class="placeholder-text">← Sélectionnez un contexte pour voir l'analyse</p>
+        <p class="placeholder-text" data-i18n="person_pred_placeholder">← Sélectionnez un contexte pour voir l'analyse</p>
       </div>
     </div>
   </div><!-- /.person-main -->
@@ -576,10 +578,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   <footer class="footer" aria-label="Pied de page — Fiche personne">
     <div class="footer-logo">🧩 PeopleModeler</div>
     <div class="footer-links">
-      <a onclick="navigate('landing')">← Accueil</a>
-      <a onclick="navigate('compare')">Comparer</a>
+      <a onclick="navigate('landing')" data-i18n="nav_back">← Accueil</a>
+      <a onclick="navigate('compare')" data-i18n="nav_compare">Comparer</a>
     </div>
-    <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+    <p class="footer-copy" data-i18n="footer_copy">Open Source · MIT License · À utiliser éthiquement</p>
   </footer>
 </div>
 
@@ -588,18 +590,18 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 ══════════════════════════════════ -->
 <div id="page-compare" class="page">
   <div class="compare-main">
-    <h1 class="compare-title">Comparaison de profils</h1>
-    <p class="compare-sub">Identifiez synergies et points de friction entre deux personnes</p>
+    <h1 class="compare-title" data-i18n="compare_title">Comparaison de profils</h1>
+    <p class="compare-sub" data-i18n="compare_sub">Identifiez synergies et points de friction entre deux personnes</p>
 
     <div class="compare-grid">
       <div class="compare-card" id="cardA">
         <div class="compare-avatar">🧠</div>
         <h2>Alexandre D.</h2>
         <p>Directeur Commercial</p>
-        <div class="compare-section"><h4>💡 Top Motivation</h4><div class="compare-chip green">👑 Pouvoir (9/10)</div></div>
-        <div class="compare-section"><h4>🧠 Biais principal</h4><div class="compare-chip red">⚓ Ancrage (8/10)</div></div>
+        <div class="compare-section"><h4 data-i18n="compare_top_mot">💡 Top Motivation</h4><div class="compare-chip green">👑 Pouvoir (9/10)</div></div>
+        <div class="compare-section"><h4 data-i18n="compare_bias_main">🧠 Biais principal</h4><div class="compare-chip red">⚓ Ancrage (8/10)</div></div>
         <div class="compare-section">
-          <h4>🌊 Profil OCEAN</h4>
+          <h4 data-i18n="compare_ocean">🌊 Profil OCEAN</h4>
           <div class="mini-bars">
             <div class="mb-row"><span>O</span><div class="mb-bar"><div class="w-80"></div></div></div>
             <div class="mb-row"><span>C</span><div class="mb-bar"><div class="w-60"></div></div></div>
@@ -611,7 +613,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
       </div>
 
       <div class="vs-divider">
-        <div class="vs-text">VS</div>
+        <div class="vs-text" data-i18n="compare_vs">VS</div>
         <div class="compat-ring">
           <svg viewBox="0 0 80 80">
             <circle cx="40" cy="40" r="34" fill="none" stroke="#1a1a2e" stroke-width="8"/>
@@ -619,7 +621,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
               stroke-dasharray="213.6" stroke-dashoffset="64" stroke-linecap="round"
               transform="rotate(-90 40 40)"/>
           </svg>
-          <div class="compat-label">70%<br><small>synergie</small></div>
+          <div class="compat-label">70%<br><small data-i18n="compare_synergy">synergie</small></div>
         </div>
       </div>
 
@@ -627,10 +629,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
         <div class="compare-avatar">🎯</div>
         <h2>Sarah M.</h2>
         <p>Product Manager</p>
-        <div class="compare-section"><h4>💡 Top Motivation</h4><div class="compare-chip green">📚 Apprentissage (9/10)</div></div>
-        <div class="compare-section"><h4>🧠 Biais principal</h4><div class="compare-chip red">👥 Preuve sociale (7/10)</div></div>
+        <div class="compare-section"><h4 data-i18n="compare_top_mot">💡 Top Motivation</h4><div class="compare-chip green">📚 Apprentissage (9/10)</div></div>
+        <div class="compare-section"><h4 data-i18n="compare_bias_main">🧠 Biais principal</h4><div class="compare-chip red">👥 Preuve sociale (7/10)</div></div>
         <div class="compare-section">
-          <h4>🌊 Profil OCEAN</h4>
+          <h4 data-i18n="compare_ocean">🌊 Profil OCEAN</h4>
           <div class="mini-bars">
             <div class="mb-row"><span>O</span><div class="mb-bar"><div class="w-95"></div></div></div>
             <div class="mb-row"><span>C</span><div class="mb-bar"><div class="w-85"></div></div></div>
@@ -643,10 +645,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
     </div>
 
     <div class="analysis-section">
-      <h2>🔍 Analyse de la dynamique</h2>
+      <h2 data-i18n="compare_analysis_title">🔍 Analyse de la dynamique</h2>
       <div class="analysis-grid">
         <div class="analysis-card synergy">
-          <h3>✅ Synergies</h3>
+          <h3 data-i18n="compare_synergies">✅ Synergies</h3>
           <ul>
             <li>Alexandre apporte la <strong>vision power</strong>, Sarah l'<strong>exécution rigoureuse</strong></li>
             <li>Complémentarité E–A : l'extraversion d'Alexandre compense le besoin d'harmonie de Sarah</li>
@@ -654,7 +656,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
           </ul>
         </div>
         <div class="analysis-card friction">
-          <h3>⚠️ Points de friction</h3>
+          <h3 data-i18n="compare_friction">⚠️ Points de friction</h3>
           <ul>
             <li>Alexandre (faible A) peut sembler <strong>agressif</strong> pour Sarah (haute A)</li>
             <li>Biais ancrage vs preuve sociale : désaccords sur les références de décision</li>
@@ -662,7 +664,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
           </ul>
         </div>
         <div class="analysis-card strategy">
-          <h3>♟️ Stratégie d'interaction</h3>
+          <h3 data-i18n="compare_strategy">♟️ Stratégie d'interaction</h3>
           <ul>
             <li>Présenter les idées avec <strong>données et consensus</strong> pour convaincre Sarah</li>
             <li>Permettre à Alexandre de <strong>prendre l'initiative</strong> — satisfait son besoin de pouvoir</li>
@@ -672,7 +674,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
       </div>
     </div>
 
-    <div class="ethics-banner">
+    <div class="ethics-banner" data-i18n="compare_ethics">
       ⚠️ Ces analyses sont des <em>modèles probabilistes</em>, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler.
     </div>
   </div>
@@ -680,10 +682,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   <footer class="footer" aria-label="Pied de page — Comparaison">
     <div class="footer-logo">🧩 PeopleModeler</div>
     <div class="footer-links">
-      <a onclick="navigate('landing')">Accueil</a>
-      <a onclick="navigate('person')">Fiche</a>
+      <a onclick="navigate('landing')" data-i18n="nav_home">Accueil</a>
+      <a onclick="navigate('person')" data-i18n="nav_demo">Fiche</a>
     </div>
-    <p class="footer-copy">Open Source · MIT License · À utiliser éthiquement</p>
+    <p class="footer-copy" data-i18n="footer_copy">Open Source · MIT License · À utiliser éthiquement</p>
   </footer>
 </div>
 
@@ -691,11 +693,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 <!-- ── MODAL (demo) ── -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
   <div class="modal" onclick="event.stopPropagation()">
-    <h3 id="modalTitle">Ajouter</h3>
+    <h3 id="modalTitle" data-i18n="person_modal_title">Ajouter</h3>
     <div id="modalContent"></div>
     <div class="modal-actions">
-      <button type="button" class="btn-ghost" onclick="closeModal()">Annuler</button>
-      <button type="button" class="btn-primary" onclick="confirmModal()">Confirmer</button>
+      <button type="button" class="btn-ghost" onclick="closeModal()" data-i18n="modal_cancel">Annuler</button>
+      <button type="button" class="btn-primary" onclick="confirmModal()" data-i18n="modal_confirm">Confirmer</button>
     </div>
   </div>
 </div>

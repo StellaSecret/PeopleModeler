@@ -7,6 +7,7 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.gson.Gson
+import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.data.models.Person
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,7 +70,7 @@ class DriveSync(
             return@withContext try {
                 val drive =
                     buildDriveService()
-                        ?: return@withContext SyncResult.Error("Non connecté ou scope Drive manquant")
+                        ?: return@withContext SyncResult.Error(context.getString(R.string.sync_not_connected_error))
 
                 val payload = BackupPayload(BACKUP_VERSION, System.currentTimeMillis(), persons)
                 val json = gson.toJson(payload)
@@ -93,10 +94,10 @@ class DriveSync(
                     Log.i(TAG, "✅ Backup créé (${persons.size} profils)")
                 }
 
-                SyncResult.Success("Sauvegarde réussie — ${persons.size} profil(s)", persons.size)
+                SyncResult.Success(context.getString(R.string.sync_backup_success, persons.size), persons.size)
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Backup failed", e)
-                SyncResult.Error("Échec de la sauvegarde : ${e.message}", e)
+                SyncResult.Error(context.getString(R.string.sync_backup_fail, e.message ?: ""), e)
             }
         }
 
@@ -109,11 +110,11 @@ class DriveSync(
             return@withContext try {
                 val drive =
                     buildDriveService()
-                        ?: return@withContext Pair(SyncResult.Error("Non connecté ou scope Drive manquant"), null)
+                        ?: return@withContext Pair(SyncResult.Error(context.getString(R.string.sync_not_connected_error)), null)
 
                 val fileId =
                     findBackupFileId(drive)
-                        ?: return@withContext Pair(SyncResult.Error("Aucune sauvegarde trouvée sur Drive"), null)
+                        ?: return@withContext Pair(SyncResult.Error(context.getString(R.string.sync_no_backup_found)), null)
 
                 val out = ByteArrayOutputStream()
                 drive.files().get(fileId).executeMediaAndDownloadTo(out)
@@ -122,12 +123,12 @@ class DriveSync(
 
                 Log.i(TAG, "✅ Restore réussi (${payload.persons.size} profils, v${payload.version})")
                 Pair(
-                    SyncResult.Success("Restauration réussie — ${payload.persons.size} profil(s)", payload.persons.size),
+                    SyncResult.Success(context.getString(R.string.sync_restore_success, payload.persons.size), payload.persons.size),
                     payload.persons,
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Restore failed", e)
-                Pair(SyncResult.Error("Échec : ${e.message}", e), null)
+                Pair(SyncResult.Error(context.getString(R.string.sync_restore_fail, e.message ?: ""), e), null)
             }
         }
 

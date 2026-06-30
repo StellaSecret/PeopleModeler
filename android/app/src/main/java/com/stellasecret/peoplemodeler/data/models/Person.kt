@@ -6,49 +6,50 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.stellasecret.peoplemodeler.R
 import java.util.UUID
 
 // ─── Enums ───────────────────────────────────────────────
 
 enum class MotivationType(
-    val label: String,
+    val labelResId: Int,
     val emoji: String,
 ) {
-    POWER("Pouvoir", "👑"),
-    ACHIEVEMENT("Accomplissement", "🏆"),
-    AFFILIATION("Appartenance", "🤝"),
-    SECURITY("Sécurité", "🛡️"),
-    AUTONOMY("Autonomie", "🦅"),
-    RECOGNITION("Reconnaissance", "⭐"),
-    LEARNING("Apprentissage", "📚"),
-    HELPING("Aider les autres", "❤️"),
+    POWER(R.string.mot_power, "👑"),
+    ACHIEVEMENT(R.string.mot_achievement, "🏆"),
+    AFFILIATION(R.string.mot_affiliation, "🤝"),
+    SECURITY(R.string.mot_security, "🛡️"),
+    AUTONOMY(R.string.mot_autonomy, "🦅"),
+    RECOGNITION(R.string.mot_recognition, "⭐"),
+    LEARNING(R.string.mot_learning, "📚"),
+    HELPING(R.string.mot_helping, "❤️"),
 }
 
 enum class BiasType(
-    val label: String,
+    val labelResId: Int,
     val emoji: String,
 ) {
-    CONFIRMATION("Confirmation", "🔄"),
-    ANCHORING("Ancrage", "⚓"),
-    AVAILABILITY("Disponibilité", "📱"),
-    SUNK_COST("Coût irrécupérable", "💸"),
-    DUNNING_KRUGER("Dunning-Kruger", "🎭"),
-    LOSS_AVERSION("Aversion aux pertes", "😰"),
-    SOCIAL_PROOF("Preuve sociale", "👥"),
-    AUTHORITY("Autorité", "🎖️"),
-    RECENCY("Récence", "⏰"),
-    IN_GROUP("Endogroupe", "🏠"),
+    CONFIRMATION(R.string.bias_confirmation, "🔄"),
+    ANCHORING(R.string.bias_anchoring, "⚓"),
+    AVAILABILITY(R.string.bias_availability, "📱"),
+    SUNK_COST(R.string.bias_sunk_cost, "💸"),
+    DUNNING_KRUGER(R.string.bias_dunning_kruger, "🎭"),
+    LOSS_AVERSION(R.string.bias_loss_aversion, "😰"),
+    SOCIAL_PROOF(R.string.bias_social_proof, "👥"),
+    AUTHORITY(R.string.bias_authority, "🎖️"),
+    RECENCY(R.string.bias_recency, "⏰"),
+    IN_GROUP(R.string.bias_in_group, "🏠"),
 }
 
 enum class BehaviorTrigger(
-    val label: String,
+    val labelResId: Int,
 ) {
-    STRESS("Sous stress"),
-    CONFLICT("En conflit"),
-    SUCCESS("En réussite"),
-    UNCERTAINTY("Dans l'incertitude"),
-    RECOGNITION("Cherchant reconnaissance"),
-    THREATENED("Se sentant menacé"),
+    STRESS(R.string.trigger_stress),
+    CONFLICT(R.string.trigger_conflict),
+    SUCCESS(R.string.trigger_success),
+    UNCERTAINTY(R.string.trigger_uncertainty),
+    RECOGNITION(R.string.trigger_recognition),
+    THREATENED(R.string.trigger_threatened),
 }
 
 // ─── Core Models ─────────────────────────────────────────

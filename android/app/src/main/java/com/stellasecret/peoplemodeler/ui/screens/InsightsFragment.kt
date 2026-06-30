@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.databinding.FragmentInsightsBinding
 import com.stellasecret.peoplemodeler.viewmodels.PersonViewModel
 
@@ -46,9 +47,9 @@ class InsightsFragment : Fragment() {
                 }
 
             binding.apply {
-                textTotalPersons.text = "🧩 $total profil(s) modélisé(s)"
-                textAvgMotivations.text = "💡 Moyenne motivations / profil : ${"%.1f".format(avgMotivations)}"
-                textAvgBiases.text = "🧠 Moyenne biais / profil : ${"%.1f".format(avgBiases)}"
+                textTotalPersons.text = getString(R.string.insights_total_format, total)
+                textAvgMotivations.text = getString(R.string.insights_avg_motivations_format, avgMotivations)
+                textAvgBiases.text = getString(R.string.insights_avg_biases_format, avgBiases)
 
                 // Top motivation across all persons
                 val topMotivation =
@@ -57,11 +58,18 @@ class InsightsFragment : Fragment() {
                         .groupBy { it.type }
                         .maxByOrNull { (_, v) -> v.size }
                         ?.key
-                textTopMotivation.text = "👑 Motivation dominante : ${topMotivation?.label ?: "—"}"
+                val topMotLabel =
+                    topMotivation
+                        ?.let { getString(it.labelResId) }
+                        ?: "—"
+                textTopMotivation.text =
+                    getString(
+                        R.string.insights_top_motivation_format,
+                        topMotLabel,
+                    )
 
                 // Ethics note
-                textEthicsNote.text =
-                    "⚖️ Ces modèles sont des outils de compréhension.\nUtilisez-les pour améliorer vos relations, jamais pour manipuler."
+                textEthicsNote.text = getString(R.string.insights_ethics_detail)
             }
         }
     }

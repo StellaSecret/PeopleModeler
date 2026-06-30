@@ -54,7 +54,7 @@
                             android:id="@+id/textPersonName"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Nom"
+                            android:text="@string/person_detail_name"
                             android:textColor="@color/colorText"
                             android:textSize="18sp"
                             android:fontFamily="sans-serif-medium"/>
@@ -63,7 +63,7 @@
                             android:id="@+id/textPersonRole"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Rôle"
+                            android:text="@string/person_detail_role"
                             android:textColor="@color/colorTextSecondary"
                             android:textSize="13sp"/>
 
@@ -81,7 +81,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💡 Motivations"
+                android:text="@string/person_detail_motivations_header"
                 android:textColor="@color/colorText"
                 android:textSize="15sp"
                 android:fontFamily="sans-serif-medium"
@@ -98,7 +98,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🧠 Biais cognitifs"
+                android:text="@string/person_detail_biases_header"
                 android:textColor="@color/colorText"
                 android:textSize="15sp"
                 android:fontFamily="sans-serif-medium"
@@ -115,7 +115,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🌊 Profil OCEAN"
+                android:text="@string/person_detail_ocean_header"
                 android:textColor="@color/colorText"
                 android:textSize="15sp"
                 android:fontFamily="sans-serif-medium"
@@ -136,23 +136,23 @@
                     android:padding="16dp">
 
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="O — Ouverture" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="@string/ocean_o" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
                         <ProgressBar android:id="@+id/barO" style="@style/Widget.AppCompat.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:layout_gravity="center_vertical" android:progressTint="@color/colorMotivation"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="C — Consciencieux" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="@string/ocean_c" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
                         <ProgressBar android:id="@+id/barC" style="@style/Widget.AppCompat.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:layout_gravity="center_vertical" android:progressTint="@color/colorMotivation"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="E — Extraversion" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="@string/ocean_e" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
                         <ProgressBar android:id="@+id/barE" style="@style/Widget.AppCompat.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:layout_gravity="center_vertical" android:progressTint="@color/colorMotivation"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="A — Agréabilité" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="@string/ocean_a" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
                         <ProgressBar android:id="@+id/barA" style="@style/Widget.AppCompat.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:layout_gravity="center_vertical" android:progressTint="@color/colorMotivation"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="N — Névrosisme" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="@string/ocean_n" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
                         <ProgressBar android:id="@+id/barN" style="@style/Widget.AppCompat.ProgressBar.Horizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:layout_gravity="center_vertical" android:progressTint="@color/colorBias"/>
                     </LinearLayout>
 
@@ -164,7 +164,7 @@
                 android:id="@+id/btnShowInsight"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="✨ Analyser sous stress"
+                android:text="@string/person_detail_analyze_stress"
                 android:layout_marginBottom="12dp"
                 app:backgroundTint="@color/colorSecondary"/>
 

@@ -235,6 +235,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   .trigger-grid { grid-template-columns: 1fr 1fr; }
 }
   </style>
+  <script src="js/i18n.js"></script>
 </head>
 <body>
 <div class="noise"></div>
@@ -246,6 +247,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
     <a href="person.html">Démo</a>
     <a href="app.html" class="active">App <span class="nav-badge">web</span></a>
   </div>
+  <button type="button" class="btn-icon lang-toggle" onclick="toggleLang()" title="Français / English">🌐</button>
 </nav>
 
 <div class="app-shell">
@@ -253,19 +255,19 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   <!-- ── SIDEBAR ── -->
   <aside class="app-sidebar" aria-label="Liste des profils">
     <div class="sidebar-header">
-      <span class="sidebar-title">Profils</span>
+      <span class="sidebar-title" data-i18n="sidebar_title">Profils</span>
       <button type="button" class="btn-new" onclick="openNewProfile()" title="Nouveau profil" aria-label="Nouveau profil">+</button>
     </div>
     <div class="sidebar-profiles" id="profileList"></div>
     <div class="sidebar-footer">
       <button type="button" class="sidebar-action" id="gdriveSyncBtn" onclick="toggleGdrive()">
-        <span>☁️</span><span id="gdriveLabel">Sync Google Drive</span>
+        <span>☁️</span><span id="gdriveLabel" data-i18n="sidebar_gdrive_off">Sync Google Drive</span>
       </button>
       <button type="button" class="sidebar-action" onclick="exportData()">
-        <span>📤</span><span>Exporter JSON</span>
+        <span>📤</span><span data-i18n="sidebar_export">Exporter JSON</span>
       </button>
       <button type="button" class="sidebar-action" onclick="document.getElementById('importInput').click()">
-        <span>📥</span><span>Importer JSON</span>
+        <span>📥</span><span data-i18n="sidebar_import">Importer JSON</span>
       </button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
     </div>
@@ -277,12 +279,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
     <!-- Empty state -->
     <div class="app-empty" id="emptyState">
       <div class="app-empty-icon">🧩</div>
-      <h2>Aucun profil</h2>
-      <p>Créez votre premier profil pour commencer à modéliser les systèmes humains autour de vous.</p>
-      <button type="button" class="btn-primary" onclick="openNewProfile()">+ Créer un profil</button>
+      <h2 data-i18n="empty_title">Aucun profil</h2>
+      <p data-i18n="empty_desc">Créez votre premier profil pour commencer à modéliser les systèmes humains autour de vous.</p>
+      <button type="button" class="btn-primary" onclick="openNewProfile()" data-i18n="empty_cta">+ Créer un profil</button>
       <div class="app-empty-or">ou</div>
-      <button type="button" class="btn-ghost" onclick="toggleGdrive()">☁️ Connecter Google Drive</button>
-      <div class="app-empty-hint">
+      <button type="button" class="btn-ghost" onclick="toggleGdrive()" data-i18n="empty_gdrive">☁️ Connecter Google Drive</button>
+      <div class="app-empty-hint" data-i18n="empty_hint">
         💾 Vos données sont stockées localement dans votre navigateur.<br>
         Connectez Google Drive pour les synchroniser avec l'app mobile.
       </div>
@@ -300,73 +302,73 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
           </div>
         </div>
         <div class="profile-topbar-right">
-          <div class="accuracy-pill"><strong id="pScore">0%</strong> précision</div>
+          <div class="accuracy-pill" data-i18n="precision_label"><strong id="pScore">0%</strong> précision</div>
           <div class="profile-actions">
-            <button type="button" class="btn-ghost btn-edit" onclick="openEditProfile()">✏️ Éditer</button>
+            <button type="button" class="btn-ghost btn-edit" onclick="openEditProfile()" data-i18n="edit_btn">✏️ Éditer</button>
             <button type="button" class="btn-icon btn-danger" onclick="deleteProfile()" title="Supprimer" aria-label="Supprimer le profil">🗑️</button>
           </div>
         </div>
       </div>
 
       <div class="tabs" role="tablist">
-        <button type="button" class="tab active" role="tab" data-panel="motivations">💡 Motivations</button>
-        <button type="button" class="tab" role="tab" data-panel="biases">🧠 Biais</button>
-        <button type="button" class="tab" role="tab" data-panel="ocean">🌊 OCEAN</button>
-        <button type="button" class="tab" role="tab" data-panel="predictions">🔮 Prédictions</button>
-        <button type="button" class="tab" role="tab" data-panel="insights">✨ Insights</button>
+        <button type="button" class="tab active" role="tab" data-panel="motivations" data-i18n="tab_motivations">💡 Motivations</button>
+        <button type="button" class="tab" role="tab" data-panel="biases" data-i18n="tab_biases">🧠 Biais</button>
+        <button type="button" class="tab" role="tab" data-panel="ocean" data-i18n="tab_ocean">🌊 OCEAN</button>
+        <button type="button" class="tab" role="tab" data-panel="predictions" data-i18n="tab_predictions">🔮 Prédictions</button>
+        <button type="button" class="tab" role="tab" data-panel="insights" data-i18n="tab_insights">✨ Insights</button>
       </div>
 
       <!-- Motivations -->
       <div class="tab-panel active" id="panel-motivations" role="tabpanel">
-        <h2 class="section-label">Motivations profondes</h2>
+        <h2 class="section-label" data-i18n="mot_section_title">Motivations profondes</h2>
         <div id="motivationList"></div>
-        <button type="button" class="btn-add" onclick="openAddMotivation()">+ Ajouter une motivation</button>
+        <button type="button" class="btn-add" onclick="openAddMotivation()" data-i18n="mot_add">+ Ajouter une motivation</button>
       </div>
 
       <!-- Biases -->
       <div class="tab-panel" id="panel-biases" role="tabpanel">
-        <h2 class="section-label">Biais cognitifs observés</h2>
+        <h2 class="section-label" data-i18n="bias_section_title">Biais cognitifs observés</h2>
         <div id="biasList"></div>
-        <button type="button" class="btn-add" onclick="openAddBias()">+ Ajouter un biais</button>
+        <button type="button" class="btn-add" onclick="openAddBias()" data-i18n="bias_add">+ Ajouter un biais</button>
       </div>
 
       <!-- OCEAN -->
       <div class="tab-panel" id="panel-ocean" role="tabpanel">
-        <h2 class="section-label">Profil de personnalité (Big Five)</h2>
+        <h2 class="section-label" data-i18n="ocean_section_title">Profil de personnalité (Big Five)</h2>
         <div class="ocean-chart">
-          <div class="ocean-row"><div class="ocean-label">O — Ouverture</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sO" oninput="updateOcean('O',this.value)"><div class="ocean-val" id="vO">5</div></div>
-          <div class="ocean-row"><div class="ocean-label">C — Consciencieux</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sC" oninput="updateOcean('C',this.value)"><div class="ocean-val" id="vC">5</div></div>
-          <div class="ocean-row"><div class="ocean-label">E — Extraversion</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sE" oninput="updateOcean('E',this.value)"><div class="ocean-val" id="vE">5</div></div>
-          <div class="ocean-row"><div class="ocean-label">A — Agréabilité</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sA" oninput="updateOcean('A',this.value)"><div class="ocean-val" id="vA">5</div></div>
-          <div class="ocean-row"><div class="ocean-label">N — Névrosisme</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sN" oninput="updateOcean('N',this.value)"><div class="ocean-val" id="vN">5</div></div>
+          <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_o">O — Ouverture</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sO" oninput="updateOcean('O',this.value)"><div class="ocean-val" id="vO">5</div></div>
+          <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_c">C — Consciencieux</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sC" oninput="updateOcean('C',this.value)"><div class="ocean-val" id="vC">5</div></div>
+          <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_e">E — Extraversion</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sE" oninput="updateOcean('E',this.value)"><div class="ocean-val" id="vE">5</div></div>
+          <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_a">A — Agréabilité</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sA" oninput="updateOcean('A',this.value)"><div class="ocean-val" id="vA">5</div></div>
+          <div class="ocean-row"><div class="ocean-label" data-i18n="ocean_n">N — Névrosisme</div><input type="range" min="1" max="10" value="5" class="ocean-slider" id="sN" oninput="updateOcean('N',this.value)"><div class="ocean-val" id="vN">5</div></div>
         </div>
-        <div class="ocean-interpretation" id="oceanInterp">Ajustez les curseurs pour voir l'interprétation.</div>
+        <div class="ocean-interpretation" id="oceanInterp" data-i18n="ocean_interp_default">Ajustez les curseurs pour voir l'interprétation.</div>
       </div>
 
       <!-- Predictions -->
       <div class="tab-panel" id="panel-predictions" role="tabpanel">
-        <h2 class="section-label">Prédictions comportementales</h2>
+        <h2 class="section-label" data-i18n="pred_section_title">Prédictions comportementales</h2>
         <div id="predictionList"></div>
         <div class="add-pred-form">
-          <h3>Nouvelle prédiction</h3>
-          <div class="form-row"><label>Contexte / Situation</label><input type="text" id="predCtx" placeholder="Ex: Réunion de budget vendredi…"></div>
-          <div class="form-row"><label>Comportement prédit</label><textarea id="predOut" placeholder="Je prédis qu'il va…"></textarea></div>
-          <button type="button" class="btn-primary btn-submit" onclick="addPrediction()">🔮 Enregistrer</button>
+          <h3 data-i18n="pred_form_title">Nouvelle prédiction</h3>
+          <div class="form-row"><label>Contexte / Situation</label><input type="text" id="predCtx" placeholder="Ex: Réunion de budget vendredi…" data-i18n="pred_ctx_placeholder"></div>
+          <div class="form-row"><label>Comportement prédit</label><textarea id="predOut" placeholder="Je prédis qu'il va…" data-i18n="pred_out_placeholder"></textarea></div>
+          <button type="button" class="btn-primary btn-submit" onclick="addPrediction()" data-i18n="pred_save">🔮 Enregistrer</button>
         </div>
       </div>
 
       <!-- Insights -->
       <div class="tab-panel" id="panel-insights" role="tabpanel">
-        <h2 class="section-label">Analyse comportementale par contexte</h2>
+        <h2 class="section-label" data-i18n="insight_section_title">Analyse comportementale par contexte</h2>
         <div class="trigger-grid">
-          <button type="button" class="trigger-btn" onclick="showInsight('stress',this)">😰 Sous stress</button>
-          <button type="button" class="trigger-btn" onclick="showInsight('conflict',this)">⚔️ En conflit</button>
-          <button type="button" class="trigger-btn" onclick="showInsight('success',this)">🏆 En réussite</button>
-          <button type="button" class="trigger-btn" onclick="showInsight('uncertainty',this)">❓ Incertitude</button>
-          <button type="button" class="trigger-btn" onclick="showInsight('recognition',this)">⭐ Reconnaissance</button>
-          <button type="button" class="trigger-btn" onclick="showInsight('threat',this)">🛡️ Menacé·e</button>
+          <button type="button" class="trigger-btn" onclick="showInsight('stress',this)" data-i18n="insight_stress">😰 Sous stress</button>
+          <button type="button" class="trigger-btn" onclick="showInsight('conflict',this)" data-i18n="insight_conflict">⚔️ En conflit</button>
+          <button type="button" class="trigger-btn" onclick="showInsight('success',this)" data-i18n="insight_success">🏆 En réussite</button>
+          <button type="button" class="trigger-btn" onclick="showInsight('uncertainty',this)" data-i18n="insight_uncertainty">❓ Incertitude</button>
+          <button type="button" class="trigger-btn" onclick="showInsight('recognition',this)" data-i18n="insight_recognition">⭐ Reconnaissance</button>
+          <button type="button" class="trigger-btn" onclick="showInsight('threat',this)" data-i18n="insight_threat">🛡️ Menacé·e</button>
         </div>
-        <div class="insight-output" id="insightOutput"><p class="placeholder-text">← Sélectionnez un contexte</p></div>
+        <div class="insight-output" id="insightOutput"><p class="placeholder-text" data-i18n="insight_placeholder">← Sélectionnez un contexte</p></div>
       </div>
 
     </div><!-- /profileView -->
@@ -379,8 +381,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
     <h3 id="modalTitle">—</h3>
     <div id="modalBody"></div>
     <div class="modal-actions" id="modalActions">
-      <button type="button" class="btn-ghost" onclick="closeModal()">Annuler</button>
-      <button type="button" class="btn-primary" onclick="confirmModal()">Confirmer</button>
+      <button type="button" class="btn-ghost" onclick="closeModal()" data-i18n="modal_cancel">Annuler</button>
+      <button type="button" class="btn-primary" onclick="confirmModal()" data-i18n="modal_confirm">Confirmer</button>
     </div>
   </div>
 </div>
@@ -397,6 +399,10 @@ const MOTIVATIONS = [
   { id: 'LEARNING',    label: 'Apprentissage',    emoji: '📚' },
   { id: 'HELPING',     label: 'Aider les autres', emoji: '❤️' },
 ];
+// Apply initial i18n labels if loaded
+if (typeof t === 'function') {
+  MOTIVATIONS.forEach(m => { const k = 'mot_' + m.id.toLowerCase(); const v = t(k); if (v !== k) m.label = v; });
+}
 const BIASES = [
   { id: 'CONFIRMATION',   label: 'Biais de confirmation', emoji: '🔄' },
   { id: 'ANCHORING',      label: 'Ancrage cognitif',       emoji: '⚓' },
@@ -409,6 +415,10 @@ const BIASES = [
   { id: 'RECENCY',        label: 'Récence',                 emoji: '⏰' },
   { id: 'IN_GROUP',       label: 'Endogroupe',             emoji: '🏠' },
 ];
+// Apply initial i18n labels if loaded
+if (typeof t === 'function') {
+  BIASES.forEach(b => { const k = 'bias_' + b.id.toLowerCase(); const v = t(k); if (v !== k) b.label = v; });
+}
 const OCEAN_DESCRIPTIONS = {
   O: { high: 'très ouvert aux nouvelles idées, créatif et curieux', low: 'pragmatique, préfère les routines et le concret' },
   C: { high: 'organisé, fiable, orienté résultats et détails', low: 'flexible et spontané, peut manquer de rigueur' },
@@ -416,6 +426,15 @@ const OCEAN_DESCRIPTIONS = {
   A: { high: "coopératif, empathique, cherche l'harmonie", low: 'direct voire abrasif, met ses objectifs avant les relations' },
   N: { high: 'émotionnellement réactif, stressable, sensible aux critiques', low: 'stable émotionnellement, calme sous pression' },
 };
+// Apply i18n if loaded
+if (typeof t === 'function') {
+  ['O','C','E','A','N'].forEach(k => {
+    const h = t('ocean_' + k.toLowerCase() + '_high');
+    const l = t('ocean_' + k.toLowerCase() + '_low');
+    if (h !== 'ocean_' + k.toLowerCase() + '_high') OCEAN_DESCRIPTIONS[k].high = h;
+    if (l !== 'ocean_' + k.toLowerCase() + '_low') OCEAN_DESCRIPTIONS[k].low = l;
+  });
+}
 const EMOJIS = ['🧑','👩','👨','🧠','🎯','💼','🦁','🦊','🐺','🌟','🔥','💎','🎸','🧬','🌊','🏔️'];
 
 // ── STORAGE ──────────────────────────────────────────────
@@ -452,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function renderSidebar() {
   const el = document.getElementById('profileList');
   if (!profiles.length) {
-    el.innerHTML = `<div class="sidebar-empty">Aucun profil.<br>Cliquez sur + pour commencer.</div>`;
+    el.innerHTML = `<div class="sidebar-empty">${typeof t === 'function' ? t('sidebar_empty') : 'Aucun profil.<br>Cliquez sur + pour commencer.'}</div>`;
     return;
   }
   el.innerHTML = profiles.map(p => `
@@ -572,7 +591,7 @@ function pickEmoji(e, btn) {
 // ── MOTIVATIONS ──────────────────────────────────────────
 function renderMotivations(p) {
   const el = document.getElementById('motivationList');
-  if (!p.motivations.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">Aucune motivation ajoutée.</p>`; return; }
+  if (!p.motivations.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('mot_empty') : 'Aucune motivation ajoutée.'}</p>`; return; }
   el.innerHTML = p.motivations.map((m, i) => {
     const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji:'?', label: m.type };
     return `<div class="mot-item">
@@ -610,7 +629,7 @@ function deleteMotivation(i) {
 // ── BIASES ───────────────────────────────────────────────
 function renderBiases(p) {
   const el = document.getElementById('biasList');
-  if (!p.biases.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">Aucun biais ajouté.</p>`; return; }
+  if (!p.biases.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('bias_empty') : 'Aucun biais ajouté.'}</p>`; return; }
   el.innerHTML = p.biases.map((b, i) => {
     const def = BIASES.find(x => x.id === b.type) || { emoji:'?', label: b.type };
     return `<div class="bias-item-row">
@@ -673,7 +692,7 @@ function updateOceanInterp(p) {
 // ── PREDICTIONS ──────────────────────────────────────────
 function renderPredictions(p) {
   const el = document.getElementById('predictionList');
-  if (!p.predictions.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">Aucune prédiction.</p>`; return; }
+  if (!p.predictions.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('pred_empty') : 'Aucune prédiction.'}</p>`; return; }
   el.innerHTML = p.predictions.map((pred, i) => `
     <div class="pred-item">
       <div class="pred-ctx">📍 ${esc(pred.context)}</div>
@@ -815,15 +834,15 @@ function toggleGdrive() {
   openModal('☁️ Connecter Google Drive', `
     <div style="text-align:center;padding:.5rem 0">
       <div style="font-size:3rem;margin-bottom:1rem">☁️</div>
-      <p style="color:var(--text-muted);font-size:.88rem;line-height:1.8;margin-bottom:1.25rem">
+      <p style="color:var(--text-muted);font-size:.88rem;line-height:1.8;margin-bottom:1.25rem" data-i18n="gdrive_connect_desc">
         Synchronisez vos profils avec l'app mobile via votre Google Drive personnel.<br>
         Les données sont stockées dans <code style="color:var(--cyan)">PeopleModeler/data.json</code>.
       </p>
-      <div style="background:var(--surface2);border-radius:var(--radius);padding:.85rem;font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem">
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:.85rem;font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem" data-i18n="gdrive_oauth_wip">
         ⚠️ L'intégration OAuth Google sera connectée lors de la release.<br>
         En attendant, utilisez <strong>Export / Import JSON</strong>.
       </div>
-      <button type="button" class="btn-primary" onclick="simulateGdrive()" style="width:100%">🔗 Simuler la connexion</button>
+      <button type="button" class="btn-primary" onclick="simulateGdrive()" style="width:100%" data-i18n="gdrive_simulate">🔗 Simuler la connexion</button>
     </div>`, null, true);
 }
 

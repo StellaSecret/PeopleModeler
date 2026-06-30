@@ -91,10 +91,10 @@ class PeopleListFragment : Fragment() {
 
     private fun showDeleteDialog(person: Person) {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Supprimer ${person.name} ?")
-            .setMessage("Cette action est irréversible.")
-            .setPositiveButton("Supprimer") { _, _ -> viewModel.deletePerson(person) }
-            .setNegativeButton("Annuler", null)
+            .setTitle(getString(R.string.delete_title_format, person.name))
+            .setMessage(getString(R.string.delete_message))
+            .setPositiveButton(getString(R.string.delete_confirm)) { _, _ -> viewModel.deletePerson(person) }
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 

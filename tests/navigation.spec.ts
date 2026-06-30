@@ -90,19 +90,19 @@ test.describe('Navigation & Accessibilité', () => {
 
   test('navigation Landing → Person fonctionne', async ({ page }) => {
     await page.goto('/');
-    await page.click('text=Démo');
+    await page.locator('a[href="person.html"]').first().click();
     await expect(page).toHaveURL(/person/);
   });
 
   test('navigation Landing → Compare fonctionne', async ({ page }) => {
     await page.goto('/');
-    await page.click('text=Comparer');
+    await page.locator('a[data-i18n="nav_compare"]').first().click();
     await expect(page).toHaveURL(/compare/);
   });
 
   test('navigation Landing → App fonctionne', async ({ page }) => {
     await page.goto('/');
-    await page.click('text=Ouvrir l\'app');
+    await page.locator('a[href="app.html"]').first().click();
     await expect(page).toHaveURL(/app/);
   });
 

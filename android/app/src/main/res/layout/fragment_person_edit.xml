@@ -33,7 +33,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="Changer l'avatar"
+                android:text="@string/edit_change_avatar"
                 app:backgroundTint="@color/colorCardBackground"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
         </LinearLayout>
@@ -42,7 +42,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nom *"
+            android:hint="@string/edit_name_hint"
             android:layout_marginBottom="12dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
             <com.google.android.material.textfield.TextInputEditText
@@ -57,7 +57,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Rôle (ex: Directeur, Client…)"
+            android:hint="@string/edit_role_hint"
             android:layout_marginBottom="12dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
             <com.google.android.material.textfield.TextInputEditText
@@ -71,7 +71,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Contexte (ex: Partenaire, Collègue…)"
+            android:hint="@string/edit_context_hint"
             android:layout_marginBottom="12dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
             <com.google.android.material.textfield.TextInputEditText
@@ -85,7 +85,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Tags (séparés par des virgules)"
+            android:hint="@string/edit_tags_hint"
             android:layout_marginBottom="12dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
             <com.google.android.material.textfield.TextInputEditText
@@ -99,7 +99,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Notes libres"
+            android:hint="@string/edit_notes_hint"
             android:layout_marginBottom="20dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
             <com.google.android.material.textfield.TextInputEditText
@@ -115,7 +115,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🌊 Profil OCEAN (1–10)"
+            android:text="@string/edit_ocean_header"
             android:textColor="@color/colorText"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -123,31 +123,31 @@
 
         <!-- O -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
-            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="O — Ouverture" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="@string/ocean_o" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
             <com.google.android.material.slider.Slider android:id="@+id/sliderO" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="10" android:stepSize="1" android:value="5" app:thumbColor="@color/colorMotivation" app:trackColorActive="@color/colorMotivation"/>
             <TextView android:id="@+id/valO" android:layout_width="24dp" android:layout_height="wrap_content" android:text="5" android:textColor="@color/colorMotivation" android:gravity="center"/>
         </LinearLayout>
         <!-- C -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
-            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="C — Consciencieux" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="@string/ocean_c" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
             <com.google.android.material.slider.Slider android:id="@+id/sliderC" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="10" android:stepSize="1" android:value="5" app:thumbColor="@color/colorMotivation" app:trackColorActive="@color/colorMotivation"/>
             <TextView android:id="@+id/valC" android:layout_width="24dp" android:layout_height="wrap_content" android:text="5" android:textColor="@color/colorMotivation" android:gravity="center"/>
         </LinearLayout>
         <!-- E -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
-            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="E — Extraversion" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="@string/ocean_e" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
             <com.google.android.material.slider.Slider android:id="@+id/sliderE" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="10" android:stepSize="1" android:value="5" app:thumbColor="@color/colorMotivation" app:trackColorActive="@color/colorMotivation"/>
             <TextView android:id="@+id/valE" android:layout_width="24dp" android:layout_height="wrap_content" android:text="5" android:textColor="@color/colorMotivation" android:gravity="center"/>
         </LinearLayout>
         <!-- A -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
-            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="A — Agréabilité" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="@string/ocean_a" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
             <com.google.android.material.slider.Slider android:id="@+id/sliderA" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="10" android:stepSize="1" android:value="5" app:thumbColor="@color/colorMotivation" app:trackColorActive="@color/colorMotivation"/>
             <TextView android:id="@+id/valA" android:layout_width="24dp" android:layout_height="wrap_content" android:text="5" android:textColor="@color/colorMotivation" android:gravity="center"/>
         </LinearLayout>
         <!-- N -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="20dp">
-            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="N — Névrosisme" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
+            <TextView android:layout_width="140dp" android:layout_height="wrap_content" android:text="@string/ocean_n" android:textColor="@color/colorTextSecondary" android:textSize="12sp"/>
             <com.google.android.material.slider.Slider android:id="@+id/sliderN" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="10" android:stepSize="1" android:value="5" app:thumbColor="@color/colorBias" app:trackColorActive="@color/colorBias"/>
             <TextView android:id="@+id/valN" android:layout_width="24dp" android:layout_height="wrap_content" android:text="5" android:textColor="@color/colorBias" android:gravity="center"/>
         </LinearLayout>
@@ -156,7 +156,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="💡 Motivations"
+            android:text="@string/edit_motivations_header"
             android:textColor="@color/colorMotivation"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -173,7 +173,7 @@
             android:id="@+id/btnAddMotivation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="+ Ajouter une motivation"
+            android:text="@string/edit_add_motivation"
             android:layout_marginBottom="20dp"
             app:backgroundTint="@color/colorMotivation"
             style="@style/Widget.MaterialComponents.Button.TextButton"/>
@@ -182,7 +182,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🧠 Biais cognitifs"
+            android:text="@string/edit_biases_header"
             android:textColor="@color/colorBias"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
@@ -199,7 +199,7 @@
             android:id="@+id/btnAddBias"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="+ Ajouter un biais"
+            android:text="@string/edit_add_bias"
             android:layout_marginBottom="20dp"
             app:backgroundTint="@color/colorBias"
             style="@style/Widget.MaterialComponents.Button.TextButton"/>
@@ -209,14 +209,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="space_between"
+            android:gravity="center_vertical"
             android:layout_marginBottom="16dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDelete"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🗑 Supprimer"
+                android:text="@string/edit_delete"
                 android:visibility="gone"
                 app:backgroundTint="@color/colorBias"
                 style="@style/Widget.MaterialComponents.Button.TextButton"/>
@@ -230,7 +230,7 @@
                     android:id="@+id/btnCancel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Annuler"
+                    android:text="@string/edit_cancel"
                     android:layout_marginEnd="12dp"
                     app:backgroundTint="@color/colorCardBackground"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
@@ -239,7 +239,7 @@
                     android:id="@+id/btnSave"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💾 Enregistrer"
+                    android:text="@string/edit_save"
                     app:backgroundTint="@color/colorSecondary"/>
             </LinearLayout>
         </LinearLayout>

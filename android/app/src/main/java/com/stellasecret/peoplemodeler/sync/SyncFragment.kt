@@ -13,6 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.databinding.FragmentSyncBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -40,10 +41,10 @@ class SyncFragment : Fragment() {
                 if (resultCode == Activity.RESULT_OK) {
                     val signInResult = viewModel.authManager.handleSignInResult(data)
                     signInResult.onFailure { e ->
-                        showSnackbar("Connexion échouée : ${e.message}")
+                        showSnackbar(getString(R.string.sync_error_connection, e.message))
                     }
                 } else {
-                    showSnackbar("Connexion annulée")
+                    showSnackbar(getString(R.string.sync_cancelled))
                 }
             }
     }
@@ -82,7 +83,7 @@ class SyncFragment : Fragment() {
 
                     is AuthState.Error -> {
                         renderSignedOut()
-                        showSnackbar("Erreur : ${state.message}")
+                        showSnackbar(getString(R.string.sync_error_message, state.message))
                     }
                 }
             }
@@ -131,10 +132,10 @@ class SyncFragment : Fragment() {
                         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRANCE)
                             .format(Date(info.modifiedTime))
                     val size = "%.1f KB".format(info.sizeBytes / 1024.0)
-                    binding.textBackupInfo.text = "Dernière sauvegarde : $date ($size)"
+                    binding.textBackupInfo.text = getString(R.string.sync_last_backup_format, date, size)
                     binding.textBackupInfo.visibility = View.VISIBLE
                 } else {
-                    binding.textBackupInfo.text = "Aucune sauvegarde sur Drive"
+                    binding.textBackupInfo.text = getString(R.string.sync_no_backup)
                     binding.textBackupInfo.visibility = View.VISIBLE
                 }
             }
@@ -152,20 +153,20 @@ class SyncFragment : Fragment() {
 
         binding.btnSignOut.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Se déconnecter ?")
-                .setMessage("Vos données locales sont conservées.")
-                .setPositiveButton("Se déconnecter") { _, _ ->
+                .setTitle(getString(R.string.sync_signout_title))
+                .setMessage(getString(R.string.sync_signout_message))
+                .setPositiveButton(getString(R.string.sync_signout_confirm)) { _, _ ->
                     lifecycleScope.launch { viewModel.signOut() }
-                }.setNegativeButton("Annuler", null)
+                }.setNegativeButton(getString(R.string.cancel), null)
                 .show()
         }
 
         binding.btnBackup.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("💾 Sauvegarder sur Drive")
-                .setMessage("Vos profils seront sauvegardés dans votre Google Drive personnel (dossier app privé).")
-                .setPositiveButton("Sauvegarder") { _, _ -> viewModel.backup() }
-                .setNegativeButton("Annuler", null)
+                .setTitle(getString(R.string.sync_backup_title))
+                .setMessage(getString(R.string.sync_backup_message))
+                .setPositiveButton(getString(R.string.sync_backup_confirm)) { _, _ -> viewModel.backup() }
+                .setNegativeButton(getString(R.string.cancel), null)
                 .show()
         }
 
@@ -174,18 +175,18 @@ class SyncFragment : Fragment() {
                 val count = viewModel.countPersons()
                 if (count > 0) {
                     MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("⬇️ Restaurer depuis Drive")
-                        .setMessage("$count profil(s) existent déjà. Voulez-vous remplacer ou fusionner ?")
-                        .setPositiveButton("Remplacer") { _, _ -> viewModel.restore(overwrite = true) }
-                        .setNeutralButton("Fusionner") { _, _ -> viewModel.restore(overwrite = false) }
-                        .setNegativeButton("Annuler", null)
+                        .setTitle(getString(R.string.sync_restore_title))
+                        .setMessage(getString(R.string.sync_restore_overwrite_message, count))
+                        .setPositiveButton(getString(R.string.sync_restore_replace)) { _, _ -> viewModel.restore(overwrite = true) }
+                        .setNeutralButton(getString(R.string.sync_restore_merge)) { _, _ -> viewModel.restore(overwrite = false) }
+                        .setNegativeButton(getString(R.string.cancel), null)
                         .show()
                 } else {
                     MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("⬇️ Restaurer depuis Drive")
-                        .setMessage("Les profils de votre sauvegarde Drive seront restaurés.")
-                        .setPositiveButton("Restaurer") { _, _ -> viewModel.restore() }
-                        .setNegativeButton("Annuler", null)
+                        .setTitle(getString(R.string.sync_restore_title))
+                        .setMessage(getString(R.string.sync_restore_message))
+                        .setPositiveButton(getString(R.string.sync_restore_confirm)) { _, _ -> viewModel.restore() }
+                        .setNegativeButton(getString(R.string.cancel), null)
                         .show()
                 }
             }

@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.databinding.ItemPersonBinding
 
@@ -24,13 +25,13 @@ class PersonAdapter(
 
                 // Top motivation chip
                 person.topMotivation?.let { motivation ->
-                    chipMotivation.text = "${motivation.emoji} ${motivation.label}"
+                    chipMotivation.text = "${motivation.emoji} ${binding.root.context.getString(motivation.labelResId)}"
                     chipMotivation.visibility = android.view.View.VISIBLE
                 } ?: run { chipMotivation.visibility = android.view.View.GONE }
 
                 // Top bias chip
                 person.topBias?.let { bias ->
-                    chipBias.text = "${bias.emoji} ${bias.label}"
+                    chipBias.text = "${bias.emoji} ${binding.root.context.getString(bias.labelResId)}"
                     chipBias.visibility = android.view.View.VISIBLE
                 } ?: run { chipBias.visibility = android.view.View.GONE }
 

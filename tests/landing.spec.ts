@@ -9,7 +9,7 @@ test.describe('Landing Page', () => {
 
   test('affiche le titre principal', async ({ page }) => {
     await expect(page.locator('.hero-title')).toBeVisible();
-    await expect(page.locator('.hero-title')).toContainText('systèmes');
+    await expect(page.locator('.hero-title')).toHaveAttribute('data-i18n', 'hero_title');
   });
 
   test('affiche les 6 feature cards', async ({ page }) => {
@@ -23,13 +23,13 @@ test.describe('Landing Page', () => {
   });
 
   test('lien Démo navigue vers la page person', async ({ page }) => {
-    await page.click('text=Démo');
+    await page.locator('a[href="person.html"]').first().click();
     // serve peut servir /person ou /person.html selon config
     await expect(page).toHaveURL(/person/);
   });
 
   test('lien Comparer navigue vers la page compare', async ({ page }) => {
-    await page.click('text=Comparer');
+    await page.locator('a[data-i18n="nav_compare"]').first().click();
     await expect(page).toHaveURL(/compare/);
   });
 
@@ -45,6 +45,6 @@ test.describe('Landing Page', () => {
 
   test('note éthique visible', async ({ page }) => {
     await expect(page.locator('.ethics')).toBeVisible();
-    await expect(page.locator('.ethics')).toContainText('éthique');
+    await expect(page.locator('.ethics [data-i18n="ethics_title"]')).toBeVisible();
   });
 });

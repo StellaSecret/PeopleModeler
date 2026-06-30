@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="js/i18n.js"></script>
 </head>
 <body>
 <div class="noise"></div>
@@ -16,9 +17,10 @@
 <nav class="nav">
   <a class="nav-logo" href="index.html">🧩 <span>People</span>Modeler</a>
   <div class="nav-links">
-    <a href="index.html">← Retour</a>
-    <a href="compare.html">Comparer</a>
+    <a href="index.html" data-i18n="nav_back">← Retour</a>
+    <a href="compare.html" data-i18n="nav_compare">Comparer</a>
   </div>
+  <button type="button" class="lang-toggle" onclick="toggleLang()">🌐</button>
 </nav>
 
 <main class="person-main">
@@ -43,70 +45,70 @@
             stroke-dasharray="213.6" stroke-dashoffset="38" stroke-linecap="round"
             transform="rotate(-90 40 40)"/>
         </svg>
-        <div class="accuracy-label">82%<br><small>précision</small></div>
+        <div class="accuracy-label">82%<br><small data-i18n="person_accuracy">précision</small></div>
       </div>
     </div>
   </div>
 
   <!-- ── TABS ── -->
   <div class="tabs">
-    <button type="button" class="tab active" data-tab="motivations">💡 Motivations</button>
-    <button type="button" class="tab" data-tab="biases">🧠 Biais</button>
-    <button type="button" class="tab" data-tab="ocean">🌊 OCEAN</button>
-    <button type="button" class="tab" data-tab="predictions">🔮 Prédictions</button>
-    <button type="button" class="tab" data-tab="insights">✨ Insights</button>
+    <button type="button" class="tab active" data-tab="motivations" data-i18n="tab_motivations">💡 Motivations</button>
+    <button type="button" class="tab" data-tab="biases" data-i18n="tab_biases">🧠 Biais</button>
+    <button type="button" class="tab" data-tab="ocean" data-i18n="tab_ocean">🌊 OCEAN</button>
+    <button type="button" class="tab" data-tab="predictions" data-i18n="tab_predictions">🔮 Prédictions</button>
+    <button type="button" class="tab" data-tab="insights" data-i18n="tab_insights">✨ Insights</button>
   </div>
 
   <!-- ── MOTIVATIONS ── -->
   <div class="tab-content active" id="tab-motivations">
-    <h2 class="section-label">Motivations profondes</h2>
+    <h2 class="section-label" data-i18n="mot_section_title">Motivations profondes</h2>
     <div class="motivation-list" id="motivationList">
       <!-- injected by JS -->
     </div>
     <div class="add-item-row">
-      <button type="button" class="btn-add" onclick="openAddMotivation()">+ Ajouter une motivation</button>
+      <button type="button" class="btn-add" onclick="openAddMotivation()" data-i18n="mot_add">+ Ajouter une motivation</button>
     </div>
   </div>
 
   <!-- ── BIASES ── -->
   <div class="tab-content" id="tab-biases">
-    <h2 class="section-label">Biais cognitifs observés</h2>
+    <h2 class="section-label" data-i18n="bias_section_title">Biais cognitifs observés</h2>
     <div class="bias-list" id="biasList"></div>
     <div class="add-item-row">
-      <button type="button" class="btn-add" onclick="openAddBias()">+ Ajouter un biais</button>
+      <button type="button" class="btn-add" onclick="openAddBias()" data-i18n="bias_add">+ Ajouter un biais</button>
     </div>
   </div>
 
   <!-- ── OCEAN ── -->
   <div class="tab-content" id="tab-ocean">
-    <h2 class="section-label">Profil de personnalité (Big Five)</h2>
+    <h2 class="section-label" data-i18n="ocean_section_title">Profil de personnalité (Big Five)</h2>
     <div class="ocean-chart">
       <div class="ocean-row">
-        <div class="ocean-label">O — Ouverture</div>
+        <div class="ocean-label" data-i18n="ocean_o">O — Ouverture</div>
         <input type="range" min="1" max="10" value="8" class="ocean-slider" id="slider-O"
                oninput="updateOcean('O', this.value)">
         <div class="ocean-val" id="val-O">8</div>
       </div>
       <div class="ocean-row">
-        <div class="ocean-label">C — Consciencieux</div>
+        <div class="ocean-label" data-i18n="ocean_c">C — Consciencieux</div>
         <input type="range" min="1" max="10" value="6" class="ocean-slider" id="slider-C"
                oninput="updateOcean('C', this.value)">
         <div class="ocean-val" id="val-C">6</div>
       </div>
       <div class="ocean-row">
-        <div class="ocean-label">E — Extraversion</div>
+        <div class="ocean-label" data-i18n="ocean_e">E — Extraversion</div>
         <input type="range" min="1" max="10" value="9" class="ocean-slider" id="slider-E"
                oninput="updateOcean('E', this.value)">
         <div class="ocean-val" id="val-E">9</div>
       </div>
       <div class="ocean-row">
-        <div class="ocean-label">A — Agréabilité</div>
+        <div class="ocean-label" data-i18n="ocean_a">A — Agréabilité</div>
         <input type="range" min="1" max="10" value="4" class="ocean-slider" id="slider-A"
                oninput="updateOcean('A', this.value)">
         <div class="ocean-val" id="val-A">4</div>
       </div>
       <div class="ocean-row">
-        <div class="ocean-label">N — Névrosisme</div>
+        <div class="ocean-label" data-i18n="ocean_n">N — Névrosisme</div>
         <input type="range" min="1" max="10" value="5" class="ocean-slider" id="slider-N"
                oninput="updateOcean('N', this.value)">
         <div class="ocean-val" id="val-N">5</div>
@@ -117,35 +119,35 @@
 
   <!-- ── PREDICTIONS ── -->
   <div class="tab-content" id="tab-predictions">
-    <h2 class="section-label">Prédictions comportementales</h2>
+    <h2 class="section-label" data-i18n="pred_section_title">Prédictions comportementales</h2>
     <div class="prediction-list" id="predictionList"></div>
     <div class="add-prediction-form">
-      <h3>Nouvelle prédiction</h3>
+      <h3 data-i18n="pred_form_title">Nouvelle prédiction</h3>
       <div class="form-row">
-        <label>Contexte / Situation</label>
-        <input type="text" id="predContext" placeholder="Ex: Réunion de budget vendredi…" >
+        <label data-i18n="pred_ctx_label">Contexte / Situation</label>
+        <input type="text" id="predContext" data-i18n="pred_ctx_placeholder" placeholder="Ex: Réunion de budget vendredi…" >
       </div>
       <div class="form-row">
-        <label>Comportement prédit</label>
-        <textarea id="predOutcome" placeholder="Je prédis qu'il va…"></textarea>
+        <label data-i18n="pred_out_label">Comportement prédit</label>
+        <textarea id="predOutcome" data-i18n="pred_out_placeholder" placeholder="Je prédis qu'il va…"></textarea>
       </div>
-      <button type="button" class="btn-primary" onclick="addPrediction()">🔮 Enregistrer la prédiction</button>
+      <button type="button" class="btn-primary" onclick="addPrediction()" data-i18n="person_pred_add">🔮 Enregistrer la prédiction</button>
     </div>
   </div>
 
   <!-- ── INSIGHTS ── -->
   <div class="tab-content" id="tab-insights">
-    <h2 class="section-label">Analyse comportementale par contexte</h2>
+    <h2 class="section-label" data-i18n="insight_section_title">Analyse comportementale par contexte</h2>
     <div class="trigger-grid">
-      <button type="button" class="trigger-btn" onclick="showInsight('stress')">😰 Sous stress</button>
-      <button type="button" class="trigger-btn" onclick="showInsight('conflict')">⚔️ En conflit</button>
-      <button type="button" class="trigger-btn" onclick="showInsight('success')">🏆 En réussite</button>
-      <button type="button" class="trigger-btn" onclick="showInsight('uncertainty')">❓ Incertitude</button>
-      <button type="button" class="trigger-btn" onclick="showInsight('recognition')">⭐ Recherche reconnaissance</button>
-      <button type="button" class="trigger-btn" onclick="showInsight('threat')">🛡️ Se sentant menacé</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('stress')" data-i18n="insight_stress">😰 Sous stress</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('conflict')" data-i18n="insight_conflict">⚔️ En conflit</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('success')" data-i18n="insight_success">🏆 En réussite</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('uncertainty')" data-i18n="insight_uncertainty">❓ Incertitude</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('recognition')" data-i18n="insight_recognition">⭐ Recherche reconnaissance</button>
+      <button type="button" class="trigger-btn" onclick="showInsight('threat')" data-i18n="insight_threat">🛡️ Se sentant menacé</button>
     </div>
     <div class="insight-output" id="insightOutput">
-      <p class="placeholder-text">← Sélectionnez un contexte pour voir l'analyse</p>
+      <p class="placeholder-text" data-i18n="person_pred_placeholder">← Sélectionnez un contexte pour voir l'analyse</p>
     </div>
   </div>
 
@@ -154,11 +156,11 @@
 <!-- ── MODAL ── -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
   <div class="modal" onclick="event.stopPropagation()">
-    <h3 id="modalTitle">Ajouter</h3>
+    <h3 id="modalTitle" data-i18n="person_modal_title">Ajouter</h3>
     <div id="modalContent"></div>
     <div class="modal-actions">
-      <button type="button" class="btn-ghost" onclick="closeModal()">Annuler</button>
-      <button type="button" class="btn-primary" onclick="confirmModal()">Confirmer</button>
+      <button type="button" class="btn-ghost" onclick="closeModal()" data-i18n="modal_cancel">Annuler</button>
+      <button type="button" class="btn-primary" onclick="confirmModal()" data-i18n="modal_confirm">Confirmer</button>
     </div>
   </div>
 </div>

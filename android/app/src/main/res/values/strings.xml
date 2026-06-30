@@ -14,6 +14,155 @@
     <string name="predictions">Prédictions</string>
     <string name="add_prediction">Ajouter une prédiction</string>
     <string name="ethics_notice">⚠️ À utiliser de façon éthique et bienveillante</string>
-    <!-- Remplacer par votre Web Client ID depuis Google Cloud Console -->
     <string name="google_client_id" translatable="false">__GOOGLE_CLIENT_ID__</string>
+
+    <!-- Person detail -->
+    <string name="person_detail_name">Nom</string>
+    <string name="person_detail_role">Rôle</string>
+    <string name="person_detail_motivations_header">💡 Motivations</string>
+    <string name="person_detail_biases_header">🧠 Biais cognitifs</string>
+    <string name="person_detail_ocean_header">🌊 Profil OCEAN</string>
+    <string name="person_detail_analyze_stress">✨ Analyser sous stress</string>
+
+    <!-- OCEAN labels -->
+    <string name="ocean_o">O — Ouverture</string>
+    <string name="ocean_c">C — Consciencieux</string>
+    <string name="ocean_e">E — Extraversion</string>
+    <string name="ocean_a">A — Agréabilité</string>
+    <string name="ocean_n">N — Névrosisme</string>
+
+    <!-- Edit person -->
+    <string name="edit_change_avatar">Changer l\'avatar</string>
+    <string name="edit_name_hint">Nom *</string>
+    <string name="edit_role_hint">Rôle (ex: Directeur, Client…)</string>
+    <string name="edit_context_hint">Contexte (ex: Partenaire, Collègue…)</string>
+    <string name="edit_tags_hint">Tags (séparés par des virgules)</string>
+    <string name="edit_notes_hint">Notes libres</string>
+    <string name="edit_ocean_header">🌊 Profil OCEAN (1–10)</string>
+    <string name="edit_motivations_header">💡 Motivations</string>
+    <string name="edit_add_motivation">+ Ajouter une motivation</string>
+    <string name="edit_biases_header">🧠 Biais cognitifs</string>
+    <string name="edit_add_bias">+ Ajouter un biais</string>
+    <string name="edit_delete">🗑 Supprimer</string>
+    <string name="edit_cancel">Annuler</string>
+    <string name="edit_save">💾 Enregistrer</string>
+    <string name="edit_name_required">Nom requis</string>
+    <string name="edit_add_motivation_title">💡 Ajouter une motivation</string>
+    <string name="edit_add_bias_title">🧠 Ajouter un biais</string>
+    <string name="edit_add_confirm">Ajouter</string>
+
+    <!-- Predictions -->
+    <string name="predictions_pending_count">⏳ 0 prédiction(s) en attente</string>
+    <string name="predictions_empty">🔮 Aucune prédiction en attente.\nAjoutez-en depuis une fiche personne.</string>
+    <string name="predictions_pending_format">⏳ %d prédiction(s) en attente de résolution</string>
+
+    <!-- Insights -->
+    <string name="insights_total_persons">🧩 0 profil(s)</string>
+    <string name="insights_total_format">🧩 %d profil(s) modélisé(s)</string>
+    <string name="insights_avg_motivations">💡 Motivations : —</string>
+    <string name="insights_avg_motivations_format">💡 Moyenne motivations / profil : %.1f</string>
+    <string name="insights_avg_biases">🧠 Biais : —</string>
+    <string name="insights_avg_biases_format">🧠 Moyenne biais / profil : %.1f</string>
+    <string name="insights_top_motivation">👑 Motivation dominante : —</string>
+    <string name="insights_top_motivation_format">👑 Motivation dominante : %s</string>
+    <string name="insights_ethics_note">⚖️ À utiliser éthiquement</string>
+    <string name="insights_ethics_detail">⚖️ Ces modèles sont des outils de compréhension.\nUtilisez-les pour améliorer vos relations, jamais pour manipuler.</string>
+
+    <!-- Sync -->
+    <string name="sync_title">☁️ Synchronisation Drive</string>
+    <string name="sync_description">Connectez-vous avec Google pour sauvegarder vos profils sur votre Drive personnel. Vos données restent privées et accessibles uniquement par cette application.</string>
+    <string name="sync_not_connected">Non connecté</string>
+    <string name="sync_connect_prompt">Connectez-vous avec votre compte Google pour activer la synchronisation.</string>
+    <string name="sync_sign_in">🔑  Se connecter avec Google</string>
+    <string name="sync_account_name_placeholder">Nom</string>
+    <string name="sync_account_email_placeholder">email@gmail.com</string>
+    <string name="sync_sign_out">Déconnexion</string>
+    <string name="sync_signout_title">Se déconnecter ?</string>
+    <string name="sync_signout_message">Vos données locales sont conservées.</string>
+    <string name="sync_signout_confirm">Se déconnecter</string>
+    <string name="sync_loading">Chargement…</string>
+    <string name="sync_backup">💾  Sauvegarder mes profils sur Drive</string>
+    <string name="sync_backup_title">💾 Sauvegarder sur Drive</string>
+    <string name="sync_backup_message">Vos profils seront sauvegardés dans votre Google Drive personnel (dossier app privé).</string>
+    <string name="sync_backup_confirm">Sauvegarder</string>
+    <string name="sync_backup_success">Sauvegarde réussie — %d profil(s)</string>
+    <string name="sync_backup_fail">Échec de la sauvegarde : %s</string>
+    <string name="sync_restore">⬇️  Restaurer depuis Drive</string>
+    <string name="sync_restore_title">⬇️ Restaurer depuis Drive</string>
+    <string name="sync_restore_overwrite_message">%d profil(s) existent déjà. Voulez-vous remplacer ou fusionner ?</string>
+    <string name="sync_restore_message">Les profils de votre sauvegarde Drive seront restaurés.</string>
+    <string name="sync_restore_confirm">Restaurer</string>
+    <string name="sync_restore_success">Restauration réussie — %d profil(s)</string>
+    <string name="sync_restore_replace">Remplacer</string>
+    <string name="sync_restore_merge">Fusionner</string>
+    <string name="sync_restore_fail">Échec : %s</string>
+    <string name="sync_no_backup">Aucune sauvegarde sur Drive</string>
+    <string name="sync_last_backup_format">Dernière sauvegarde : %s (%s)</string>
+    <string name="sync_not_connected_error">Non connecté ou scope Drive manquant</string>
+    <string name="sync_no_backup_found">Aucune sauvegarde trouvée sur Drive</string>
+    <string name="sync_error_connection">Connexion échouée : %s</string>
+    <string name="sync_cancelled">Connexion annulée</string>
+    <string name="sync_error_message">Erreur : %s</string>
+    <string name="sync_privacy_note">🔒 Vos données sont stockées dans un dossier privé de votre Google Drive, accessible uniquement par People Modeler. Google ne les partage pas avec des tiers.</string>
+
+    <!-- Dialog labels -->
+    <string name="dialog_type">Type</string>
+    <string name="dialog_intensity">Intensité</string>
+    <string name="dialog_notes_optional">Notes (optionnel)</string>
+    <string name="dialog_observed_intensity">Intensité observée</string>
+    <string name="dialog_evidence">Preuve / exemple</string>
+
+    <!-- Chips -->
+    <string name="chip_motivation">Motivation</string>
+    <string name="chip_bias">Biais</string>
+
+    <!-- Delete -->
+    <string name="delete_title_format">Supprimer %s ?</string>
+    <string name="delete_message">Cette action est irréversible.</string>
+    <string name="delete_confirm">Supprimer</string>
+    <string name="cancel">Annuler</string>
+
+    <!-- App -->
+    <string name="app_title">🧩 People</string>
+    <string name="ethics_tag">⚠️ Éthique</string>
+
+    <!-- Motivation types -->
+    <string name="mot_power">Pouvoir</string>
+    <string name="mot_achievement">Accomplissement</string>
+    <string name="mot_affiliation">Appartenance</string>
+    <string name="mot_security">Sécurité</string>
+    <string name="mot_autonomy">Autonomie</string>
+    <string name="mot_recognition">Reconnaissance</string>
+    <string name="mot_learning">Apprentissage</string>
+    <string name="mot_helping">Aider les autres</string>
+
+    <!-- Bias types -->
+    <string name="bias_confirmation">Confirmation</string>
+    <string name="bias_anchoring">Ancrage</string>
+    <string name="bias_availability">Disponibilité</string>
+    <string name="bias_sunk_cost">Coût irrécupérable</string>
+    <string name="bias_dunning_kruger">Dunning-Kruger</string>
+    <string name="bias_loss_aversion">Aversion aux pertes</string>
+    <string name="bias_social_proof">Preuve sociale</string>
+    <string name="bias_authority">Autorité</string>
+    <string name="bias_recency">Récence</string>
+    <string name="bias_in_group">Endogroupe</string>
+
+    <!-- Behavior triggers -->
+    <string name="trigger_stress">Sous stress</string>
+    <string name="trigger_conflict">En conflit</string>
+    <string name="trigger_success">En réussite</string>
+    <string name="trigger_uncertainty">Dans l\'incertitude</string>
+    <string name="trigger_recognition">Cherchant reconnaissance</string>
+    <string name="trigger_threatened">Se sentant menacé</string>
+
+    <!-- Behavioral insights -->
+    <string name="insight_header_format">Sous \'%s\', %s est susceptible de :\n\n</string>
+    <string name="insight_motivation_line">• Chercher à satisfaire : %s %s\n</string>
+    <string name="insight_bias_line">• Être influencé par : %s %s\n</string>
+    <string name="insight_neuroticism_line">• Réagir de façon émotionnelle\n</string>
+    <string name="insight_conscientiousness_line">• Chercher à contrôler et planifier\n</string>
+    <string name="insight_agreeableness_line">• Éviter le conflit, rechercher l\'harmonie\n</string>
+    <string name="insight_extraversion_line">• Exprimer verbalement ses préoccupations\n</string>
+    <string name="insight_observed_pattern">\n📌 Comportement observé : %s</string>
 </resources>

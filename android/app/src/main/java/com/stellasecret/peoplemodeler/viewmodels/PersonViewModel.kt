@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
 import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.data.repository.AppDatabase
@@ -99,19 +100,20 @@ class PersonViewModel(
         person: Person,
         trigger: BehaviorTrigger,
     ): String {
+        val ctx = getApplication<Application>()
         val topMotivation = person.motivations.maxByOrNull { it.intensity }
         val topBias = person.biases.maxByOrNull { it.intensity }
         return buildString {
-            append("Sous '${trigger.label}', ${person.name} est susceptible de :\n\n")
-            topMotivation?.let { append("• Chercher à satisfaire : ${it.type.label} ${it.type.emoji}\n") }
-            topBias?.let { append("• Être influencé par : ${it.type.label} ${it.type.emoji}\n") }
-            if (person.neuroticism > 7) append("• Réagir de façon émotionnelle\n")
-            if (person.conscientiousness > 7) append("• Chercher à contrôler et planifier\n")
-            if (person.agreeableness > 7) append("• Éviter le conflit, rechercher l'harmonie\n")
-            if (person.extraversion > 7) append("• Exprimer verbalement ses préoccupations\n")
+            append(ctx.getString(R.string.insight_header_format, ctx.getString(trigger.labelResId), person.name))
+            topMotivation?.let { append(ctx.getString(R.string.insight_motivation_line, ctx.getString(it.type.labelResId), it.type.emoji)) }
+            topBias?.let { append(ctx.getString(R.string.insight_bias_line, ctx.getString(it.type.labelResId), it.type.emoji)) }
+            if (person.neuroticism > 7) append(ctx.getString(R.string.insight_neuroticism_line))
+            if (person.conscientiousness > 7) append(ctx.getString(R.string.insight_conscientiousness_line))
+            if (person.agreeableness > 7) append(ctx.getString(R.string.insight_agreeableness_line))
+            if (person.extraversion > 7) append(ctx.getString(R.string.insight_extraversion_line))
             person.behavioralPatterns
                 .find { it.trigger == trigger }
-                ?.let { append("\n📌 Comportement observé : ${it.predictedBehavior}") }
+                ?.let { append(ctx.getString(R.string.insight_observed_pattern, it.predictedBehavior)) }
         }
     }
 }

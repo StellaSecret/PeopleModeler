@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.databinding.FragmentPredictionsBinding
 import com.stellasecret.peoplemodeler.viewmodels.PersonViewModel
 
@@ -32,7 +33,7 @@ class PredictionsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         viewModel.pendingPredictions.observe(viewLifecycleOwner) { predictions ->
-            binding.textPendingCount.text = "⏳ ${predictions.size} prédiction(s) en attente de résolution"
+            binding.textPendingCount.text = getString(R.string.predictions_pending_format, predictions.size)
             binding.emptyPredictions.visibility =
                 if (predictions.isEmpty()) View.VISIBLE else View.GONE
         }

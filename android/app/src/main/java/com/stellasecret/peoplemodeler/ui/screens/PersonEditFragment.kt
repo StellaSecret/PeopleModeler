@@ -155,7 +155,7 @@ class PersonEditFragment : Fragment() {
                 }
             row.addView(
                 TextView(requireContext()).apply {
-                    text = "${m.type.emoji} ${m.type.label}"
+                    text = "${m.type.emoji} ${getString(m.type.labelResId)}"
                     textSize = 14f
                     setTextColor(resources.getColor(R.color.colorText, null))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -219,7 +219,7 @@ class PersonEditFragment : Fragment() {
                 }
             row.addView(
                 TextView(requireContext()).apply {
-                    text = "${b.type.emoji} ${b.type.label}"
+                    text = "${b.type.emoji} ${getString(b.type.labelResId)}"
                     textSize = 14f
                     setTextColor(resources.getColor(R.color.colorText, null))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -284,7 +284,7 @@ class PersonEditFragment : Fragment() {
             ArrayAdapter(
                 requireContext(),
                 android.R.layout.simple_spinner_dropdown_item,
-                MotivationType.entries.map { "${it.emoji} ${it.label}" },
+                MotivationType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
             )
         intensitySlider.addOnChangeListener { _, v, _ ->
             intensityLabel.text = "${v.toInt()}/10"
@@ -292,9 +292,9 @@ class PersonEditFragment : Fragment() {
 
         androidx.appcompat.app.AlertDialog
             .Builder(requireContext())
-            .setTitle("💡 Ajouter une motivation")
+            .setTitle(getString(R.string.edit_add_motivation_title))
             .setView(view)
-            .setPositiveButton("Ajouter") { _, _ ->
+            .setPositiveButton(getString(R.string.edit_add_confirm)) { _, _ ->
                 val idx = typeSpinner.selectedItemPosition
                 if (idx >= 0) {
                     motivations.add(
@@ -306,7 +306,7 @@ class PersonEditFragment : Fragment() {
                     )
                     renderMotivations()
                 }
-            }.setNegativeButton("Annuler", null)
+            }.setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -322,7 +322,7 @@ class PersonEditFragment : Fragment() {
             ArrayAdapter(
                 requireContext(),
                 android.R.layout.simple_spinner_dropdown_item,
-                BiasType.entries.map { "${it.emoji} ${it.label}" },
+                BiasType.entries.map { "${it.emoji} ${getString(it.labelResId)}" },
             )
         intensitySlider.addOnChangeListener { _, v, _ ->
             intensityLabel.text = "${v.toInt()}/10"
@@ -330,9 +330,9 @@ class PersonEditFragment : Fragment() {
 
         androidx.appcompat.app.AlertDialog
             .Builder(requireContext())
-            .setTitle("🧠 Ajouter un biais")
+            .setTitle(getString(R.string.edit_add_bias_title))
             .setView(view)
-            .setPositiveButton("Ajouter") { _, _ ->
+            .setPositiveButton(getString(R.string.edit_add_confirm)) { _, _ ->
                 val idx = typeSpinner.selectedItemPosition
                 if (idx >= 0) {
                     biases.add(
@@ -344,19 +344,19 @@ class PersonEditFragment : Fragment() {
                     )
                     renderBiases()
                 }
-            }.setNegativeButton("Annuler", null)
+            }.setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
     private fun confirmDelete() {
         val p = editingPerson ?: return
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Supprimer ${p.name} ?")
-            .setMessage("Cette action est irréversible.")
-            .setPositiveButton("Supprimer") { _, _ ->
+            .setTitle(getString(R.string.delete_title_format, p.name))
+            .setMessage(getString(R.string.delete_message))
+            .setPositiveButton(getString(R.string.delete_confirm)) { _, _ ->
                 viewModel.deletePerson(p)
                 findNavController().navigateUp()
-            }.setNegativeButton("Annuler", null)
+            }.setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -366,7 +366,7 @@ class PersonEditFragment : Fragment() {
                 .toString()
                 .trim()
         if (name.isBlank()) {
-            binding.editName.error = "Nom requis"
+            binding.editName.error = getString(R.string.edit_name_required)
             return
         }
         val tags =
