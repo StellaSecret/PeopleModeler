@@ -1,7 +1,16 @@
 package com.stellasecret.peoplemodeler
 
-import com.stellasecret.peoplemodeler.data.models.*
-import org.junit.Assert.*
+import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
+import com.stellasecret.peoplemodeler.data.models.BehavioralPattern
+import com.stellasecret.peoplemodeler.data.models.Bias
+import com.stellasecret.peoplemodeler.data.models.BiasType
+import com.stellasecret.peoplemodeler.data.models.Motivation
+import com.stellasecret.peoplemodeler.data.models.MotivationType
+import com.stellasecret.peoplemodeler.data.models.Person
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -10,9 +19,11 @@ import org.junit.Test
  * sans dépendance Android (pas de Context/ViewModel).
  */
 class BehavioralInsightTest {
-
     // Reproduit la logique de PersonViewModel.generateBehavioralInsight
-    private fun generateInsight(person: Person, trigger: BehaviorTrigger): String {
+    private fun generateInsight(
+        person: Person,
+        trigger: BehaviorTrigger,
+    ): String {
         val topMotivation = person.motivations.maxByOrNull { it.intensity }
         val topBias = person.biases.maxByOrNull { it.intensity }
         return buildString {
@@ -37,22 +48,25 @@ class BehavioralInsightTest {
 
     @Before
     fun setup() {
-        basePerson = Person(
-            id = "insight-test",
-            name = "Sophie Martin",
-            motivations = listOf(
-                Motivation(MotivationType.POWER, 9),
-                Motivation(MotivationType.RECOGNITION, 6),
-            ),
-            biases = listOf(
-                Bias(BiasType.ANCHORING, 8),
-                Bias(BiasType.LOSS_AVERSION, 5),
-            ),
-            extraversion = 8,
-            neuroticism = 6,
-            conscientiousness = 7,
-            agreeableness = 4,
-        )
+        basePerson =
+            Person(
+                id = "insight-test",
+                name = "Sophie Martin",
+                motivations =
+                    listOf(
+                        Motivation(MotivationType.POWER, 9),
+                        Motivation(MotivationType.RECOGNITION, 6),
+                    ),
+                biases =
+                    listOf(
+                        Bias(BiasType.ANCHORING, 8),
+                        Bias(BiasType.LOSS_AVERSION, 5),
+                    ),
+                extraversion = 8,
+                neuroticism = 6,
+                conscientiousness = 7,
+                agreeableness = 4,
+            )
     }
 
     // ── Contenu de base ────────────────────────────────────
@@ -154,30 +168,34 @@ class BehavioralInsightTest {
 
     @Test
     fun `pattern observé apparaît dans l'insight`() {
-        val person = basePerson.copy(
-            behavioralPatterns = listOf(
-                BehavioralPattern(
-                    trigger = BehaviorTrigger.STRESS,
-                    predictedBehavior = "Prend le contrôle de la réunion",
-                    confidence = 8
-                )
+        val person =
+            basePerson.copy(
+                behavioralPatterns =
+                    listOf(
+                        BehavioralPattern(
+                            trigger = BehaviorTrigger.STRESS,
+                            predictedBehavior = "Prend le contrôle de la réunion",
+                            confidence = 8,
+                        ),
+                    ),
             )
-        )
         val insight = generateInsight(person, BehaviorTrigger.STRESS)
         assertTrue(insight.contains("Prend le contrôle de la réunion"))
     }
 
     @Test
     fun `pattern pour un autre trigger n'apparaît pas`() {
-        val person = basePerson.copy(
-            behavioralPatterns = listOf(
-                BehavioralPattern(
-                    trigger = BehaviorTrigger.CONFLICT,
-                    predictedBehavior = "Attaque frontalement",
-                    confidence = 7
-                )
+        val person =
+            basePerson.copy(
+                behavioralPatterns =
+                    listOf(
+                        BehavioralPattern(
+                            trigger = BehaviorTrigger.CONFLICT,
+                            predictedBehavior = "Attaque frontalement",
+                            confidence = 7,
+                        ),
+                    ),
             )
-        )
         val insight = generateInsight(person, BehaviorTrigger.STRESS)
         assertFalse(insight.contains("Attaque frontalement"))
     }

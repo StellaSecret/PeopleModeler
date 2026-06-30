@@ -21,19 +21,24 @@ import kotlinx.coroutines.tasks.await
 
 sealed class AuthState {
     object SignedOut : AuthState()
+
     data class SignedIn(
         val email: String,
         val displayName: String,
     ) : AuthState()
-    data class Error(val message: String) : AuthState()
+
+    data class Error(
+        val message: String,
+    ) : AuthState()
 }
 
 // ─── GoogleAuthManager ────────────────────────────────────
 // Uses GoogleSignIn (not Credential Manager) to properly request
 // drive.appdata scope alongside the user identity.
 
-class GoogleAuthManager(private val context: Context) {
-
+class GoogleAuthManager(
+    private val context: Context,
+) {
     companion object {
         private const val TAG = "GoogleAuthManager"
         const val RC_SIGN_IN = 9001
@@ -49,10 +54,12 @@ class GoogleAuthManager(private val context: Context) {
         get() = (_authState.value as? AuthState.SignedIn)?.email
 
     // ── GoogleSignIn client with drive.appdata scope ───────
-    private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestEmail()
-        .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
-        .build()
+    private val gso =
+        GoogleSignInOptions
+            .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
+            .build()
 
     private val signInClient: GoogleSignInClient =
         GoogleSignIn.getClient(context, gso)
@@ -61,10 +68,11 @@ class GoogleAuthManager(private val context: Context) {
         // Restore session from last signed-in account
         val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
         if (lastAccount != null && lastAccount.email != null) {
-            _authState.value = AuthState.SignedIn(
-                email = lastAccount.email!!,
-                displayName = lastAccount.displayName ?: lastAccount.email!!,
-            )
+            _authState.value =
+                AuthState.SignedIn(
+                    email = lastAccount.email!!,
+                    displayName = lastAccount.displayName ?: lastAccount.email!!,
+                )
             Log.i(TAG, "✅ Session restaurée : ${lastAccount.email}")
         }
     }
@@ -83,10 +91,11 @@ class GoogleAuthManager(private val context: Context) {
             if (account?.email == null) {
                 return Result.failure(Exception("Email null après connexion"))
             }
-            val signedIn = AuthState.SignedIn(
-                email = account.email!!,
-                displayName = account.displayName ?: account.email!!,
-            )
+            val signedIn =
+                AuthState.SignedIn(
+                    email = account.email!!,
+                    displayName = account.displayName ?: account.email!!,
+                )
             _authState.value = signedIn
             Log.i(TAG, "✅ Signed in: ${account.email}")
             Result.success(signedIn)
@@ -100,21 +109,23 @@ class GoogleAuthManager(private val context: Context) {
 
     // ── Silent sign-in (token refresh) ────────────────────
 
-    suspend fun silentSignIn(): Boolean {
-        return try {
+    suspend fun silentSignIn(): Boolean =
+        try {
             val account = signInClient.silentSignIn().await()
             if (account?.email != null) {
-                _authState.value = AuthState.SignedIn(
-                    email = account.email!!,
-                    displayName = account.displayName ?: account.email!!,
-                )
+                _authState.value =
+                    AuthState.SignedIn(
+                        email = account.email!!,
+                        displayName = account.displayName ?: account.email!!,
+                    )
                 true
-            } else false
+            } else {
+                false
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Silent sign-in failed: ${e.message}")
             false
         }
-    }
 
     // ── Sign Out ──────────────────────────────────────────
 

@@ -10,12 +10,11 @@ import com.stellasecret.peoplemodeler.databinding.ItemPersonBinding
 
 class PersonAdapter(
     private val onPersonClick: (Person) -> Unit,
-    private val onPersonLongClick: (Person) -> Boolean
+    private val onPersonLongClick: (Person) -> Boolean,
 ) : ListAdapter<Person, PersonAdapter.PersonViewHolder>(DiffCallback) {
-
-    inner class PersonViewHolder(private val binding: ItemPersonBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-
+    inner class PersonViewHolder(
+        private val binding: ItemPersonBinding,
+    ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(person: Person) {
             binding.apply {
                 textAvatar.text = person.avatarEmoji
@@ -46,19 +45,35 @@ class PersonAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PersonViewHolder {
-        val binding = ItemPersonBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
-        )
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int,
+    ): PersonViewHolder {
+        val binding =
+            ItemPersonBinding.inflate(
+                LayoutInflater.from(parent.context),
+                parent,
+                false,
+            )
         return PersonViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: PersonViewHolder, position: Int) {
+    override fun onBindViewHolder(
+        holder: PersonViewHolder,
+        position: Int,
+    ) {
         holder.bind(getItem(position))
     }
 
     companion object DiffCallback : DiffUtil.ItemCallback<Person>() {
-        override fun areItemsTheSame(old: Person, new: Person) = old.id == new.id
-        override fun areContentsTheSame(old: Person, new: Person) = old == new
+        override fun areItemsTheSame(
+            old: Person,
+            new: Person,
+        ) = old.id == new.id
+
+        override fun areContentsTheSame(
+            old: Person,
+            new: Person,
+        ) = old == new
     }
 }

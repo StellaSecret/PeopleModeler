@@ -10,7 +10,6 @@ import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
 
@@ -19,23 +18,23 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navHostFragment =
+            supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
 
         binding.bottomNav.setupWithNavController(navController)
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
-            binding.appTitle.text = when (destination.id) {
-                R.id.peopleListFragment -> "🧩 People"
-                R.id.predictionsFragment -> "🔮 Prédictions"
-                R.id.insightsFragment -> "📊 Insights"
-                else -> "People Modeler"
-            }
+            binding.appTitle.text =
+                when (destination.id) {
+                    R.id.peopleListFragment -> "🧩 People"
+                    R.id.predictionsFragment -> "🔮 Prédictions"
+                    R.id.insightsFragment -> "📊 Insights"
+                    else -> "People Modeler"
+                }
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        return navController.navigateUp() || super.onSupportNavigateUp()
-    }
+    override fun onSupportNavigateUp(): Boolean = navController.navigateUp() || super.onSupportNavigateUp()
 }

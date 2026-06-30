@@ -1,11 +1,13 @@
 package com.stellasecret.peoplemodeler
 
 import com.stellasecret.peoplemodeler.data.repository.PredictionEntity
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PredictionTest {
-
     private fun makePrediction(
         id: String = "p1",
         personId: String = "person-001",
@@ -42,11 +44,12 @@ class PredictionTest {
 
     @Test
     fun `résoudre une prédiction définit actualOutcome et accuracy`() {
-        val p = makePrediction().copy(
-            actualOutcome = "A négocié ET attaqué les autres depts",
-            accuracy = 7,
-            resolvedAt = System.currentTimeMillis()
-        )
+        val p =
+            makePrediction().copy(
+                actualOutcome = "A négocié ET attaqué les autres depts",
+                accuracy = 7,
+                resolvedAt = System.currentTimeMillis(),
+            )
         assertNotNull(p.actualOutcome)
         assertNotNull(p.accuracy)
         assertNotNull(p.resolvedAt)
@@ -70,11 +73,12 @@ class PredictionTest {
 
     @Test
     fun `précision moyenne sur prédictions résolues`() {
-        val predictions = listOf(
-            makePrediction("p1", accuracy = 8),
-            makePrediction("p2", accuracy = 6),
-            makePrediction("p3", accuracy = 10),
-        )
+        val predictions =
+            listOf(
+                makePrediction("p1", accuracy = 8),
+                makePrediction("p2", accuracy = 6),
+                makePrediction("p3", accuracy = 10),
+            )
         val avg = averageAccuracy(predictions)
         assertNotNull(avg)
         assertEquals(8.0, avg!!, 0.01)
@@ -82,10 +86,11 @@ class PredictionTest {
 
     @Test
     fun `précision moyenne nulle si aucune prédiction résolue`() {
-        val predictions = listOf(
-            makePrediction("p1"),
-            makePrediction("p2"),
-        )
+        val predictions =
+            listOf(
+                makePrediction("p1"),
+                makePrediction("p2"),
+            )
         val avg = averageAccuracy(predictions)
         assertNull(avg)
     }
@@ -99,24 +104,26 @@ class PredictionTest {
 
     @Test
     fun `les prédictions non résolues sont ignorées dans la moyenne`() {
-        val predictions = listOf(
-            makePrediction("p1", accuracy = 10),
-            makePrediction("p2"),           // non résolue
-            makePrediction("p3", accuracy = 6),
-        )
+        val predictions =
+            listOf(
+                makePrediction("p1", accuracy = 10),
+                makePrediction("p2"), // non résolue
+                makePrediction("p3", accuracy = 6),
+            )
         val avg = averageAccuracy(predictions)
-        assertEquals(8.0, avg!!, 0.01)  // (10+6)/2
+        assertEquals(8.0, avg!!, 0.01) // (10+6)/2
     }
 
     // ── Filtrage pending ───────────────────────────────────
 
     @Test
     fun `les prédictions en attente sont celles sans actualOutcome`() {
-        val predictions = listOf(
-            makePrediction("p1"),
-            makePrediction("p2", actual = "Résultat réel", accuracy = 7),
-            makePrediction("p3"),
-        )
+        val predictions =
+            listOf(
+                makePrediction("p1"),
+                makePrediction("p2", actual = "Résultat réel", accuracy = 7),
+                makePrediction("p3"),
+            )
         val pending = predictions.filter { it.actualOutcome == null }
         assertEquals(2, pending.size)
     }

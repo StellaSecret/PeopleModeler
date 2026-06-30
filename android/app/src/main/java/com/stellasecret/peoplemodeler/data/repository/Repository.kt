@@ -1,7 +1,18 @@
 package com.stellasecret.peoplemodeler.data.repository
 
 import android.content.Context
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Delete
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import androidx.room.Update
 import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.data.models.PersonConverters
 import kotlinx.coroutines.flow.Flow
@@ -61,7 +72,7 @@ data class PredictionEntity(
     val actualOutcome: String? = null,
     val accuracy: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val resolvedAt: Long? = null
+    val resolvedAt: Long? = null,
 )
 
 // ─── Database ─────────────────────────────────────────────
@@ -69,31 +80,35 @@ data class PredictionEntity(
 @Database(
     entities = [Person::class, PredictionEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = false,
 )
 @TypeConverters(PersonConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun personDao(): PersonDao
+
     abstract fun predictionDao(): PredictionDao
 
     companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
+        @Volatile private var instance: AppDatabase? = null
 
-        fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "people_modeler.db"
-                ).build().also { INSTANCE = it }
+        fun getInstance(context: Context): AppDatabase =
+            instance ?: synchronized(this) {
+                Room
+                    .databaseBuilder(
+                        context.applicationContext,
+                        AppDatabase::class.java,
+                        "people_modeler.db",
+                    ).build()
+                    .also { instance = it }
             }
-        }
     }
 }
 
 // ─── Repository ───────────────────────────────────────────
 
-class PersonRepository(private val db: AppDatabase) {
+class PersonRepository(
+    private val db: AppDatabase,
+) {
     val allPersons = db.personDao().getAllPersons()
 
     suspend fun getAllPersonsOnce() = db.personDao().getAllPersonsOnce()
@@ -108,14 +123,11 @@ class PersonRepository(private val db: AppDatabase) {
 
     suspend fun deletePerson(person: Person) = db.personDao().deletePerson(person)
 
-    fun getPredictionsForPerson(personId: String) =
-        db.predictionDao().getPredictionsForPerson(personId)
+    fun getPredictionsForPerson(personId: String) = db.predictionDao().getPredictionsForPerson(personId)
 
     fun getPendingPredictions() = db.predictionDao().getPendingPredictions()
 
-    suspend fun savePrediction(prediction: PredictionEntity) =
-        db.predictionDao().insertPrediction(prediction)
+    suspend fun savePrediction(prediction: PredictionEntity) = db.predictionDao().insertPrediction(prediction)
 
-    suspend fun getAverageAccuracy(personId: String) =
-        db.predictionDao().averageAccuracyForPerson(personId)
+    suspend fun getAverageAccuracy(personId: String) = db.predictionDao().averageAccuracyForPerson(personId)
 }

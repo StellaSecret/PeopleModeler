@@ -3,7 +3,9 @@ package com.stellasecret.peoplemodeler.sync
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -14,10 +16,11 @@ import com.google.android.material.snackbar.Snackbar
 import com.stellasecret.peoplemodeler.databinding.FragmentSyncBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class SyncFragment : Fragment() {
-
+    @Suppress("ktlint:standard:backing-property-naming")
     private var _binding: FragmentSyncBinding? = null
     private val binding get() = _binding!!
     private val viewModel: SyncViewModel by viewModels()
@@ -28,30 +31,36 @@ class SyncFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Register before onCreateView
-        signInLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            val data = result.data
-            val resultCode = result.resultCode
-            if (resultCode == Activity.RESULT_OK) {
-                val signInResult = viewModel.authManager.handleSignInResult(data)
-                signInResult.onFailure { e ->
-                    showSnackbar("Connexion échouée : ${e.message}")
+        signInLauncher =
+            registerForActivityResult(
+                ActivityResultContracts.StartActivityForResult(),
+            ) { result ->
+                val data = result.data
+                val resultCode = result.resultCode
+                if (resultCode == Activity.RESULT_OK) {
+                    val signInResult = viewModel.authManager.handleSignInResult(data)
+                    signInResult.onFailure { e ->
+                        showSnackbar("Connexion échouée : ${e.message}")
+                    }
+                } else {
+                    showSnackbar("Connexion annulée")
                 }
-            } else {
-                showSnackbar("Connexion annulée")
             }
-        }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, state: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        state: Bundle?,
     ): View {
         _binding = FragmentSyncBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
         setupObservers()
         setupClickListeners()
@@ -63,9 +72,15 @@ class SyncFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.authState.collect { state ->
                 when (state) {
-                    is AuthState.SignedOut -> renderSignedOut()
-                    is AuthState.SignedIn  -> renderSignedIn(state)
-                    is AuthState.Error     -> {
+                    is AuthState.SignedOut -> {
+                        renderSignedOut()
+                    }
+
+                    is AuthState.SignedIn -> {
+                        renderSignedIn(state)
+                    }
+
+                    is AuthState.Error -> {
                         renderSignedOut()
                         showSnackbar("Erreur : ${state.message}")
                     }
@@ -76,28 +91,31 @@ class SyncFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.syncState.collect { state ->
                 when (state) {
-                    is SyncUiState.Idle    -> {
+                    is SyncUiState.Idle -> {
                         binding.progressBar.visibility = View.GONE
                         binding.textSyncStatus.text = ""
                     }
+
                     is SyncUiState.Loading -> {
                         binding.progressBar.visibility = View.VISIBLE
                         binding.textSyncStatus.text = state.message
-                        binding.btnBackup.isEnabled  = false
+                        binding.btnBackup.isEnabled = false
                         binding.btnRestore.isEnabled = false
                     }
-                    is SyncUiState.Done    -> {
+
+                    is SyncUiState.Done -> {
                         binding.progressBar.visibility = View.GONE
                         binding.textSyncStatus.text = state.message
-                        binding.btnBackup.isEnabled  = true
+                        binding.btnBackup.isEnabled = true
                         binding.btnRestore.isEnabled = true
                         showSnackbar("✅ ${state.message}")
                         viewModel.resetSyncState()
                     }
+
                     is SyncUiState.Failure -> {
                         binding.progressBar.visibility = View.GONE
                         binding.textSyncStatus.text = "❌ ${state.message}"
-                        binding.btnBackup.isEnabled  = true
+                        binding.btnBackup.isEnabled = true
                         binding.btnRestore.isEnabled = true
                         showSnackbar("❌ ${state.message}")
                         viewModel.resetSyncState()
@@ -109,8 +127,9 @@ class SyncFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.backupInfo.collect { info ->
                 if (info != null) {
-                    val date = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRANCE)
-                        .format(Date(info.modifiedTime))
+                    val date =
+                        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRANCE)
+                            .format(Date(info.modifiedTime))
                     val size = "%.1f KB".format(info.sizeBytes / 1024.0)
                     binding.textBackupInfo.text = "Dernière sauvegarde : $date ($size)"
                     binding.textBackupInfo.visibility = View.VISIBLE
@@ -137,8 +156,7 @@ class SyncFragment : Fragment() {
                 .setMessage("Vos données locales sont conservées.")
                 .setPositiveButton("Se déconnecter") { _, _ ->
                     lifecycleScope.launch { viewModel.signOut() }
-                }
-                .setNegativeButton("Annuler", null)
+                }.setNegativeButton("Annuler", null)
                 .show()
         }
 
@@ -165,14 +183,14 @@ class SyncFragment : Fragment() {
 
     private fun renderSignedOut() {
         binding.groupSignedOut.visibility = View.VISIBLE
-        binding.groupSignedIn.visibility  = View.GONE
+        binding.groupSignedIn.visibility = View.GONE
     }
 
     private fun renderSignedIn(state: AuthState.SignedIn) {
         binding.groupSignedOut.visibility = View.GONE
-        binding.groupSignedIn.visibility  = View.VISIBLE
-        binding.textAccountEmail.text     = state.email
-        binding.textAccountName.text      = state.displayName
+        binding.groupSignedIn.visibility = View.VISIBLE
+        binding.textAccountEmail.text = state.email
+        binding.textAccountName.text = state.displayName
         viewModel.refreshBackupInfo()
     }
 

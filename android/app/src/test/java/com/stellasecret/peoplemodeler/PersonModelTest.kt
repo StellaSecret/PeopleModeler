@@ -1,11 +1,18 @@
 package com.stellasecret.peoplemodeler
 
-import com.stellasecret.peoplemodeler.data.models.*
-import org.junit.Assert.*
+import com.stellasecret.peoplemodeler.data.models.Bias
+import com.stellasecret.peoplemodeler.data.models.BiasType
+import com.stellasecret.peoplemodeler.data.models.Motivation
+import com.stellasecret.peoplemodeler.data.models.MotivationType
+import com.stellasecret.peoplemodeler.data.models.Person
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonModelTest {
-
     private fun makePerson(
         motivations: List<Motivation> = emptyList(),
         biases: List<Bias> = emptyList(),
@@ -36,21 +43,24 @@ class PersonModelTest {
 
     @Test
     fun `topMotivation retourne la motivation avec l'intensité la plus haute`() {
-        val person = makePerson(
-            motivations = listOf(
-                Motivation(MotivationType.AFFILIATION, 4),
-                Motivation(MotivationType.POWER, 9),
-                Motivation(MotivationType.SECURITY, 6),
+        val person =
+            makePerson(
+                motivations =
+                    listOf(
+                        Motivation(MotivationType.AFFILIATION, 4),
+                        Motivation(MotivationType.POWER, 9),
+                        Motivation(MotivationType.SECURITY, 6),
+                    ),
             )
-        )
         assertEquals(MotivationType.POWER, person.topMotivation)
     }
 
     @Test
     fun `topMotivation gère une seule motivation`() {
-        val person = makePerson(
-            motivations = listOf(Motivation(MotivationType.LEARNING, 7))
-        )
+        val person =
+            makePerson(
+                motivations = listOf(Motivation(MotivationType.LEARNING, 7)),
+            )
         assertEquals(MotivationType.LEARNING, person.topMotivation)
     }
 
@@ -64,24 +74,28 @@ class PersonModelTest {
 
     @Test
     fun `topBias retourne le biais avec l'intensité la plus haute`() {
-        val person = makePerson(
-            biases = listOf(
-                Bias(BiasType.ANCHORING, 8, "Reste fixé sur le premier chiffre"),
-                Bias(BiasType.CONFIRMATION, 5),
-                Bias(BiasType.LOSS_AVERSION, 3),
+        val person =
+            makePerson(
+                biases =
+                    listOf(
+                        Bias(BiasType.ANCHORING, 8, "Reste fixé sur le premier chiffre"),
+                        Bias(BiasType.CONFIRMATION, 5),
+                        Bias(BiasType.LOSS_AVERSION, 3),
+                    ),
             )
-        )
         assertEquals(BiasType.ANCHORING, person.topBias)
     }
 
     @Test
     fun `topBias en cas d'égalité retourne un résultat stable`() {
-        val person = makePerson(
-            biases = listOf(
-                Bias(BiasType.ANCHORING, 7),
-                Bias(BiasType.CONFIRMATION, 7),
+        val person =
+            makePerson(
+                biases =
+                    listOf(
+                        Bias(BiasType.ANCHORING, 7),
+                        Bias(BiasType.CONFIRMATION, 7),
+                    ),
             )
-        )
         // Doit retourner un résultat non-null (peu importe lequel)
         assertNotNull(person.topBias)
     }

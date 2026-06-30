@@ -1,7 +1,9 @@
 package com.stellasecret.peoplemodeler.ui.screens
 
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -15,20 +17,25 @@ import com.stellasecret.peoplemodeler.ui.components.PersonAdapter
 import com.stellasecret.peoplemodeler.viewmodels.PersonViewModel
 
 class PeopleListFragment : Fragment() {
-
+    @Suppress("ktlint:standard:backing-property-naming")
     private var _binding: FragmentPeopleListBinding? = null
     private val binding get() = _binding!!
     private val viewModel: PersonViewModel by activityViewModels()
     private lateinit var adapter: PersonAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, state: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        state: Bundle?,
     ): View {
         _binding = FragmentPeopleListBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupSearch()
@@ -37,16 +44,17 @@ class PeopleListFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = PersonAdapter(
-            onPersonClick = { person ->
-                viewModel.loadPerson(person.id)
-                findNavController().navigate(R.id.action_list_to_detail)
-            },
-            onPersonLongClick = { person ->
-                showDeleteDialog(person)
-                true
-            }
-        )
+        adapter =
+            PersonAdapter(
+                onPersonClick = { person ->
+                    viewModel.loadPerson(person.id)
+                    findNavController().navigate(R.id.action_list_to_detail)
+                },
+                onPersonLongClick = { person ->
+                    showDeleteDialog(person)
+                    true
+                },
+            )
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@PeopleListFragment.adapter
@@ -54,13 +62,16 @@ class PeopleListFragment : Fragment() {
     }
 
     private fun setupSearch() {
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?) = false
-            override fun onQueryTextChange(newText: String?): Boolean {
-                viewModel.search(newText ?: "")
-                return true
-            }
-        })
+        binding.searchView.setOnQueryTextListener(
+            object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?) = false
+
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    viewModel.search(newText ?: "")
+                    return true
+                }
+            },
+        )
     }
 
     private fun setupFab() {

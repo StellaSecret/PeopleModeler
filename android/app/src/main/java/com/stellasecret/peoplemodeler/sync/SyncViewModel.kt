@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class SyncViewModel(application: Application) : AndroidViewModel(application) {
-
+class SyncViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     val authManager = GoogleAuthManager(application)
     private val driveSync = DriveSync(application, authManager)
     private val repo = PersonRepository(AppDatabase.getInstance(application))
@@ -26,39 +27,50 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
 
     // ── Actions ────────────────────────────────────────────
 
-    fun signOut() = viewModelScope.launch {
-        authManager.signOut()
-        _syncState.value = SyncUiState.Idle
-        _backupInfo.value = null
-    }
-
-    fun backup() = viewModelScope.launch {
-        _syncState.value = SyncUiState.Loading("Sauvegarde en cours…")
-        val persons = repo.getAllPersonsOnce()
-        _syncState.value = when (val result = driveSync.backup(persons)) {
-            is SyncResult.Success        -> SyncUiState.Done(result.message)
-            is SyncResult.Error          -> SyncUiState.Failure(result.message)
-            is SyncResult.NotAuthenticated -> SyncUiState.Failure("Non connecté")
+    fun signOut() =
+        viewModelScope.launch {
+            authManager.signOut()
+            _syncState.value = SyncUiState.Idle
+            _backupInfo.value = null
         }
-        refreshBackupInfo()
-    }
 
-    fun restore() = viewModelScope.launch {
-        _syncState.value = SyncUiState.Loading("Restauration en cours…")
-        val (result, persons) = driveSync.restore()
-        when (result) {
-            is SyncResult.Success -> {
-                persons?.forEach { repo.savePerson(it) }
-                _syncState.value = SyncUiState.Done(result.message)
+    fun backup() =
+        viewModelScope.launch {
+            _syncState.value = SyncUiState.Loading("Sauvegarde en cours…")
+            val persons = repo.getAllPersonsOnce()
+            _syncState.value =
+                when (val result = driveSync.backup(persons)) {
+                    is SyncResult.Success -> SyncUiState.Done(result.message)
+                    is SyncResult.Error -> SyncUiState.Failure(result.message)
+                    is SyncResult.NotAuthenticated -> SyncUiState.Failure("Non connecté")
+                }
+            refreshBackupInfo()
+        }
+
+    fun restore() =
+        viewModelScope.launch {
+            _syncState.value = SyncUiState.Loading("Restauration en cours…")
+            val (result, persons) = driveSync.restore()
+            when (result) {
+                is SyncResult.Success -> {
+                    persons?.forEach { repo.savePerson(it) }
+                    _syncState.value = SyncUiState.Done(result.message)
+                }
+
+                is SyncResult.Error -> {
+                    _syncState.value = SyncUiState.Failure(result.message)
+                }
+
+                is SyncResult.NotAuthenticated -> {
+                    _syncState.value = SyncUiState.Failure("Non connecté")
+                }
             }
-            is SyncResult.Error          -> _syncState.value = SyncUiState.Failure(result.message)
-            is SyncResult.NotAuthenticated -> _syncState.value = SyncUiState.Failure("Non connecté")
         }
-    }
 
-    fun refreshBackupInfo() = viewModelScope.launch {
-        _backupInfo.value = driveSync.getBackupInfo()
-    }
+    fun refreshBackupInfo() =
+        viewModelScope.launch {
+            _backupInfo.value = driveSync.getBackupInfo()
+        }
 
     fun resetSyncState() {
         _syncState.value = SyncUiState.Idle
@@ -69,7 +81,16 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
 
 sealed class SyncUiState {
     object Idle : SyncUiState()
-    data class Loading(val message: String) : SyncUiState()
-    data class Done(val message: String) : SyncUiState()
-    data class Failure(val message: String) : SyncUiState()
+
+    data class Loading(
+        val message: String,
+    ) : SyncUiState()
+
+    data class Done(
+        val message: String,
+    ) : SyncUiState()
+
+    data class Failure(
+        val message: String,
+    ) : SyncUiState()
 }

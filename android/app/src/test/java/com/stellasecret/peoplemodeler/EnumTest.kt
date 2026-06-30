@@ -1,11 +1,17 @@
 package com.stellasecret.peoplemodeler
 
-import com.stellasecret.peoplemodeler.data.models.*
-import org.junit.Assert.*
+import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
+import com.stellasecret.peoplemodeler.data.models.BehavioralPattern
+import com.stellasecret.peoplemodeler.data.models.Bias
+import com.stellasecret.peoplemodeler.data.models.BiasType
+import com.stellasecret.peoplemodeler.data.models.Motivation
+import com.stellasecret.peoplemodeler.data.models.MotivationType
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class EnumTest {
-
     // ── MotivationType ─────────────────────────────────────
 
     @Test
@@ -13,7 +19,7 @@ class EnumTest {
         for (type in MotivationType.values()) {
             assertTrue(
                 "Label vide pour $type",
-                type.label.isNotBlank()
+                type.label.isNotBlank(),
             )
         }
     }
@@ -23,7 +29,7 @@ class EnumTest {
         for (type in MotivationType.values()) {
             assertTrue(
                 "Emoji vide pour $type",
-                type.emoji.isNotBlank()
+                type.emoji.isNotBlank(),
             )
         }
     }
@@ -50,7 +56,7 @@ class EnumTest {
         for (type in BiasType.values()) {
             assertTrue(
                 "Label vide pour $type",
-                type.label.isNotBlank()
+                type.label.isNotBlank(),
             )
         }
     }
@@ -60,7 +66,7 @@ class EnumTest {
         for (type in BiasType.values()) {
             assertTrue(
                 "Emoji vide pour $type",
-                type.emoji.isNotBlank()
+                type.emoji.isNotBlank(),
             )
         }
     }
@@ -82,7 +88,7 @@ class EnumTest {
         for (trigger in BehaviorTrigger.values()) {
             assertTrue(
                 "Label vide pour $trigger",
-                trigger.label.isNotBlank()
+                trigger.label.isNotBlank(),
             )
         }
     }
@@ -140,11 +146,12 @@ class EnumTest {
 
     @Test
     fun `BehavioralPattern stocke le trigger et le comportement`() {
-        val pattern = BehavioralPattern(
-            trigger = BehaviorTrigger.STRESS,
-            predictedBehavior = "Prend le contrôle",
-            confidence = 8
-        )
+        val pattern =
+            BehavioralPattern(
+                trigger = BehaviorTrigger.STRESS,
+                predictedBehavior = "Prend le contrôle",
+                confidence = 8,
+            )
         assertEquals(BehaviorTrigger.STRESS, pattern.trigger)
         assertEquals("Prend le contrôle", pattern.predictedBehavior)
         assertEquals(8, pattern.confidence)

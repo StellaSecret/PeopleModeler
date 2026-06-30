@@ -1,8 +1,13 @@
 package com.stellasecret.peoplemodeler.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.*
-import com.stellasecret.peoplemodeler.data.models.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
+import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
+import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.data.repository.AppDatabase
 import com.stellasecret.peoplemodeler.data.repository.PersonRepository
 import com.stellasecret.peoplemodeler.data.repository.PredictionEntity
@@ -12,66 +17,88 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class PersonViewModel(application: Application) : AndroidViewModel(application) {
-
+class PersonViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val repo = PersonRepository(AppDatabase.getInstance(application))
 
     val allPersons = repo.allPersons.asLiveData()
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchResults = _searchQuery.flatMapLatest { query ->
-        if (query.isBlank()) repo.allPersons
-        else repo.searchPersons(query)
-    }.asLiveData()
+    private val searchQuery = MutableStateFlow("")
+    val searchResults =
+        searchQuery
+            .flatMapLatest { query ->
+                if (query.isBlank()) {
+                    repo.allPersons
+                } else {
+                    repo.searchPersons(query)
+                }
+            }.asLiveData()
 
-    fun search(query: String) { _searchQuery.value = query }
+    fun search(query: String) {
+        searchQuery.value = query
+    }
 
     private val _currentPerson = MutableLiveData<Person?>()
     val currentPerson: LiveData<Person?> = _currentPerson
 
-    fun loadPerson(id: String) = viewModelScope.launch {
-        _currentPerson.value = repo.getPersonById(id)
-    }
+    fun loadPerson(id: String) =
+        viewModelScope.launch {
+            _currentPerson.value = repo.getPersonById(id)
+        }
 
-    fun savePerson(person: Person) = viewModelScope.launch {
-        repo.savePerson(person)
-        _currentPerson.value = person
-    }
+    fun savePerson(person: Person) =
+        viewModelScope.launch {
+            repo.savePerson(person)
+            _currentPerson.value = person
+        }
 
-    fun deletePerson(person: Person) = viewModelScope.launch {
-        repo.deletePerson(person)
-        if (_currentPerson.value?.id == person.id) _currentPerson.value = null
-    }
+    fun deletePerson(person: Person) =
+        viewModelScope.launch {
+            repo.deletePerson(person)
+            if (_currentPerson.value?.id == person.id) _currentPerson.value = null
+        }
 
-    fun getPredictions(personId: String) =
-        repo.getPredictionsForPerson(personId).asLiveData()
+    fun getPredictions(personId: String) = repo.getPredictionsForPerson(personId).asLiveData()
 
     val pendingPredictions = repo.getPendingPredictions().asLiveData()
 
-    fun addPrediction(personId: String, context: String, predicted: String) =
-        viewModelScope.launch {
-            repo.savePrediction(
-                PredictionEntity(
-                    id = java.util.UUID.randomUUID().toString(),
-                    personId = personId,
-                    context = context,
-                    predictedOutcome = predicted
-                )
-            )
-        }
+    fun addPrediction(
+        personId: String,
+        context: String,
+        predicted: String,
+    ) = viewModelScope.launch {
+        repo.savePrediction(
+            PredictionEntity(
+                id =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
+                personId = personId,
+                context = context,
+                predictedOutcome = predicted,
+            ),
+        )
+    }
 
-    fun resolvePrediction(prediction: PredictionEntity, actual: String, accuracy: Int) =
-        viewModelScope.launch {
-            repo.savePrediction(
-                prediction.copy(
-                    actualOutcome = actual,
-                    accuracy = accuracy,
-                    resolvedAt = System.currentTimeMillis()
-                )
-            )
-        }
+    fun resolvePrediction(
+        prediction: PredictionEntity,
+        actual: String,
+        accuracy: Int,
+    ) = viewModelScope.launch {
+        repo.savePrediction(
+            prediction.copy(
+                actualOutcome = actual,
+                accuracy = accuracy,
+                resolvedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
 
-    fun generateBehavioralInsight(person: Person, trigger: BehaviorTrigger): String {
+    fun generateBehavioralInsight(
+        person: Person,
+        trigger: BehaviorTrigger,
+    ): String {
         val topMotivation = person.motivations.maxByOrNull { it.intensity }
         val topBias = person.biases.maxByOrNull { it.intensity }
         return buildString {
