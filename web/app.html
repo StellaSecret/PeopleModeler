@@ -328,7 +328,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
           </div>
         </div>
         <div class="profile-topbar-right">
-          <div class="accuracy-pill" data-i18n="precision_label"><strong id="pScore">0%</strong> précision</div>
+          <div class="accuracy-pill"><strong id="pScore">0%</strong> <span data-i18n="precision_label">précision</span></div>
           <div class="profile-actions">
             <button type="button" class="btn-ghost btn-edit" onclick="openEditProfile()" data-i18n="edit_btn">✏️ Éditer</button>
             <button type="button" class="btn-icon btn-danger" onclick="deleteProfile()" title="Supprimer" aria-label="Supprimer le profil">🗑️</button>
@@ -534,13 +534,14 @@ function renderMain() {
   if (!p) { empty.style.display = 'block'; view.style.display = 'none'; return; }
   empty.style.display = 'none'; view.style.display = 'block';
 
-  document.getElementById('pAvatar').textContent = p.avatarEmoji || '🧑';
-  document.getElementById('pName').textContent   = p.name;
+  const el = id => document.getElementById(id);
+  el('pAvatar') && (el('pAvatar').textContent = p.avatarEmoji || '🧑');
+  el('pName') && (el('pName').textContent   = p.name);
   const isDemo = p.id === 'demo-001';
   const role = isDemo ? (typeof t === 'function' ? t('demo_role') : p.role) : p.role;
   const ctx = isDemo ? (typeof t === 'function' ? t('demo_context') : p.context) : p.context;
-  document.getElementById('pRole').textContent   = [role, ctx].filter(Boolean).join(' · ') || '—';
-  document.getElementById('pScore').textContent  = (p.accuracyScore || 0) + '%';
+  el('pRole') && (el('pRole').textContent   = [role, ctx].filter(Boolean).join(' · ') || '—');
+  el('pScore') && (el('pScore').textContent  = (p.accuracyScore || 0) + '%');
 
   renderMotivations(p); renderBiases(p); renderOcean(p); renderPredictions(p);
   updateOceanInterp(p);
@@ -625,7 +626,7 @@ function pickEmoji(e, btn) {
 // ── MOTIVATIONS ──────────────────────────────────────────
 function renderMotivations(p) {
   const el = document.getElementById('motivationList');
-  if (!p.motivations.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('mot_empty') : 'Aucune motivation ajoutée.'}</p>`; return; }
+  if (!p.motivations?.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('mot_empty') : 'Aucune motivation ajoutée.'}</p>`; return; }
   el.innerHTML = p.motivations.map((m, i) => {
     const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji:'?', label: m.type };
     return `<div class="mot-item" onclick="openEditMotivation(${i})">
@@ -684,7 +685,7 @@ function deleteMotivation(i) {
 // ── BIASES ───────────────────────────────────────────────
 function renderBiases(p) {
   const el = document.getElementById('biasList');
-  if (!p.biases.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('bias_empty') : 'Aucun biais ajouté.'}</p>`; return; }
+  if (!p.biases?.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('bias_empty') : 'Aucun biais ajouté.'}</p>`; return; }
   el.innerHTML = p.biases.map((b, i) => {
     const def = BIASES.find(x => x.id === b.type) || { emoji:'?', label: b.type };
     return `<div class="bias-item-row" onclick="openEditBias(${i})">
@@ -768,7 +769,7 @@ function updateOceanInterp(p) {
 // ── PREDICTIONS ──────────────────────────────────────────
 function renderPredictions(p) {
   const el = document.getElementById('predictionList');
-  if (!p.predictions.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('pred_empty') : 'Aucune prédiction.'}</p>`; return; }
+  if (!p.predictions?.length) { el.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem;">${typeof t === 'function' ? t('pred_empty') : 'Aucune prédiction.'}</p>`; return; }
   el.innerHTML = p.predictions.map((pred, i) => `
     <div class="pred-item">
       <div class="pred-ctx">📍 ${esc(pred.context)}</div>
@@ -807,7 +808,7 @@ function openResolvePrediction(i) {
     pred.actualOutcome = actual; pred.accuracy = +val('rAcc'); pred.resolved = true; pred.resolvedAt = Date.now();
     const resolved = p.predictions.filter(x => x.resolved && x.accuracy);
     if (resolved.length) p.accuracyScore = Math.round(resolved.reduce((s,x) => s+x.accuracy, 0) / resolved.length * 10);
-    save(); renderPredictions(p); renderSidebar(); document.getElementById('pScore').textContent = (p.accuracyScore||0)+'%'; closeModal();
+    save(); renderPredictions(p); renderSidebar(); const pScoreEl = document.getElementById('pScore'); if (pScoreEl) pScoreEl.textContent = (p.accuracyScore||0)+'%'; closeModal();
   });
 }
 
