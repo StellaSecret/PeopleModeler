@@ -2,7 +2,7 @@
 /**
  * check-placeholder.js
  * Ensures __GOOGLE_CLIENT_ID__ placeholder is NOT replaced by a real value
- * in committed .kt or .gradle files (the substitution must only happen in CI).
+ * in committed .kt, .gradle, or .js files (the substitution must only happen in CI).
  *
  * Also checks that the old package name com.peoplemodeler is not reintroduced.
  */

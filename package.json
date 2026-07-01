@@ -26,7 +26,7 @@
     "web/**/*.{js,css}": [
       "node scripts/check-secrets.js --staged"
     ],
-    "**/*.{kt,gradle}": [
+    "**/*.{kt,gradle,js}": [
       "node scripts/check-placeholder.js --staged"
     ],
     "package.json": [

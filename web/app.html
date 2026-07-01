@@ -472,10 +472,10 @@ const GDRIVE_KEY = 'pm_gdrive_v1';
 
 const Store = {
   load:         ()  => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { return []; } },
-  save:         (d) => localStorage.setItem(STORE_KEY, JSON.stringify(d)),
+  save:         (d) => { localStorage.setItem(STORE_KEY, JSON.stringify(d)); tryAutoBackup(); },
   getActiveId:  ()  => localStorage.getItem(ACTIVE_KEY),
   setActiveId:  (id)=> localStorage.setItem(ACTIVE_KEY, id),
-  isGdrive:     ()  => localStorage.getItem(GDRIVE_KEY) === '1',
+  isGdrive:     ()  => (typeof GDrive !== 'undefined' && GDrive.isConnected()) || localStorage.getItem(GDRIVE_KEY) === '1',
   setGdrive:    (v) => v ? localStorage.setItem(GDRIVE_KEY,'1') : localStorage.removeItem(GDRIVE_KEY),
 };
 
@@ -492,7 +492,10 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSidebar();
   renderMain();
   setupTabs();
+  if (typeof GDrive !== 'undefined') GDrive.init();
   updateGdriveUI();
+  document.addEventListener('gdrive:connected', updateGdriveUI);
+  document.addEventListener('gdrive:disconnected', updateGdriveUI);
 });
 
 // ── SIDEBAR ──────────────────────────────────────────────
@@ -901,21 +904,31 @@ function showInsight(key, btn) {
 // ── GOOGLE DRIVE ─────────────────────────────────────────
 function toggleGdrive() {
   if (Store.isGdrive()) {
-    if (!confirm('Déconnecter Google Drive ?')) return;
+    if (!confirm(t('gdrive_disconnect_confirm'))) return;
+    try { GDrive.signOut(); } catch(e) {}
     Store.setGdrive(false); updateGdriveUI(); return;
   }
-  openModal('☁️ Connecter Google Drive', `
+
+  if (!GDrive.isConfigured()) {
+    openModal('☁️ ' + t('gdrive_connect_title'), `
+      <div style="text-align:center;padding:.5rem 0">
+        <div style="font-size:3rem;margin-bottom:1rem">☁️</div>
+        <p style="color:var(--text-muted);font-size:.88rem;line-height:1.8;margin-bottom:1.25rem">` + t('gdrive_connect_desc') + `</p>
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:.85rem;font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem">
+          ` + t('gdrive_not_configured') + `
+        </div>
+        <button type="button" class="btn-primary" onclick="simulateGdrive()" style="width:100%">🔗 ` + t('gdrive_simulate') + `</button>
+      </div>`, null, true);
+    return;
+  }
+
+  openModal('☁️ ' + t('gdrive_connect_title'), `
     <div style="text-align:center;padding:.5rem 0">
       <div style="font-size:3rem;margin-bottom:1rem">☁️</div>
-      <p style="color:var(--text-muted);font-size:.88rem;line-height:1.8;margin-bottom:1.25rem" data-i18n="gdrive_connect_desc">
-        Synchronisez vos profils avec l'app mobile via votre Google Drive personnel.<br>
-        Les données sont stockées dans <code style="color:var(--cyan)">PeopleModeler/data.json</code>.
-      </p>
-      <div style="background:var(--surface2);border-radius:var(--radius);padding:.85rem;font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem" data-i18n="gdrive_oauth_wip">
-        ⚠️ L'intégration OAuth Google sera connectée lors de la release.<br>
-        En attendant, utilisez <strong>Export / Import JSON</strong>.
-      </div>
-      <button type="button" class="btn-primary" onclick="simulateGdrive()" style="width:100%" data-i18n="gdrive_simulate">🔗 Simuler la connexion</button>
+      <p style="color:var(--text-muted);font-size:.88rem;line-height:1.8;margin-bottom:1.5rem">` + t('gdrive_connect_desc') + `</p>
+      <button type="button" class="btn-primary" onclick="realGdriveConnect()" style="width:100%">
+        🔗 ` + t('gdrive_connect_btn') + `
+      </button>
     </div>`, null, true);
 }
 
@@ -923,21 +936,74 @@ function simulateGdrive() {
   Store.setGdrive(true); closeModal(); updateGdriveUI();
 }
 
+async function realGdriveConnect() {
+  try {
+    closeModal();
+    showToast(t('gdrive_connecting'));
+    await GDrive.signIn();
+    updateGdriveUI();
+    showToast(t('gdrive_connected'));
+    // Try auto-restore
+    try {
+      const remote = await GDrive.restore();
+      if (remote && remote.length > 0 && confirm(t('gdrive_restore_confirm'))) {
+        profiles = remote;
+        if (!activeId && profiles.length) activeId = profiles[0].id;
+        Store.save(profiles); renderSidebar(); renderMain();
+        showToast(remote.length + ' ' + t('gdrive_restore_done'));
+      }
+    } catch(e) {
+      if (e.message !== 'Token expired') console.warn('GDrive restore check failed:', e);
+    }
+  } catch(e) {
+    showToast(t('gdrive_error'));
+    console.warn('GDrive connect failed:', e);
+  }
+}
+
 function updateGdriveUI() {
   const btn = document.getElementById('gdriveSyncBtn');
   const lbl = document.getElementById('gdriveLabel');
   const connected = Store.isGdrive();
   btn.classList.toggle('connected', connected);
-  lbl.textContent = connected ? '✓ Drive connecté' : 'Sync Google Drive';
+  lbl.textContent = connected ? t('sidebar_gdrive_on') : t('sidebar_gdrive_off');
   const existing = document.getElementById('gdriveBanner');
   if (connected && !existing) {
     const b = document.createElement('div');
     b.id = 'gdriveBanner'; b.className = 'gdrive-banner';
-    b.innerHTML = '☁️ Sync Google Drive active — <code>PeopleModeler/data.json</code>';
+    b.innerHTML = t('gdrive_banner');
     document.getElementById('appContent').prepend(b);
   } else if (!connected && existing) {
     existing.remove();
   }
+}
+
+function tryAutoBackup() {
+  if (!Store.isGdrive()) return;
+  GDrive.scheduleBackup(profiles);
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    Object.assign(el.style, {
+      position:'fixed', bottom:'2rem', left:'50%', transform:'translateX(-50%)',
+      background:'var(--surface)', border:'1px solid var(--border)',
+      borderRadius:'var(--radius)', padding:'.75rem 1.5rem',
+      fontSize:'.85rem', color:'var(--text)', zIndex:'500',
+      boxShadow:'0 8px 32px rgba(0,0,0,0.4)', transition:'opacity .3s',
+      maxWidth:'90vw', textAlign:'center',
+    });
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
 }
 
 // ── IMPORT / EXPORT ──────────────────────────────────────
@@ -993,5 +1059,7 @@ const cap     = s  => s.charAt(0).toUpperCase() + s.slice(1);
 const topMot  = p  => (p.motivations||[]).reduce((t,m) => (!t||m.intensity>t.intensity)?m:t, null);
 const topBias = p  => (p.biases||[]).reduce((t,b) => (!t||b.intensity>t.intensity)?b:t, null);
 </script>
+<script src="https://accounts.google.com/gsi/client" defer></script>
+<script src="js/gdrive.js"></script>
 </body>
 </html>

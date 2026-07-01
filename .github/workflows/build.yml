@@ -94,6 +94,9 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup Pages
         uses: actions/configure-pages@v6
+      - name: Replace placeholders
+        run: |
+          sed -i 's/__GOOGLE_CLIENT_ID__/${{ secrets.GOOGLE_WEB_CLIENT_ID }}/g' web/js/gdrive.js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
