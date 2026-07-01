@@ -875,13 +875,24 @@ function t(key) {
 }
 
 function translatePage() {
+  const L = getLang();
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    const raw = t(key);
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      el.setAttribute('placeholder', raw);
+    const val = L[key];
+    if (val != null) {
+      // Key found in dictionary — value is hardcoded in source, safe for innerHTML
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.setAttribute('placeholder', val);
+      } else {
+        el.innerHTML = val;
+      }
     } else {
-      el.innerHTML = raw;
+      // Key not found — use textContent to avoid XSS from untrusted DOM attribute
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.setAttribute('placeholder', key);
+      } else {
+        el.textContent = key;
+      }
     }
   });
 }
