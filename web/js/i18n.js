@@ -275,6 +275,131 @@ const FR = {
   insight_recognition_header: 'cherchant la reconnaissance',
   insight_threat_header: 'se sentant menacé·e',
 
+  // OCEAN interpretation structural
+  ocean_interp_is: 'est',
+  ocean_interp_consciencieux: 'Consciencieux·se',
+  ocean_interp_very: 'Très',
+  ocean_interp_rather: 'Plutôt',
+  ocean_interp_relationally: 'En termes relationnels',
+  ocean_interp_emotionally: 'Sur le plan émotionnel',
+  ocean_interp_remember: 'À retenir :',
+  ocean_interp_dominant: '⚡ Profil "dominant" — direct, assertif, peut sembler intimidant.',
+  ocean_interp_innovator: '🚀 Profil innovateur rigoureux — rare et précieux.',
+  ocean_interp_stress_warn: '⚠️ Attention en situation de stress — réactivité émotionnelle élevée.',
+  ocean_interp_stable: '🤝 Profil stable et coopératif — excellent médiateur.',
+
+  // Insight header lines (used in generate output)
+  insight_stress_header_line: 'Sous stress, {name} aura tendance à :',
+  insight_conflict_header_line: 'En situation de conflit, {name} :',
+  insight_success_header_line: 'En période de réussite, {name} :',
+  insight_uncertainty_header_line: "Face à l'incertitude, {name} :",
+  insight_recognition_header_line: 'Quand {name} cherche de la reconnaissance :',
+  insight_threat_header_line: 'Quand {name} se sent menacé·e :',
+
+  // Insight strategy lines
+  insight_stress_strategy_high_a: 'Offrez du soutien émotionnel avant les solutions.',
+  insight_stress_strategy_low_a: 'Proposez des actions concrètes et rapides.',
+  insight_conflict_strategy_high_a: 'Cadrez comme "résolution commune", pas opposition.',
+  insight_conflict_strategy_low_a: 'Soyez direct·e et factuel·le, évitez les ambiguïtés.',
+  insight_success_strategy: "C'est le bon moment pour proposer de nouveaux projets ou renforcer la relation.",
+  insight_uncertainty_strategy: "Réduisez l'incertitude perçue : donnez un maximum de contexte et de repères.",
+  insight_recognition_strategy: 'Nommez explicitement la contribution. La reconnaissance vague est contre-productive.',
+  insight_threat_strategy: "Rassurez sur ce qui n'EST PAS menacé avant d'aborder le problème.",
+
+  // Insight stress bullets
+  insight_stress_bullet_n_high: 'Réagir émotionnellement et perdre de la recul',
+  insight_stress_bullet_e_high: 'Exprimer verbalement son stress, chercher à en parler',
+  insight_stress_bullet_e_low: 'Se replier sur soi, éviter les interactions',
+  insight_stress_bullet_c_high: 'Sur-contrôler, micro-manager, demander des updates constants',
+  insight_stress_bullet_power: "Reprendre le contrôle par l'autorité",
+  insight_stress_bullet_security: 'Chercher des garanties et certitudes',
+  insight_stress_bullet_top_bias: 'Être particulièrement sujet au biais "{bias}"',
+
+  // Insight conflict bullets
+  insight_conflict_bullet_a_low: "N'hésite pas à s'opposer frontalement",
+  insight_conflict_bullet_a_high: "Cherche à éviter l'affrontement, cherche le compromis",
+  insight_conflict_bullet_n_high: 'Peut prendre les choses personnellement',
+  insight_conflict_bullet_e_high: 'Exprime le conflit ouvertement, ne laisse pas traîner',
+  insight_conflict_bullet_power: 'Cherche à "gagner" le conflit plutôt qu\'à le résoudre',
+  insight_conflict_bullet_affiliation: 'Souffre du conflit relationnel, veut préserver le lien',
+  insight_conflict_bullet_loss_aversion: 'Fort biais de perte : refusera de "lâcher" même si rationnel',
+
+  // Insight success bullets
+  insight_success_bullet_recognition_high: 'A besoin que le succès soit reconnu publiquement',
+  insight_success_bullet_power_high: 'Va capitaliser sur le succès pour renforcer son influence',
+  insight_success_bullet_o_high: 'Cherche déjà le prochain défi ou projet ambitieux',
+  insight_success_bullet_c_high: 'Analyse ce qui a fonctionné pour le répliquer',
+  insight_success_bullet_dk: '⚠️ Risque de surconfiance après le succès',
+
+  // Insight uncertainty bullets
+  insight_uncertainty_bullet_n_high: "Génère de l'anxiété, peut paralyser la décision",
+  insight_uncertainty_bullet_n_low: 'Reste remarquablement calme, peut sous-estimer les risques',
+  insight_uncertainty_bullet_o_high: "Voit l'incertitude comme une opportunité de créativité",
+  insight_uncertainty_bullet_o_low: 'Très inconfortable, cherche à revenir à des routines connues',
+  insight_uncertainty_bullet_security_high: 'Forte anxiété — cherche des certitudes à tout prix',
+  insight_uncertainty_bullet_anchoring: "S'accroche aux dernières données connues comme ancre",
+
+  // Insight recognition bullets
+  insight_recognition_bullet_intensity_high: 'Besoin intense — sera démotivé·e si ignoré·e longtemps',
+  insight_recognition_bullet_intensity_mid: 'Besoin modéré — apprécie la reconnaissance sans en dépendre',
+  insight_recognition_bullet_intensity_low: 'Peu motivé·e par la reconnaissance externe',
+  insight_recognition_bullet_e_high: "Préfère la reconnaissance publique, devant l'équipe",
+  insight_recognition_bullet_e_low: 'Préfère une reconnaissance privée et sincère',
+  insight_recognition_bullet_social_proof: "Très sensible à l'opinion des pairs et au statut",
+
+  // Insight threat bullets
+  insight_threat_bullet_power_high: 'Réaction dominante : attaque ou contre-offensive',
+  insight_threat_bullet_a_low: 'Peut devenir défensif·ve et agressif·ve',
+  insight_threat_bullet_a_high: "Cherche d'abord à désamorcer, peut sur-accommoder",
+  insight_threat_bullet_n_high: 'Rumination, peut lire des menaces là où il n\'y en a pas',
+  insight_threat_bullet_loss_aversion: 'L\'aversion aux pertes amplifie la réaction : "je ne peux pas perdre ça"',
+  insight_threat_bullet_confirmation: 'Cherche des preuves qui confirment la menace, ignore le reste',
+
+  // Compare page analysis
+  compare_synergy_1: 'Alexandre apporte la <strong>vision power</strong>, Sarah l\'<strong>exécution rigoureuse</strong>',
+  compare_synergy_2: 'Complémentarité E–A : l\'extraversion d\'Alexandre compense le besoin d\'harmonie de Sarah',
+  compare_synergy_3: 'Motivations non-concurrentes : pouvoir vs apprentissage — pas de friction directe',
+  compare_friction_1: 'Alexandre (faible A) peut sembler <strong>agressif</strong> pour Sarah (haute A)',
+  compare_friction_2: 'Biais ancrage vs preuve sociale : désaccords sur les références de décision',
+  compare_friction_3: 'Neuroticism différentiel : Sarah plus stable, Alexandre plus réactif au stress',
+  compare_strategy_1: 'Présenter les idées avec <strong>données et consensus</strong> pour convaincre Sarah',
+  compare_strategy_2: 'Permettre à Alexandre de <strong>prendre l\'initiative</strong> — satisfait son besoin de pouvoir',
+  compare_strategy_3: 'En cas de conflit : impliquer un médiateur, Sarah cherchera l\'harmonie',
+
+  // Compare page cards
+  compare_name_a: 'Alexandre D.',
+  compare_role_a: 'Directeur Commercial',
+  compare_chip_mot_a: '👑 Pouvoir (9/10)',
+  compare_chip_bias_a: '⚓ Ancrage (8/10)',
+  compare_name_b: 'Sarah M.',
+  compare_role_b: 'Product Manager',
+  compare_chip_mot_b: '📚 Apprentissage (9/10)',
+  compare_chip_bias_b: '👥 Preuve sociale (7/10)',
+
+  // Demo person profile header
+  demo_role: 'Directeur Commercial',
+  demo_context: 'Contexte pro · Partenaire',
+  demo_tag_business: 'Business',
+  demo_tag_decideur: 'Décideur',
+  demo_tag_negociateur: 'Négociateur',
+
+  // Demo motivation notes
+  demo_mot_power_notes: 'Cherche toujours à être en position de force',
+  demo_mot_recognition_notes: 'A besoin de validation publique de ses succès',
+  demo_mot_achievement_notes: 'Très orienté résultats et KPIs',
+
+  // Demo bias evidence
+  demo_bias_anchoring_evidence: 'Reste bloqué sur le premier chiffre annoncé en négo',
+  demo_bias_confirmation_evidence: 'Ignore les données qui contredisent sa vision',
+  demo_bias_loss_aversion_evidence: 'Très réticent à annuler des engagements déjà pris',
+
+  // Demo predictions
+  demo_pred_p1_context: 'Réunion budget Q3 — annonce de coupe budgétaire',
+  demo_pred_p1_outcome: 'Va tenter de négocier pour garder son budget, en mettant en avant les résultats passés.',
+  demo_pred_p1_actual: 'A négocié comme prévu, mais a aussi attaqué les autres départements.',
+  demo_pred_p2_context: 'Présentation du nouveau concurrent X au marché',
+  demo_pred_p2_outcome: 'Va minimiser la menace par biais de confirmation. Dira que "notre produit est différent".',
+
   // Format strings
   score_format: '{score}%',
   intensity_format: '{value}/10',
@@ -540,6 +665,131 @@ const EN = {
   insight_recognition_header: 'seeking recognition',
   insight_threat_header: 'feeling threatened',
 
+  // OCEAN interpretation structural
+  ocean_interp_is: 'is',
+  ocean_interp_consciencieux: 'Conscientious',
+  ocean_interp_very: 'Very',
+  ocean_interp_rather: 'Rather',
+  ocean_interp_relationally: 'Relationally',
+  ocean_interp_emotionally: 'Emotionally',
+  ocean_interp_remember: 'Key takeaway:',
+  ocean_interp_dominant: '⚡ "Dominant" profile — direct, assertive, can seem intimidating.',
+  ocean_interp_innovator: '🚀 Rigorous innovator profile — rare and valuable.',
+  ocean_interp_stress_warn: '⚠️ Watch for stress reactivity — high emotional responsiveness.',
+  ocean_interp_stable: '🤝 Stable and cooperative profile — excellent mediator.',
+
+  // Insight header lines (used in generate output)
+  insight_stress_header_line: 'Under stress, {name} will tend to:',
+  insight_conflict_header_line: 'In conflict situations, {name}:',
+  insight_success_header_line: 'In periods of success, {name}:',
+  insight_uncertainty_header_line: 'Facing uncertainty, {name}:',
+  insight_recognition_header_line: 'When {name} seeks recognition:',
+  insight_threat_header_line: 'When {name} feels threatened:',
+
+  // Insight strategy lines
+  insight_stress_strategy_high_a: 'Offer emotional support before solutions.',
+  insight_stress_strategy_low_a: 'Propose concrete, quick actions.',
+  insight_conflict_strategy_high_a: 'Frame as "shared resolution", not opposition.',
+  insight_conflict_strategy_low_a: 'Be direct and factual, avoid ambiguity.',
+  insight_success_strategy: 'Good time to propose new projects or strengthen the relationship.',
+  insight_uncertainty_strategy: 'Reduce perceived uncertainty: provide maximum context and reference points.',
+  insight_recognition_strategy: 'Name the contribution explicitly. Vague recognition is counterproductive.',
+  insight_threat_strategy: 'Reassure about what is NOT threatened before addressing the problem.',
+
+  // Insight stress bullets
+  insight_stress_bullet_n_high: 'React emotionally and lose perspective',
+  insight_stress_bullet_e_high: 'Verbally express stress, seek to talk about it',
+  insight_stress_bullet_e_low: 'Withdraw, avoid interactions',
+  insight_stress_bullet_c_high: 'Over-control, micro-manage, request constant updates',
+  insight_stress_bullet_power: 'Reassert control through authority',
+  insight_stress_bullet_security: 'Seek guarantees and certainties',
+  insight_stress_bullet_top_bias: 'Be particularly subject to "{bias}" bias',
+
+  // Insight conflict bullets
+  insight_conflict_bullet_a_low: "Doesn't hesitate to confront head-on",
+  insight_conflict_bullet_a_high: 'Seeks to avoid confrontation, looks for compromise',
+  insight_conflict_bullet_n_high: 'Can take things personally',
+  insight_conflict_bullet_e_high: 'Expresses conflict openly, does not let it linger',
+  insight_conflict_bullet_power: 'Seeks to "win" the conflict rather than resolve it',
+  insight_conflict_bullet_affiliation: 'Suffers from relational conflict, wants to preserve the bond',
+  insight_conflict_bullet_loss_aversion: 'Strong loss aversion: will refuse to "let go" even if rational',
+
+  // Insight success bullets
+  insight_success_bullet_recognition_high: 'Needs success to be publicly recognized',
+  insight_success_bullet_power_high: 'Will capitalize on success to strengthen influence',
+  insight_success_bullet_o_high: 'Already looking for the next challenge or ambitious project',
+  insight_success_bullet_c_high: 'Analyzes what worked to replicate it',
+  insight_success_bullet_dk: '⚠️ Risk of overconfidence after success',
+
+  // Insight uncertainty bullets
+  insight_uncertainty_bullet_n_high: 'Generates anxiety, can paralyze decision-making',
+  insight_uncertainty_bullet_n_low: 'Stays remarkably calm, may underestimate risks',
+  insight_uncertainty_bullet_o_high: 'Sees uncertainty as a creativity opportunity',
+  insight_uncertainty_bullet_o_low: 'Very uncomfortable, seeks to return to familiar routines',
+  insight_uncertainty_bullet_security_high: 'Strong anxiety — seeks certainty at all costs',
+  insight_uncertainty_bullet_anchoring: 'Cling to the last known data as anchor',
+
+  // Insight recognition bullets
+  insight_recognition_bullet_intensity_high: 'Intense need — will be demotivated if ignored long',
+  insight_recognition_bullet_intensity_mid: 'Moderate need — appreciates recognition without depending on it',
+  insight_recognition_bullet_intensity_low: 'Low motivation by external recognition',
+  insight_recognition_bullet_e_high: 'Prefers public recognition, in front of the team',
+  insight_recognition_bullet_e_low: 'Prefers private, sincere recognition',
+  insight_recognition_bullet_social_proof: 'Very sensitive to peer opinion and status',
+
+  // Insight threat bullets
+  insight_threat_bullet_power_high: 'Dominant reaction: attack or counter-offensive',
+  insight_threat_bullet_a_low: 'Can become defensive and aggressive',
+  insight_threat_bullet_a_high: 'Seeks to de-escalate first, may over-accommodate',
+  insight_threat_bullet_n_high: 'Rumination, may perceive threats where there are none',
+  insight_threat_bullet_loss_aversion: 'Loss aversion amplifies reaction: "I cannot lose this"',
+  insight_threat_bullet_confirmation: 'Searches for evidence confirming the threat, ignores the rest',
+
+  // Compare page cards
+  compare_name_a: 'Alexandre D.',
+  compare_role_a: 'Sales Director',
+  compare_chip_mot_a: '👑 Power (9/10)',
+  compare_chip_bias_a: '⚓ Anchoring (8/10)',
+  compare_name_b: 'Sarah M.',
+  compare_role_b: 'Product Manager',
+  compare_chip_mot_b: '📚 Learning (9/10)',
+  compare_chip_bias_b: '👥 Social proof (7/10)',
+
+  // Demo person profile header
+  demo_role: 'Sales Director',
+  demo_context: 'Pro context · Partner',
+  demo_tag_business: 'Business',
+  demo_tag_decideur: 'Decision-maker',
+  demo_tag_negociateur: 'Negotiator',
+
+  // Demo motivation notes
+  demo_mot_power_notes: 'Always seeks to be in a position of strength',
+  demo_mot_recognition_notes: 'Needs public validation of his successes',
+  demo_mot_achievement_notes: 'Very results and KPI oriented',
+
+  // Demo bias evidence
+  demo_bias_anchoring_evidence: 'Stays fixated on the first number mentioned in negotiations',
+  demo_bias_confirmation_evidence: 'Ignores data that contradicts his vision',
+  demo_bias_loss_aversion_evidence: 'Very reluctant to cancel already-made commitments',
+
+  // Demo predictions
+  demo_pred_p1_context: 'Q3 budget meeting — announced budget cuts',
+  demo_pred_p1_outcome: 'Will try to negotiate to keep his budget, highlighting past results.',
+  demo_pred_p1_actual: 'Negotiated as expected, but also attacked other departments.',
+  demo_pred_p2_context: 'Presentation of new competitor X entering the market',
+  demo_pred_p2_outcome: 'Will downplay the threat via confirmation bias. Will say "our product is different".',
+
+  // Compare page analysis
+  compare_synergy_1: 'Alexandre brings <strong>power vision</strong>, Sarah brings <strong>rigorous execution</strong>',
+  compare_synergy_2: "E–A complementarity: Alexandre's extraversion balances Sarah's need for harmony",
+  compare_synergy_3: 'Non-competing motivations: power vs learning — no direct friction',
+  compare_friction_1: 'Alexandre (low A) can seem <strong>aggressive</strong> to Sarah (high A)',
+  compare_friction_2: 'Anchoring vs social proof bias: disagreements on decision references',
+  compare_friction_3: 'Differential neuroticism: Sarah more stable, Alexandre more stress-reactive',
+  compare_strategy_1: 'Present ideas with <strong>data and consensus</strong> to convince Sarah',
+  compare_strategy_2: "Let Alexandre <strong>take the lead</strong> — satisfies his need for power",
+  compare_strategy_3: 'In case of conflict: involve a mediator, Sarah will seek harmony',
+
   score_format: '{score}%',
   intensity_format: '{value}/10',
   pending_count_format: '⏳ {count} prediction(s) pending',
@@ -559,19 +809,10 @@ function setLang(lang) {
   _currentLang = lang === 'en' ? EN : FR;
   localStorage.setItem(LANG_KEY, lang);
   document.documentElement.lang = lang === 'en' ? 'en' : 'fr';
-  // Re-translate page
-  translatePage();
-  // Re-render app if on app page
-  if (typeof renderSidebar === 'function') {
-    renderSidebar();
-    renderMain();
-  }
-  if (typeof renderAll === 'function') {
-    renderAll();
-    if (typeof updateOceanInterpretation === 'function') updateOceanInterpretation();
-  }
+
   const L = getLang();
-  // Update OCEAN descriptions reference
+
+  // Update OCEAN descriptions reference BEFORE re-render
   if (typeof OCEAN_DESCRIPTIONS !== 'undefined') {
     OCEAN_DESCRIPTIONS = {
       O: { high: L.ocean_o_high, low: L.ocean_o_low },
@@ -581,7 +822,7 @@ function setLang(lang) {
       N: { high: L.ocean_n_high, low: L.ocean_n_low },
     };
   }
-  // Update enum labels + descriptions
+  // Update enum labels + descriptions BEFORE re-render
   if (typeof MOTIVATIONS !== 'undefined') {
     MOTIVATIONS.forEach(m => {
       const key = 'mot_' + m.id.toLowerCase();
@@ -597,6 +838,18 @@ function setLang(lang) {
       const dk = key + '_desc';
       if (L[dk]) b.desc = L[dk];
     });
+  }
+
+  // Re-translate page
+  translatePage();
+  // Re-render app if on app page
+  if (typeof renderSidebar === 'function') {
+    renderSidebar();
+    renderMain();
+  }
+  if (typeof renderAll === 'function') {
+    renderAll();
+    if (typeof updateOceanInterpretation === 'function') updateOceanInterpretation();
   }
   // Re-translate compare page
   if (typeof renderCompare === 'function') {

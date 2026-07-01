@@ -533,7 +533,10 @@ function renderMain() {
 
   document.getElementById('pAvatar').textContent = p.avatarEmoji || '🧑';
   document.getElementById('pName').textContent   = p.name;
-  document.getElementById('pRole').textContent   = [p.role, p.context].filter(Boolean).join(' · ') || '—';
+  const isDemo = p.id === 'demo-001';
+  const role = isDemo ? (typeof t === 'function' ? t('demo_role') : p.role) : p.role;
+  const ctx = isDemo ? (typeof t === 'function' ? t('demo_context') : p.context) : p.context;
+  document.getElementById('pRole').textContent   = [role, ctx].filter(Boolean).join(' · ') || '—';
   document.getElementById('pScore').textContent  = (p.accuracyScore || 0) + '%';
 
   renderMotivations(p); renderBiases(p); renderOcean(p); renderPredictions(p);

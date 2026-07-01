@@ -24,11 +24,19 @@ function renderHeader() {
   const p = currentPerson;
   document.getElementById('profileAvatar').textContent = p.avatarEmoji || '🧑';
   document.getElementById('profileName').textContent = p.name;
+
+  const isDemo = p.id === 'demo-001';
+  const role = isDemo ? t('demo_role') : p.role;
+  const ctx = isDemo ? t('demo_context') : p.context;
   document.getElementById('profileRole').textContent =
-    [p.role, p.context].filter(Boolean).join(' · ');
+    [role, ctx].filter(Boolean).join(' · ');
 
   const tagsEl = document.getElementById('profileTags');
-  tagsEl.innerHTML = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+  tagsEl.innerHTML = (p.tags || []).map(tag => {
+    const normalized = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const tagKey = isDemo ? `demo_tag_${normalized}` : null;
+    return `<span class="tag">${tagKey && t(tagKey) !== tagKey ? t(tagKey) : tag}</span>`;
+  }).join('');
 
   // Update accuracy ring
   const score = p.accuracyScore || 0;
@@ -56,6 +64,7 @@ function setupTabs() {
 function renderMotivations() {
   const list = document.getElementById('motivationList');
   const motivations = currentPerson.motivations || [];
+  const isDemo = currentPerson.id === 'demo-001';
 
   if (motivations.length === 0) {
     list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">${t('mot_empty')}</p>`;
@@ -64,6 +73,7 @@ function renderMotivations() {
 
   list.innerHTML = motivations.map((m, i) => {
     const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji: '?', label: m.type };
+    const notes = isDemo ? t('demo_mot_' + m.type.toLowerCase() + '_notes') : m.notes;
     return `
       <div class="motivation-item" data-index="${i}" onclick="openEditMotivation(${i})">
         <div class="mot-icon">${def.emoji}</div>
@@ -73,9 +83,9 @@ function renderMotivations() {
             <div class="mot-bar"><div class="mot-bar-fill" style="width:${m.intensity * 10}%"></div></div>
             <div class="mot-intensity">${m.intensity}/10</div>
           </div>
-          ${m.notes ? `<div class="mot-notes">"${m.notes}"</div>` : ''}
+          ${notes ? `<div class="mot-notes">"${notes}"</div>` : ''}
         </div>
-        <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteMotivation(${i})" title="Supprimer">✕</button>
+        <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteMotivation(${i})" title="${t('mot_delete_label')}">✕</button>
       </div>`;
   }).join('');
 }
@@ -91,7 +101,7 @@ function openAddMotivation() {
     <label>${t('mot_intensity_label')} : <span id="motIntensityVal">5</span>/10</label>
     <input type="range" min="1" max="10" value="5" id="motIntensity"
            oninput="document.getElementById('motIntensityVal').textContent=this.value" />
-    <label>Notes (optionnel)</label>
+    <label>${t('mot_notes_label')}</label>
     <input type="text" id="motNotes" placeholder="${t('mot_notes_placeholder')}"
            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;"/>
   `;
@@ -111,9 +121,10 @@ function openAddMotivation() {
 function openEditMotivation(index) {
   const m = currentPerson.motivations[index];
   if (!m) return;
+  const isDemo = currentPerson.id === 'demo-001';
   document.getElementById('modalTitle').textContent = t('mot_edit_title');
   const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji: '?', label: m.type };
-  const notes = (m.notes || '').replace(/"/g, '&quot;');
+  const notes = ((isDemo ? t('demo_mot_' + m.type.toLowerCase() + '_notes') : m.notes) || '').replace(/"/g, '&quot;');
   document.getElementById('modalContent').innerHTML = `
     <label>${t('mot_type_label')}</label>
     <select id="motType" onchange="document.getElementById('motDesc').textContent=(MOTIVATIONS.find(m=>m.id===this.value)||{}).desc||''">
@@ -123,7 +134,7 @@ function openEditMotivation(index) {
     <label>${t('mot_intensity_label')} : <span id="motIntensityVal">${m.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${m.intensity}" id="motIntensity"
            oninput="document.getElementById('motIntensityVal').textContent=this.value" />
-    <label>Notes (optionnel)</label>
+    <label>${t('mot_notes_label')}</label>
     <input type="text" id="motNotes" value="${notes}" placeholder="${t('mot_notes_placeholder')}"
            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;"/>
   `;
@@ -149,6 +160,7 @@ function deleteMotivation(index) {
 function renderBiases() {
   const list = document.getElementById('biasList');
   const biases = currentPerson.biases || [];
+  const isDemo = currentPerson.id === 'demo-001';
 
   if (biases.length === 0) {
     list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">${t('bias_empty')}</p>`;
@@ -157,6 +169,7 @@ function renderBiases() {
 
   list.innerHTML = biases.map((b, i) => {
     const def = BIASES.find(x => x.id === b.type) || { emoji: '?', label: b.type };
+    const evidence = isDemo ? t('demo_bias_' + b.type.toLowerCase() + '_evidence') : b.evidence;
     return `
       <div class="bias-item" data-index="${i}" onclick="openEditBias(${i})">
         <div class="mot-icon">${def.emoji}</div>
@@ -166,9 +179,9 @@ function renderBiases() {
             <div class="mot-bar"><div class="bias-bar-fill" style="width:${b.intensity * 10}%"></div></div>
             <div class="mot-intensity">${b.intensity}/10</div>
           </div>
-          ${b.evidence ? `<div class="mot-notes">"${b.evidence}"</div>` : ''}
+          ${evidence ? `<div class="mot-notes">"${evidence}"</div>` : ''}
         </div>
-        <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteBias(${i})" title="Supprimer">✕</button>
+        <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteBias(${i})" title="${t('mot_delete_label')}">✕</button>
       </div>`;
   }).join('');
 }
@@ -204,9 +217,10 @@ function openAddBias() {
 function openEditBias(index) {
   const b = currentPerson.biases[index];
   if (!b) return;
+  const isDemo = currentPerson.id === 'demo-001';
   document.getElementById('modalTitle').textContent = t('bias_edit_title');
   const def = BIASES.find(x => x.id === b.type) || { emoji: '?', label: b.type };
-  const evidence = (b.evidence || '').replace(/"/g, '&quot;');
+  const evidence = ((isDemo ? t('demo_bias_' + b.type.toLowerCase() + '_evidence') : b.evidence) || '').replace(/"/g, '&quot;');
   document.getElementById('modalContent').innerHTML = `
     <label>${t('bias_type_label')}</label>
     <select id="biasType" onchange="document.getElementById('biasDesc').textContent=(BIASES.find(b=>b.id===this.value)||{}).desc||''">
@@ -266,22 +280,23 @@ function updateOceanInterpretation() {
 
   const desc = key => {
     const val = o[key];
-    const d = OCEAN_DESCRIPTIONS[key];
-    return val >= 6 ? d.high : d.low;
+    const L = getLang();
+    const dk = `ocean_${key.toLowerCase()}_${val >= 6 ? 'high' : 'low'}`;
+    return L[dk] || OCEAN_DESCRIPTIONS[key][val >= 6 ? 'high' : 'low'];
   };
 
   el.innerHTML = `
-    <strong>${name}</strong> est ${desc('O')}.
-    ${o.C >= 6 ? `Consciencieux·se, ${desc('C')}.` : `${desc('C').charAt(0).toUpperCase() + desc('C').slice(1)}.`}
-    ${o.E >= 6 ? `Très ${desc('E')}.` : `Plutôt ${desc('E')}.`}
-    En termes relationnels, ${name} est ${desc('A')}.
-    Sur le plan émotionnel : ${desc('N')}.
+    <strong>${name}</strong> ${t('ocean_interp_is')} ${desc('O')}.
+    ${o.C >= 6 ? `${t('ocean_interp_consciencieux')}, ${desc('C')}.` : `${desc('C').charAt(0).toUpperCase() + desc('C').slice(1)}.`}
+    ${o.E >= 6 ? `${t('ocean_interp_very')} ${desc('E')}.` : `${t('ocean_interp_rather')} ${desc('E')}.`}
+    ${t('ocean_interp_relationally')}, ${name} ${t('ocean_interp_is')} ${desc('A')}.
+    ${t('ocean_interp_emotionally')} : ${desc('N')}.
     <br/><br/>
-    <strong>À retenir :</strong>
-    ${o.E >= 7 && o.A <= 4 ? `⚡ Profil "dominant" — direct, assertif, peut sembler intimidant.` : ''}
-    ${o.O >= 8 && o.C >= 7 ? `🚀 Profil innovateur rigoureux — rare et précieux.` : ''}
-    ${o.N >= 7 ? `⚠️ Attention en situation de stress — réactivité émotionnelle élevée.` : ''}
-    ${o.A >= 8 && o.N <= 4 ? `🤝 Profil stable et coopératif — excellent médiateur.` : ''}
+    <strong>${t('ocean_interp_remember')}</strong>
+    ${o.E >= 7 && o.A <= 4 ? t('ocean_interp_dominant') : ''}
+    ${o.O >= 8 && o.C >= 7 ? t('ocean_interp_innovator') : ''}
+    ${o.N >= 7 ? t('ocean_interp_stress_warn') : ''}
+    ${o.A >= 8 && o.N <= 4 ? t('ocean_interp_stable') : ''}
   `;
 }
 
@@ -289,26 +304,34 @@ function updateOceanInterpretation() {
 function renderPredictions() {
   const list = document.getElementById('predictionList');
   const preds = currentPerson.predictions || [];
+  const isDemo = currentPerson.id === 'demo-001';
 
   if (preds.length === 0) {
     list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1rem;">${t('pred_empty')}</p>`;
     return;
   }
 
-  list.innerHTML = preds.map((p, i) => `
+  list.innerHTML = preds.map((p, i) => {
+    const ck = 'demo_pred_' + p.id + '_context';
+    const ok = 'demo_pred_' + p.id + '_outcome';
+    const ak = 'demo_pred_' + p.id + '_actual';
+    const ctx = isDemo && t(ck) !== ck ? t(ck) : p.context;
+    const outcome = isDemo && t(ok) !== ok ? t(ok) : p.predictedOutcome;
+    const actual = isDemo && t(ak) !== ak ? t(ak) : p.actualOutcome;
+    return `
     <div class="prediction-item">
-      <div class="pred-context">📍 ${p.context}</div>
-      <div class="pred-outcome">🔮 ${p.predictedOutcome}</div>
+      <div class="pred-context">📍 ${ctx}</div>
+      <div class="pred-outcome">🔮 ${outcome}</div>
       <div class="pred-status">
         <span class="pred-badge ${p.resolved ? 'resolved' : 'pending'}">
           ${p.resolved ? t('pred_resolved') : t('pred_pending')}
         </span>
         ${p.resolved && p.accuracy ? `<span style="color:var(--gold);font-size:.78rem;">${t('pred_accuracy')} : ${p.accuracy}/10</span>` : ''}
-        ${p.resolved && p.actualOutcome ? `<span style="color:var(--text-muted);font-size:.78rem;">→ ${p.actualOutcome}</span>` : ''}
+        ${p.resolved && actual ? `<span style="color:var(--text-muted);font-size:.78rem;">→ ${actual}</span>` : ''}
         ${!p.resolved ? `<button class="btn-resolve" onclick="openResolvePrediction(${i})">${t('pred_resolve_btn')}</button>` : ''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function addPrediction() {
@@ -336,9 +359,12 @@ function addPrediction() {
 function openResolvePrediction(index) {
   document.getElementById('modalTitle').textContent = t('pred_resolve_title');
   const pred = currentPerson.predictions[index];
+  const isDemo = currentPerson.id === 'demo-001';
+  const ok = 'demo_pred_' + pred.id + '_outcome';
+  const outcome = isDemo && t(ok) !== ok ? t(ok) : pred.predictedOutcome;
   document.getElementById('modalContent').innerHTML = `
     <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem;">
-      ${t('pred_insight_context')} : <em>"${pred.predictedOutcome}"</em>
+      ${t('pred_insight_context')} : <em>"${outcome}"</em>
     </p>
     <label>${t('pred_resolve_actual_label')}</label>
     <input type="text" id="resolveActual" placeholder="${t('pred_resolve_actual_placeholder')}"
@@ -373,104 +399,104 @@ function openResolvePrediction(index) {
 // ── INSIGHTS ──────────────────────────────────────────────
 const INSIGHT_TEMPLATES = {
   stress: {
-    label: 'sous stress',
     generate(p) {
       const topMot = getTopMotivation(p);
       const topBias = getTopBias(p);
-      const lines = [`Sous stress, ${p.name.split(' ')[0]} aura tendance à :`];
-      if (p.ocean?.N >= 7) lines.push('• Réagir émotionnellement et perdre de la recul');
-      if (p.ocean?.E >= 7) lines.push('• Exprimer verbalement son stress, chercher à en parler');
-      if (p.ocean?.E <= 4) lines.push('• Se replier sur soi, éviter les interactions');
-      if (p.ocean?.C >= 7) lines.push('• Sur-contrôler, micro-manager, demander des updates constants');
-      if (topMot?.type === 'POWER') lines.push('• Reprendre le contrôle par l\'autorité');
-      if (topMot?.type === 'SECURITY') lines.push('• Chercher des garanties et certitudes');
-      if (topBias) lines.push(`• Être particulièrement sujet au biais "${BIASES.find(b=>b.id===topBias.type)?.label}"`);
-      lines.push('\n💡 Stratégie : ' + (p.ocean?.A >= 6 ? 'Offrez du soutien émotionnel avant les solutions.' : 'Proposez des actions concrètes et rapides.'));
+      const name = p.name.split(' ')[0];
+      const lines = [t('insight_stress_header_line').replace('{name}', name)];
+      if (p.ocean?.N >= 7) lines.push('• ' + t('insight_stress_bullet_n_high'));
+      if (p.ocean?.E >= 7) lines.push('• ' + t('insight_stress_bullet_e_high'));
+      if (p.ocean?.E <= 4) lines.push('• ' + t('insight_stress_bullet_e_low'));
+      if (p.ocean?.C >= 7) lines.push('• ' + t('insight_stress_bullet_c_high'));
+      if (topMot?.type === 'POWER') lines.push('• ' + t('insight_stress_bullet_power'));
+      if (topMot?.type === 'SECURITY') lines.push('• ' + t('insight_stress_bullet_security'));
+      if (topBias) lines.push('• ' + t('insight_stress_bullet_top_bias').replace('{bias}', BIASES.find(b=>b.id===topBias.type)?.label || ''));
+      lines.push('\n💡 ' + (p.ocean?.A >= 6 ? t('insight_stress_strategy_high_a') : t('insight_stress_strategy_low_a')));
       return lines.join('\n');
     }
   },
   conflict: {
-    label: 'en conflit',
     generate(p) {
-      const lines = [`En situation de conflit, ${p.name.split(' ')[0]} :`];
-      if (p.ocean?.A <= 4) lines.push('• N\'hésite pas à s\'opposer frontalement');
-      if (p.ocean?.A >= 7) lines.push('• Cherche à éviter l\'affrontement, cherche le compromis');
-      if (p.ocean?.N >= 7) lines.push('• Peut prendre les choses personnellement');
-      if (p.ocean?.E >= 7) lines.push('• Exprime le conflit ouvertement, ne laisse pas traîner');
+      const name = p.name.split(' ')[0];
+      const lines = [t('insight_conflict_header_line').replace('{name}', name)];
+      if (p.ocean?.A <= 4) lines.push('• ' + t('insight_conflict_bullet_a_low'));
+      if (p.ocean?.A >= 7) lines.push('• ' + t('insight_conflict_bullet_a_high'));
+      if (p.ocean?.N >= 7) lines.push('• ' + t('insight_conflict_bullet_n_high'));
+      if (p.ocean?.E >= 7) lines.push('• ' + t('insight_conflict_bullet_e_high'));
       const topMot = getTopMotivation(p);
-      if (topMot?.type === 'POWER') lines.push('• Cherche à "gagner" le conflit plutôt qu\'à le résoudre');
-      if (topMot?.type === 'AFFILIATION') lines.push('• Souffre du conflit relationnel, veut préserver le lien');
+      if (topMot?.type === 'POWER') lines.push('• ' + t('insight_conflict_bullet_power'));
+      if (topMot?.type === 'AFFILIATION') lines.push('• ' + t('insight_conflict_bullet_affiliation'));
       const lossBias = p.biases?.find(b => b.type === 'LOSS_AVERSION');
-      if (lossBias?.intensity >= 6) lines.push('• Fort biais de perte : refusera de "lâcher" même si rationnel');
-      lines.push('\n💡 Approche : ' + (p.ocean?.A >= 6 ? 'Cadrez comme "résolution commune", pas opposition.' : 'Soyez direct·e et factuel·le, évitez les ambiguïtés.'));
+      if (lossBias?.intensity >= 6) lines.push('• ' + t('insight_conflict_bullet_loss_aversion'));
+      lines.push('\n💡 ' + (p.ocean?.A >= 6 ? t('insight_conflict_strategy_high_a') : t('insight_conflict_strategy_low_a')));
       return lines.join('\n');
     }
   },
   success: {
-    label: 'en réussite',
     generate(p) {
-      const lines = [`En période de réussite, ${p.name.split(' ')[0]} :`];
+      const name = p.name.split(' ')[0];
+      const lines = [t('insight_success_header_line').replace('{name}', name)];
       const recMot = p.motivations?.find(m => m.type === 'RECOGNITION');
-      if (recMot?.intensity >= 7) lines.push('• A besoin que le succès soit reconnu publiquement');
+      if (recMot?.intensity >= 7) lines.push('• ' + t('insight_success_bullet_recognition_high'));
       const powMot = p.motivations?.find(m => m.type === 'POWER');
-      if (powMot?.intensity >= 7) lines.push('• Va capitaliser sur le succès pour renforcer son influence');
-      if (p.ocean?.O >= 7) lines.push('• Cherche déjà le prochain défi ou projet ambitieux');
-      if (p.ocean?.C >= 7) lines.push('• Analyse ce qui a fonctionné pour le répliquer');
+      if (powMot?.intensity >= 7) lines.push('• ' + t('insight_success_bullet_power_high'));
+      if (p.ocean?.O >= 7) lines.push('• ' + t('insight_success_bullet_o_high'));
+      if (p.ocean?.C >= 7) lines.push('• ' + t('insight_success_bullet_c_high'));
       const dkBias = p.biases?.find(b => b.type === 'DUNNING_KRUGER');
-      if (dkBias?.intensity >= 6) lines.push('⚠️ Risque de surconfiance après le succès');
-      lines.push('\n💡 C\'est le bon moment pour proposer de nouveaux projets ou renforcer la relation.');
+      if (dkBias?.intensity >= 6) lines.push('• ' + t('insight_success_bullet_dk'));
+      lines.push('\n💡 ' + t('insight_success_strategy'));
       return lines.join('\n');
     }
   },
   uncertainty: {
-    label: 'dans l\'incertitude',
     generate(p) {
-      const lines = [`Face à l\'incertitude, ${p.name.split(' ')[0]} :`];
-      if (p.ocean?.N >= 7) lines.push('• Génère de l\'anxiété, peut paralyser la décision');
-      if (p.ocean?.N <= 3) lines.push('• Reste remarquablement calme, peut sous-estimer les risques');
-      if (p.ocean?.O >= 7) lines.push('• Voit l\'incertitude comme une opportunité de créativité');
-      if (p.ocean?.O <= 4) lines.push('• Très inconfortable, cherche à revenir à des routines connues');
+      const name = p.name.split(' ')[0];
+      const lines = [t('insight_uncertainty_header_line').replace('{name}', name)];
+      if (p.ocean?.N >= 7) lines.push('• ' + t('insight_uncertainty_bullet_n_high'));
+      if (p.ocean?.N <= 3) lines.push('• ' + t('insight_uncertainty_bullet_n_low'));
+      if (p.ocean?.O >= 7) lines.push('• ' + t('insight_uncertainty_bullet_o_high'));
+      if (p.ocean?.O <= 4) lines.push('• ' + t('insight_uncertainty_bullet_o_low'));
       const secMot = p.motivations?.find(m => m.type === 'SECURITY');
-      if (secMot?.intensity >= 7) lines.push('• Forte anxiété — cherche des certitudes à tout prix');
+      if (secMot?.intensity >= 7) lines.push('• ' + t('insight_uncertainty_bullet_security_high'));
       const ancBias = p.biases?.find(b => b.type === 'ANCHORING');
-      if (ancBias?.intensity >= 6) lines.push('• S\'accroche aux dernières données connues comme ancre');
-      lines.push('\n💡 Réduisez l\'incertitude perçue : donnez un maximum de contexte et de repères.');
+      if (ancBias?.intensity >= 6) lines.push('• ' + t('insight_uncertainty_bullet_anchoring'));
+      lines.push('\n💡 ' + t('insight_uncertainty_strategy'));
       return lines.join('\n');
     }
   },
   recognition: {
-    label: 'cherchant la reconnaissance',
     generate(p) {
       const recMot = p.motivations?.find(m => m.type === 'RECOGNITION');
-      const lines = [`Quand ${p.name.split(' ')[0]} cherche de la reconnaissance :`];
+      const name = p.name.split(' ')[0];
+      const lines = [t('insight_recognition_header_line').replace('{name}', name)];
       if (recMot) {
         const intensity = recMot.intensity;
-        if (intensity >= 8) lines.push('• Besoin intense — sera démotivé·e si ignoré·e longtemps');
-        else if (intensity >= 5) lines.push('• Besoin modéré — apprécie la reconnaissance sans en dépendre');
-        else lines.push('• Peu motivé·e par la reconnaissance externe');
+        if (intensity >= 8) lines.push('• ' + t('insight_recognition_bullet_intensity_high'));
+        else if (intensity >= 5) lines.push('• ' + t('insight_recognition_bullet_intensity_mid'));
+        else lines.push('• ' + t('insight_recognition_bullet_intensity_low'));
       }
-      if (p.ocean?.E >= 7) lines.push('• Préfère la reconnaissance publique, devant l\'équipe');
-      if (p.ocean?.E <= 4) lines.push('• Préfère une reconnaissance privée et sincère');
+      if (p.ocean?.E >= 7) lines.push('• ' + t('insight_recognition_bullet_e_high'));
+      if (p.ocean?.E <= 4) lines.push('• ' + t('insight_recognition_bullet_e_low'));
       const spBias = p.biases?.find(b => b.type === 'SOCIAL_PROOF');
-      if (spBias?.intensity >= 6) lines.push('• Très sensible à l\'opinion des pairs et au statut');
-      lines.push('\n💡 Nommez explicitement la contribution. La reconnaissance vague est contre-productive.');
+      if (spBias?.intensity >= 6) lines.push('• ' + t('insight_recognition_bullet_social_proof'));
+      lines.push('\n💡 ' + t('insight_recognition_strategy'));
       return lines.join('\n');
     }
   },
   threat: {
-    label: 'se sentant menacé·e',
     generate(p) {
-      const lines = [`Quand ${p.name.split(' ')[0]} se sent menacé·e :`];
+      const name = p.name.split(' ')[0];
+      const lines = [t('insight_threat_header_line').replace('{name}', name)];
       const powMot = p.motivations?.find(m => m.type === 'POWER');
-      if (powMot?.intensity >= 7) lines.push('• Réaction dominante : attaque ou contre-offensive');
-      if (p.ocean?.A <= 4) lines.push('• Peut devenir défensif·ve et agressif·ve');
-      if (p.ocean?.A >= 7) lines.push('• Cherche d\'abord à désamorcer, peut sur-accommoder');
-      if (p.ocean?.N >= 7) lines.push('• Rumination, peut lire des menaces là où il n\'y en a pas');
+      if (powMot?.intensity >= 7) lines.push('• ' + t('insight_threat_bullet_power_high'));
+      if (p.ocean?.A <= 4) lines.push('• ' + t('insight_threat_bullet_a_low'));
+      if (p.ocean?.A >= 7) lines.push('• ' + t('insight_threat_bullet_a_high'));
+      if (p.ocean?.N >= 7) lines.push('• ' + t('insight_threat_bullet_n_high'));
       const laBias = p.biases?.find(b => b.type === 'LOSS_AVERSION');
-      if (laBias?.intensity >= 6) lines.push('• L\'aversion aux pertes amplifie la réaction : "je ne peux pas perdre ça"');
+      if (laBias?.intensity >= 6) lines.push('• ' + t('insight_threat_bullet_loss_aversion'));
       const confBias = p.biases?.find(b => b.type === 'CONFIRMATION');
-      if (confBias?.intensity >= 6) lines.push('• Cherche des preuves qui confirment la menace, ignore le reste');
-      lines.push('\n💡 Approche : rassurez sur ce qui n\'est PAS menacé avant d\'aborder le problème.');
+      if (confBias?.intensity >= 6) lines.push('• ' + t('insight_threat_bullet_confirmation'));
+      lines.push('\n💡 ' + t('insight_threat_strategy'));
       return lines.join('\n');
     }
   },
@@ -491,8 +517,9 @@ function showInsight(triggerKey) {
   if (!template || !currentPerson) return;
 
   const output = document.getElementById('insightOutput');
+  const headerKey = `insight_${triggerKey}_header`;
   output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">
-    ${t('insight_context_label')} : <strong style="color:var(--cyan)">${template.label}</strong>
+    ${t('insight_context_label')} : <strong style="color:var(--cyan)">${t(headerKey)}</strong>
   </div>` + template.generate(currentPerson).replace(/\n/g, '<br/>');
 }
 
