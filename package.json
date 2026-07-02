@@ -16,7 +16,7 @@
     "@playwright/test": "^1.61.1",
     "html-validate": "^11.5.5",
     "husky": "^9.1.6",
-    "lint-staged": "^15.2.10",
+    "lint-staged": "^17.0.8",
     "serve": "^14.2.6"
   },
   "lint-staged": {
