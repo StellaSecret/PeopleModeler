@@ -91,8 +91,8 @@ dependencies {
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
 
     // Navigation
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.7.6'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.7.6'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.8'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.9.8'
 
     // ViewPager2 — onboarding
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
