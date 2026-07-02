@@ -29,17 +29,17 @@ else
 fi
 
 # ── 3. Gitleaks — scan de secrets (si installé) ───────────
-# if command -v gitleaks > /dev/null 2>&1; then
-#   echo "🔍 Gitleaks scan..."
-#   gitleaks protect --staged --config=.gitleaks.toml -v
-#   GITLEAKS_EXIT=$?
-#   if [ $GITLEAKS_EXIT -ne 0 ]; then
-#     echo "❌ Gitleaks a détecté un secret — commit bloqué."
-#     exit 1
-#   fi
-# else
-#   echo "ℹ️  gitleaks non installé — ignoré (brew install gitleaks pour l'activer)"
-# fi
+if command -v gitleaks > /dev/null 2>&1; then
+  echo "🔍 Gitleaks scan..."
+  gitleaks protect --staged -v
+  GITLEAKS_EXIT=$?
+  if [ $GITLEAKS_EXIT -ne 0 ]; then
+    echo "❌ Gitleaks a détecté un secret — commit bloqué."
+    exit 1
+  fi
+else
+  echo "ℹ️  gitleaks non installé — ignoré (brew install gitleaks pour l'activer)"
+fi
 
 # ── 4. Fichiers volumineux ─────────────────────────────────
 LARGE=$(git diff --cached --name-only | while read f; do
