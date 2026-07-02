@@ -1,7 +1,10 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
     id 'com.google.devtools.ksp'
+}
+
+ksp {
+    arg("room.generateKotlin", "false")
 }
 
 if (file('google-services.json').exists()) {
@@ -75,10 +78,6 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
-    }
-
-    kotlinOptions {
-        jvmTarget = '21'
     }
 }
 
