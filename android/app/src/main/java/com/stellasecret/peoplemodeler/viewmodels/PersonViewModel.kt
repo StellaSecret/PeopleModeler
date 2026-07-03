@@ -185,12 +185,10 @@ class PersonViewModel(
                         append(ctx.getString(R.string.insight_stress_bullet_top_bias, ctx.getString(topBias.type.labelResId)))
                     }
                     val strategy =
-                        if (person.agreeableness >=
-                            6
-                        ) {
-                            ctx.getString(R.string.insight_stress_strategy_high_a)
-                        } else {
-                            ctx.getString(R.string.insight_stress_strategy_low_a)
+                        when {
+                            person.agreeableness >= 7 -> ctx.getString(R.string.insight_stress_strategy_high_a)
+                            person.agreeableness <= 3 -> ctx.getString(R.string.insight_stress_strategy_low_a)
+                            else -> ctx.getString(R.string.insight_stress_strategy_mid_a)
                         }
                     append(ctx.getString(R.string.insight_strategy_suffix, strategy))
                 }
@@ -209,12 +207,10 @@ class PersonViewModel(
                         append(ctx.getString(R.string.insight_conflict_bullet_loss_aversion))
                     }
                     val strategy =
-                        if (person.agreeableness >=
-                            6
-                        ) {
-                            ctx.getString(R.string.insight_conflict_strategy_high_a)
-                        } else {
-                            ctx.getString(R.string.insight_conflict_strategy_low_a)
+                        when {
+                            person.agreeableness >= 7 -> ctx.getString(R.string.insight_conflict_strategy_high_a)
+                            person.agreeableness <= 3 -> ctx.getString(R.string.insight_conflict_strategy_low_a)
+                            else -> ctx.getString(R.string.insight_conflict_strategy_mid_a)
                         }
                     append(ctx.getString(R.string.insight_strategy_suffix, strategy))
                 }
@@ -236,7 +232,13 @@ class PersonViewModel(
                     if (person.conscientiousness >= 7) append(ctx.getString(R.string.insight_success_bullet_c_high))
                     val dkBias = person.biases.find { it.type == BiasType.DUNNING_KRUGER }
                     if (dkBias?.intensity != null && dkBias.intensity >= 6) append(ctx.getString(R.string.insight_success_bullet_dk))
-                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_success_strategy)))
+                    val successStrat =
+                        when {
+                            person.conscientiousness >= 7 -> ctx.getString(R.string.insight_success_strategy_high_c)
+                            person.conscientiousness <= 3 -> ctx.getString(R.string.insight_success_strategy_low_c)
+                            else -> ctx.getString(R.string.insight_success_strategy_mid_c)
+                        }
+                    append(ctx.getString(R.string.insight_strategy_suffix, successStrat))
                 }
 
                 BehaviorTrigger.UNCERTAINTY -> {
@@ -256,7 +258,13 @@ class PersonViewModel(
                     ) {
                         append(ctx.getString(R.string.insight_uncertainty_bullet_anchoring))
                     }
-                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_uncertainty_strategy)))
+                    val uncertStrat =
+                        when {
+                            person.neuroticism >= 7 -> ctx.getString(R.string.insight_uncertainty_strategy_high_n)
+                            person.neuroticism <= 3 -> ctx.getString(R.string.insight_uncertainty_strategy_low_n)
+                            else -> ctx.getString(R.string.insight_uncertainty_strategy_mid_n)
+                        }
+                    append(ctx.getString(R.string.insight_strategy_suffix, uncertStrat))
                 }
 
                 BehaviorTrigger.RECOGNITION -> {
@@ -276,7 +284,13 @@ class PersonViewModel(
                     ) {
                         append(ctx.getString(R.string.insight_recognition_bullet_social_proof))
                     }
-                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_recognition_strategy)))
+                    val recStrat =
+                        when {
+                            person.openness >= 7 -> ctx.getString(R.string.insight_recognition_strategy_high_o)
+                            person.openness <= 3 -> ctx.getString(R.string.insight_recognition_strategy_low_o)
+                            else -> ctx.getString(R.string.insight_recognition_strategy_mid_o)
+                        }
+                    append(ctx.getString(R.string.insight_strategy_suffix, recStrat))
                 }
 
                 BehaviorTrigger.THREATENED -> {
@@ -297,7 +311,13 @@ class PersonViewModel(
                     ) {
                         append(ctx.getString(R.string.insight_threat_bullet_confirmation))
                     }
-                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_threat_strategy)))
+                    val threatStrat =
+                        when {
+                            person.extraversion >= 7 -> ctx.getString(R.string.insight_threat_strategy_high_e)
+                            person.extraversion <= 3 -> ctx.getString(R.string.insight_threat_strategy_low_e)
+                            else -> ctx.getString(R.string.insight_threat_strategy_mid_e)
+                        }
+                    append(ctx.getString(R.string.insight_strategy_suffix, threatStrat))
                 }
             }
             person.behavioralPatterns

@@ -221,6 +221,7 @@
     <string name="insight_stress_bullet_security">• Chercher des garanties et certitudes\n</string>
     <string name="insight_stress_bullet_top_bias">• Être particulièrement sujet au biais « %s »\n</string>
     <string name="insight_stress_strategy_high_a">Offrez du soutien émotionnel avant les solutions.</string>
+    <string name="insight_stress_strategy_mid_a">Alternez soutien émotionnel et actions concrètes selon son besoin.</string>
     <string name="insight_stress_strategy_low_a">Proposez des actions concrètes et rapides.</string>
 
     <!-- Conflict insights -->
@@ -232,6 +233,7 @@
     <string name="insight_conflict_bullet_affiliation">• Souffre du conflit relationnel, veut préserver le lien\n</string>
     <string name="insight_conflict_bullet_loss_aversion">• Fort biais de perte : refusera de « lâcher » même si rationnel\n</string>
     <string name="insight_conflict_strategy_high_a">Cadrez comme « résolution commune », pas opposition.</string>
+    <string name="insight_conflict_strategy_mid_a">Restez ouvert·e au compromis tout en restant factuel·le.</string>
     <string name="insight_conflict_strategy_low_a">Soyez direct·e et factuel·le, évitez les ambiguïtés.</string>
 
     <!-- Success insights -->
@@ -240,7 +242,9 @@
     <string name="insight_success_bullet_o_high">• Cherche déjà le prochain défi ou projet ambitieux\n</string>
     <string name="insight_success_bullet_c_high">• Analyse ce qui a fonctionné pour le répliquer\n</string>
     <string name="insight_success_bullet_dk">• ⚠️ Risque de surconfiance après le succès\n</string>
-    <string name="insight_success_strategy">C\'est le bon moment pour proposer de nouveaux projets ou renforcer la relation.</string>
+    <string name="insight_success_strategy_high_c">Tirez parti du momentum avec des objectifs concrets et mesurables.</string>
+    <string name="insight_success_strategy_mid_c">Profitez du succès pour explorer ensemble les prochaines opportunités.</string>
+    <string name="insight_success_strategy_low_c">Célébrez l\'instant présent avant d\'enchaîner sur de nouveaux défis.</string>
 
     <!-- Uncertainty insights -->
     <string name="insight_uncertainty_bullet_n_high">• Génère de l\'anxiété, peut paralyser la décision\n</string>
@@ -249,7 +253,9 @@
     <string name="insight_uncertainty_bullet_o_low">• Très inconfortable, cherche à revenir à des routines connues\n</string>
     <string name="insight_uncertainty_bullet_security_high">• Forte anxiété — cherche des certitudes à tout prix\n</string>
     <string name="insight_uncertainty_bullet_anchoring">• S\'accroche aux dernières données connues comme ancre\n</string>
-    <string name="insight_uncertainty_strategy">Réduisez l\'incertitude perçue : donnez un maximum de contexte et de repères.</string>
+    <string name="insight_uncertainty_strategy_high_n">Rassurez avec un cadre clair et des points d\'étape fréquents.</string>
+    <string name="insight_uncertainty_strategy_mid_n">Proposez un équilibre entre structure et flexibilité.</string>
+    <string name="insight_uncertainty_strategy_low_n">Donnez les informations brutes, il/elle gère l\'incertitude.</string>
 
     <!-- Recognition insights -->
     <string name="insight_recognition_bullet_intensity_high">• Besoin intense — sera démotivé·e si ignoré·e longtemps\n</string>
@@ -258,7 +264,9 @@
     <string name="insight_recognition_bullet_e_high">• Préfère la reconnaissance publique, devant l\'équipe\n</string>
     <string name="insight_recognition_bullet_e_low">• Préfère la reconnaissance privée et sincère\n</string>
     <string name="insight_recognition_bullet_social_proof">• Très sensible à l\'opinion des pairs et au statut\n</string>
-    <string name="insight_recognition_strategy">Nommez explicitement la contribution. La reconnaissance vague est contre-productive.</string>
+    <string name="insight_recognition_strategy_high_o">Valorisez l\'innovation et l\'impact unique de sa contribution.</string>
+    <string name="insight_recognition_strategy_mid_o">Reconnaissez à la fois la créativité et la fiabilité de son travail.</string>
+    <string name="insight_recognition_strategy_low_o">Soulignez sa fiabilité et la régularité de son travail.</string>
 
     <!-- Threat insights -->
     <string name="insight_threat_bullet_power_high">• Réaction dominante : attaque ou contre-offensive\n</string>
@@ -267,7 +275,9 @@
     <string name="insight_threat_bullet_n_high">• Rumination, peut percevoir des menaces là où il n\'y en a pas\n</string>
     <string name="insight_threat_bullet_loss_aversion">• L\'aversion aux pertes amplifie la réaction : « Je ne peux pas perdre ça »\n</string>
     <string name="insight_threat_bullet_confirmation">• Cherche des preuves confirmant la menace, ignore le reste\n</string>
-    <string name="insight_threat_strategy">Rassurez sur ce qui n\'EST PAS menacé avant d\'aborder le problème.</string>
+    <string name="insight_threat_strategy_high_e">Encouragez à exprimer ses craintes pour les désamorcer en groupe.</string>
+    <string name="insight_threat_strategy_mid_e">Proposez un échange en groupe ou en tête-à-tête selon son aise.</string>
+    <string name="insight_threat_strategy_low_e">Donnez-lui du temps pour analyser, puis adressez ses inquiétudes en tête-à-tête.</string>
 
     <!-- Prediction delete -->
     <string name="pred_delete">🗑 Supprimer</string>
