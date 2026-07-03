@@ -6,7 +6,6 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    labels: [dependencies]
     commit-message:
       prefix: "chore(deps)"
 
@@ -16,9 +15,17 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    labels: [dependencies, android]
     commit-message:
       prefix: "chore(deps/android)"
+
+  - package-ecosystem: cargo
+    directory: /core
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    commit-message:
+      prefix: "chore(deps/rust)"
 
   - package-ecosystem: github-actions
     directory: /
@@ -26,6 +33,5 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    labels: [dependencies, ci]
     commit-message:
       prefix: "chore(deps/actions)"
