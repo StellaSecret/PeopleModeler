@@ -19,10 +19,21 @@
 
 ```
 people-modeler/
+├── core/                       # Moteur Rust (WASM + JNI)
+│   ├── src/
+│   │   ├── lib.rs              # Point d'entrée, exports WASM/JNI
+│   │   ├── models.rs           # Types partagés (Person, Prediction, BehaviorTrigger)
+│   │   ├── insights.rs         # Génération d'insights comportementaux
+│   │   ├── ocean.rs            # Interprétation OCEAN
+│   │   ├── wasm.rs             # Exports WebAssembly (JS)
+│   │   └── android.rs          # Exports JNI (Kotlin)
+│   └── Cargo.toml
+│
 ├── android/                    # App Android (Kotlin + Room + MVVM)
 │   ├── app/
 │   │   ├── src/main/
 │   │   │   ├── java/com/peoplemodeler/
+│   │   │   │   ├── core/           # JNI bridge vers Rust
 │   │   │   │   ├── data/
 │   │   │   │   │   ├── models/      # Person, Motivation, Bias, BehaviorPattern
 │   │   │   │   │   └── repository/  # Room DB, DAOs, Repository
@@ -44,10 +55,13 @@ people-modeler/
 │   │   └── compare.css         # Page comparaison
 │   └── js/
 │       ├── data.js             # Données, constantes, storage
+│       ├── i18n.js             # Traductions FR/EN
+│       ├── wasm-bridge.js      # Pont WASM → Rust core
 │       ├── main.js             # Animations landing
 │       └── person.js           # Logique interactive fiche
 │
 └── .github/
+    ├── dependabot.yml          # Màj automatiques npm, gradle, cargo, actions
     └── workflows/
         └── build.yml           # Pipeline CI/CD complète
 ```
@@ -58,23 +72,29 @@ people-modeler/
 
 La pipeline `.github/workflows/build.yml` fait :
 
-### 1. `web-build` — Site web
+### 1. `rust-core` — Moteur Rust
+- Compilation Rust stable (check + clippy + test)
+- Bloque `deploy-web` et `build-android` si échec
+- Les exports WASM (`wasm-pack`) et JNI (`cargo ndk`) sont optionnels
+
+### 2. `web-build` — Site web
 - Validation HTML
 - Upload artifact `web-static`
-- **Déploiement automatique** sur GitHub Pages (branche `main`)
+- Déploiement GitHub Pages (nécessite `rust-core` OK)
 
-### 2. `android-build` — APK
+### 3. `android-build` — APK
 - Build Debug APK
 - Build Release APK (unsigned)
 - Signature optionnelle avec secrets GitHub
 - Upload artifacts APK (debug 7j, release 30j)
+- Bloqué si `rust-core` échoue
 
-### 3. `release` — Sur tag `v*`
+### 4. `release` — Sur tag `v*`
 - Télécharge les APK release
 - Crée une GitHub Release avec les APKs joints
 - Notes de release auto-générées
 
-### ⚙️ Secrets nécessaires (optionnels pour la signature)
+### ⚙️ Secrets nécessaires (optionnels)
 
 | Secret | Description |
 |--------|-------------|
