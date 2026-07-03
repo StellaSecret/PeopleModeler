@@ -1,8 +1,17 @@
 package com.stellasecret.peoplemodeler.core
 
 object PeopleModeler {
-    init {
-        System.loadLibrary("peoplemodeler_core")
+    val isAvailable: Boolean by lazy {
+        try {
+            System.loadLibrary("peoplemodeler_core")
+            true
+        } catch (_: UnsatisfiedLinkError) {
+            false
+        }
+    }
+
+    fun ensureLoaded() {
+        check(isAvailable) { "libpeoplemodeler_core.so not found — build Rust core for Android first" }
     }
 
     /** JSON in, JSON out — pass OceanScores, get interpretation string. */

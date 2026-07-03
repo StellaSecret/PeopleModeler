@@ -50,6 +50,21 @@
     <string name="edit_edit_bias_title">✏️ Edit bias</string>
     <string name="edit_add_confirm">Add</string>
 
+    <!-- Person detail predictions -->
+    <string name="person_detail_predictions_header">🔮 Predictions</string>
+    <string name="pred_context_hint">Context (e.g. Budget meeting…)</string>
+    <string name="pred_outcome_hint">Predicted behavior…</string>
+    <string name="pred_save">🔮 Save</string>
+    <string name="pred_resolve">Resolve →</string>
+    <string name="pred_resolved_badge">✅ Resolved</string>
+    <string name="pred_pending_badge">⏳ Pending</string>
+    <string name="pred_accuracy_prefix">Accuracy</string>
+    <string name="pred_actual_hint">Actual outcome…</string>
+    <string name="pred_alert_fill">Fill in context and prediction.</string>
+    <string name="pred_alert_actual">Describe what actually happened.</string>
+    <string name="pred_empty">No predictions for this person.</string>
+
+    <!-- Predictions tab -->
     <string name="predictions_pending_count">⏳ 0 prediction(s) pending</string>
     <string name="predictions_empty">🔮 No pending predictions.\nAdd them from a person\'s profile.</string>
     <string name="predictions_pending_format">⏳ %d prediction(s) pending resolution</string>

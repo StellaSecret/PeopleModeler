@@ -72,29 +72,39 @@ class PersonViewModel(
         predicted: String,
     ) = viewModelScope.launch {
         val entity =
-            try {
-                val json = PeopleModeler.createPrediction(personId, context, predicted)
-                val obj = JSONObject(json)
-                PredictionEntity(
-                    id = obj.getString("id"),
-                    personId = obj.getString("person_id"),
-                    context = obj.getString("context"),
-                    predictedOutcome = obj.getString("predicted_outcome"),
-                    createdAt = obj.optLong("created_at", System.currentTimeMillis()),
-                )
-            } catch (_: Exception) {
-                PredictionEntity(
-                    id =
-                        java.util.UUID
-                            .randomUUID()
-                            .toString(),
-                    personId = personId,
-                    context = context,
-                    predictedOutcome = predicted,
-                )
+            if (PeopleModeler.isAvailable) {
+                try {
+                    val json = PeopleModeler.createPrediction(personId, context, predicted)
+                    val obj = JSONObject(json)
+                    PredictionEntity(
+                        id = obj.getString("id"),
+                        personId = obj.getString("person_id"),
+                        context = obj.getString("context"),
+                        predictedOutcome = obj.getString("predicted_outcome"),
+                        createdAt = obj.optLong("created_at", System.currentTimeMillis()),
+                    )
+                } catch (_: Exception) {
+                    fallbackPrediction(personId, context, predicted)
+                }
+            } else {
+                fallbackPrediction(personId, context, predicted)
             }
         repo.savePrediction(entity)
     }
+
+    private fun fallbackPrediction(
+        personId: String,
+        context: String,
+        predicted: String,
+    ) = PredictionEntity(
+        id =
+            java.util.UUID
+                .randomUUID()
+                .toString(),
+        personId = personId,
+        context = context,
+        predictedOutcome = predicted,
+    )
 
     fun resolvePrediction(
         prediction: PredictionEntity,
@@ -102,36 +112,46 @@ class PersonViewModel(
         accuracy: Int,
     ) = viewModelScope.launch {
         val entity =
-            try {
-                val input =
-                    JSONObject()
-                        .apply {
-                            put("id", prediction.id)
-                            put("person_id", prediction.personId)
-                            put("context", prediction.context)
-                            put("predicted_outcome", prediction.predictedOutcome)
-                            put("actual_outcome", JSONObject.NULL)
-                            put("accuracy", JSONObject.NULL)
-                            put("created_at", prediction.createdAt)
-                            put("resolved_at", JSONObject.NULL)
-                            put("resolved", false)
-                        }.toString()
-                val json = PeopleModeler.resolvePrediction(input, actual, accuracy)
-                val obj = JSONObject(json)
-                prediction.copy(
-                    actualOutcome = obj.optString("actual_outcome", actual),
-                    accuracy = obj.optInt("accuracy", accuracy),
-                    resolvedAt = obj.optLong("resolved_at", System.currentTimeMillis()),
-                )
-            } catch (_: Exception) {
-                prediction.copy(
-                    actualOutcome = actual,
-                    accuracy = accuracy,
-                    resolvedAt = System.currentTimeMillis(),
-                )
+            if (PeopleModeler.isAvailable) {
+                try {
+                    val input =
+                        JSONObject()
+                            .apply {
+                                put("id", prediction.id)
+                                put("person_id", prediction.personId)
+                                put("context", prediction.context)
+                                put("predicted_outcome", prediction.predictedOutcome)
+                                put("actual_outcome", JSONObject.NULL)
+                                put("accuracy", JSONObject.NULL)
+                                put("created_at", prediction.createdAt)
+                                put("resolved_at", JSONObject.NULL)
+                                put("resolved", false)
+                            }.toString()
+                    val json = PeopleModeler.resolvePrediction(input, actual, accuracy)
+                    val obj = JSONObject(json)
+                    prediction.copy(
+                        actualOutcome = obj.optString("actual_outcome", actual),
+                        accuracy = obj.optInt("accuracy", accuracy),
+                        resolvedAt = obj.optLong("resolved_at", System.currentTimeMillis()),
+                    )
+                } catch (_: Exception) {
+                    fallbackResolve(prediction, actual, accuracy)
+                }
+            } else {
+                fallbackResolve(prediction, actual, accuracy)
             }
         repo.savePrediction(entity)
     }
+
+    private fun fallbackResolve(
+        prediction: PredictionEntity,
+        actual: String,
+        accuracy: Int,
+    ) = prediction.copy(
+        actualOutcome = actual,
+        accuracy = accuracy,
+        resolvedAt = System.currentTimeMillis(),
+    )
 
     fun generateBehavioralInsight(
         person: Person,

@@ -53,7 +53,21 @@
     <string name="edit_edit_bias_title">✏️ Modifier le biais</string>
     <string name="edit_add_confirm">Ajouter</string>
 
-    <!-- Predictions -->
+    <!-- Person detail predictions -->
+    <string name="person_detail_predictions_header">🔮 Prédictions</string>
+    <string name="pred_context_hint">Contexte (ex: Réunion budget…)</string>
+    <string name="pred_outcome_hint">Comportement prédit…</string>
+    <string name="pred_save">🔮 Enregistrer</string>
+    <string name="pred_resolve">Résoudre →</string>
+    <string name="pred_resolved_badge">✅ Résolue</string>
+    <string name="pred_pending_badge">⏳ En attente</string>
+    <string name="pred_accuracy_prefix">Précision</string>
+    <string name="pred_actual_hint">Résultat réel…</string>
+    <string name="pred_alert_fill">Remplissez le contexte et la prédiction.</string>
+    <string name="pred_alert_actual">Décrivez ce qui s\'est passé.</string>
+    <string name="pred_empty">Aucune prédiction pour cette personne.</string>
+
+    <!-- Predictions tab -->
     <string name="predictions_pending_count">⏳ 0 prédiction(s) en attente</string>
     <string name="predictions_empty">🔮 Aucune prédiction en attente.\nAjoutez-en depuis une fiche personne.</string>
     <string name="predictions_pending_format">⏳ %d prédiction(s) en attente de résolution</string>
