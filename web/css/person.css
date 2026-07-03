@@ -107,12 +107,12 @@
   padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.5rem;
 }
-.mot-icon { font-size: 1.8rem; flex-shrink: 0; }
-.mot-info { flex: 1; }
-.mot-name { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; }
+.mot-icon { font-size: 1.8rem; flex-shrink: 0; margin-top: 0.1rem; }
+.mot-info { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.mot-name { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; overflow-wrap: break-word; }
 .mot-bar-wrap { display: flex; align-items: center; gap: 0.75rem; }
 .mot-bar {
   flex: 1; height: 6px;
@@ -121,7 +121,7 @@
 }
 .mot-bar-fill { height: 100%; background: var(--cyan); border-radius: 3px; }
 .mot-intensity { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
-.mot-notes { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic; }
+.mot-notes { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic; overflow-wrap: break-word; }
 
 /* ── BIAS ITEMS ── */
 .bias-item {
@@ -132,7 +132,7 @@
   padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.5rem;
 }
 .bias-bar-fill { height: 100%; background: var(--primary); border-radius: 3px; }

@@ -145,22 +145,19 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 /* ── ITEMS ── */
 .mot-item, .bias-item-row { background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 1.1rem 1.35rem; margin-bottom: 0.85rem;
-  display: flex; align-items: center; gap: 1.25rem; }
+  display: flex; align-items: flex-start; gap: 1.25rem; }
 .mot-item { border-left: 3px solid var(--cyan); }
 .bias-item-row { border-left: 3px solid var(--primary); }
-.item-icon { font-size: 1.6rem; flex-shrink: 0; }
-.item-info { flex: 1; }
-.item-name { font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.35rem; }
+.item-icon { font-size: 1.6rem; flex-shrink: 0; margin-top: 0.1rem; }
+.item-info { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.item-name { font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.35rem; overflow-wrap: break-word; }
 .item-bar-row { display: flex; align-items: center; gap: 0.65rem; }
 .item-bar { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
 .item-bar-fill { height: 100%; border-radius: 3px; }
 .item-bar-fill.cyan { background: var(--cyan); }
 .item-bar-fill.red  { background: var(--primary); }
 .item-intensity { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-data); }
-.item-notes { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; font-style: italic; }
-.btn-delete { background: none; border: none; color: var(--text-muted); cursor: pointer;
-  font-size: 0.75rem; padding: 0.3rem 0.5rem; border-radius: 4px; transition: color 0.15s; flex-shrink: 0; }
-.btn-delete:hover { color: var(--primary); }
+.item-notes { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; font-style: italic; overflow-wrap: break-word; }
 .btn-add { background: transparent; border: 1px dashed var(--border); border-radius: var(--radius);
   padding: 0.7rem 1.5rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.82rem;
   cursor: pointer; width: 100%; transition: border-color 0.2s, color 0.2s; margin-top: 0.5rem; }
@@ -226,6 +223,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   padding: 2rem; width: min(480px, 92vw); max-height: 85vh; overflow-y: auto; }
 .modal h3 { font-family: var(--font-display); font-weight: 700; margin-bottom: 1.35rem; }
 .modal-actions { display: flex; gap: 0.85rem; justify-content: flex-end; margin-top: 1.35rem; }
+.btn-delete-in-modal { background: none; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; font-size: 0.78rem; padding: 0.5rem 1rem; border-radius: 6px; margin-top: 1rem; width: 100%; transition: color 0.15s, border-color 0.15s; }
+.btn-delete-in-modal:hover { color: var(--primary); border-color: var(--primary); }
 .modal-label { font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem; margin-top: 1rem; }
 .modal-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 0.7rem 0.9rem; color: var(--text); font-family: var(--font-mono); font-size: 0.85rem; outline: none; margin-top: 0.3rem; }
@@ -636,7 +635,6 @@ function renderMotivations(p) {
         <div class="item-bar-row"><div class="item-bar"><div class="item-bar-fill cyan" style="width:${m.intensity*10}%"></div></div><div class="item-intensity">${m.intensity}/10</div></div>
         ${m.notes ? `<div class="item-notes">"${esc(m.notes)}"</div>` : ''}
       </div>
-      <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteMotivation(${i})" aria-label="Supprimer">✕</button>
     </div>`;
   }).join('');
 }
@@ -669,7 +667,8 @@ function openEditMotivation(i) {
     <label class="modal-label">Intensité : <span id="mIntLbl">${m.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${m.intensity}" id="mInt" style="width:100%;margin:.5rem 0" oninput="document.getElementById('mIntLbl').textContent=this.value">
     <label class="modal-label">Notes (optionnel)</label>
-    <input type="text" id="mNotes" class="modal-input" value="${notes}" placeholder="Comportement observé…">`,
+    <input type="text" id="mNotes" class="modal-input" value="${notes}" placeholder="Comportement observé…">
+    <button type="button" class="btn-delete-in-modal" onclick="deleteMotivation(${i})">🗑️ Supprimer</button>`,
   () => {
     const p = active(); if (!p) return;
     p.motivations[i] = { type: val('mType'), intensity: +val('mInt'), notes: val('mNotes') };
@@ -679,7 +678,7 @@ function openEditMotivation(i) {
 
 function deleteMotivation(i) {
   const p = active(); if (!p) return;
-  p.motivations.splice(i, 1); save(); renderMotivations(p);
+  p.motivations.splice(i, 1); save(); renderMotivations(p); closeModal();
 }
 
 // ── BIASES ───────────────────────────────────────────────
@@ -695,7 +694,6 @@ function renderBiases(p) {
         <div class="item-bar-row"><div class="item-bar"><div class="item-bar-fill red" style="width:${b.intensity*10}%"></div></div><div class="item-intensity">${b.intensity}/10</div></div>
         ${b.evidence ? `<div class="item-notes">"${esc(b.evidence)}"</div>` : ''}
       </div>
-      <button type="button" class="btn-delete" onclick="event.stopPropagation();deleteBias(${i})" aria-label="Supprimer">✕</button>
     </div>`;
   }).join('');
 }
@@ -728,7 +726,8 @@ function openEditBias(i) {
     <label class="modal-label">Intensité observée : <span id="bIntLbl">${b.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${b.intensity}" id="bInt" style="width:100%;margin:.5rem 0" oninput="document.getElementById('bIntLbl').textContent=this.value">
     <label class="modal-label">Preuve / exemple</label>
-    <input type="text" id="bEvidence" class="modal-input" value="${evidence}" placeholder="Situation concrète observée…">`,
+    <input type="text" id="bEvidence" class="modal-input" value="${evidence}" placeholder="Situation concrète observée…">
+    <button type="button" class="btn-delete-in-modal" onclick="deleteBias(${i})">🗑️ Supprimer</button>`,
   () => {
     const p = active(); if (!p) return;
     p.biases[i] = { type: val('bType'), intensity: +val('bInt'), evidence: val('bEvidence') };
@@ -738,7 +737,7 @@ function openEditBias(i) {
 
 function deleteBias(i) {
   const p = active(); if (!p) return;
-  p.biases.splice(i, 1); save(); renderBiases(p);
+  p.biases.splice(i, 1); save(); renderBiases(p); closeModal();
 }
 
 // ── OCEAN ────────────────────────────────────────────────

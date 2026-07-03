@@ -8,8 +8,6 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
@@ -148,13 +146,17 @@ class PersonEditFragment : Fragment() {
     private fun renderMotivations() {
         binding.listMotivations.removeAllViews()
         motivations.forEachIndexed { i, m ->
-            val row =
+            val container =
+                LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(0, 8, 0, 8)
+                }
+            val topRow =
                 LinearLayout(requireContext()).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, 4, 0, 4)
                 }
-            row.addView(
+            topRow.addView(
                 TextView(requireContext()).apply {
                     text = "${m.type.emoji} ${getString(m.type.labelResId)}"
                     textSize = 14f
@@ -162,20 +164,20 @@ class PersonEditFragment : Fragment() {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 },
             )
-            row.addView(
+            topRow.addView(
                 TextView(requireContext()).apply {
                     text = "${m.intensity}/10"
                     textSize = 12f
                     setTextColor(resources.getColor(R.color.colorMotivation, null))
                     layoutParams =
                         LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                            marginEnd =
-                                8
+                            marginEnd = 8
                         }
                 },
             )
+            container.addView(topRow)
             if (m.notes.isNotBlank()) {
-                row.addView(
+                container.addView(
                     TextView(requireContext()).apply {
                         text = m.notes
                         textSize = 12f
@@ -183,30 +185,17 @@ class PersonEditFragment : Fragment() {
                         layoutParams =
                             LinearLayout
                                 .LayoutParams(
-                                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
                                     LinearLayout.LayoutParams.WRAP_CONTENT,
                                 ).apply {
-                                    marginEnd =
-                                        8
+                                    leftMargin = 24
+                                    topMargin = 4
                                 }
-                        maxLines = 1
                     },
                 )
             }
-            row.setOnClickListener { showEditMotivationDialog(i) }
-            row.addView(
-                ImageButton(requireContext()).apply {
-                    setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    scaleType = ImageView.ScaleType.FIT_CENTER
-                    layoutParams = LinearLayout.LayoutParams(48, 48)
-                    setOnClickListener {
-                        motivations.removeAt(i)
-                        renderMotivations()
-                    }
-                },
-            )
-            binding.listMotivations.addView(row)
+            container.setOnClickListener { showEditMotivationDialog(i) }
+            binding.listMotivations.addView(container)
         }
     }
 
@@ -260,6 +249,9 @@ class PersonEditFragment : Fragment() {
                         )
                     renderMotivations()
                 }
+            }.setNeutralButton(getString(R.string.edit_delete)) { _, _ ->
+                motivations.removeAt(index)
+                renderMotivations()
             }.setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
@@ -267,13 +259,17 @@ class PersonEditFragment : Fragment() {
     private fun renderBiases() {
         binding.listBiases.removeAllViews()
         biases.forEachIndexed { i, b ->
-            val row =
+            val container =
+                LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(0, 8, 0, 8)
+                }
+            val topRow =
                 LinearLayout(requireContext()).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, 4, 0, 4)
                 }
-            row.addView(
+            topRow.addView(
                 TextView(requireContext()).apply {
                     text = "${b.type.emoji} ${getString(b.type.labelResId)}"
                     textSize = 14f
@@ -281,20 +277,20 @@ class PersonEditFragment : Fragment() {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 },
             )
-            row.addView(
+            topRow.addView(
                 TextView(requireContext()).apply {
                     text = "${b.intensity}/10"
                     textSize = 12f
                     setTextColor(resources.getColor(R.color.colorBias, null))
                     layoutParams =
                         LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                            marginEnd =
-                                8
+                            marginEnd = 8
                         }
                 },
             )
+            container.addView(topRow)
             if (b.evidence.isNotBlank()) {
-                row.addView(
+                container.addView(
                     TextView(requireContext()).apply {
                         text = b.evidence
                         textSize = 12f
@@ -302,30 +298,17 @@ class PersonEditFragment : Fragment() {
                         layoutParams =
                             LinearLayout
                                 .LayoutParams(
-                                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
                                     LinearLayout.LayoutParams.WRAP_CONTENT,
                                 ).apply {
-                                    marginEnd =
-                                        8
+                                    leftMargin = 24
+                                    topMargin = 4
                                 }
-                        maxLines = 1
                     },
                 )
             }
-            row.setOnClickListener { showEditBiasDialog(i) }
-            row.addView(
-                ImageButton(requireContext()).apply {
-                    setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    scaleType = ImageView.ScaleType.FIT_CENTER
-                    layoutParams = LinearLayout.LayoutParams(48, 48)
-                    setOnClickListener {
-                        biases.removeAt(i)
-                        renderBiases()
-                    }
-                },
-            )
-            binding.listBiases.addView(row)
+            container.setOnClickListener { showEditBiasDialog(i) }
+            binding.listBiases.addView(container)
         }
     }
 
@@ -379,6 +362,9 @@ class PersonEditFragment : Fragment() {
                         )
                     renderBiases()
                 }
+            }.setNeutralButton(getString(R.string.edit_delete)) { _, _ ->
+                biases.removeAt(index)
+                renderBiases()
             }.setNegativeButton(getString(R.string.cancel), null)
             .show()
     }

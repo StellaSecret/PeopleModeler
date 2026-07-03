@@ -213,16 +213,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 .section-label { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text); }
-.motivation-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1.5rem; }
-.mot-icon { font-size: 1.8rem; flex-shrink: 0; }
-.mot-info { flex: 1; }
-.mot-name { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; }
+.motivation-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 1.5rem; }
+.mot-icon { font-size: 1.8rem; flex-shrink: 0; margin-top: 0.1rem; }
+.mot-info { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.mot-name { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; overflow-wrap: break-word; }
 .mot-bar-wrap { display: flex; align-items: center; gap: 0.75rem; }
 .mot-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
 .mot-bar-fill { height: 100%; background: var(--cyan); border-radius: 3px; }
 .mot-intensity { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
-.mot-notes { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic; }
-.bias-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1.5rem; }
+.mot-notes { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic; overflow-wrap: break-word; }
+.bias-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 1.5rem; }
 .bias-bar-fill { height: 100%; background: var(--primary); border-radius: 3px; }
 .add-item-row { margin-top: 1rem; }
 .btn-add { background: transparent; border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.75rem 1.5rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; width: 100%; transition: border-color 0.2s, color 0.2s; }
@@ -254,8 +254,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .trigger-btn:hover, .trigger-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,170,0.07); }
 .insight-output { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: var(--radius); padding: 1.75rem; min-height: 140px; font-size: 0.9rem; line-height: 1.9; white-space: pre-line; }
 .placeholder-text { color: var(--text-muted); font-style: italic; }
-.btn-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: color 0.15s; }
-.btn-delete:hover { color: var(--primary); }
 .btn-resolve { background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.3); border-radius: 8px; color: var(--cyan); font-family: var(--font-mono); font-size: .75rem; padding: .25rem .7rem; cursor: pointer; transition: background .15s; }
 .btn-resolve:hover { background: rgba(0,212,170,0.2); }
 
@@ -265,6 +263,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: min(500px, 90vw); max-height: 80vh; overflow-y: auto; }
 .modal h3 { font-family: var(--font-display); font-weight: 700; margin-bottom: 1.5rem; }
 .modal-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
+.btn-delete-in-modal { background: none; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; font-size: 0.78rem; padding: 0.5rem 1rem; border-radius: 6px; margin-top: 1rem; width: 100%; transition: color 0.15s, border-color 0.15s; }
+.btn-delete-in-modal:hover { color: var(--primary); border-color: var(--primary); }
 .modal select, .modal input[type=range] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; color: var(--text); font-family: var(--font-mono); font-size: 0.88rem; outline: none; margin-bottom: 1rem; }
 .modal label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; margin-top: 1rem; }
 
@@ -893,7 +893,7 @@ function renderMotivations() {
   if (motivations.length === 0) { list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">Aucune motivation ajoutée.</p>`; return; }
   list.innerHTML = motivations.map((m, i) => {
     const def = MOTIVATIONS.find(x => x.id === m.type) || { emoji: '?', label: m.type };
-    return `<div class="motivation-item" onclick="openEditMotivation(${i})"><div class="mot-icon">${def.emoji}</div><div class="mot-info"><div class="mot-name">${def.label}</div><div class="mot-bar-wrap"><div class="mot-bar"><div class="mot-bar-fill" style="width:${m.intensity*10}%"></div></div><div class="mot-intensity">${m.intensity}/10</div></div>${m.notes ? `<div class="mot-notes">"${m.notes}"</div>` : ''}</div><button type="button" class="btn-delete" onclick="event.stopPropagation();deleteMotivation(${i})">✕</button></div>`;
+    return `<div class="motivation-item" onclick="openEditMotivation(${i})"><div class="mot-icon">${def.emoji}</div><div class="mot-info"><div class="mot-name">${def.label}</div><div class="mot-bar-wrap"><div class="mot-bar"><div class="mot-bar-fill" style="width:${m.intensity*10}%"></div></div><div class="mot-intensity">${m.intensity}/10</div></div>${m.notes ? `<div class="mot-notes">"${m.notes}"</div>` : ''}</div></div>`;
   }).join('');
 }
 
@@ -930,7 +930,8 @@ function openEditMotivation(index) {
     <label>Intensité : <span id="motIntensityVal">${m.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${m.intensity}" id="motIntensity" oninput="document.getElementById('motIntensityVal').textContent=this.value">
     <label>Notes (optionnel)</label>
-    <input type="text" id="motNotes" value="${notes}" placeholder="Comportement observé…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;">`;
+    <input type="text" id="motNotes" value="${notes}" placeholder="Comportement observé…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;">
+    <button type="button" class="btn-delete-in-modal" onclick="deleteMotivation(${index})">🗑️ Supprimer</button>`;
   window._modalConfirm = () => {
     const type = document.getElementById('motType').value;
     const intensity = parseInt(document.getElementById('motIntensity').value);
@@ -943,7 +944,7 @@ function openEditMotivation(index) {
 
 function deleteMotivation(index) {
   currentPerson.motivations.splice(index, 1);
-  savePerson(); renderMotivations();
+  savePerson(); renderMotivations(); closeModal();
 }
 
 function renderBiases() {
@@ -952,7 +953,7 @@ function renderBiases() {
   if (biases.length === 0) { list.innerHTML = `<p style="color:var(--text-muted);font-size:.88rem;">Aucun biais ajouté.</p>`; return; }
   list.innerHTML = biases.map((b, i) => {
     const def = BIASES.find(x => x.id === b.type) || { emoji: '?', label: b.type };
-    return `<div class="bias-item" onclick="openEditBias(${i})"><div class="mot-icon">${def.emoji}</div><div class="mot-info"><div class="mot-name">${def.label}</div><div class="mot-bar-wrap"><div class="mot-bar"><div class="bias-bar-fill" style="width:${b.intensity*10}%"></div></div><div class="mot-intensity">${b.intensity}/10</div></div>${b.evidence ? `<div class="mot-notes">"${b.evidence}"</div>` : ''}</div><button type="button" class="btn-delete" onclick="event.stopPropagation();deleteBias(${i})">✕</button></div>`;
+    return `<div class="bias-item" onclick="openEditBias(${i})"><div class="mot-icon">${def.emoji}</div><div class="mot-info"><div class="mot-name">${def.label}</div><div class="mot-bar-wrap"><div class="mot-bar"><div class="bias-bar-fill" style="width:${b.intensity*10}%"></div></div><div class="mot-intensity">${b.intensity}/10</div></div>${b.evidence ? `<div class="mot-notes">"${b.evidence}"</div>` : ''}</div></div>`;
   }).join('');
 }
 
@@ -989,7 +990,8 @@ function openEditBias(index) {
     <label>Intensité observée : <span id="biasIntensityVal">${b.intensity}</span>/10</label>
     <input type="range" min="1" max="10" value="${b.intensity}" id="biasIntensity" oninput="document.getElementById('biasIntensityVal').textContent=this.value">
     <label>Preuve / exemple observé</label>
-    <input type="text" id="biasEvidence" value="${evidence}" placeholder="Situation concrète observée…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;">`;
+    <input type="text" id="biasEvidence" value="${evidence}" placeholder="Situation concrète observée…" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:var(--font-mono);font-size:.88rem;outline:none;margin-top:.25rem;">
+    <button type="button" class="btn-delete-in-modal" onclick="deleteBias(${index})">🗑️ Supprimer</button>`;
   window._modalConfirm = () => {
     const type = document.getElementById('biasType').value;
     const intensity = parseInt(document.getElementById('biasIntensity').value);
@@ -1002,7 +1004,7 @@ function openEditBias(index) {
 
 function deleteBias(index) {
   currentPerson.biases.splice(index, 1);
-  savePerson(); renderBiases();
+  savePerson(); renderBiases(); closeModal();
 }
 
 function renderOcean() {
