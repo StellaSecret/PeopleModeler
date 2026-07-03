@@ -11,24 +11,49 @@ if [ $LINT_EXIT -ne 0 ]; then
   exit $LINT_EXIT
 fi
 
-# ── 2. ktlint — formatage Kotlin (si installé) ────────────
+# ── 2. ktlint — formatage Kotlin ────────────────────────
 if command -v ktlint > /dev/null 2>&1; then
-  STAGED_KT=$(git diff --cached --name-only | grep '\.kt$' || true)
+  STAGED_KT=$(git diff --cached --name-only --diff-filter=ACM | grep '\.kt$' || true)
   if [ -n "$STAGED_KT" ]; then
-    echo "🔍 ktlint sur les fichiers Kotlin stagés..."
+    echo "🔍 ktlint --format sur les fichiers Kotlin stagés..."
+    echo "$STAGED_KT" | xargs ktlint --format --relative 2>/dev/null
     echo "$STAGED_KT" | xargs ktlint --relative
     KTLINT_EXIT=$?
     if [ $KTLINT_EXIT -ne 0 ]; then
-      echo ""
-      echo "💡 Pour corriger automatiquement : ktlint --format <fichier>"
+      echo "❌ ktlint: certains fichiers ont encore des erreurs."
       exit 1
     fi
+    # Re-stage auto-formatted files
+    git add $STAGED_KT
   fi
 else
-  echo "ℹ️  ktlint non installé — ignoré (brew install ktlint pour l'activer)"
+  echo "ℹ️  ktlint non installé — ignoré (brew install ktlint)"
 fi
 
-# ── 3. Gitleaks — scan de secrets (si installé) ───────────
+# ── 3. Rust — formatage + lint ──────────────────────────
+RUST_STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.rs$' || true)
+if [ -n "$RUST_STAGED" ]; then
+  if command -v rustup > /dev/null 2>&1; then
+    echo "🔍 cargo fmt --check + clippy..."
+    REL=$(echo "$RUST_STAGED" | head -1 | xargs dirname | sed 's|/[^/]*$||' | grep -o '^core/' || echo "core")
+    RUST_DIR="${REL%%/*}"
+    if [ -f "$RUST_DIR/Cargo.toml" ]; then
+      (cd "$RUST_DIR" && cargo fmt --check 2>/dev/null)
+      FMT_EXIT=$?
+      if [ $FMT_EXIT -ne 0 ]; then
+        echo "❌ cargo fmt: formatage incorrect. Lancez 'cargo fmt' dans $RUST_DIR/."
+        (cd "$RUST_DIR" && cargo fmt 2>/dev/null)
+        echo "   → Auto-format appliqué. Re-stagez les fichiers."
+        exit 1
+      fi
+      # cargo clippy --all-targets -- -D warnings 2>/dev/null || true
+    fi
+  else
+    echo "ℹ️  rustup non trouvé — vérification Rust ignorée"
+  fi
+fi
+
+# ── 4. Gitleaks — scan de secrets (si installé) ───────────
 if command -v gitleaks > /dev/null 2>&1; then
   echo "🔍 Gitleaks scan..."
   gitleaks protect --staged -v
@@ -41,7 +66,7 @@ else
   echo "ℹ️  gitleaks non installé — ignoré (brew install gitleaks pour l'activer)"
 fi
 
-# ── 4. Fichiers volumineux ─────────────────────────────────
+# ── 5. Fichiers volumineux ─────────────────────────────────
 LARGE=$(git diff --cached --name-only | while read f; do
   [ -f "$f" ] && size=$(wc -c < "$f") && [ "$size" -gt 512000 ] && echo "$f ($((size/1024)) KB)"
 done)
@@ -52,7 +77,7 @@ if [ -n "$LARGE" ]; then
   exit 1
 fi
 
-# ── 5. Reminder éthique ───────────────────────────────────
+# ── 6. Reminder éthique ───────────────────────────────────
 echo ""
 echo "⚠️  People Modeler — rappel éthique"
 echo "   Utilisez cet outil avec bienveillance et responsabilité."
