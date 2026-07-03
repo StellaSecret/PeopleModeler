@@ -153,23 +153,27 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           export JAVA_HOME=$JAVA_HOME_21_X64
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
-          keytool -importkeystore -srckeystore android/app/keystore.jks \
-            -destkeystore android/app/keystore.p12 -deststoretype pkcs12 \
-            -srcstorepass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -deststorepass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -srcalias ${{ secrets.KEY_ALIAS }} \
-            -destalias ${{ secrets.KEY_ALIAS }} \
-            -srckeypass ${{ secrets.KEY_PASSWORD }} \
-            -destkeypass ${{ secrets.KEY_PASSWORD }} 2>/dev/null
-          cat > android/key.properties << PROPS
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=keystore.p12
-          PROPS
-          cd android
-          ./gradlew assembleRelease bundleRelease
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+            keytool -importkeystore -srckeystore android/app/keystore.jks \
+              -destkeystore android/app/keystore.p12 -deststoretype pkcs12 \
+              -srcstorepass ${{ secrets.KEYSTORE_PASSWORD }} \
+              -deststorepass ${{ secrets.KEYSTORE_PASSWORD }} \
+              -srcalias ${{ secrets.KEY_ALIAS }} \
+              -destalias ${{ secrets.KEY_ALIAS }} \
+              -srckeypass ${{ secrets.KEY_PASSWORD }} \
+              -destkeypass ${{ secrets.KEY_PASSWORD }} 2>/dev/null
+            echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+            echo "storeFile=keystore.p12" >> android/key.properties
+            cd android
+            ./gradlew assembleRelease bundleRelease
+          else
+            echo "No signing key — building debug APK"
+            cd android
+            ./gradlew assembleDebug
+          fi
       - name: Collect Android Artifacts
         if: github.event_name != 'pull_request'
         run: |
