@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.stellasecret.peoplemodeler.R
+import com.stellasecret.peoplemodeler.core.PeopleModeler
 import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
 import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.data.repository.AppDatabase
@@ -16,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PersonViewModel(
@@ -69,17 +71,29 @@ class PersonViewModel(
         context: String,
         predicted: String,
     ) = viewModelScope.launch {
-        repo.savePrediction(
-            PredictionEntity(
-                id =
-                    java.util.UUID
-                        .randomUUID()
-                        .toString(),
-                personId = personId,
-                context = context,
-                predictedOutcome = predicted,
-            ),
-        )
+        val entity =
+            try {
+                val json = PeopleModeler.createPrediction(personId, context, predicted)
+                val obj = JSONObject(json)
+                PredictionEntity(
+                    id = obj.getString("id"),
+                    personId = obj.getString("person_id"),
+                    context = obj.getString("context"),
+                    predictedOutcome = obj.getString("predicted_outcome"),
+                    createdAt = obj.optLong("created_at", System.currentTimeMillis()),
+                )
+            } catch (_: Exception) {
+                PredictionEntity(
+                    id =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString(),
+                    personId = personId,
+                    context = context,
+                    predictedOutcome = predicted,
+                )
+            }
+        repo.savePrediction(entity)
     }
 
     fun resolvePrediction(
@@ -87,13 +101,36 @@ class PersonViewModel(
         actual: String,
         accuracy: Int,
     ) = viewModelScope.launch {
-        repo.savePrediction(
-            prediction.copy(
-                actualOutcome = actual,
-                accuracy = accuracy,
-                resolvedAt = System.currentTimeMillis(),
-            ),
-        )
+        val entity =
+            try {
+                val input =
+                    JSONObject()
+                        .apply {
+                            put("id", prediction.id)
+                            put("person_id", prediction.personId)
+                            put("context", prediction.context)
+                            put("predicted_outcome", prediction.predictedOutcome)
+                            put("actual_outcome", JSONObject.NULL)
+                            put("accuracy", JSONObject.NULL)
+                            put("created_at", prediction.createdAt)
+                            put("resolved_at", JSONObject.NULL)
+                            put("resolved", false)
+                        }.toString()
+                val json = PeopleModeler.resolvePrediction(input, actual, accuracy)
+                val obj = JSONObject(json)
+                prediction.copy(
+                    actualOutcome = obj.optString("actual_outcome", actual),
+                    accuracy = obj.optInt("accuracy", accuracy),
+                    resolvedAt = obj.optLong("resolved_at", System.currentTimeMillis()),
+                )
+            } catch (_: Exception) {
+                prediction.copy(
+                    actualOutcome = actual,
+                    accuracy = accuracy,
+                    resolvedAt = System.currentTimeMillis(),
+                )
+            }
+        repo.savePrediction(entity)
     }
 
     fun generateBehavioralInsight(

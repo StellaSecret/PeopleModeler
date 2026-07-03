@@ -836,20 +836,48 @@ function setLang(lang) {
   }
   // Update enum labels + descriptions BEFORE re-render
   if (typeof MOTIVATIONS !== 'undefined') {
-    MOTIVATIONS.forEach(m => {
-      const key = 'mot_' + m.id.toLowerCase();
-      if (L[key]) m.label = L[key];
-      const dk = key + '_desc';
-      if (L[dk]) m.desc = L[dk];
-    });
+    if (window.__wasm) {
+      const lang = L.lang || 'fr';
+      MOTIVATIONS.forEach(m => {
+        try { m.label = window.__wasm.mot_label(m.id, lang); } catch(e) {
+          const key = 'mot_' + m.id.toLowerCase();
+          if (L[key]) m.label = L[key];
+        }
+        try { m.desc = window.__wasm.mot_desc(m.id, lang); } catch(e) {
+          const dk = 'mot_' + m.id.toLowerCase() + '_desc';
+          if (L[dk]) m.desc = L[dk];
+        }
+      });
+    } else {
+      MOTIVATIONS.forEach(m => {
+        const key = 'mot_' + m.id.toLowerCase();
+        if (L[key]) m.label = L[key];
+        const dk = key + '_desc';
+        if (L[dk]) m.desc = L[dk];
+      });
+    }
   }
   if (typeof BIASES !== 'undefined') {
-    BIASES.forEach(b => {
-      const key = 'bias_' + b.id.toLowerCase();
-      if (L[key]) b.label = L[key];
-      const dk = key + '_desc';
-      if (L[dk]) b.desc = L[dk];
-    });
+    if (window.__wasm) {
+      const lang = L.lang || 'fr';
+      BIASES.forEach(b => {
+        try { b.label = window.__wasm.bias_label(b.id, lang); } catch(e) {
+          const key = 'bias_' + b.id.toLowerCase();
+          if (L[key]) b.label = L[key];
+        }
+        try { b.desc = window.__wasm.bias_desc(b.id, lang); } catch(e) {
+          const dk = 'bias_' + b.id.toLowerCase() + '_desc';
+          if (L[dk]) b.desc = L[dk];
+        }
+      });
+    } else {
+      BIASES.forEach(b => {
+        const key = 'bias_' + b.id.toLowerCase();
+        if (L[key]) b.label = L[key];
+        const dk = key + '_desc';
+        if (L[dk]) b.desc = L[dk];
+      });
+    }
   }
 
   // Re-translate page

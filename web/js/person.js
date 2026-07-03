@@ -3,11 +3,13 @@
 let currentPerson = null;
 
 // ── INIT ──────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await (window.__wasmReady || Promise.resolve(true));
   currentPerson = JSON.parse(JSON.stringify(Storage.getCurrent())); // deep clone
   renderAll();
   setupTabs();
-  updateOceanInterpretation();
+  if (window.__wasm) updateOceanInterpretation();
+  else updateOceanInterpretation();
 });
 
 function renderAll() {
@@ -275,6 +277,15 @@ function updateOcean(key, value) {
 function updateOceanInterpretation() {
   const el = document.getElementById('oceanInterpretation');
   if (!el || !currentPerson || !currentPerson.ocean) return;
+
+  if (window.__wasm) {
+    try {
+      const result = window.__wasm.analyze_ocean(JSON.stringify(currentPerson.ocean));
+      el.innerHTML = result;
+      return;
+    } catch(e) { /* fall through to JS */ }
+  }
+
   const o = currentPerson.ocean;
   const name = currentPerson.name.split(' ')[0];
 
@@ -511,15 +522,29 @@ function getTopBias(p) {
 
 function showInsight(triggerKey) {
   document.querySelectorAll('.trigger-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-
-  const template = INSIGHT_TEMPLATES[triggerKey];
-  if (!template || !currentPerson) return;
+  if (event && event.target) event.target.classList.add('active');
+  if (!currentPerson) return;
 
   const output = document.getElementById('insightOutput');
   const headerKey = `insight_${triggerKey}_header`;
+  const header = t(headerKey);
+
+  if (window.__wasm) {
+    try {
+      const ctxMap = { stress:'decision', conflict:'conflict', success:'success', uncertainty:'uncertainty', recognition:'recognition', threat:'threat' };
+      const ctx = ctxMap[triggerKey] || triggerKey;
+      const result = window.__wasm.generate_insight(ctx, JSON.stringify(currentPerson));
+      output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">
+        ${t('insight_context_label')} : <strong style="color:var(--cyan)">${header}</strong>
+      </div>` + result.replace(/\n/g, '<br/>');
+      return;
+    } catch(e) { /* fall through to JS */ }
+  }
+
+  const template = INSIGHT_TEMPLATES[triggerKey];
+  if (!template) return;
   output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">
-    ${t('insight_context_label')} : <strong style="color:var(--cyan)">${t(headerKey)}</strong>
+    ${t('insight_context_label')} : <strong style="color:var(--cyan)">${header}</strong>
   </div>` + template.generate(currentPerson).replace(/\n/g, '<br/>');
 }
 

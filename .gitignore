@@ -53,6 +53,10 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# ── Rust ──────────────────────────────────────────────────
+target/
+core/pkg/
+
 # ── Test / Coverage ───────────────────────────────────────
 coverage/
 *.lcov

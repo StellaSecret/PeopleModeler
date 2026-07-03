@@ -345,6 +345,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .type-desc { font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin: -0.5rem 0 1rem 0; padding: 0.3rem 0.75rem; background: var(--bg); border-radius: var(--radius); }
   </style>
   <script src="js/i18n.js"></script>
+  <script src="js/wasm-bridge.js"></script>
 </head>
 <body>
 
@@ -733,7 +734,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 
 <script>
 // ── ROUTING ──────────────────────────────────────────────
-function showPage(page) {
+async function showPage(page) {
+  if (window.__wasmReady) await window.__wasmReady;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   window.scrollTo(0, 0);
@@ -771,10 +773,10 @@ function pageFromPath(pathname) {
 }
 
 // Handle direct URL access (e.g. navigating to /person directly)
-(function initRoute() {
+(async function initRoute() {
   const page = pageFromPath(location.pathname);
   history.replaceState({ page }, '', location.pathname);
-  showPage(page);
+  await showPage(page);
 })();
 
 // ── DATA & CONSTANTS ─────────────────────────────────────
@@ -1029,6 +1031,12 @@ function updateOcean(key, value) {
 function updateOceanInterpretation() {
   const el = document.getElementById('oceanInterpretation');
   if (!el || !currentPerson || !currentPerson.ocean) return;
+  if (window.__wasm) {
+    try {
+      el.innerHTML = window.__wasm.analyze_ocean(JSON.stringify(currentPerson.ocean));
+      return;
+    } catch(e) {}
+  }
   const o = currentPerson.ocean;
   const name = currentPerson.name.split(' ')[0];
   const desc = key => { const val = o[key]; const d = OCEAN_DESCRIPTIONS[key]; return val >= 6 ? d.high : d.low; };
@@ -1178,9 +1186,18 @@ function getTopBias(p) { return (p.biases || []).reduce((top, b) => (!top || b.i
 function showInsight(triggerKey, btn) {
   document.querySelectorAll('.trigger-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const template = INSIGHT_TEMPLATES[triggerKey];
-  if (!template || !currentPerson) return;
+  if (!currentPerson) return;
   const output = document.getElementById('insightOutput');
+  if (window.__wasm) {
+    try {
+      const ctxMap = { stress:'decision', conflict:'conflict', success:'success', uncertainty:'uncertainty', recognition:'recognition', threat:'threat' };
+      const result = window.__wasm.generate_insight(ctxMap[triggerKey]||triggerKey, JSON.stringify(currentPerson));
+      output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">Analyse comportementale — contexte : <strong style="color:var(--cyan)">${INSIGHT_TEMPLATES[triggerKey]?.label||triggerKey}</strong></div>` + result.replace(/\n/g, '<br/>');
+      return;
+    } catch(e) {}
+  }
+  const template = INSIGHT_TEMPLATES[triggerKey];
+  if (!template) return;
   output.innerHTML = `<div style="color:var(--text-muted);font-size:.78rem;margin-bottom:.75rem;">Analyse comportementale — contexte : <strong style="color:var(--cyan)">${template.label}</strong></div>` + template.generate(currentPerson).replace(/\n/g, '<br/>');
 }
 

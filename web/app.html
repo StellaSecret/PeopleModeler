@@ -260,6 +260,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .type-desc { font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin: -0.5rem 0 1rem 0; padding: 0.3rem 0.75rem; background: var(--bg); border-radius: var(--radius); }
   </style>
   <script src="js/i18n.js"></script>
+  <script src="js/wasm-bridge.js"></script>
 </head>
 <body>
 <div class="noise"></div>
@@ -483,7 +484,8 @@ let profiles = [];
 let activeId = null;
 
 // ── BOOT ─────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  if (window.__wasmReady) await window.__wasmReady;
   profiles = Store.load();
   activeId = Store.getActiveId();
   if (activeId && !profiles.find(p => p.id === activeId)) activeId = null;
@@ -760,6 +762,9 @@ function updateOcean(key, value) {
 
 function updateOceanInterp(p) {
   const el = document.getElementById('oceanInterp'); if (!el || !p?.ocean) return;
+  if (window.__wasm) {
+    try { el.innerHTML = window.__wasm.analyze_ocean(JSON.stringify(p.ocean)); return; } catch(e) {}
+  }
   const o = p.ocean; const name = p.name.split(' ')[0];
   const d = k => { const v = o[k]; const x = OCEAN_DESCRIPTIONS[k]; return v >= 6 ? x.high : x.low; };
   el.innerHTML = `<strong>${name}</strong> est ${d('O')}. ${o.C >= 6 ? `Consciencieux·se, ${d('C')}.` : `${cap(d('C'))}.`} ${o.E >= 6 ? `Très ${d('E')}.` : `Plutôt ${d('E')}.`} En relationnel : ${d('A')}. Émotionnellement : ${d('N')}.<br><br><strong>Profil :</strong> ${o.E >= 7 && o.A <= 4 ? '⚡ Dominant · direct, assertif. ' : ''}${o.O >= 8 && o.C >= 7 ? '🚀 Innovateur rigoureux. ' : ''}${o.N >= 7 ? '⚠️ Réactivité émotionnelle élevée. ' : ''}${o.A >= 8 && o.N <= 4 ? '🤝 Stable et coopératif.' : ''}`;
@@ -895,10 +900,17 @@ function showInsight(key, btn) {
   document.querySelectorAll('.trigger-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   const p = active(); if (!p) return;
+  const el = document.getElementById('insightOutput');
+  if (window.__wasm) {
+    try {
+      const ctxMap = { stress:'decision', conflict:'conflict', success:'success', uncertainty:'uncertainty', recognition:'recognition', threat:'threat' };
+      const result = window.__wasm.generate_insight(ctxMap[key]||key, JSON.stringify(p));
+      el.innerHTML = `<div style="color:var(--text-muted);font-size:.75rem;margin-bottom:.75rem">Contexte : <strong style="color:var(--cyan)">${INSIGHT_TEMPLATES[key]?.label||key}</strong></div>` + result.replace(/\n/g, '<br>');
+      return;
+    } catch(e) {}
+  }
   const t = INSIGHT_TEMPLATES[key]; if (!t) return;
-  document.getElementById('insightOutput').innerHTML =
-    `<div style="color:var(--text-muted);font-size:.75rem;margin-bottom:.75rem">Contexte : <strong style="color:var(--cyan)">${t.label}</strong></div>` +
-    t.generate(p).replace(/\n/g, '<br>');
+  el.innerHTML = `<div style="color:var(--text-muted);font-size:.75rem;margin-bottom:.75rem">Contexte : <strong style="color:var(--cyan)">${t.label}</strong></div>` + t.generate(p).replace(/\n/g, '<br>');
 }
 
 // ── GOOGLE DRIVE ─────────────────────────────────────────
