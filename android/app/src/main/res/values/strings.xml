@@ -23,6 +23,13 @@
     <string name="person_detail_biases_header">🧠 Biais cognitifs</string>
     <string name="person_detail_ocean_header">🌊 Profil OCEAN</string>
     <string name="person_detail_analyze_stress">✨ Analyser sous stress</string>
+    <string name="insight_btn_stress">😰 Stress</string>
+    <string name="insight_btn_conflict">⚔️ Conflit</string>
+    <string name="insight_btn_success">🏆 Succès</string>
+    <string name="insight_btn_uncertainty">❓ Incertitude</string>
+    <string name="insight_btn_recognition">⭐ Reconnaissance</string>
+    <string name="insight_btn_threat">🛡️ Menace</string>
+    <string name="insight_section_title">Analyse par contexte</string>
 
     <!-- OCEAN labels -->
     <string name="ocean_o">O — Ouverture</string>
@@ -203,4 +210,67 @@
     <string name="insight_agreeableness_line">• Éviter le conflit, rechercher l\'harmonie\n</string>
     <string name="insight_extraversion_line">• Exprimer verbalement ses préoccupations\n</string>
     <string name="insight_observed_pattern">\n📌 Comportement observé : %s</string>
+    <string name="insight_strategy_suffix">\n💡 %s</string>
+
+    <!-- Stress insights -->
+    <string name="insight_stress_bullet_n_high">• Réagir émotionnellement et perdre le recul\n</string>
+    <string name="insight_stress_bullet_e_high">• Exprimer son stress verbalement, chercher à en parler\n</string>
+    <string name="insight_stress_bullet_e_low">• Se replier sur soi, éviter les interactions\n</string>
+    <string name="insight_stress_bullet_c_high">• Sur-contrôler, micro-manager, demander des updates constants\n</string>
+    <string name="insight_stress_bullet_power">• Reprendre le contrôle par l\'autorité\n</string>
+    <string name="insight_stress_bullet_security">• Chercher des garanties et certitudes\n</string>
+    <string name="insight_stress_bullet_top_bias">• Être particulièrement sujet au biais « %s »\n</string>
+    <string name="insight_stress_strategy_high_a">Offrez du soutien émotionnel avant les solutions.</string>
+    <string name="insight_stress_strategy_low_a">Proposez des actions concrètes et rapides.</string>
+
+    <!-- Conflict insights -->
+    <string name="insight_conflict_bullet_a_low">• N\'hésite pas à s\'opposer frontalement\n</string>
+    <string name="insight_conflict_bullet_a_high">• Cherche à éviter l\'affrontement, cherche le compromis\n</string>
+    <string name="insight_conflict_bullet_n_high">• Peut prendre les choses personnellement\n</string>
+    <string name="insight_conflict_bullet_e_high">• Exprime le conflit ouvertement, ne laisse pas traîner\n</string>
+    <string name="insight_conflict_bullet_power">• Cherche à « gagner » le conflit plutôt qu\'à le résoudre\n</string>
+    <string name="insight_conflict_bullet_affiliation">• Souffre du conflit relationnel, veut préserver le lien\n</string>
+    <string name="insight_conflict_bullet_loss_aversion">• Fort biais de perte : refusera de « lâcher » même si rationnel\n</string>
+    <string name="insight_conflict_strategy_high_a">Cadrez comme « résolution commune », pas opposition.</string>
+    <string name="insight_conflict_strategy_low_a">Soyez direct·e et factuel·le, évitez les ambiguïtés.</string>
+
+    <!-- Success insights -->
+    <string name="insight_success_bullet_recognition_high">• A besoin que le succès soit reconnu publiquement\n</string>
+    <string name="insight_success_bullet_power_high">• Va capitaliser sur le succès pour renforcer son influence\n</string>
+    <string name="insight_success_bullet_o_high">• Cherche déjà le prochain défi ou projet ambitieux\n</string>
+    <string name="insight_success_bullet_c_high">• Analyse ce qui a fonctionné pour le répliquer\n</string>
+    <string name="insight_success_bullet_dk">• ⚠️ Risque de surconfiance après le succès\n</string>
+    <string name="insight_success_strategy">C\'est le bon moment pour proposer de nouveaux projets ou renforcer la relation.</string>
+
+    <!-- Uncertainty insights -->
+    <string name="insight_uncertainty_bullet_n_high">• Génère de l\'anxiété, peut paralyser la décision\n</string>
+    <string name="insight_uncertainty_bullet_n_low">• Reste remarquablement calme, peut sous-estimer les risques\n</string>
+    <string name="insight_uncertainty_bullet_o_high">• Voit l\'incertitude comme une opportunité de créativité\n</string>
+    <string name="insight_uncertainty_bullet_o_low">• Très inconfortable, cherche à revenir à des routines connues\n</string>
+    <string name="insight_uncertainty_bullet_security_high">• Forte anxiété — cherche des certitudes à tout prix\n</string>
+    <string name="insight_uncertainty_bullet_anchoring">• S\'accroche aux dernières données connues comme ancre\n</string>
+    <string name="insight_uncertainty_strategy">Réduisez l\'incertitude perçue : donnez un maximum de contexte et de repères.</string>
+
+    <!-- Recognition insights -->
+    <string name="insight_recognition_bullet_intensity_high">• Besoin intense — sera démotivé·e si ignoré·e longtemps\n</string>
+    <string name="insight_recognition_bullet_intensity_mid">• Besoin modéré — apprécie la reconnaissance sans en dépendre\n</string>
+    <string name="insight_recognition_bullet_intensity_low">• Faible motivation par la reconnaissance externe\n</string>
+    <string name="insight_recognition_bullet_e_high">• Préfère la reconnaissance publique, devant l\'équipe\n</string>
+    <string name="insight_recognition_bullet_e_low">• Préfère la reconnaissance privée et sincère\n</string>
+    <string name="insight_recognition_bullet_social_proof">• Très sensible à l\'opinion des pairs et au statut\n</string>
+    <string name="insight_recognition_strategy">Nommez explicitement la contribution. La reconnaissance vague est contre-productive.</string>
+
+    <!-- Threat insights -->
+    <string name="insight_threat_bullet_power_high">• Réaction dominante : attaque ou contre-offensive\n</string>
+    <string name="insight_threat_bullet_a_low">• Peut devenir défensif·ve et agressif·ve\n</string>
+    <string name="insight_threat_bullet_a_high">• Cherche à désamorcer d\'abord, peut trop accommoder\n</string>
+    <string name="insight_threat_bullet_n_high">• Rumination, peut percevoir des menaces là où il n\'y en a pas\n</string>
+    <string name="insight_threat_bullet_loss_aversion">• L\'aversion aux pertes amplifie la réaction : « Je ne peux pas perdre ça »\n</string>
+    <string name="insight_threat_bullet_confirmation">• Cherche des preuves confirmant la menace, ignore le reste\n</string>
+    <string name="insight_threat_strategy">Rassurez sur ce qui n\'EST PAS menacé avant d\'aborder le problème.</string>
+
+    <!-- Prediction delete -->
+    <string name="pred_delete">🗑 Supprimer</string>
+    <string name="pred_delete_title">Supprimer cette prédiction ?</string>
+    <string name="pred_delete_message">Cette action est irréversible.</string>
 </resources>

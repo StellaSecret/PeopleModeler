@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.stellasecret.peoplemodeler.R
 import com.stellasecret.peoplemodeler.core.PeopleModeler
 import com.stellasecret.peoplemodeler.data.models.BehaviorTrigger
+import com.stellasecret.peoplemodeler.data.models.BiasType
+import com.stellasecret.peoplemodeler.data.models.MotivationType
 import com.stellasecret.peoplemodeler.data.models.Person
 import com.stellasecret.peoplemodeler.data.repository.AppDatabase
 import com.stellasecret.peoplemodeler.data.repository.PersonRepository
@@ -65,6 +67,11 @@ class PersonViewModel(
     fun getPredictions(personId: String) = repo.getPredictionsForPerson(personId).asLiveData()
 
     val pendingPredictions = repo.getPendingPredictions().asLiveData()
+
+    fun deletePrediction(prediction: PredictionEntity) =
+        viewModelScope.launch {
+            repo.deletePrediction(prediction)
+        }
 
     fun addPrediction(
         personId: String,
@@ -158,16 +165,141 @@ class PersonViewModel(
         trigger: BehaviorTrigger,
     ): String {
         val ctx = getApplication<Application>()
-        val topMotivation = person.motivations.maxByOrNull { it.intensity }
+        val topMot = person.motivations.maxByOrNull { it.intensity }
         val topBias = person.biases.maxByOrNull { it.intensity }
         return buildString {
             append(ctx.getString(R.string.insight_header_format, ctx.getString(trigger.labelResId), person.name))
-            topMotivation?.let { append(ctx.getString(R.string.insight_motivation_line, ctx.getString(it.type.labelResId), it.type.emoji)) }
+            topMot?.let { append(ctx.getString(R.string.insight_motivation_line, ctx.getString(it.type.labelResId), it.type.emoji)) }
             topBias?.let { append(ctx.getString(R.string.insight_bias_line, ctx.getString(it.type.labelResId), it.type.emoji)) }
-            if (person.neuroticism > 7) append(ctx.getString(R.string.insight_neuroticism_line))
-            if (person.conscientiousness > 7) append(ctx.getString(R.string.insight_conscientiousness_line))
-            if (person.agreeableness > 7) append(ctx.getString(R.string.insight_agreeableness_line))
-            if (person.extraversion > 7) append(ctx.getString(R.string.insight_extraversion_line))
+            when (trigger) {
+                BehaviorTrigger.STRESS -> {
+                    if (person.neuroticism >= 7) append(ctx.getString(R.string.insight_stress_bullet_n_high))
+                    if (person.extraversion >= 7) append(ctx.getString(R.string.insight_stress_bullet_e_high))
+                    if (person.extraversion <= 4) append(ctx.getString(R.string.insight_stress_bullet_e_low))
+                    if (person.conscientiousness >= 7) append(ctx.getString(R.string.insight_stress_bullet_c_high))
+                    if (topMot?.type == MotivationType.POWER) append(ctx.getString(R.string.insight_stress_bullet_power))
+                    if (topMot?.type == MotivationType.SECURITY) append(ctx.getString(R.string.insight_stress_bullet_security))
+                    if (topBias !=
+                        null
+                    ) {
+                        append(ctx.getString(R.string.insight_stress_bullet_top_bias, ctx.getString(topBias.type.labelResId)))
+                    }
+                    val strategy =
+                        if (person.agreeableness >=
+                            6
+                        ) {
+                            ctx.getString(R.string.insight_stress_strategy_high_a)
+                        } else {
+                            ctx.getString(R.string.insight_stress_strategy_low_a)
+                        }
+                    append(ctx.getString(R.string.insight_strategy_suffix, strategy))
+                }
+
+                BehaviorTrigger.CONFLICT -> {
+                    if (person.agreeableness <= 4) append(ctx.getString(R.string.insight_conflict_bullet_a_low))
+                    if (person.agreeableness >= 7) append(ctx.getString(R.string.insight_conflict_bullet_a_high))
+                    if (person.neuroticism >= 7) append(ctx.getString(R.string.insight_conflict_bullet_n_high))
+                    if (person.extraversion >= 7) append(ctx.getString(R.string.insight_conflict_bullet_e_high))
+                    if (topMot?.type == MotivationType.POWER) append(ctx.getString(R.string.insight_conflict_bullet_power))
+                    if (topMot?.type == MotivationType.AFFILIATION) append(ctx.getString(R.string.insight_conflict_bullet_affiliation))
+                    val lossBias = person.biases.find { it.type == BiasType.LOSS_AVERSION }
+                    if (lossBias?.intensity != null &&
+                        lossBias.intensity >= 6
+                    ) {
+                        append(ctx.getString(R.string.insight_conflict_bullet_loss_aversion))
+                    }
+                    val strategy =
+                        if (person.agreeableness >=
+                            6
+                        ) {
+                            ctx.getString(R.string.insight_conflict_strategy_high_a)
+                        } else {
+                            ctx.getString(R.string.insight_conflict_strategy_low_a)
+                        }
+                    append(ctx.getString(R.string.insight_strategy_suffix, strategy))
+                }
+
+                BehaviorTrigger.SUCCESS -> {
+                    val recMot = person.motivations.find { it.type == MotivationType.RECOGNITION }
+                    if (recMot?.intensity != null &&
+                        recMot.intensity >= 7
+                    ) {
+                        append(ctx.getString(R.string.insight_success_bullet_recognition_high))
+                    }
+                    val powMot = person.motivations.find { it.type == MotivationType.POWER }
+                    if (powMot?.intensity != null &&
+                        powMot.intensity >= 7
+                    ) {
+                        append(ctx.getString(R.string.insight_success_bullet_power_high))
+                    }
+                    if (person.openness >= 7) append(ctx.getString(R.string.insight_success_bullet_o_high))
+                    if (person.conscientiousness >= 7) append(ctx.getString(R.string.insight_success_bullet_c_high))
+                    val dkBias = person.biases.find { it.type == BiasType.DUNNING_KRUGER }
+                    if (dkBias?.intensity != null && dkBias.intensity >= 6) append(ctx.getString(R.string.insight_success_bullet_dk))
+                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_success_strategy)))
+                }
+
+                BehaviorTrigger.UNCERTAINTY -> {
+                    if (person.neuroticism >= 7) append(ctx.getString(R.string.insight_uncertainty_bullet_n_high))
+                    if (person.neuroticism <= 3) append(ctx.getString(R.string.insight_uncertainty_bullet_n_low))
+                    if (person.openness >= 7) append(ctx.getString(R.string.insight_uncertainty_bullet_o_high))
+                    if (person.openness <= 4) append(ctx.getString(R.string.insight_uncertainty_bullet_o_low))
+                    val secMot = person.motivations.find { it.type == MotivationType.SECURITY }
+                    if (secMot?.intensity != null &&
+                        secMot.intensity >= 7
+                    ) {
+                        append(ctx.getString(R.string.insight_uncertainty_bullet_security_high))
+                    }
+                    val ancBias = person.biases.find { it.type == BiasType.ANCHORING }
+                    if (ancBias?.intensity != null &&
+                        ancBias.intensity >= 6
+                    ) {
+                        append(ctx.getString(R.string.insight_uncertainty_bullet_anchoring))
+                    }
+                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_uncertainty_strategy)))
+                }
+
+                BehaviorTrigger.RECOGNITION -> {
+                    val recMot = person.motivations.find { it.type == MotivationType.RECOGNITION }
+                    if (recMot != null) {
+                        when {
+                            recMot.intensity >= 8 -> append(ctx.getString(R.string.insight_recognition_bullet_intensity_high))
+                            recMot.intensity >= 5 -> append(ctx.getString(R.string.insight_recognition_bullet_intensity_mid))
+                            else -> append(ctx.getString(R.string.insight_recognition_bullet_intensity_low))
+                        }
+                    }
+                    if (person.extraversion >= 7) append(ctx.getString(R.string.insight_recognition_bullet_e_high))
+                    if (person.extraversion <= 4) append(ctx.getString(R.string.insight_recognition_bullet_e_low))
+                    val spBias = person.biases.find { it.type == BiasType.SOCIAL_PROOF }
+                    if (spBias?.intensity != null &&
+                        spBias.intensity >= 6
+                    ) {
+                        append(ctx.getString(R.string.insight_recognition_bullet_social_proof))
+                    }
+                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_recognition_strategy)))
+                }
+
+                BehaviorTrigger.THREATENED -> {
+                    val powMot = person.motivations.find { it.type == MotivationType.POWER }
+                    if (powMot?.intensity != null && powMot.intensity >= 7) append(ctx.getString(R.string.insight_threat_bullet_power_high))
+                    if (person.agreeableness <= 4) append(ctx.getString(R.string.insight_threat_bullet_a_low))
+                    if (person.agreeableness >= 7) append(ctx.getString(R.string.insight_threat_bullet_a_high))
+                    if (person.neuroticism >= 7) append(ctx.getString(R.string.insight_threat_bullet_n_high))
+                    val laBias = person.biases.find { it.type == BiasType.LOSS_AVERSION }
+                    if (laBias?.intensity != null &&
+                        laBias.intensity >= 6
+                    ) {
+                        append(ctx.getString(R.string.insight_threat_bullet_loss_aversion))
+                    }
+                    val confBias = person.biases.find { it.type == BiasType.CONFIRMATION }
+                    if (confBias?.intensity != null &&
+                        confBias.intensity >= 6
+                    ) {
+                        append(ctx.getString(R.string.insight_threat_bullet_confirmation))
+                    }
+                    append(ctx.getString(R.string.insight_strategy_suffix, ctx.getString(R.string.insight_threat_strategy)))
+                }
+            }
             person.behavioralPatterns
                 .find { it.trigger == trigger }
                 ?.let { append(ctx.getString(R.string.insight_observed_pattern, it.predictedBehavior)) }

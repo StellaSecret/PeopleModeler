@@ -139,5 +139,7 @@ class PersonRepository(
 
     suspend fun savePrediction(prediction: PredictionEntity) = db.predictionDao().insertPrediction(prediction)
 
+    suspend fun deletePrediction(prediction: PredictionEntity) = db.predictionDao().deletePrediction(prediction)
+
     suspend fun getAverageAccuracy(personId: String) = db.predictionDao().averageAccuracyForPerson(personId)
 }

@@ -160,13 +160,93 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Insight -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnShowInsight"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/insight_section_title"
+                android:textColor="@color/colorText"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/person_detail_analyze_stress"
-                android:layout_marginBottom="12dp"
-                app:backgroundTint="@color/colorSecondary"/>
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInsightStress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/insight_btn_stress"
+                    android:textSize="11sp"
+                    android:lines="2"
+                    app:backgroundTint="@color/colorSecondary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInsightConflict"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/insight_btn_conflict"
+                    android:textSize="11sp"
+                    android:lines="2"
+                    app:backgroundTint="@color/colorSecondary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInsightSuccess"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/insight_btn_success"
+                    android:textSize="11sp"
+                    android:lines="2"
+                    app:backgroundTint="@color/colorSecondary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInsightUncertainty"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/insight_btn_uncertainty"
+                    android:textSize="11sp"
+                    android:lines="2"
+                    app:backgroundTint="@color/colorSecondary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInsightRecognition"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/insight_btn_recognition"
+                    android:textSize="11sp"
+                    android:lines="2"
+                    app:backgroundTint="@color/colorSecondary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInsightThreat"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/insight_btn_threat"
+                    android:textSize="11sp"
+                    android:lines="2"
+                    app:backgroundTint="@color/colorSecondary"/>
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/textInsightOutput"
@@ -177,7 +257,8 @@
                 android:textSize="14sp"
                 android:padding="12dp"
                 android:background="@color/colorCardBackground"
-                android:lineSpacingMultiplier="1.5"/>
+                android:lineSpacingMultiplier="1.5"
+                android:layout_marginBottom="16dp"/>
 
             <!-- Predictions section -->
             <TextView

@@ -78,6 +78,13 @@ class PersonDetailFragment : Fragment() {
         }
     }
 
+    private fun showInsight(
+        person: Person,
+        trigger: BehaviorTrigger,
+    ) {
+        binding.textInsightOutput.text = viewModel.generateBehavioralInsight(person, trigger)
+    }
+
     private fun renderPerson(person: Person) {
         binding.apply {
             textPersonAvatar.text = person.avatarEmoji
@@ -113,10 +120,12 @@ class PersonDetailFragment : Fragment() {
             barA.progress = person.agreeableness * 10
             barN.progress = person.neuroticism * 10
 
-            btnShowInsight.setOnClickListener {
-                val insight = viewModel.generateBehavioralInsight(person, BehaviorTrigger.STRESS)
-                textInsightOutput.text = insight
-            }
+            btnInsightStress.setOnClickListener { showInsight(person, BehaviorTrigger.STRESS) }
+            btnInsightConflict.setOnClickListener { showInsight(person, BehaviorTrigger.CONFLICT) }
+            btnInsightSuccess.setOnClickListener { showInsight(person, BehaviorTrigger.SUCCESS) }
+            btnInsightUncertainty.setOnClickListener { showInsight(person, BehaviorTrigger.UNCERTAINTY) }
+            btnInsightRecognition.setOnClickListener { showInsight(person, BehaviorTrigger.RECOGNITION) }
+            btnInsightThreat.setOnClickListener { showInsight(person, BehaviorTrigger.THREATENED) }
         }
     }
 
@@ -199,6 +208,14 @@ class PersonDetailFragment : Fragment() {
             )
             row.addView(frame)
         }
+        row.addView(
+            Button(requireContext(), null, android.R.attr.buttonBarButtonStyle).apply {
+                text = getString(R.string.pred_delete)
+                textSize = 11f
+                setTextColor(resources.getColor(R.color.colorBias, null))
+                setOnClickListener { showDeleteDialog(pred) }
+            },
+        )
         return row
     }
 
@@ -242,6 +259,16 @@ class PersonDetailFragment : Fragment() {
                 }
                 viewModel.resolvePrediction(pred, actual, slider.value.toInt())
             }.setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showDeleteDialog(pred: PredictionEntity) {
+        AlertDialog
+            .Builder(requireContext())
+            .setTitle(R.string.pred_delete_title)
+            .setMessage(R.string.pred_delete_message)
+            .setPositiveButton(R.string.pred_delete) { _, _ -> viewModel.deletePrediction(pred) }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 

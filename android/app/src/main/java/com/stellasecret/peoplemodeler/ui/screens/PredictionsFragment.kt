@@ -38,7 +38,11 @@ class PredictionsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.recyclerPredictions.layoutManager = LinearLayoutManager(requireContext())
-        val adapter = PredictionAdapter { pred -> showResolveDialog(pred) }
+        val adapter =
+            PredictionAdapter(
+                onResolve = { pred -> showResolveDialog(pred) },
+                onDelete = { pred -> showDeleteDialog(pred) },
+            )
         binding.recyclerPredictions.adapter = adapter
 
         viewModel.pendingPredictions.observe(viewLifecycleOwner) { predictions ->
@@ -92,8 +96,19 @@ class PredictionsFragment : Fragment() {
             .show()
     }
 
+    private fun showDeleteDialog(pred: PredictionEntity) {
+        android.app.AlertDialog
+            .Builder(requireContext())
+            .setTitle(R.string.pred_delete_title)
+            .setMessage(R.string.pred_delete_message)
+            .setPositiveButton(R.string.pred_delete) { _, _ -> viewModel.deletePrediction(pred) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private class PredictionAdapter(
         private val onResolve: (PredictionEntity) -> Unit,
+        private val onDelete: (PredictionEntity) -> Unit,
     ) : RecyclerView.Adapter<PredictionAdapter.ViewHolder>() {
         private val items = mutableListOf<PredictionEntity>()
 
@@ -133,6 +148,10 @@ class PredictionsFragment : Fragment() {
                 }
             holder.itemView.setOnClickListener {
                 if (p.actualOutcome == null) onResolve(p)
+            }
+            holder.itemView.setOnLongClickListener {
+                onDelete(p)
+                true
             }
         }
 
