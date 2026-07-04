@@ -7,26 +7,19 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "build": "echo 'Static site - no build needed'",
-    "preview": "serve web -p 4173",
+    "build:dioxus": "dx build --release --package peoplemodeler-app",
+    "preview": "serve target/dx/peoplemodeler-app/release/web/public -p 4173",
     "prepare": "husky",
-    "lint:html": "html-validate web/index.html web/app.html web/person.html web/compare.html",
     "lint:secrets": "node scripts/check-secrets.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "html-validate": "^11.5.5",
     "husky": "^9.1.6",
     "lint-staged": "^17.0.8",
     "serve": "^14.2.6"
   },
   "lint-staged": {
-    "web/**/*.html": [
-      "html-validate"
-    ],
-    "web/**/*.{js,css}": [
-      "node scripts/check-secrets.js --staged"
-    ],
-    "**/*.{kt,gradle,js}": [
+    "**/*.{js}": [
       "node scripts/check-placeholder.js --staged"
     ],
     "package.json": [

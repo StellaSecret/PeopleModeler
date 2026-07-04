@@ -1,21 +1,18 @@
-pub mod models;
 pub mod i18n;
-pub mod ocean;
 pub mod insights;
+pub mod models;
+pub mod ocean;
 pub mod predictions;
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
 
-#[cfg(feature = "android")]
-pub mod android;
-
 #[cfg(test)]
 mod tests {
-    use crate::models::*;
     use crate::i18n::*;
-    use crate::ocean;
     use crate::insights::{self, InsightContext};
+    use crate::models::*;
+    use crate::ocean;
     use crate::predictions;
 
     fn demo_person() -> Person {
@@ -28,25 +25,55 @@ mod tests {
             tags: vec!["Business".into(), "Décideur".into(), "Négociateur".into()],
             notes: String::new(),
             motivations: vec![
-                Motivation { r#type: MotivationType::Power, intensity: 9, notes: "Cherche toujours à être en position de force".into() },
-                Motivation { r#type: MotivationType::Recognition, intensity: 7, notes: "A besoin de validation publique".into() },
-                Motivation { r#type: MotivationType::Achievement, intensity: 8, notes: "Très orienté résultats".into() },
-            ],
-            biases: vec![
-                Bias { r#type: BiasType::Anchoring, intensity: 8, evidence: "Reste bloqué sur le premier chiffre".into() },
-                Bias { r#type: BiasType::Confirmation, intensity: 6, evidence: "Ignore les données contradictoires".into() },
-            ],
-            behavioral_patterns: vec![],
-            ocean: OceanScores { openness: 8, conscientiousness: 6, extraversion: 9, agreeableness: 4, neuroticism: 5 },
-            predictions: vec![
-                Prediction {
-                    id: "p1".into(), person_id: "demo-001".into(),
-                    context: "Réunion budget".into(), predicted_outcome: "Va négocier".into(),
-                    actual_outcome: Some("A négocié".into()), accuracy: Some(7),
-                    created_at: 1000, resolved_at: Some(2000), resolved: true,
+                Motivation {
+                    r#type: MotivationType::Power,
+                    intensity: 9,
+                    notes: "Cherche toujours à être en position de force".into(),
+                },
+                Motivation {
+                    r#type: MotivationType::Recognition,
+                    intensity: 7,
+                    notes: "A besoin de validation publique".into(),
+                },
+                Motivation {
+                    r#type: MotivationType::Achievement,
+                    intensity: 8,
+                    notes: "Très orienté résultats".into(),
                 },
             ],
-            created_at: 0, updated_at: 0,
+            biases: vec![
+                Bias {
+                    r#type: BiasType::Anchoring,
+                    intensity: 8,
+                    evidence: "Reste bloqué sur le premier chiffre".into(),
+                },
+                Bias {
+                    r#type: BiasType::Confirmation,
+                    intensity: 6,
+                    evidence: "Ignore les données contradictoires".into(),
+                },
+            ],
+            behavioral_patterns: vec![],
+            ocean: OceanScores {
+                openness: 8,
+                conscientiousness: 6,
+                extraversion: 9,
+                agreeableness: 4,
+                neuroticism: 5,
+            },
+            predictions: vec![Prediction {
+                id: "p1".into(),
+                person_id: "demo-001".into(),
+                context: "Réunion budget".into(),
+                predicted_outcome: "Va négocier".into(),
+                actual_outcome: Some("A négocié".into()),
+                accuracy: Some(7),
+                created_at: 1000,
+                resolved_at: Some(2000),
+                resolved: true,
+            }],
+            created_at: 0,
+            updated_at: 0,
         }
     }
 
@@ -144,15 +171,20 @@ mod tests {
     #[test]
     fn test_person_serialization_minimal() {
         let p = Person {
-            id: "x".into(), name: "Test".into(),
-            role: String::new(), context: String::new(),
-            avatar_emoji: "🧑".into(), tags: vec![],
+            id: "x".into(),
+            name: "Test".into(),
+            role: String::new(),
+            context: String::new(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
             notes: String::new(),
-            motivations: vec![], biases: vec![],
+            motivations: vec![],
+            biases: vec![],
             behavioral_patterns: vec![],
             ocean: OceanScores::default(),
             predictions: vec![],
-            created_at: 0, updated_at: 0,
+            created_at: 0,
+            updated_at: 0,
         };
         let json = serde_json::to_string(&p).unwrap();
         assert!(json.contains("\"name\":\"Test\""));

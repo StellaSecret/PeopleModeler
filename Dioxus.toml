@@ -1,0 +1,21 @@
+[application]
+name = "PeopleModeler"
+
+[web]
+title = "People Modeler"
+base_path = "/PeopleModeler"
+pre_compress = true
+
+[web.watcher]
+reload_html = true
+
+[web.watcher.dev]
+ignore = []
+
+[bundle]
+identifier = "com.stellasecret.peoplemodeler"
+version = "1.37.0"
+
+[android]
+min_sdk = 24
+target_sdk = 34

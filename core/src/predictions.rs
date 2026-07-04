@@ -27,7 +27,10 @@ pub fn prediction_accuracy_score(predictions: &[Prediction]) -> f64 {
     if resolved.is_empty() {
         return 0.0;
     }
-    let sum: u32 = resolved.iter().map(|p| p.accuracy.unwrap_or(0) as u32).sum();
+    let sum: u32 = resolved
+        .iter()
+        .map(|p| p.accuracy.unwrap_or(0) as u32)
+        .sum();
     sum as f64 / resolved.len() as f64 * 10.0
 }
 

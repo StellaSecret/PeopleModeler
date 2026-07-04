@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>People Modeler — Comprendre les systèmes humains</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="js/i18n.js"></script>
+  <script>
+    // If Google OAuth redirects here with a token hash, save it and go to SPA
+    (function(){
+      var h = location.hash;
+      if (h && h.indexOf('access_token') !== -1) {
+        try { localStorage.setItem('pm_drive_token', h.split('access_token=')[1].split('&')[0]); } catch(e) {}
+        location.href = 'spa.html' + h;
+      }
+    })();
+  </script>
+</head>
+<body>
+
+<div class="noise"></div>
+
+<nav class="nav" aria-label="Navigation principale">
+  <div class="nav-logo">🧩 <span>People</span>Modeler</div>
+  <div class="nav-links">
+    <a href="landing.html#features" data-i18n="nav_features">Fonctionnalités</a>
+    <a href="landing.html#how" data-i18n="nav_how">Comment</a>
+    <a href="person.html" data-i18n="nav_demo">Démo</a>
+    <a href="compare.html" data-i18n="nav_compare">Comparer</a>
+    <a class="btn-nav" href="./" data-i18n="nav_open_app">Ouvrir l'app</a>
+  </div>
+  <button type="button" class="lang-toggle" onclick="toggleLang()">🌐</button>
+  <button type="button" class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-content">
+    <div class="hero-tag" data-i18n="hero_tag">⚠️ Éthique d'abord · Ultra-puissant ensuite</div>
+    <h1 class="hero-title">
+      <span data-i18n="hero_title_1">Modéliser les gens</span><br>
+      <span data-i18n="hero_title_2">comme des <em>systèmes</em></span>
+    </h1>
+    <p class="hero-sub" data-i18n="hero_sub">
+      Motivations · Biais · Comportements<br>
+      Prédire avec précision. Comprendre avec empathie.
+    </p>
+    <div class="hero-cta">
+      <a href="./" class="btn-primary" data-i18n="hero_cta_app">🚀 Lancer l'app web</a>
+      <a href="person.html" class="btn-ghost" data-i18n="hero_cta_demo">Voir la démo →</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="person-card-preview">
+      <div class="pcp-avatar">🧠</div>
+      <div class="pcp-name" data-i18n="preview_name">Système : Alexandre D.</div>
+      <div class="pcp-role" data-i18n="preview_role">Décideur · Contexte pro</div>
+      <div class="pcp-bars">
+        <div class="bar-row"><span data-i18n="preview_power">Pouvoir 👑</span><div class="bar"><div class="fill fill-90"></div></div></div>
+        <div class="bar-row"><span data-i18n="preview_anchor">Biais ancrage ⚓</span><div class="bar"><div class="fill red fill-75"></div></div></div>
+        <div class="bar-row"><span data-i18n="preview_accuracy">Précision prédictions</span><div class="bar"><div class="fill gold fill-82"></div></div></div>
+      </div>
+      <div class="pcp-badge" data-i18n="preview_badge">🔮 3 prédictions en attente</div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <h2 class="section-title" data-i18n="features_title">Ce que vous <em>gagnez</em></h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <h3 data-i18n="f1_title">Fiches personnalisées</h3>
+      <p data-i18n="f1_desc">Chaque personne est un modèle : motivations profondes, biais cognitifs, patterns comportementaux. Un profil OCEAN complet.</p>
+    </div>
+    <div class="feature-card accent">
+      <div class="feature-icon">🔮</div>
+      <h3 data-i18n="f2_title">Prédictions comportementales</h3>
+      <p data-i18n="f2_desc">Anticipez les réactions dans chaque contexte — stress, conflit, succès, incertitude. Avec un indice de confiance.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3 data-i18n="f3_title">Feedback Loop</h3>
+      <p data-i18n="f3_desc">Notez la précision de vos prédictions. Le système apprend de vos retours. Votre modèle mental s'affine.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3 data-i18n="f4_title">Insights &amp; comparaisons</h3>
+      <p data-i18n="f4_desc">Comparez deux profils, identifiez les synergies et les points de friction. Parfait pour les équipes et les négociations.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3 data-i18n="f5_title">100% local</h3>
+      <p data-i18n="f5_desc">Vos données restent sur votre appareil. Aucun serveur, aucune synchronisation cloud. Votre modèle mental est privé.</p>
+    </div>
+    <div class="feature-card accent2">
+      <div class="feature-icon">⚠️</div>
+      <h3 data-i18n="f6_title">Éthique by design</h3>
+      <p data-i18n="f6_desc">Rappels intégrés. Conçu pour améliorer vos relations, pas pour manipuler. Le pouvoir implique la responsabilité.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <h2 class="section-title" data-i18n="how_title">Comment ça <em>fonctionne</em></h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-body">
+        <h3 data-i18n="step1_title">Créez une fiche</h3>
+        <p data-i18n="step1_desc">Nom, rôle, contexte. Choisissez un avatar. C'est votre point de départ.</p>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-body">
+        <h3 data-i18n="step2_title">Modélisez le système</h3>
+        <p data-i18n="step2_desc">Ajoutez les motivations (intensité 1–10), les biais observés, les patterns comportementaux selon le contexte.</p>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-body">
+        <h3 data-i18n="step3_title">Prédisez &amp; testez</h3>
+        <p data-i18n="step3_desc">Avant une réunion, un conflit, une négociation — notez votre prédiction. Observez. Notez la précision.</p>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-body">
+        <h3 data-i18n="step4_title">Affinez le modèle</h3>
+        <p data-i18n="step4_desc">Le feedback loop améliore votre compréhension. Avec le temps, vous prédisez à 80%+.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="usecases">
+  <h2 class="section-title" data-i18n="usecases_title">Ultra-puissant pour…</h2>
+  <div class="usecase-grid">
+    <div class="usecase"><span class="uc-icon">💼</span><h4 data-i18n="uc1_title">Business</h4><p data-i18n="uc1_desc">Négociations, clients, partenaires. Anticipez les objections, adaptez votre approche.</p></div>
+    <div class="usecase"><span class="uc-icon">💞</span><h4 data-i18n="uc2_title">Relations</h4><p data-i18n="uc2_desc">Comprenez vos proches en profondeur. Réduisez les conflits. Créez des connexions durables.</p></div>
+    <div class="usecase"><span class="uc-icon">♟️</span><h4 data-i18n="uc3_title">Stratégie</h4><p data-i18n="uc3_desc">Leadership, politique d'équipe, gestion de conflits. Prenez des décisions informées.</p></div>
+    <div class="usecase"><span class="uc-icon">🧘</span><h4 data-i18n="uc4_title">Introspection</h4><p data-i18n="uc4_desc">Modélisez-vous vous-même. Identifiez vos propres biais. Devenez plus conscient.</p></div>
+  </div>
+</section>
+
+<section class="ethics">
+  <div class="ethics-inner">
+    <div class="ethics-icon">⚖️</div>
+    <div>
+      <h3 data-i18n="ethics_title">Note éthique importante</h3>
+      <p data-i18n="ethics_desc">People Modeler est un outil de compréhension, pas de manipulation. Utilisez-le pour <strong>améliorer vos relations</strong>, pas pour exploiter les failles des autres. La connaissance des systèmes humains est une responsabilité.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2 data-i18n="cta_title">Prêt à comprendre les systèmes humains ?</h2>
+  <p data-i18n="cta_sub">Application web. Données 100% locales. Gratuit.</p>
+  <div class="cta-buttons">
+    <a href="./" class="btn-primary large" data-i18n="cta_app_btn">🚀 Lancer l'application</a>
+    <a href="person.html" class="btn-ghost large" data-i18n="cta_demo_btn">👁️ Voir la démo</a>
+  </div>
+</section>
+
+<footer class="footer" aria-label="Pied de page">
+  <div class="footer-logo">🧩 PeopleModeler</div>
+  <div class="footer-links">
+    <a href="person.html" data-i18n="nav_demo">Démo fiche</a>
+    <a href="compare.html" data-i18n="nav_compare">Comparaison</a>
+  </div>
+  <p class="footer-copy" data-i18n="footer_copy">Open Source · MIT License · À utiliser éthiquement</p>
+</footer>
+
+</body>
+</html>

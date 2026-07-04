@@ -1,267 +1,164 @@
 import { test, expect } from '@playwright/test';
 
-// ── Web App (/app.html) ───────────────────────────────────
-test.describe('Web App', () => {
+test.describe('People Modeler Dioxus App', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Clear localStorage before each test for a clean state
-    await page.goto('/app.html');
+    await page.goto('/PeopleModeler/');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
   });
 
-  // ── Empty state ────────────────────────────────────────
+  // ── Create Person ─────────────────────────────────────
 
-  test('affiche l\'état vide au premier lancement', async ({ page }) => {
-    await expect(page.locator('#emptyState')).toBeVisible();
-    await expect(page.locator('#profileView')).not.toBeVisible();
+  test('create a person and see detail', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    // Form has label+input pairs, no placeholders
+    await page.locator('label:has-text("Name") + input').fill('Marie Curie');
+    await page.locator('label:has-text("Role") + input').fill('Physicist');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await expect(page.locator('h1')).toContainText('Marie Curie');
+    await expect(page.locator('.content')).toContainText('Physicist');
   });
 
-  test('affiche le bouton Créer un profil', async ({ page }) => {
-    await expect(page.locator('.app-empty .btn-primary')).toBeVisible();
+  test('create person with ocean scores', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Alan Turing');
+    const sliders = page.locator('.ocean-slider input[type="range"]');
+    await expect(sliders).toHaveCount(5);
+    await sliders.nth(0).fill('8');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await expect(page.locator('h1')).toContainText('Alan Turing');
   });
 
-  test('affiche le bouton Sync Google Drive', async ({ page }) => {
-    await expect(page.locator('#gdriveSyncBtn')).toBeVisible();
+  // ── Edit Person ───────────────────────────────────────
+
+  test('edit person name', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Old Name');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await page.click('a:has-text("Edit")');
+    await page.waitForURL(/\/edit/);
+    await page.locator('label:has-text("Name") + input').fill('New Name');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await expect(page.locator('h1')).toContainText('New Name');
   });
 
-  // ── Création de profil ─────────────────────────────────
-
-  test('ouvre la modal de création de profil', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
-    await expect(page.locator('#fName')).toBeVisible();
+  test('delete person', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('To Delete');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    page.once('dialog', d => d.accept());
+    await page.click('button:has-text("Delete")');
+    await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
   });
 
-  test('crée un profil et affiche la vue profil', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Marie Curie');
-    await page.fill('#fRole', 'Chercheuse');
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#profileView')).toBeVisible();
-    await expect(page.locator('#emptyState')).not.toBeVisible();
-    await expect(page.locator('#pName')).toContainText('Marie Curie');
+  // ── Person list ───────────────────────────────────────
+
+  test('person appears in list after creation', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Ada Lovelace');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await page.locator('.logo').click();
+    await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
+    await expect(page.locator('.person-card')).toHaveCount(1);
+    await expect(page.locator('.person-card')).toContainText('Ada Lovelace');
   });
 
-  test('le profil créé apparaît dans la sidebar', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Ada Lovelace');
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#profileList .pe-name')).toContainText('Ada Lovelace');
+  // ── Person detail sections ────────────────────────────
+
+  test('person detail shows motivations, biases, patterns', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Test Person');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await expect(page.locator('h2:has-text("Motivations")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Behavioral Patterns")')).toBeVisible();
+    await page.locator('button:has-text("Biases")').click();
+    await expect(page.locator('h2:has-text("Biases")')).toBeVisible();
   });
 
-  test('la modal se ferme avec Annuler', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.click('.modal-actions .btn-ghost');
-    await expect(page.locator('.modal-overlay')).not.toHaveClass(/open/);
+  // ── Predictions ───────────────────────────────────────
+
+  test('add prediction for person', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Predictable');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    const personId = page.url().split('/').pop()!;
+
+    await page.goto(`/PeopleModeler/person/${personId}`);
+    await page.locator('button:has-text("Predictions")').click();
+    await page.fill('input[placeholder="Context..."]', 'Meeting tomorrow');
+    await page.fill('input[placeholder^="Predicted"]', 'Will negotiate');
+    await page.click('button:has-text("Add")');
+    await expect(page.locator('.prediction-card')).toHaveCount(1);
+    await expect(page.locator('.prediction-card')).toContainText('Meeting tomorrow');
   });
 
-  test('refus de créer un profil sans nom', async ({ page }) => {
-    page.on('dialog', dialog => dialog.accept());
-    await page.click('.app-empty .btn-primary');
-    await page.click('.modal-actions .btn-primary');
-    // Modal stays open — profile was not created
-    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
+  test('resolve prediction', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Resolver');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    const personId = page.url().split('/').pop()!;
+
+    await page.goto(`/PeopleModeler/person/${personId}`);
+    await page.locator('button:has-text("Predictions")').click();
+    await page.fill('input[placeholder="Context..."]', 'Test context');
+    await page.fill('input[placeholder^="Predicted"]', 'Will happen');
+    await page.click('button:has-text("Add")');
+    await expect(page.locator('.prediction-card')).toHaveCount(1);
+
+    await page.locator('.prediction-card').locator('button:has-text("Resolve")').click();
+    await expect(page.locator('.resolve-form')).toBeVisible({ timeout: 3000 });
+    await page.locator('.resolve-form input[placeholder="Actual outcome..."]').fill('It happened');
+    await page.locator('.resolve-form .btn-primary').click();
+    await expect(page.locator('.prediction-card')).toContainText('It happened');
   });
 
-  // ── Persistence localStorage ───────────────────────────
+  test('delete prediction', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Deleter');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    const personId = page.url().split('/').pop()!;
 
-  test('le profil persiste après rechargement', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Alan Turing');
-    await page.click('.modal-actions .btn-primary');
-    await page.reload();
-    await page.waitForTimeout(300);
-    await expect(page.locator('#pName')).toContainText('Alan Turing');
+    await page.goto(`/PeopleModeler/person/${personId}`);
+    await page.locator('button:has-text("Predictions")').click();
+    await page.fill('input[placeholder="Context..."]', 'To delete');
+    await page.fill('input[placeholder^="Predicted"]', 'Will be removed');
+    await page.click('button:has-text("Add")');
+    await expect(page.locator('.prediction-card')).toHaveCount(1);
+
+    await page.locator('.prediction-card').locator('button:has-text("Delete")').click();
+    await expect(page.locator('.prediction-card')).toHaveCount(0);
   });
 
-  // ── Onglets ────────────────────────────────────────────
+  // ── Insights ──────────────────────────────────────────
 
-  test('les 5 onglets sont présents après création d\'un profil', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('[data-panel]')).toHaveCount(5);
+  test('insights shows persons', async ({ page }) => {
+    await page.goto('/PeopleModeler/person/new');
+    await page.locator('label:has-text("Name") + input').fill('Insight Person');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+
+    await page.goto('/PeopleModeler/insights');
+    await expect(page.locator('.person-card')).toContainText('Insight Person');
   });
 
-  test('navigation entre onglets fonctionne', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="biases"]');
-    await expect(page.locator('#panel-biases')).toHaveClass(/active/);
-    await expect(page.locator('#panel-motivations')).not.toHaveClass(/active/);
-  });
+  // ── Sync Page ─────────────────────────────────────────
 
-  // ── Motivations ────────────────────────────────────────
-
-  test('peut ajouter une motivation', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('.btn-add');
-    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
-  });
-
-  // ── Biais ──────────────────────────────────────────────
-
-  test('peut ajouter un biais', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="biases"]');
-    await page.click('#panel-biases .btn-add');
-    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
-  });
-
-  test('modifier une motivation conserve le nombre d\'items', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('.btn-add');
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
-    await page.click('#motivationList .mot-item');
-    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#motivationList .mot-item')).toHaveCount(1);
-  });
-
-  test('modifier un biais conserve le nombre d\'items', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="biases"]');
-    await page.click('#panel-biases .btn-add');
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
-    await page.click('#biasList .bias-item-row');
-    await expect(page.locator('.modal-overlay')).toHaveClass(/open/);
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#biasList .bias-item-row')).toHaveCount(1);
-  });
-
-  // ── OCEAN ──────────────────────────────────────────────
-
-  test('les 5 sliders OCEAN sont présents', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="ocean"]');
-    await expect(page.locator('.ocean-slider')).toHaveCount(5);
-  });
-
-  test('slider OCEAN met à jour la valeur affichée', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="ocean"]');
-    const slider = page.locator('#sO');
-    await slider.fill('9');
-    await slider.dispatchEvent('input');
-    await expect(page.locator('#vO')).toHaveText('9');
-  });
-
-  test('l\'interprétation OCEAN se met à jour', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="ocean"]');
-    const slider = page.locator('#sE');
-    await slider.fill('9');
-    await slider.dispatchEvent('input');
-    await expect(page.locator('#oceanInterp')).not.toBeEmpty();
-  });
-
-  // ── Prédictions ────────────────────────────────────────
-
-  test('peut ajouter une prédiction', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="predictions"]');
-    await page.fill('#predCtx', 'Réunion lundi');
-    await page.fill('#predOut', 'Il va négocier');
-    await page.click('.btn-primary.btn-submit');
-    await expect(page.locator('#predictionList .pred-item').first()).toContainText('Réunion lundi');
-  });
-
-  // ── Insights ───────────────────────────────────────────
-
-  test('insights — sélectionner un contexte affiche une analyse', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Test');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[data-panel="insights"]');
-    await page.click('button[onclick*="stress"]');
-    await expect(page.locator('#insightOutput')).toContainText('Test');
-  });
-
-  // ── Édition & Suppression ──────────────────────────────
-
-  test('peut éditer un profil', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Ancien Nom');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('.btn-edit');
-    await page.fill('#fName', 'Nouveau Nom');
-    await page.click('.modal-actions .btn-primary');
-    await expect(page.locator('#pName')).toContainText('Nouveau Nom');
-  });
-
-  test('peut supprimer un profil', async ({ page }) => {
-    page.on('dialog', dialog => dialog.accept());
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'À supprimer');
-    await page.click('.modal-actions .btn-primary');
-    await page.click('[aria-label="Supprimer le profil"]');
-    await expect(page.locator('#emptyState')).toBeVisible();
-  });
-
-  // ── Multi-profils ──────────────────────────────────────
-
-  test('peut créer plusieurs profils et basculer entre eux', async ({ page }) => {
-    // Créer profil 1
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Profil Alpha');
-    await page.click('.modal-actions .btn-primary');
-    // Créer profil 2
-    await page.click('.btn-new');
-    await page.fill('#fName', 'Profil Beta');
-    await page.click('.modal-actions .btn-primary');
-    // Basculer sur profil 1
-    await page.click('.profile-entry:has-text("Profil Alpha")');
-    await expect(page.locator('#pName')).toContainText('Profil Alpha');
-    // Basculer sur profil 2
-    await page.click('.profile-entry:has-text("Profil Beta")');
-    await expect(page.locator('#pName')).toContainText('Profil Beta');
-  });
-
-  // ── Export ─────────────────────────────────────────────
-
-  test('le bouton Export déclenche un téléchargement', async ({ page }) => {
-    await page.click('.app-empty .btn-primary');
-    await page.fill('#fName', 'Export Test');
-    await page.click('.modal-actions .btn-primary');
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('button[onclick="exportData()"]'),
-    ]);
-    expect(download.suggestedFilename()).toMatch(/PeopleModeler.*\.json/);
-  });
-
-  // ── Navigation ─────────────────────────────────────────
-
-  test('le logo nav renvoie vers l\'accueil', async ({ page }) => {
-    await expect(page.locator('.nav-logo')).toHaveAttribute('href', 'index.html');
-  });
-
-  test('le lien Démo pointe vers person.html', async ({ page }) => {
-    await expect(page.locator('a[href="person.html"]')).toBeVisible();
+  test('sync page shows export/import buttons', async ({ page }) => {
+    await page.goto('/PeopleModeler/sync');
+    await expect(page.getByText('Export JSON')).toBeVisible();
+    await expect(page.getByText('Import JSON')).toBeVisible();
+    await expect(page.getByText('Sign in with Google')).toBeVisible();
   });
 });

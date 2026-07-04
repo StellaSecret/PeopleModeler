@@ -1,0 +1,492 @@
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Lang {
+    Fr,
+    En,
+}
+
+impl Lang {
+    pub fn detect() -> Self {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let stored = web_sys::window()
+                .and_then(|w| w.local_storage().ok())
+                .flatten()
+                .and_then(|s| s.get_item("pm_lang").ok())
+                .flatten();
+            if let Some(l) = stored {
+                if l == "en" {
+                    return Lang::En;
+                }
+                return Lang::Fr;
+            }
+            if let Some(nav) = web_sys::window().and_then(|w| w.navigator().language()) {
+                if nav.starts_with("en") {
+                    return Lang::En;
+                }
+            }
+            Lang::Fr
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if let Ok(l) = std::env::var("LANG") {
+                if l.starts_with("en") {
+                    return Lang::En;
+                }
+            }
+            Lang::Fr
+        }
+    }
+
+    pub fn persist(self) {
+        let s = match self {
+            Lang::En => "en",
+            Lang::Fr => "fr",
+        };
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(storage) = web_sys::window()
+                .and_then(|w| w.local_storage().ok())
+                .flatten()
+            {
+                let _ = storage.set_item("pm_lang", s);
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = std::fs::write(
+                std::env::current_dir().map_or_else(|_| ".".into(), |p| p).join(".pm_lang"),
+                s,
+            );
+        }
+    }
+}
+
+pub fn tr(key: &'static str, lang: Lang) -> &'static str {
+    match lang {
+        Lang::Fr => fr(key),
+        Lang::En => en(key),
+    }
+}
+
+pub fn tr_fmt(key: &'static str, lang: Lang, args: &[(&str, &str)]) -> String {
+    let mut s = tr(key, lang).to_string();
+    for (k, v) in args {
+        let pattern = format!("{{{}}}", k);
+        s = s.replace(&pattern, v);
+    }
+    s
+}
+
+fn en(key: &'static str) -> &'static str {
+    match key {
+        // Nav
+        "nav_app_title" => "PeopleModeler",
+        "nav_people" => "People",
+        "nav_pred" => "Pred",
+        "nav_insights" => "Insights",
+        "nav_sync" => "Sync",
+
+        // People list
+        "search_placeholder" => "Search people...",
+        "no_people_yet" => "No people yet. Tap + to add someone.",
+
+        // Person detail
+        "person_not_found" => "Person not found",
+        "edit_btn" => "✏ Edit",
+        "delete_btn" => "🗑 Delete",
+        "motivations_title" => "Motivations",
+        "no_motivations" => "No motivations recorded.",
+        "biases_title" => "Biases",
+        "no_biases" => "No biases recorded.",
+        "patterns_title" => "Behavioral Patterns",
+        "no_patterns" => "No behavioral patterns recorded.",
+        "predictions_insights" => "Predictions & Insights",
+        "predictions_link" => "🔮 Predictions",
+        "insights_link" => "📊 Insights",
+        "ocean_title" => "OCEAN Scores",
+        "confidence_label" => "Confidence",
+
+        // Person edit form
+        "form_new_title" => "New Person",
+        "form_edit_title" => "Edit Person",
+        "form_name" => "Name",
+        "form_role" => "Role",
+        "form_context" => "Context",
+        "form_avatar" => "Avatar",
+        "form_tags" => "Tags (comma separated)",
+        "form_notes" => "Notes",
+        "form_ocean_title" => "OCEAN Scores (1-10)",
+        "form_save" => "💾 Save",
+        "form_cancel" => "Cancel",
+        "form_alert_name" => "Please enter a name.",
+
+        // Ocean labels
+        "ocean_openness" => "Openness",
+        "ocean_conscientiousness" => "Conscientiousness",
+        "ocean_extraversion" => "Extraversion",
+        "ocean_agreeableness" => "Agreeableness",
+        "ocean_neuroticism" => "Neuroticism",
+        "ocean_o" => "O — Openness",
+        "ocean_c" => "C — Conscientiousness",
+        "ocean_e" => "E — Extraversion",
+        "ocean_a" => "A — Agreeableness",
+        "ocean_n" => "N — Neuroticism",
+        "ocean_o_high" => "very open to new ideas, creative and curious",
+        "ocean_o_low" => "pragmatic, prefers routines and concrete things",
+        "ocean_c_high" => "organized, reliable, results and detail-oriented",
+        "ocean_c_low" => "flexible and spontaneous, may lack rigor",
+        "ocean_e_high" => "extraverted, energetic, seeks social stimulation",
+        "ocean_e_low" => "introverted, thoughtful, prefers limited interactions",
+        "ocean_a_high" => "cooperative, empathetic, seeks harmony",
+        "ocean_a_low" => "direct or abrasive, puts goals before relationships",
+        "ocean_n_high" => "emotionally reactive, prone to stress, sensitive to criticism",
+        "ocean_n_low" => "emotionally stable, calm under pressure",
+
+        // Edit form sections
+        "edit_motivations" => "Motivations",
+        "edit_biases" => "Biases",
+        "edit_patterns" => "Behavioral Patterns",
+        "edit_notes_placeholder" => "Notes",
+        "edit_evidence_placeholder" => "Evidence",
+        "add_btn" => "＋",
+
+        // Context labels
+        "ctx_stress" => "Stress",
+        "ctx_conflict" => "Conflict",
+        "ctx_success" => "Success",
+        "ctx_uncertainty" => "Uncertainty",
+        "ctx_recognition" => "Recognition",
+        "ctx_threatened" => "Threatened",
+
+        // Predictions
+        "pred_all_title" => "All Predictions",
+        "pred_for" => "🔮 Predictions for",
+        "pred_title" => "Predictions",
+        "pred_context_placeholder" => "Context...",
+        "pred_outcome_placeholder" => "Predicted outcome...",
+        "pred_add_btn" => "Add",
+        "pred_none" => "No predictions yet.",
+        "pred_predicted_label" => "Predicted",
+        "pred_actual_label" => "Actual",
+        "pred_resolve_btn" => "Resolve",
+        "pred_delete_btn" => "Delete",
+        "pred_actual_placeholder" => "Actual outcome...",
+        "pred_accuracy_label" => "Accuracy",
+        "pred_resolve_submit" => "✓ Resolve",
+        "pred_cancel_btn" => "Cancel",
+
+        // Insights
+        "insights_title" => "📊 Insights",
+        "insights_select_person" => "Select a person to view behavioral insights.",
+        "insights_for" => "📊 Insights for",
+        "insights_observed" => "Observed Patterns",
+        "insights_context_analysis" => "🔍 {trigger} – Context Analysis for {name}",
+        "insights_primary_driver" => "• Primary driver",
+        "insights_key_bias" => "• Key bias",
+        "insights_recommendations" => "Recommendations",
+        "insights_stress" => "😰 Under stress",
+        "insights_conflict" => "⚔️ In conflict",
+        "insights_success" => "🏆 In success",
+        "insights_uncertainty" => "❓ Uncertainty",
+        "insights_recognition" => "⭐ Seeking recognition",
+        "insights_threat" => "🛡️ Feeling threatened",
+
+        // Insight strategies
+        "strategy_stress_label" => "Under stress",
+        "strategy_conflict_label" => "In conflict",
+        "strategy_success_label" => "In success",
+        "strategy_uncertainty_label" => "In uncertainty",
+        "strategy_recognition_label" => "Seeking recognition",
+        "strategy_threat_label" => "Feeling threatened",
+
+        "strategy_stress_header" => "Under stress, {name} will tend to:",
+        "strategy_conflict_header" => "In conflict situations, {name}:",
+        "strategy_success_header" => "In periods of success, {name}:",
+        "strategy_uncertainty_header" => "Facing uncertainty, {name}:",
+        "strategy_recognition_header" => "When {name} seeks recognition:",
+        "strategy_threat_header" => "When {name} feels threatened:",
+
+        "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
+        "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
+        "strategy_stress_low_e" => "Low extraversion — give quiet space to decompress.",
+        "strategy_stress_high_c" => "High conscientiousness — break problems into actionable steps.",
+        "strategy_stress_power" => "Power-driven — let them regain control in one domain.",
+        "strategy_stress_security" => "Security-driven — reinforce stability and routine.",
+        "strategy_stress_fallback" => "Monitor stress signals and adjust environment.",
+
+        "strategy_conflict_low_a" => "Low agreeableness — address conflict directly with facts.",
+        "strategy_conflict_high_a" => "High agreeableness — soften confrontation, focus on harmony.",
+        "strategy_conflict_high_n" => "High neuroticism — de-escalate and provide emotional safety.",
+        "strategy_conflict_high_e" => "High extraversion — let them talk it through.",
+        "strategy_conflict_fallback" => "Mediate with balanced communication.",
+
+        "strategy_success_high_o" => "High openness — channel success into new creative challenges.",
+        "strategy_success_high_c" => "High conscientiousness — leverage success as validation of process.",
+        "strategy_success_recognition" => "Recognition-driven — publicly acknowledge their achievement.",
+        "strategy_success_power" => "Power-driven — give them ownership of the next initiative.",
+        "strategy_success_fallback" => "Celebrate success and identify growth areas.",
+
+        "strategy_uncertainty_high_n" => "High neuroticism — provide clear timelines and frequent updates.",
+        "strategy_uncertainty_low_n" => "Low neuroticism — they handle ambiguity well; trust their resilience.",
+        "strategy_uncertainty_high_o" => "High openness — frame uncertainty as opportunity.",
+        "strategy_uncertainty_low_o" => "Low openness — provide concrete examples and familiar frameworks.",
+        "strategy_uncertainty_fallback" => "Acknowledge uncertainty and provide available information.",
+
+        "strategy_recognition_high" => "Strong recognition drive — give frequent, specific praise.",
+        "strategy_recognition_mid" => "Moderate recognition drive — acknowledge contributions regularly.",
+        "strategy_recognition_low" => "Low recognition need — avoid over-praising.",
+        "strategy_recognition_high_e" => "High extraversion — public recognition is effective.",
+        "strategy_recognition_low_e" => "Low extraversion — prefer private, written acknowledgment.",
+        "strategy_recognition_fallback" => "Match recognition style to their comfort level.",
+
+        "strategy_threat_low_a" => "Low agreeableness — they may push back; address concerns calmly.",
+        "strategy_threat_high_a" => "High agreeableness — they may concede too easily; check true feelings.",
+        "strategy_threat_high_n" => "High neuroticism — perceived threats are amplified; offer reassurance.",
+        "strategy_threat_power" => "Power-driven — threat to status is serious; involve them in decisions.",
+        "strategy_threat_fallback" => "Listen actively and validate their concerns.",
+
+        // Sync / Drive
+        "sync_title" => "☁ Sync & Backup",
+        "sync_gdrive_title" => "Google Drive Sync",
+        "sync_token_loaded" => "✓ Token loaded",
+        "sync_token_cleared" => "Token cleared",
+        "sync_clear_btn" => "Clear",
+        "sync_sign_in" => "🔐 Sign in with Google",
+        "sync_no_token" => "No token. Sign in first.",
+        "sync_backing_up" => "Backing up...",
+        "sync_backed_up" => "✅ Backed up",
+        "sync_backup_btn" => "☁ Backup to Drive",
+        "sync_restoring" => "Restoring...",
+        "sync_restored" => "✅ Restored",
+        "sync_restore_btn" => "☁ Restore from Drive",
+        "sync_not_configured" => "Google Drive backup not configured at build time. Set GOOGLE_CLIENT_ID env var before building.",
+        "sync_local_title" => "Local Backup",
+        "sync_local_desc" => "Export all data as JSON or import from a previous backup.",
+        "sync_exported" => "✅ Exported",
+        "sync_export_btn" => "📥 Export JSON",
+        "sync_import_btn" => "📤 Import JSON",
+        "sync_import_placeholder" => "Paste JSON backup here to import",
+        "sync_paste_first" => "Paste JSON first",
+        "sync_token_paste_title" => "Paste Token",
+        "sync_token_instruction_1" => "1. Tap 'Sign in with Google' — opens your browser",
+        "sync_token_instruction_2" => "2. Sign in and grant access",
+        "sync_token_instruction_3" => "3. Browser redirects to the web app — copy the token from the address bar before the page loads",
+        "sync_token_instruction_4" => "4. Paste the URL below and tap Save",
+        "sync_paste_placeholder" => "Paste the full redirect URL here",
+        "sync_token_saved" => "✅ Token saved",
+        "sync_save_token_btn" => "Save Token",
+        "sync_no_data_warn" => "No people data to back up. Add people first!",
+
+        // Common
+        "common_save" => "Save",
+        "common_cancel" => "Cancel",
+        "common_delete" => "Delete",
+        "common_confirm" => "Confirm",
+        "common_add" => "Add",
+        "common_edit" => "Edit",
+        "common_back" => "← Back",
+
+        _ => key,
+    }
+}
+
+fn fr(key: &'static str) -> &'static str {
+    match key {
+        "nav_app_title" => "PeopleModeler",
+        "nav_people" => "Personnes",
+        "nav_pred" => "Préd.",
+        "nav_insights" => "Analyses",
+        "nav_sync" => "Sync",
+
+        "search_placeholder" => "Rechercher...",
+        "no_people_yet" => "Aucune personne. Appuyez sur + pour ajouter.",
+
+        "person_not_found" => "Personne introuvable",
+        "edit_btn" => "✏ Modifier",
+        "delete_btn" => "🗑 Supprimer",
+        "motivations_title" => "Motivations",
+        "no_motivations" => "Aucune motivation enregistrée.",
+        "biases_title" => "Biais",
+        "no_biases" => "Aucun biais enregistré.",
+        "patterns_title" => "Patterns comportementaux",
+        "no_patterns" => "Aucun pattern comportemental enregistré.",
+        "predictions_insights" => "Prédictions & Analyses",
+        "predictions_link" => "🔮 Prédictions",
+        "insights_link" => "📊 Analyses",
+        "ocean_title" => "Scores OCEAN",
+        "confidence_label" => "Confiance",
+
+        "form_new_title" => "Nouvelle personne",
+        "form_edit_title" => "Modifier la personne",
+        "form_name" => "Nom",
+        "form_role" => "Rôle",
+        "form_context" => "Contexte",
+        "form_avatar" => "Avatar",
+        "form_tags" => "Tags (séparés par des virgules)",
+        "form_notes" => "Notes",
+        "form_ocean_title" => "Scores OCEAN (1-10)",
+        "form_save" => "💾 Enregistrer",
+        "form_cancel" => "Annuler",
+        "form_alert_name" => "Veuillez entrer un nom.",
+
+        "ocean_openness" => "Ouverture",
+        "ocean_conscientiousness" => "Conscienciosité",
+        "ocean_extraversion" => "Extraversion",
+        "ocean_agreeableness" => "Agréabilité",
+        "ocean_neuroticism" => "Névrosisme",
+        "ocean_o" => "O — Ouverture",
+        "ocean_c" => "C — Conscienciosité",
+        "ocean_e" => "E — Extraversion",
+        "ocean_a" => "A — Agréabilité",
+        "ocean_n" => "N — Névrosisme",
+        "ocean_o_high" => "très ouvert aux nouvelles idées, créatif et curieux",
+        "ocean_o_low" => "pragmatique, préfère les routines et le concret",
+        "ocean_c_high" => "organisé, fiable, orienté résultats et détails",
+        "ocean_c_low" => "flexible et spontané, peut manquer de rigueur",
+        "ocean_e_high" => "extraverti, énergique, cherche la stimulation sociale",
+        "ocean_e_low" => "introverti, réfléchi, préfère les interactions limitées",
+        "ocean_a_high" => "coopératif, empathique, cherche l'harmonie",
+        "ocean_a_low" => "direct voire abrasif, met ses objectifs avant les relations",
+        "ocean_n_high" => "émotionnellement réactif, stressable, sensible aux critiques",
+        "ocean_n_low" => "stable émotionnellement, calme sous pression",
+
+        "edit_motivations" => "Motivations",
+        "edit_biases" => "Biais",
+        "edit_patterns" => "Patterns comportementaux",
+        "edit_notes_placeholder" => "Notes",
+        "edit_evidence_placeholder" => "Preuve",
+        "add_btn" => "＋",
+
+        "ctx_stress" => "Stress",
+        "ctx_conflict" => "Conflit",
+        "ctx_success" => "Réussite",
+        "ctx_uncertainty" => "Incertitude",
+        "ctx_recognition" => "Reconnaissance",
+        "ctx_threatened" => "Menacé",
+
+        "pred_all_title" => "Toutes les prédictions",
+        "pred_for" => "🔮 Prédictions pour",
+        "pred_title" => "Prédictions",
+        "pred_context_placeholder" => "Contexte...",
+        "pred_outcome_placeholder" => "Comportement prédit...",
+        "pred_add_btn" => "Ajouter",
+        "pred_none" => "Aucune prédiction.",
+        "pred_predicted_label" => "Prédit",
+        "pred_actual_label" => "Réel",
+        "pred_resolve_btn" => "Résoudre",
+        "pred_delete_btn" => "Supprimer",
+        "pred_actual_placeholder" => "Résultat réel...",
+        "pred_accuracy_label" => "Précision",
+        "pred_resolve_submit" => "✓ Résoudre",
+        "pred_cancel_btn" => "Annuler",
+
+        "insights_title" => "📊 Analyses",
+        "insights_select_person" => "Sélectionnez une personne pour voir les analyses comportementales.",
+        "insights_for" => "📊 Analyses pour",
+        "insights_observed" => "Patterns observés",
+        "insights_context_analysis" => "🔍 {trigger} – Analyse contextuelle de {name}",
+        "insights_primary_driver" => "• Moteur principal",
+        "insights_key_bias" => "• Biais clé",
+        "insights_recommendations" => "Recommandations",
+        "insights_stress" => "😰 Sous stress",
+        "insights_conflict" => "⚔️ En conflit",
+        "insights_success" => "🏆 En réussite",
+        "insights_uncertainty" => "❓ Incertitude",
+        "insights_recognition" => "⭐ Reconnaissance",
+        "insights_threat" => "🛡️ Menacé",
+
+        "strategy_stress_label" => "Sous stress",
+        "strategy_conflict_label" => "En conflit",
+        "strategy_success_label" => "En réussite",
+        "strategy_uncertainty_label" => "Dans l'incertitude",
+        "strategy_recognition_label" => "Cherchant la reconnaissance",
+        "strategy_threat_label" => "Se sentant menacé",
+
+        "strategy_stress_header" => "Sous stress, {name} aura tendance à :",
+        "strategy_conflict_header" => "En situation de conflit, {name} :",
+        "strategy_success_header" => "En période de réussite, {name} :",
+        "strategy_uncertainty_header" => "Face à l'incertitude, {name} :",
+        "strategy_recognition_header" => "Quand {name} cherche de la reconnaissance :",
+        "strategy_threat_header" => "Quand {name} se sent menacé :",
+
+        "strategy_stress_high_n" => "Névrosisme élevé — offrez du soutien émotionnel avant les solutions.",
+        "strategy_stress_high_e" => "Extraversion élevée — permettez l'expression verbale du stress.",
+        "strategy_stress_low_e" => "Faible extraversion — laissez de l'espace pour décompresser.",
+        "strategy_stress_high_c" => "Conscienciosité élevée — décomposez les problèmes en étapes actionnables.",
+        "strategy_stress_power" => "Motivé par le pouvoir — laissez-lui reprendre le contrôle sur un domaine.",
+        "strategy_stress_security" => "Motivé par la sécurité — renforcez la stabilité et la routine.",
+        "strategy_stress_fallback" => "Surveillez les signaux de stress et ajustez l'environnement.",
+
+        "strategy_conflict_low_a" => "Faible agréabilité — abordez le conflit directement avec des faits.",
+        "strategy_conflict_high_a" => "Haute agréabilité — adoucissez la confrontation, concentrez-vous sur l'harmonie.",
+        "strategy_conflict_high_n" => "Névrosisme élevé — désamorcez et offrez un espace de sécurité émotionnelle.",
+        "strategy_conflict_high_e" => "Extraversion élevée — laissez-les parler pour évacuer.",
+        "strategy_conflict_fallback" => "Médiateur avec une communication équilibrée.",
+
+        "strategy_success_high_o" => "Haute ouverture — canalisez le succès vers de nouveaux défis créatifs.",
+        "strategy_success_high_c" => "Haute conscienciosité — utilisez le succès comme validation du processus.",
+        "strategy_success_recognition" => "Motivé par la reconnaissance — reconnaissez publiquement leur accomplissement.",
+        "strategy_success_power" => "Motivé par le pouvoir — donnez-leur la propriété de la prochaine initiative.",
+        "strategy_success_fallback" => "Célébrez le succès et identifiez les axes de croissance.",
+
+        "strategy_uncertainty_high_n" => "Névrosisme élevé — fournissez des échéances claires et des mises à jour fréquentes.",
+        "strategy_uncertainty_low_n" => "Faible névrosisme — gère bien l'ambiguïté ; faites confiance à sa résilience.",
+        "strategy_uncertainty_high_o" => "Haute ouverture — cadrez l'incertitude comme une opportunité.",
+        "strategy_uncertainty_low_o" => "Faible ouverture — fournissez des exemples concrets et des cadres familiers.",
+        "strategy_uncertainty_fallback" => "Reconnaissez l'incertitude et fournissez les informations disponibles.",
+
+        "strategy_recognition_high" => "Fort besoin de reconnaissance — donnez des éloges fréquents et spécifiques.",
+        "strategy_recognition_mid" => "Besoin modéré de reconnaissance — reconnaissez les contributions régulièrement.",
+        "strategy_recognition_low" => "Faible besoin de reconnaissance — évitez les éloges excessifs.",
+        "strategy_recognition_high_e" => "Extraversion élevée — la reconnaissance publique est efficace.",
+        "strategy_recognition_low_e" => "Faible extraversion — préférez une reconnaissance privée et écrite.",
+        "strategy_recognition_fallback" => "Adaptez le style de reconnaissance à leur niveau de confort.",
+
+        "strategy_threat_low_a" => "Faible agréabilité — peut réagir ; abordez les préoccupations calmement.",
+        "strategy_threat_high_a" => "Haute agréabilité — peut céder trop facilement ; vérifiez les vrais sentiments.",
+        "strategy_threat_high_n" => "Névrosisme élevé — les menaces perçues sont amplifiées ; offrez du réconfort.",
+        "strategy_threat_power" => "Motivé par le pouvoir — la menace au statut est sérieuse ; impliquez-le dans les décisions.",
+        "strategy_threat_fallback" => "Écoutez activement et validez ses préoccupations.",
+
+        "sync_title" => "☁ Sync & Sauvegarde",
+        "sync_gdrive_title" => "Synchronisation Google Drive",
+        "sync_token_loaded" => "✓ Jeton chargé",
+        "sync_token_cleared" => "Jeton effacé",
+        "sync_clear_btn" => "Effacer",
+        "sync_sign_in" => "🔐 Connexion Google",
+        "sync_no_token" => "Aucun jeton. Connectez-vous d'abord.",
+        "sync_backing_up" => "Sauvegarde en cours...",
+        "sync_backed_up" => "✅ Sauvegardé",
+        "sync_backup_btn" => "☁ Sauvegarder sur Drive",
+        "sync_restoring" => "Restauration en cours...",
+        "sync_restored" => "✅ Restauré",
+        "sync_restore_btn" => "☁ Restaurer depuis Drive",
+        "sync_not_configured" => "Sauvegarde Google Drive non configurée. Définissez GOOGLE_CLIENT_ID avant de compiler.",
+        "sync_local_title" => "Sauvegarde locale",
+        "sync_local_desc" => "Exportez toutes les données en JSON ou importez depuis une sauvegarde.",
+        "sync_exported" => "✅ Exporté",
+        "sync_export_btn" => "📥 Exporter JSON",
+        "sync_import_btn" => "📤 Importer JSON",
+        "sync_import_placeholder" => "Collez la sauvegarde JSON ici",
+        "sync_paste_first" => "Collez d'abord le JSON",
+        "sync_token_paste_title" => "Coller le jeton",
+        "sync_token_instruction_1" => "1. Appuyez sur « Connexion Google » — le navigateur s'ouvre",
+        "sync_token_instruction_2" => "2. Connectez-vous et autorisez l'accès",
+        "sync_token_instruction_3" => "3. Le navigateur redirige vers l'app web — copiez le jeton depuis la barre d'adresse avant que la page ne charge",
+        "sync_token_instruction_4" => "4. Collez l'URL ci-dessous et appuyez sur Enregistrer",
+        "sync_paste_placeholder" => "Collez l'URL de redirection complète ici",
+        "sync_token_saved" => "✅ Jeton enregistré",
+        "sync_save_token_btn" => "Enregistrer",
+        "sync_no_data_warn" => "Aucune personne à sauvegarder. Ajoutez des personnes d'abord !",
+
+        "common_save" => "Enregistrer",
+        "common_cancel" => "Annuler",
+        "common_delete" => "Supprimer",
+        "common_confirm" => "Confirmer",
+        "common_add" => "Ajouter",
+        "common_edit" => "Modifier",
+        "common_back" => "← Retour",
+
+        _ => key,
+    }
+}

@@ -2,14 +2,28 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MotivationType {
+    #[serde(alias = "POWER")]
     Power,
+    #[serde(alias = "ACHIEVEMENT")]
     Achievement,
+    #[serde(alias = "AFFILIATION")]
     Affiliation,
+    #[serde(alias = "SECURITY")]
     Security,
+    #[serde(alias = "AUTONOMY")]
     Autonomy,
+    #[serde(alias = "RECOGNITION")]
     Recognition,
+    #[serde(alias = "LEARNING")]
     Learning,
+    #[serde(alias = "HELPING")]
     Helping,
+}
+
+impl std::fmt::Display for MotivationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 impl MotivationType {
@@ -23,20 +37,49 @@ impl MotivationType {
         Self::Learning,
         Self::Helping,
     ];
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            Self::Power => "👑",
+            Self::Achievement => "🏆",
+            Self::Affiliation => "🤝",
+            Self::Security => "🛡️",
+            Self::Autonomy => "🦅",
+            Self::Recognition => "⭐",
+            Self::Learning => "📚",
+            Self::Helping => "❤️",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BiasType {
+    #[serde(alias = "CONFIRMATION")]
     Confirmation,
+    #[serde(alias = "ANCHORING")]
     Anchoring,
+    #[serde(alias = "AVAILABILITY")]
     Availability,
+    #[serde(alias = "SUNK_COST")]
     SunkCost,
+    #[serde(alias = "DUNNING_KRUGER")]
     DunningKruger,
+    #[serde(alias = "LOSS_AVERSION")]
     LossAversion,
+    #[serde(alias = "SOCIAL_PROOF")]
     SocialProof,
+    #[serde(alias = "AUTHORITY")]
     Authority,
+    #[serde(alias = "RECENCY")]
     Recency,
+    #[serde(alias = "IN_GROUP")]
     InGroup,
+}
+
+impl std::fmt::Display for BiasType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 impl BiasType {
@@ -52,16 +95,56 @@ impl BiasType {
         Self::Recency,
         Self::InGroup,
     ];
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            Self::Confirmation => "🔄",
+            Self::Anchoring => "⚓",
+            Self::Availability => "📱",
+            Self::SunkCost => "💸",
+            Self::DunningKruger => "🎭",
+            Self::LossAversion => "😰",
+            Self::SocialProof => "👥",
+            Self::Authority => "🎖️",
+            Self::Recency => "⏰",
+            Self::InGroup => "🏠",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BehaviorTrigger {
+    #[serde(alias = "STRESS")]
     Stress,
+    #[serde(alias = "CONFLICT")]
     Conflict,
+    #[serde(alias = "SUCCESS")]
     Success,
+    #[serde(alias = "UNCERTAINTY")]
     Uncertainty,
+    #[serde(alias = "RECOGNITION")]
     Recognition,
+    #[serde(alias = "THREATENED")]
     Threatened,
+}
+
+impl std::fmt::Display for BehaviorTrigger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl BehaviorTrigger {
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            Self::Stress => "😰",
+            Self::Conflict => "⚔️",
+            Self::Success => "🏆",
+            Self::Uncertainty => "❓",
+            Self::Recognition => "⭐",
+            Self::Threatened => "🛡️",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -109,7 +192,13 @@ pub struct OceanScores {
 
 impl Default for OceanScores {
     fn default() -> Self {
-        Self { openness: 5, conscientiousness: 5, extraversion: 5, agreeableness: 5, neuroticism: 5 }
+        Self {
+            openness: 5,
+            conscientiousness: 5,
+            extraversion: 5,
+            agreeableness: 5,
+            neuroticism: 5,
+        }
     }
 }
 
@@ -140,3 +229,7 @@ impl Person {
         self.biases.iter().max_by_key(|b| b.intensity)
     }
 }
+
+pub const AVATAR_EMOJIS: &[&str] = &[
+    "🧑", "👩", "👨", "🧠", "🎯", "💼", "🦁", "🦊", "🐺", "🌟", "🔥", "💎", "🎸", "🧬", "🌊", "🏔️",
+];

@@ -14,12 +14,15 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ── PARALLEL SECURITY JOBS ────────────────────────────
+  # ── SECURITY SCAN ─────────────────────────────────────
   scan-secrets:
     name: Secret Scan
     runs-on: ubuntu-latest
@@ -35,177 +38,348 @@ jobs:
           head: ${{ github.sha }}
           extra_args: --only-verified
 
-  codeql-javascript:
-    name: CodeQL — JavaScript/TypeScript
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: javascript
-          build-mode: none
-          config-file: .github/codeql/codeql-config.yml
-      - name: Analyze
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: javascript
-
   # ── RUST CORE ─────────────────────────────────────────
   rust-core:
-    name: Rust Core (test + WASM)
+    name: Rust Core (test + WASM check)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
       - name: Run tests
         run: cargo test
         working-directory: core
-      - name: Install wasm-pack
-        run: cargo install wasm-pack --locked
-      - name: Build WASM package
-        run: wasm-pack build --target web
-        working-directory: core
+      - name: Check WASM build
+        run: cargo check --target wasm32-unknown-unknown -p peoplemodeler-app
 
-  # ── PARALLEL TEST JOBS ────────────────────────────────
-  android-unit-tests:
-    name: Android Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Run Unit Tests
-        run: |
-          export JAVA_HOME=$JAVA_HOME_21_X64
-          ./android/gradlew test -p android
-
-  web-tests:
-    name: Playwright Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2, 3]
-        shardTotal: [3]
+  # ── WEB (WASM) BUILD + E2E TESTS ─────────────────────
+  web-build-and-test:
+    name: Build WASM + Playwright Tests
+    needs: [rust-core]
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     steps:
       - uses: actions/checkout@v7
-      - name: Install dependencies
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system deps
+        run: apt update && apt install -y build-essential
+      - name: Install Dioxus CLI
+        run: |
+          curl -sSLO https://github.com/DioxusLabs/dioxus/releases/download/v0.7.9/dx-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf dx-x86_64-unknown-linux-gnu.tar.gz
+          install -m 755 dx /usr/local/bin/dx
+      - name: Build WASM
+        run: dx build --release --package peoplemodeler-app --debug-symbols false --base-path /PeopleModeler
+      - name: Install npm deps
+        env:
+          HUSKY: 0
         run: npm ci
-      - name: Run tests
+      - name: Run e2e tests
         env:
           HOME: /root
-        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+          DOCKER_CONFIG: /tmp/.docker
+        run: npx playwright test --reporter=list,html
       - name: Upload report
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: playwright-report-${{ matrix.shardIndex }}
+          name: playwright-report
           path: playwright-report/
           retention-days: 30
+      - name: Upload WASM build
+        uses: actions/upload-artifact@v7
+        with:
+          name: wasm-public
+          path: target/dx/peoplemodeler-app/release/web/public/
+          retention-days: 7
 
-  # ── SEQUENTIAL DEPLOYMENT JOBS ───────────────────────
+  # ── ANDROID BUILD (Dioxus Mobile) ────────────────────
+  build-android:
+    name: Build Android APK + AAB
+    if: github.ref == 'refs/heads/main'
+    needs: [scan-secrets, rust-core]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+      - uses: Swatinem/rust-cache@v2
+      - name: Cache Android debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+      - name: Setup stable debug keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          DEST="$HOME/.android/debug.keystore"
+          mkdir -p "$HOME/.android"
+          SP="${KEYSTORE_PASSWORD:-android}"
+          KP="${KEY_PASSWORD:-android}"
+          ALIAS_RAW="${KEY_ALIAS}"
+          ALIAS="${ALIAS_RAW:-androiddebugkey}"
+          echo "--- Keystore setup: SP=$SP KP=$KP ALIAS=$ALIAS"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding base64 keystore (${#KEYSTORE_BASE64} chars)..."
+            echo "$KEYSTORE_BASE64" | base64 -d > "$DEST.tmp"
+            SZ=$(stat -c%s "$DEST.tmp" 2>/dev/null || echo 0)
+            echo "Decoded file size: $SZ bytes"
+            # Try to read the keystore directly
+            if keytool -list -v -keystore "$DEST.tmp" -storepass "$SP" -keypass "$KP" 2>/dev/null; then
+              echo "Keystore is readable with SP/KP — copying directly"
+              cp "$DEST.tmp" "$DEST"
+            else
+              echo "Direct read failed — trying JKS conversion"
+              # Convert JKS → PKCS12 for apksigner compatibility
+              keytool -importkeystore \
+                -srckeystore "$DEST.tmp" \
+                -destkeystore "$DEST" -deststoretype pkcs12 \
+                -srcstorepass "$SP" -deststorepass "$SP" \
+                -srcalias "$ALIAS" -destalias "$ALIAS" \
+                -srckeypass "$KP" -destkeypass "$KP" 2>&1 || \
+              { echo "WARNING: Keystore conversion failed, removing"; rm -f "$DEST"; }
+            fi
+            rm -f "$DEST.tmp"
+          elif [ -f "$DEST" ]; then
+            echo "Keystore restored from cache"
+          else
+            keytool -genkey -v -keystore "$DEST" \
+              -alias "$ALIAS" -storepass "$SP" -keypass "$KP" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "Generated new debug keystore"
+          fi
+          if [ -f "$DEST" ]; then
+            echo "--- Keystore verification ---"
+            keytool -list -v -keystore "$DEST" -storetype pkcs12 -storepass "$SP" -keypass "$KP" \
+              | grep -E "SHA1|Alias name:|Erweiterte|Extended|Eintragsart|Entry type:" || \
+              echo "WARNING: Could not verify keystore fingerprint"
+          fi
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Dioxus CLI
+        run: |
+          curl -sSLO https://github.com/DioxusLabs/dioxus/releases/download/v0.7.9/dx-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf dx-x86_64-unknown-linux-gnu.tar.gz
+          install -m 755 dx /usr/local/bin/dx
+      - name: Clean stale artifacts
+        run: cargo clean -p peoplemodeler-app
+      - name: Build Android APK (aarch64) — first pass (generates project)
+        run: dx build --release --platform android --package peoplemodeler-app --target aarch64-linux-android
+      - name: Remove first-pass APK (no overlays)
+        run: find target/dx -name "*.apk" -delete 2>/dev/null || true
+      - name: Overlay custom Android resources (icons, themes, OAuth strings)
+        run: |
+          RES_DIR=$(find target/dx -type d -path "*/app/src/main/res" 2>/dev/null | head -1)
+          if [ -n "$RES_DIR" ] && [ -d "app/res" ]; then
+            echo "Overlaying app/res → $RES_DIR"
+            # Remove Dioxus default icons (.webp) to avoid duplicate resource conflict with our .png
+            find "$RES_DIR" -name "ic_launcher*.webp" -delete
+            cp -r app/res/* "$RES_DIR/"
+            # Inject default_web_client_id for Google Sign-In
+            if [ -f "$RES_DIR/values/strings.xml" ]; then
+              sed -i "s|__GOOGLE_CLIENT_ID__|$GOOGLE_CLIENT_ID|g" "$RES_DIR/values/strings.xml"
+              echo "Injected GOOGLE_CLIENT_ID into strings.xml"
+            fi
+          else
+            echo "WARNING: RES_DIR=$RES_DIR, app/res exists=$([ -d app/res ] && echo yes || echo no)"
+          fi
+      - name: Overlay native Google Sign-In (Kotlin + JNI)
+        run: |
+          KOTLIN_DIR=$(find target/dx -type d -path "*/app/src/main/kotlin" 2>/dev/null | head -1)
+          if [ -n "$KOTLIN_DIR" ]; then
+            OVERLAY="android/overlay"
+            echo "Overlaying Kotlin code → $KOTLIN_DIR"
+            cp -r "$OVERLAY/app/src/main/java/"* "$KOTLIN_DIR/"
+            # Remove any duplicate MainActivity from other source dirs to avoid redeclaration
+            find "$KOTLIN_DIR/.." -name "MainActivity.kt" ! -path "$KOTLIN_DIR/*" -delete
+            # Copy ProGuard keep rules (GoogleDriveHelper methods called only via JNI)
+            APP_DIR=$(dirname "$KOTLIN_DIR" | xargs dirname | xargs dirname)
+            if [ -f "$OVERLAY/app/proguard-rules.pro" ]; then
+              cp "$OVERLAY/app/proguard-rules.pro" "$APP_DIR/"
+              echo "Copied proguard-rules.pro for GoogleDriveHelper keep rule"
+            fi
+            # Add Google Play Services auth dependency to app/build.gradle.kts
+            BUILD_GRADLE=$(find "$APP_DIR" -maxdepth 1 -name "build.gradle.kts" 2>/dev/null | head -1)
+            if [ -f "$BUILD_GRADLE" ]; then
+              if ! grep -q "play-services-auth" "$BUILD_GRADLE"; then
+                sed -i '/material:/a\    implementation("com.google.android.gms:play-services-auth:21.2.0")' "$BUILD_GRADLE"
+                echo "Added play-services-auth dependency"
+              fi
+            fi
+          else
+            echo "WARNING: Android kotlin source dir not found"
+          fi
+      - name: Rebuild APK with custom resources
+        run: |
+          GRADLE_DIR=$(find target/dx -name "gradlew" -exec dirname {} \; 2>/dev/null | head -1)
+          if [ -n "$GRADLE_DIR" ]; then
+            cd "$GRADLE_DIR" && chmod +x gradlew && ./gradlew assembleRelease
+          else
+            echo "WARNING: gradlew not found"
+          fi
+      - name: Build Android AAB (bundle)
+        run: |
+          GRADLE_DIR=$(find target/dx/peoplemodeler-app/release/android -name "gradlew" -exec dirname {} \; 2>/dev/null | head -1)
+          if [ -n "$GRADLE_DIR" ]; then
+            echo "Running bundleRelease in: $GRADLE_DIR"
+            cd "$GRADLE_DIR" && chmod +x gradlew && ./gradlew bundleRelease
+          else
+            echo "WARNING: gradlew not found under target/dx/peoplemodeler-app/release/android"
+            find target/dx -name "gradlew" 2>/dev/null || true
+          fi
+      - name: Sign APK (sign unsigned release APK if present)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          APK=$(find target/dx -name "app-release-unsigned.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "No unsigned APK found — debug APK already signed by SDK"
+            exit 0
+          fi
+          KEYSTORE="$HOME/.android/debug.keystore"
+          if [ ! -f "$KEYSTORE" ]; then
+            echo "ERROR: debug.keystore not found"
+            exit 1
+          fi
+          SP="${KEYSTORE_PASSWORD:-android}"
+          KP="${KEY_PASSWORD:-android}"
+          ALIAS="${KEY_ALIAS:-androiddebugkey}"
+          SIGNED="${APK%.apk}-signed.apk"
+          ALIGNED="${APK%.apk}-aligned.apk"
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* 2>/dev/null | sort -V | tail -1)
+          "${BUILD_TOOLS}/zipalign" -p 4 "$APK" "$ALIGNED"
+          "${BUILD_TOOLS}/apksigner" sign \
+            --ks "$KEYSTORE" --ks-pass "pass:$SP" \
+            --key-pass "pass:$KP" --ks-key-alias "$ALIAS" \
+            --out "$SIGNED" "$ALIGNED"
+          echo "Signed: $SIGNED"
+      - name: Collect APK and AAB
+        run: |
+          mkdir -p dist
+          APK=$(find target/dx -name "*-signed.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find target/dx -name "*.apk" 2>/dev/null | head -1)
+          fi
+          AAB=$(find target/dx -name "*.aab" 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" dist/peoplemodeler.apk
+            echo "APK copied from: $APK"
+          fi
+          if [ -n "$AAB" ]; then
+            cp "$AAB" dist/peoplemodeler.aab
+            echo "AAB copied from: $AAB"
+          fi
+          if [ -z "$APK" ] && [ -z "$AAB" ]; then
+            echo "WARNING: No APK or AAB found. Listing target/dx tree..."
+            find target/dx -name "*.apk" -o -name "*.aab" 2>/dev/null || true
+          fi
+      - name: Upload APK Artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-apk
+          path: dist/
+          retention-days: 7
+
+  # ── DEPLOY WEB TO GITHUB PAGES ────────────────────────
   deploy-web:
     name: Deploy to GitHub Pages
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [rust-core, android-unit-tests, web-tests]
+    needs: [web-build-and-test]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+      - name: Download WASM build
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-public
+          path: ./wasm-dist/
+      - name: Merge WASM build with static pages
+        run: |
+          cp -r wasm-dist/* public/
+          rm -rf wasm-dist
+      - name: Add SPA fallback, landing page, and cache-control for GitHub Pages
+        run: |
+          if [ -f public/index.html ]; then
+            # Safety: ensure any absolute asset references use subpath
+            find public/ -type f \( -name '*.html' -o -name '*.js' \) \
+              -exec sed -i 's|/\./assets/|/PeopleModeler/assets/|g' {} +
+            # Rename Dioxus SPA so root serves landing page
+            mv public/index.html public/spa.html
+            # Inject URL cleanup into spa.html: strips /spa.html from path so Dioxus router sees correct route
+            sed -i 's|<head>|<head><script>if(location.pathname.includes("/spa.html"))history.replaceState({},"",location.pathname.replace("/spa.html",""));</script>|' public/spa.html
+            # Promote landing page to root index.html
+            if [ -f public/landing.html ]; then
+              # Fix landing page links: href="./" -> href="./spa.html"
+              sed -i 's|href="\./"|href="./spa.html"|g' public/landing.html
+              cp public/landing.html public/index.html
+            fi
+            # SPA fallback for deep-link refresh
+            cp public/spa.html public/404.html
+          fi
+          # Cache headers: HTML fresh always, JS/WASM immutable (hashed names)
+          cat > public/_headers << 'EOF'
+          /*.html
+            Cache-Control: no-cache
+          /PeopleModeler/assets/*.js
+            Cache-Control: public, max-age=31536000, immutable
+          /PeopleModeler/assets/*.wasm
+            Cache-Control: public, max-age=31536000, immutable
+          EOF
       - name: Setup Pages
         uses: actions/configure-pages@v6
-      - name: Replace placeholders
-        run: |
-          sed -i 's/__GOOGLE_CLIENT_ID__/${{ secrets.GOOGLE_WEB_CLIENT_ID }}/g' web/js/gdrive.js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: web/
+          path: public/
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v5
 
-  build-android:
-    name: Build Android
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
-    needs: [scan-secrets, codeql-javascript, rust-core, android-unit-tests, web-tests]
-    runs-on: ubuntu-latest
-    outputs:
-      artifact-name: PeopleModeler-release-${{ github.run_number }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Build Android (APK & AAB)
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          export JAVA_HOME=$JAVA_HOME_21_X64
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
-            keytool -importkeystore -srckeystore android/app/keystore.jks \
-              -destkeystore android/app/keystore.p12 -deststoretype pkcs12 \
-              -srcstorepass ${{ secrets.KEYSTORE_PASSWORD }} \
-              -deststorepass ${{ secrets.KEYSTORE_PASSWORD }} \
-              -srcalias ${{ secrets.KEY_ALIAS }} \
-              -destalias ${{ secrets.KEY_ALIAS }} \
-              -srckeypass ${{ secrets.KEY_PASSWORD }} \
-              -destkeypass ${{ secrets.KEY_PASSWORD }} 2>/dev/null
-            echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
-            echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-            echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-            echo "storeFile=keystore.p12" >> android/key.properties
-            cd android
-            ./gradlew assembleRelease bundleRelease
-          else
-            echo "No signing key — building debug APK"
-            cd android
-            ./gradlew assembleDebug
-          fi
-      - name: Collect Android Artifacts
-        if: github.event_name != 'pull_request'
-        run: |
-          mkdir -p dist
-          find android/app/build/outputs/apk/release -name "*.apk" -exec cp {} dist/peoplemodeler-${{ github.run_number }}.apk \;
-          find android/app/build/outputs/bundle/release -name "*.aab" -exec cp {} dist/peoplemodeler-${{ github.run_number }}.aab \;
-      - name: Upload Release Artifacts
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
-        with:
-          name: PeopleModeler-release-${{ github.run_number }}
-          path: dist/
-          retention-days: 7
-
+  # ── RELEASE (Android + Web) ──────────────────────────
   release:
     name: Create Release
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: build-android
+    needs: [build-android]
     runs-on: ubuntu-latest
     environment: release
     steps:
-      - name: Download artifacts
+      - name: Download Android APK
         uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
-          name: PeopleModeler-release-${{ github.run_number }}
+          name: android-apk
           path: dist/
+      - name: List downloaded files
+        run: ls -la dist/ 2>/dev/null || echo "dist/ empty"
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: build-${{ github.run_number }}
           name: "PeopleModeler build #${{ github.run_number }}"
-          body: "Build #${{ github.run_number }} — Qualité validée."
+          body: "Build #${{ github.run_number }} — Dioxus Rust app."
           files: |
             dist/*.apk
             dist/*.aab

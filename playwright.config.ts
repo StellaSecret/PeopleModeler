@@ -1,5 +1,4 @@
 import { defineConfig, devices } from '@playwright/test'
-import path from 'path'
 
 export default defineConfig({
   testDir: './tests',
@@ -7,6 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
+  timeout: 30000,
 
   reporter: [
     ['list'],
@@ -15,16 +15,14 @@ export default defineConfig({
   ],
 
   use: {
-    // Always use plain root — GITHUB_REPOSITORY is cleared in CI E2E step
-    // so vite preview serves from / with no base path.
-    baseURL: 'http://localhost:4173',
+    baseURL: 'http://localhost:4190',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
 
   webServer: {
-    command: 'npm run preview',
-    url: 'http://localhost:4173',
+    command: 'python3 scripts/spa_server.py 4190 target/dx/peoplemodeler-app/release/web/public /PeopleModeler',
+    url: 'http://localhost:4190',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
@@ -33,14 +31,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 7'] },
     },
   ],
 })

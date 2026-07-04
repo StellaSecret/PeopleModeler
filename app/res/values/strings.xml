@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name" translatable="false">PeopleModeler</string>
+    <string name="default_web_client_id" translatable="false">__GOOGLE_CLIENT_ID__</string>
+</resources>

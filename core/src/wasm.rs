@@ -1,9 +1,9 @@
-use wasm_bindgen::prelude::*;
-use crate::models::{Person, OceanScores, Prediction};
-use crate::insights::{self, InsightContext};
 use crate::i18n;
+use crate::insights::{self, InsightContext};
+use crate::models::{OceanScores, Person, Prediction};
 use crate::ocean;
 use crate::predictions;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn analyze_ocean(json: &str) -> String {
@@ -40,7 +40,11 @@ pub fn calc_accuracy(predictions_json: &str) -> f64 {
 
 #[wasm_bindgen]
 pub fn mot_label(id: &str, lang: &str) -> String {
-    let lang = if lang == "en" { i18n::Lang::En } else { i18n::Lang::Fr };
+    let lang = if lang == "en" {
+        i18n::Lang::En
+    } else {
+        i18n::Lang::Fr
+    };
     let mt = match id {
         "POWER" => crate::models::MotivationType::Power,
         "ACHIEVEMENT" => crate::models::MotivationType::Achievement,
@@ -57,7 +61,11 @@ pub fn mot_label(id: &str, lang: &str) -> String {
 
 #[wasm_bindgen]
 pub fn mot_desc(id: &str, lang: &str) -> String {
-    let lang = if lang == "en" { i18n::Lang::En } else { i18n::Lang::Fr };
+    let lang = if lang == "en" {
+        i18n::Lang::En
+    } else {
+        i18n::Lang::Fr
+    };
     let mt = match id {
         "POWER" => crate::models::MotivationType::Power,
         "ACHIEVEMENT" => crate::models::MotivationType::Achievement,
@@ -74,7 +82,11 @@ pub fn mot_desc(id: &str, lang: &str) -> String {
 
 #[wasm_bindgen]
 pub fn bias_label(id: &str, lang: &str) -> String {
-    let lang = if lang == "en" { i18n::Lang::En } else { i18n::Lang::Fr };
+    let lang = if lang == "en" {
+        i18n::Lang::En
+    } else {
+        i18n::Lang::Fr
+    };
     let bt = match id {
         "CONFIRMATION" => crate::models::BiasType::Confirmation,
         "ANCHORING" => crate::models::BiasType::Anchoring,
@@ -106,7 +118,11 @@ pub fn resolve_prediction(prediction_json: &str, actual_outcome: &str, accuracy:
 
 #[wasm_bindgen]
 pub fn bias_desc(id: &str, lang: &str) -> String {
-    let lang = if lang == "en" { i18n::Lang::En } else { i18n::Lang::Fr };
+    let lang = if lang == "en" {
+        i18n::Lang::En
+    } else {
+        i18n::Lang::Fr
+    };
     let bt = match id {
         "CONFIRMATION" => crate::models::BiasType::Confirmation,
         "ANCHORING" => crate::models::BiasType::Anchoring,

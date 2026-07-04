@@ -21,18 +21,48 @@ impl InsightContext {
 }
 
 fn fmt_motivations(p: &Person) -> String {
-    if p.motivations.is_empty() { return "• Aucune motivation définie\n".into(); }
-    p.motivations.iter().map(|m| format!("• {} (intensité {}/10)", m.r#type.i18n(crate::i18n::Lang::Fr).label, m.intensity)).collect::<Vec<_>>().join("\n")
+    if p.motivations.is_empty() {
+        return "• Aucune motivation définie\n".into();
+    }
+    p.motivations
+        .iter()
+        .map(|m| {
+            format!(
+                "• {} (intensité {}/10)",
+                m.r#type.i18n(crate::i18n::Lang::Fr).label,
+                m.intensity
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn fmt_biases(p: &Person) -> String {
-    if p.biases.is_empty() { return "• Aucun biais défini\n".into(); }
-    p.biases.iter().map(|b| format!("• {} (intensité {}/10)", b.r#type.i18n(crate::i18n::Lang::Fr).label, b.intensity)).collect::<Vec<_>>().join("\n")
+    if p.biases.is_empty() {
+        return "• Aucun biais défini\n".into();
+    }
+    p.biases
+        .iter()
+        .map(|b| {
+            format!(
+                "• {} (intensité {}/10)",
+                b.r#type.i18n(crate::i18n::Lang::Fr).label,
+                b.intensity
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
-    let top_mot = p.top_motivation().map(|m| m.r#type.i18n(crate::i18n::Lang::Fr).label).unwrap_or("—");
-    let top_bias = p.top_bias().map(|b| b.r#type.i18n(crate::i18n::Lang::Fr).label).unwrap_or("—");
+    let top_mot = p
+        .top_motivation()
+        .map(|m| m.r#type.i18n(crate::i18n::Lang::Fr).label)
+        .unwrap_or("—");
+    let top_bias = p
+        .top_bias()
+        .map(|b| b.r#type.i18n(crate::i18n::Lang::Fr).label)
+        .unwrap_or("—");
     match ctx {
         InsightContext::Decision => format!(
             "🧠 Analyse décisionnelle\n\n\
@@ -42,7 +72,11 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
             • Recommandation : confronter ses décisions à des données objectives\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
             Biais cognitif(s) détecté(s) :\n{biases}",
-            name=p.name, mot=top_mot, bias=top_bias, mots=fmt_motivations(p), biases=fmt_biases(p)
+            name = p.name,
+            mot = top_mot,
+            bias = top_bias,
+            mots = fmt_motivations(p),
+            biases = fmt_biases(p)
         ),
         InsightContext::Team => format!(
             "👥 Dynamique d'équipe\n\n\
@@ -53,7 +87,11 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
             • À surveiller : les situations qui activent ses biais\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
             Biais cognitif(s) détecté(s) :\n{biases}",
-            name=p.name, mot=top_mot, bias=top_bias, mots=fmt_motivations(p), biases=fmt_biases(p)
+            name = p.name,
+            mot = top_mot,
+            bias = top_bias,
+            mots = fmt_motivations(p),
+            biases = fmt_biases(p)
         ),
         InsightContext::Stress => format!(
             "⚡ Gestion du stress\n\n\
@@ -64,7 +102,11 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
             • Recommandation : créer un environnement prévisible pour réduire l'anxiété\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
             Biais cognitif(s) détecté(s) :\n{biases}",
-            name=p.name, mot=top_mot, bias=top_bias, mots=fmt_motivations(p), biases=fmt_biases(p)
+            name = p.name,
+            mot = top_mot,
+            bias = top_bias,
+            mots = fmt_motivations(p),
+            biases = fmt_biases(p)
         ),
         InsightContext::Communication => format!(
             "💬 Style de communication\n\n\
@@ -75,7 +117,11 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
             • Langage : adapter le niveau de détail à son profil OCEAN\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
             Biais cognitif(s) détecté(s) :\n{biases}",
-            name=p.name, mot=top_mot, bias=top_bias, mots=fmt_motivations(p), biases=fmt_biases(p)
+            name = p.name,
+            mot = top_mot,
+            bias = top_bias,
+            mots = fmt_motivations(p),
+            biases = fmt_biases(p)
         ),
         InsightContext::Leadership => format!(
             "🎯 Leadership & Management\n\n\
@@ -86,7 +132,11 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
             • Objectif : transformer ses biais en forces via la prise de conscience\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
             Biais cognitif(s) détecté(s) :\n{biases}",
-            name=p.name, mot=top_mot, bias=top_bias, mots=fmt_motivations(p), biases=fmt_biases(p)
+            name = p.name,
+            mot = top_mot,
+            bias = top_bias,
+            mots = fmt_motivations(p),
+            biases = fmt_biases(p)
         ),
         InsightContext::Growth => format!(
             "🌱 Développement personnel\n\n\
@@ -97,7 +147,11 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
             • Objectif long terme : équilibrer ses drivers pour des décisions plus objectives\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
             Biais cognitif(s) détecté(s) :\n{biases}",
-            name=p.name, mot=top_mot, bias=top_bias, mots=fmt_motivations(p), biases=fmt_biases(p)
+            name = p.name,
+            mot = top_mot,
+            bias = top_bias,
+            mots = fmt_motivations(p),
+            biases = fmt_biases(p)
         ),
     }
 }
