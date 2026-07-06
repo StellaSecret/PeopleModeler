@@ -1,13 +1,14 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person};
 
-pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 6] = [
+pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 7] = [
     BehaviorTrigger::Stress,
     BehaviorTrigger::Conflict,
     BehaviorTrigger::Success,
     BehaviorTrigger::Uncertainty,
     BehaviorTrigger::Recognition,
     BehaviorTrigger::Threatened,
+    BehaviorTrigger::Change,
 ];
 
 use crate::db;
@@ -45,6 +46,7 @@ pub(crate) fn trigger_label(t: &BehaviorTrigger, lang: Lang) -> &'static str {
         BehaviorTrigger::Uncertainty => crate::i18n::tr("strategy_uncertainty_label", lang),
         BehaviorTrigger::Recognition => crate::i18n::tr("strategy_recognition_label", lang),
         BehaviorTrigger::Threatened => crate::i18n::tr("strategy_threat_label", lang),
+        BehaviorTrigger::Change => crate::i18n::tr("strategy_change_label", lang),
     }
 }
 
@@ -74,6 +76,7 @@ pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang
         BehaviorTrigger::Uncertainty => uncertainty_strategy(p, lang),
         BehaviorTrigger::Recognition => recognition_strategy(p, lang),
         BehaviorTrigger::Threatened => threatened_strategy(p, lang),
+        BehaviorTrigger::Change => change_strategy(p, lang),
     };
     lines.push(String::new());
     lines.push(rec.into());
@@ -241,6 +244,29 @@ fn threatened_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_threat_fallback", lang).into());
+    }
+    s
+}
+
+fn change_strategy(p: &Person, lang: Lang) -> Vec<String> {
+    let mut s = Vec::new();
+    if p.ocean.neuroticism >= 7 {
+        s.push(crate::i18n::tr("strategy_change_high_n", lang).into());
+    }
+    if p.ocean.neuroticism <= 3 {
+        s.push(crate::i18n::tr("strategy_change_low_n", lang).into());
+    }
+    if p.ocean.conscientiousness >= 7 {
+        s.push(crate::i18n::tr("strategy_change_high_c", lang).into());
+    }
+    if p.ocean.extraversion <= 4 {
+        s.push(crate::i18n::tr("strategy_change_low_e", lang).into());
+    }
+    if p.ocean.openness >= 7 {
+        s.push(crate::i18n::tr("strategy_change_high_o", lang).into());
+    }
+    if s.is_empty() {
+        s.push(crate::i18n::tr("strategy_change_fallback", lang).into());
     }
     s
 }

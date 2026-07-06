@@ -201,6 +201,7 @@ fn en(key: &'static str) -> &'static str {
         "insights_uncertainty" => "❓ Uncertainty",
         "insights_recognition" => "⭐ Seeking recognition",
         "insights_threat" => "🛡️ Feeling threatened",
+        "insights_change" => "🔄 Facing change",
 
         // Insight strategies
         "strategy_stress_label" => "Under stress",
@@ -209,6 +210,7 @@ fn en(key: &'static str) -> &'static str {
         "strategy_uncertainty_label" => "In uncertainty",
         "strategy_recognition_label" => "Seeking recognition",
         "strategy_threat_label" => "Feeling threatened",
+        "strategy_change_label" => "Facing change",
 
         "strategy_stress_header" => "Under stress, {name} will tend to:",
         "strategy_conflict_header" => "In conflict situations, {name}:",
@@ -216,6 +218,7 @@ fn en(key: &'static str) -> &'static str {
         "strategy_uncertainty_header" => "Facing uncertainty, {name}:",
         "strategy_recognition_header" => "When {name} seeks recognition:",
         "strategy_threat_header" => "When {name} feels threatened:",
+        "strategy_change_header" => "When {name} faces change:",
 
         "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
         "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
@@ -264,6 +267,13 @@ fn en(key: &'static str) -> &'static str {
         "strategy_threat_high_n" => "High neuroticism — perceived threats are amplified; offer reassurance.",
         "strategy_threat_power" => "Power-driven — threat to status is serious; involve them in decisions.",
         "strategy_threat_fallback" => "Listen actively and validate their concerns.",
+
+        "strategy_change_high_n" => "High neuroticism — may resist change; provide stability anchors.",
+        "strategy_change_low_n" => "Low neuroticism — adapts well; leverage as change champion.",
+        "strategy_change_high_c" => "High conscientiousness — needs a clear transition roadmap.",
+        "strategy_change_low_e" => "Low extraversion — needs time to process change privately.",
+        "strategy_change_high_o" => "High openness — embrace change; give them a role in shaping it.",
+        "strategy_change_fallback" => "Communicate the why and involve them in the transition.",
 
         // Sync / Drive
         "sync_title" => "☁ Sync & Backup",
@@ -434,6 +444,7 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_uncertainty_label" => "Dans l'incertitude",
         "strategy_recognition_label" => "Cherchant la reconnaissance",
         "strategy_threat_label" => "Se sentant menacé",
+        "strategy_change_label" => "Face au changement",
 
         "strategy_stress_header" => "Sous stress, {name} aura tendance à :",
         "strategy_conflict_header" => "En situation de conflit, {name} :",
@@ -441,6 +452,7 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_uncertainty_header" => "Face à l'incertitude, {name} :",
         "strategy_recognition_header" => "Quand {name} cherche de la reconnaissance :",
         "strategy_threat_header" => "Quand {name} se sent menacé :",
+        "strategy_change_header" => "Quand {name} fait face au changement :",
 
         "strategy_stress_high_n" => "Névrosisme élevé — offrez du soutien émotionnel avant les solutions.",
         "strategy_stress_high_e" => "Extraversion élevée — permettez l'expression verbale du stress.",
@@ -489,6 +501,13 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_threat_high_n" => "Névrosisme élevé — les menaces perçues sont amplifiées ; offrez du réconfort.",
         "strategy_threat_power" => "Motivé par le pouvoir — la menace au statut est sérieuse ; impliquez-le dans les décisions.",
         "strategy_threat_fallback" => "Écoutez activement et validez ses préoccupations.",
+
+        "strategy_change_high_n" => "Névrosisme élevé — peut résister au changement ; offrez des points d'ancrage.",
+        "strategy_change_low_n" => "Faible névrosisme — s'adapte bien ; exploitez comme champion du changement.",
+        "strategy_change_high_c" => "Haute conscienciosité — a besoin d'une feuille de route claire.",
+        "strategy_change_low_e" => "Faible extraversion — a besoin de temps pour digérer le changement en privé.",
+        "strategy_change_high_o" => "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif.",
+        "strategy_change_fallback" => "Expliquez le pourquoi et impliquez-les dans la transition.",
 
         "sync_title" => "☁ Sync & Sauvegarde",
         "sync_gdrive_title" => "Synchronisation Google Drive",
