@@ -440,6 +440,7 @@ fn parse_trigger(s: &str) -> BehaviorTrigger {
         "Recognition" => BehaviorTrigger::Recognition,
         "Threatened" => BehaviorTrigger::Threatened,
         "Change" => BehaviorTrigger::Change,
+        "Feedback" => BehaviorTrigger::Feedback,
         _ => BehaviorTrigger::Stress,
     }
 }

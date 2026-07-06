@@ -202,6 +202,7 @@ fn en(key: &'static str) -> &'static str {
         "insights_recognition" => "⭐ Seeking recognition",
         "insights_threat" => "🛡️ Feeling threatened",
         "insights_change" => "🔄 Facing change",
+        "insights_feedback" => "💬 Receiving feedback",
 
         // Insight strategies
         "strategy_stress_label" => "Under stress",
@@ -211,6 +212,7 @@ fn en(key: &'static str) -> &'static str {
         "strategy_recognition_label" => "Seeking recognition",
         "strategy_threat_label" => "Feeling threatened",
         "strategy_change_label" => "Facing change",
+        "strategy_feedback_label" => "Receiving feedback",
 
         "strategy_stress_header" => "Under stress, {name} will tend to:",
         "strategy_conflict_header" => "In conflict situations, {name}:",
@@ -219,6 +221,7 @@ fn en(key: &'static str) -> &'static str {
         "strategy_recognition_header" => "When {name} seeks recognition:",
         "strategy_threat_header" => "When {name} feels threatened:",
         "strategy_change_header" => "When {name} faces change:",
+        "strategy_feedback_header" => "When {name} receives feedback:",
 
         "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
         "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
@@ -274,6 +277,13 @@ fn en(key: &'static str) -> &'static str {
         "strategy_change_low_e" => "Low extraversion — needs time to process change privately.",
         "strategy_change_high_o" => "High openness — embrace change; give them a role in shaping it.",
         "strategy_change_fallback" => "Communicate the why and involve them in the transition.",
+
+        "strategy_feedback_high_n" => "High neuroticism — may take feedback personally; use gentle framing.",
+        "strategy_feedback_low_n" => "Low neuroticism — handles critical feedback well; be direct.",
+        "strategy_feedback_low_a" => "Low agreeableness — may reject feedback; focus on data.",
+        "strategy_feedback_low_e" => "Low extraversion — prefers private, written feedback.",
+        "strategy_feedback_high_c" => "High conscientiousness — values detailed, actionable feedback.",
+        "strategy_feedback_fallback" => "Balance praise and constructive input with specific examples.",
 
         // Sync / Drive
         "sync_title" => "☁ Sync & Backup",
@@ -445,6 +455,7 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_recognition_label" => "Cherchant la reconnaissance",
         "strategy_threat_label" => "Se sentant menacé",
         "strategy_change_label" => "Face au changement",
+        "strategy_feedback_label" => "Recevoir du feedback",
 
         "strategy_stress_header" => "Sous stress, {name} aura tendance à :",
         "strategy_conflict_header" => "En situation de conflit, {name} :",
@@ -453,6 +464,7 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_recognition_header" => "Quand {name} cherche de la reconnaissance :",
         "strategy_threat_header" => "Quand {name} se sent menacé :",
         "strategy_change_header" => "Quand {name} fait face au changement :",
+        "strategy_feedback_header" => "Quand {name} reçoit du feedback :",
 
         "strategy_stress_high_n" => "Névrosisme élevé — offrez du soutien émotionnel avant les solutions.",
         "strategy_stress_high_e" => "Extraversion élevée — permettez l'expression verbale du stress.",
@@ -508,6 +520,13 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_change_low_e" => "Faible extraversion — a besoin de temps pour digérer le changement en privé.",
         "strategy_change_high_o" => "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif.",
         "strategy_change_fallback" => "Expliquez le pourquoi et impliquez-les dans la transition.",
+
+        "strategy_feedback_high_n" => "Névrosisme élevé — peut prendre le feedback personnellement ; utilisez un ton doux.",
+        "strategy_feedback_low_n" => "Faible névrosisme — gère bien les critiques ; soyez direct.",
+        "strategy_feedback_low_a" => "Faible agréabilité — peut rejeter le feedback ; basez-vous sur des faits.",
+        "strategy_feedback_low_e" => "Faible extraversion — préfère un feedback écrit et privé.",
+        "strategy_feedback_high_c" => "Haute conscienciosité — apprécie un feedback détaillé et actionnable.",
+        "strategy_feedback_fallback" => "Équilibrez éloges et critiques constructives avec des exemples précis.",
 
         "sync_title" => "☁ Sync & Sauvegarde",
         "sync_gdrive_title" => "Synchronisation Google Drive",

@@ -128,6 +128,8 @@ pub enum BehaviorTrigger {
     Threatened,
     #[serde(alias = "CHANGE")]
     Change,
+    #[serde(alias = "FEEDBACK")]
+    Feedback,
 }
 
 impl std::fmt::Display for BehaviorTrigger {
@@ -146,6 +148,7 @@ impl BehaviorTrigger {
             Self::Recognition => "⭐",
             Self::Threatened => "🛡️",
             Self::Change => "🔄",
+            Self::Feedback => "💬",
         }
     }
 }

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person};
 
-pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 7] = [
+pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 8] = [
     BehaviorTrigger::Stress,
     BehaviorTrigger::Conflict,
     BehaviorTrigger::Success,
@@ -9,6 +9,7 @@ pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 7] = [
     BehaviorTrigger::Recognition,
     BehaviorTrigger::Threatened,
     BehaviorTrigger::Change,
+    BehaviorTrigger::Feedback,
 ];
 
 use crate::db;
@@ -47,6 +48,7 @@ pub(crate) fn trigger_label(t: &BehaviorTrigger, lang: Lang) -> &'static str {
         BehaviorTrigger::Recognition => crate::i18n::tr("strategy_recognition_label", lang),
         BehaviorTrigger::Threatened => crate::i18n::tr("strategy_threat_label", lang),
         BehaviorTrigger::Change => crate::i18n::tr("strategy_change_label", lang),
+        BehaviorTrigger::Feedback => crate::i18n::tr("strategy_feedback_label", lang),
     }
 }
 
@@ -77,6 +79,7 @@ pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang
         BehaviorTrigger::Recognition => recognition_strategy(p, lang),
         BehaviorTrigger::Threatened => threatened_strategy(p, lang),
         BehaviorTrigger::Change => change_strategy(p, lang),
+        BehaviorTrigger::Feedback => feedback_strategy(p, lang),
     };
     lines.push(String::new());
     lines.push(rec.into());
@@ -267,6 +270,29 @@ fn change_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_change_fallback", lang).into());
+    }
+    s
+}
+
+fn feedback_strategy(p: &Person, lang: Lang) -> Vec<String> {
+    let mut s = Vec::new();
+    if p.ocean.neuroticism >= 7 {
+        s.push(crate::i18n::tr("strategy_feedback_high_n", lang).into());
+    }
+    if p.ocean.neuroticism <= 3 {
+        s.push(crate::i18n::tr("strategy_feedback_low_n", lang).into());
+    }
+    if p.ocean.agreeableness <= 4 {
+        s.push(crate::i18n::tr("strategy_feedback_low_a", lang).into());
+    }
+    if p.ocean.extraversion <= 4 {
+        s.push(crate::i18n::tr("strategy_feedback_low_e", lang).into());
+    }
+    if p.ocean.conscientiousness >= 7 {
+        s.push(crate::i18n::tr("strategy_feedback_high_c", lang).into());
+    }
+    if s.is_empty() {
+        s.push(crate::i18n::tr("strategy_feedback_fallback", lang).into());
     }
     s
 }
