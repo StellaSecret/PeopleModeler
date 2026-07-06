@@ -44,6 +44,7 @@ pub fn PersonDetail(id: String) -> Element {
             let no_bias = crate::i18n::tr("no_biases", lang());
             let pat_title = crate::i18n::tr("patterns_title", lang());
             let conf_label = crate::i18n::tr("confidence_label", lang());
+            let compare_btn = crate::i18n::tr("compare_btn", lang());
             let no_pat = crate::i18n::tr("no_patterns", lang());
 
             let mut preds = use_signal(|| db::predictions_for_person(&id));
@@ -52,6 +53,9 @@ pub fn PersonDetail(id: String) -> Element {
             let ctx_pl = crate::i18n::tr("pred_context_placeholder", lang());
             let outcome_pl = crate::i18n::tr("pred_outcome_placeholder", lang());
             let add_btn = crate::i18n::tr("pred_add_btn", lang());
+
+            let mut comparing = use_signal(|| false);
+            let other_persons = use_signal(|| db::all_persons());
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
@@ -85,6 +89,7 @@ pub fn PersonDetail(id: String) -> Element {
                 div { class: "page",
                     div { class: "toolbar",
                         Link { to: Route::PersonEdit { id: id.clone() }, class: "btn", "{edit_btn}" }
+                        button { class: "btn", onclick: move |_| comparing.set(!comparing()), "{compare_btn}" }
                         button {
                             class: "btn btn-danger",
                             onclick: move |_| {
@@ -92,6 +97,17 @@ pub fn PersonDetail(id: String) -> Element {
                                 navigator().push(Route::PeopleList {});
                             },
                             "{delete_btn}"
+                        }
+                    }
+                    if comparing() {
+                        div { class: "compare-picker",
+                            for other in other_persons().iter().filter(|p| p.id != id) {
+                                Link {
+                                    to: Route::ComparePersons { id1: id.clone(), id2: other.id.clone() },
+                                    class: "compare-option",
+                                    span { "{other.avatar_emoji} {other.name}" }
+                                }
+                            }
                         }
                     }
 

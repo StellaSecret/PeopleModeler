@@ -290,6 +290,8 @@ fn en(key: &'static str) -> &'static str {
         "common_add" => "Add",
         "common_edit" => "Edit",
         "common_back" => "← Back",
+        "compare_title" => "Compare Persons",
+        "compare_btn" => "Compare",
 
         _ => key,
     }
@@ -496,6 +498,8 @@ fn fr(key: &'static str) -> &'static str {
         "common_add" => "Ajouter",
         "common_edit" => "Modifier",
         "common_back" => "← Retour",
+        "compare_title" => "Comparer des personnes",
+        "compare_btn" => "Comparer",
 
         _ => key,
     }

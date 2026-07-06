@@ -10,6 +10,7 @@ use crate::pages::person_detail::PersonDetail;
 use crate::pages::person_edit::PersonEdit;
 use crate::pages::person_edit::PersonNew;
 use crate::pages::predictions::Predictions;
+use crate::pages::compare::ComparePersons;
 use crate::pages::sync::SyncPage;
 
 mod auth;
@@ -38,6 +39,8 @@ enum Route {
     Insights {},
     #[route("/sync")]
     SyncPage {},
+    #[route("/compare/:id1/:id2")]
+    ComparePersons { id1: String, id2: String },
 }
 
 fn main() {

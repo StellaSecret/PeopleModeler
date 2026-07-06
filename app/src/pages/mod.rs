@@ -1,3 +1,4 @@
+pub mod compare;
 pub mod insights;
 pub mod people_list;
 pub mod person_detail;

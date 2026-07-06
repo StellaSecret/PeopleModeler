@@ -1,5 +1,6 @@
 use crate::models::{BiasType, MotivationType};
 
+#[derive(Clone, Copy)]
 pub enum Lang {
     Fr,
     En,
