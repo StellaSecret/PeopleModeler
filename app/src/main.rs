@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use dioxus::document::Stylesheet;
 use dioxus_router::Outlet;
 
 use crate::i18n::Lang;

@@ -1,7 +1,6 @@
-use std::sync::{Mutex, OnceLock, atomic::{AtomicBool, Ordering}};
+use std::sync::{Mutex, OnceLock};
 
 static JVM: OnceLock<jni::JavaVM> = OnceLock::new();
-static TOKEN_SAVED: AtomicBool = AtomicBool::new(false);
 static TOKEN_RDY: OnceLock<Mutex<Option<tokio::sync::oneshot::Sender<()>>>> = OnceLock::new();
 
 /// Called from Kotlin `GoogleDriveHelper.nativeInit()` to store JVM reference.
@@ -25,17 +24,11 @@ pub extern "system" fn Java_com_stellasecret_peoplemodeler_GoogleDriveHelper_nat
     _class: jni::objects::JClass,
 ) {
     eprintln!("[android_auth] token saved callback received");
-    TOKEN_SAVED.store(true, Ordering::SeqCst);
     if let Some(lock) = TOKEN_RDY.get() {
         if let Some(tx) = lock.lock().unwrap().take() {
             let _ = tx.send(());
         }
     }
-}
-
-/// Returns true once if token was saved since last check (resets flag).
-pub fn check_token_saved() -> bool {
-    TOKEN_SAVED.swap(false, Ordering::SeqCst)
 }
 
 /// Register a oneshot sender to be notified when token is saved.

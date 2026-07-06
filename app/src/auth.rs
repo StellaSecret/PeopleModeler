@@ -103,9 +103,6 @@ pub fn init() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn init() {}
-
 pub fn get_token() -> Option<String> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -136,13 +133,6 @@ pub fn set_token(token: &str) {
             let _ = std::fs::write(&path, token);
         }
     }
-}
-
-pub fn token_saved() -> bool {
-    #[cfg(target_os = "android")]
-    return crate::android_auth::check_token_saved();
-    #[cfg(not(target_os = "android"))]
-    false
 }
 
 pub fn clear_token() {
