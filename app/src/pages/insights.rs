@@ -98,6 +98,15 @@ fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if p.ocean.conscientiousness >= 7 {
         s.push(crate::i18n::tr("strategy_stress_high_c", lang).into());
     }
+    if p.ocean.agreeableness <= 4 {
+        s.push(crate::i18n::tr("strategy_stress_low_a", lang).into());
+    }
+    if p.ocean.conscientiousness <= 4 {
+        s.push(crate::i18n::tr("strategy_stress_low_c", lang).into());
+    }
+    if p.ocean.openness >= 7 {
+        s.push(crate::i18n::tr("strategy_stress_high_o", lang).into());
+    }
     if let Some(m) = p.top_motivation() {
         match m.r#type {
             peoplemodeler_core::models::MotivationType::Power => s.push(crate::i18n::tr("strategy_stress_power", lang).into()),
@@ -125,6 +134,12 @@ fn conflict_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if p.ocean.extraversion >= 7 {
         s.push(crate::i18n::tr("strategy_conflict_high_e", lang).into());
     }
+    if p.ocean.conscientiousness >= 7 {
+        s.push(crate::i18n::tr("strategy_conflict_high_c", lang).into());
+    }
+    if p.ocean.extraversion <= 4 {
+        s.push(crate::i18n::tr("strategy_conflict_low_e", lang).into());
+    }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_conflict_fallback", lang).into());
     }
@@ -138,6 +153,12 @@ fn success_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if p.ocean.conscientiousness >= 7 {
         s.push(crate::i18n::tr("strategy_success_high_c", lang).into());
+    }
+    if p.ocean.extraversion <= 4 {
+        s.push(crate::i18n::tr("strategy_success_low_e", lang).into());
+    }
+    if p.ocean.agreeableness >= 7 {
+        s.push(crate::i18n::tr("strategy_success_high_a", lang).into());
     }
     if let Some(m) = p.top_motivation() {
         if m.r#type == peoplemodeler_core::models::MotivationType::Recognition && m.intensity >= 7 {
@@ -166,6 +187,12 @@ fn uncertainty_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if p.ocean.openness <= 4 {
         s.push(crate::i18n::tr("strategy_uncertainty_low_o", lang).into());
+    }
+    if p.ocean.conscientiousness >= 7 {
+        s.push(crate::i18n::tr("strategy_uncertainty_high_c", lang).into());
+    }
+    if p.ocean.extraversion >= 7 {
+        s.push(crate::i18n::tr("strategy_uncertainty_high_e", lang).into());
     }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_uncertainty_fallback", lang).into());
