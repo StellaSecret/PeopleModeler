@@ -86,7 +86,7 @@ fn App() -> Element {
         }
     });
     rsx! {
-        Stylesheet { href: asset!("/assets/styles.css") }
+        style { {include_str!("../assets/styles.css")} }
         Router::<Route> {}
         div { class: "noise" }
     }
