@@ -182,6 +182,13 @@ pub struct Prediction {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InteractionEntry {
+    pub id: String,
+    pub timestamp: i64,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OceanScores {
     pub openness: u8,
     pub conscientiousness: u8,
@@ -215,6 +222,8 @@ pub struct Person {
     pub biases: Vec<Bias>,
     pub behavioral_patterns: Vec<BehavioralPattern>,
     pub ocean: OceanScores,
+    #[serde(default)]
+    pub log: Vec<InteractionEntry>,
     pub predictions: Vec<Prediction>,
     #[serde(default = "default_confidence")]
     pub confidence: u8,

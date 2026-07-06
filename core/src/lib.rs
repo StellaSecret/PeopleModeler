@@ -73,6 +73,7 @@ mod tests {
                 resolved: true,
             }],
             confidence: 5,
+            log: Vec::new(),
             created_at: 0,
             updated_at: 0,
         }
@@ -185,6 +186,7 @@ mod tests {
             ocean: OceanScores::default(),
             predictions: vec![],
             confidence: 5,
+            log: Vec::new(),
             created_at: 0,
             updated_at: 0,
         };

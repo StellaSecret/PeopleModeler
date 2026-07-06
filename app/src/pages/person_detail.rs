@@ -3,7 +3,7 @@ use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction};
 
 use crate::db;
 use crate::i18n::Lang;
-use crate::pages::predictions::PredictionList;
+use crate::pages::predictions::{PredictionList, format_date};
 use crate::Route;
 
 fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
@@ -20,16 +20,17 @@ enum Tab {
     Ocean,
     Predictions,
     Insights,
+    Log,
 }
 
 #[component]
 pub fn PersonDetail(id: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let person = use_signal(|| db::person(&id));
+    let mut person_sig = use_signal(|| db::person(&id));
     let mut tab = use_signal(|| Tab::Motivations);
     let not_found = crate::i18n::tr("person_not_found", lang());
 
-    let p = person.read().clone();
+    let p = person_sig.read().clone();
     match p {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
         Some(ref person) => {
@@ -46,6 +47,10 @@ pub fn PersonDetail(id: String) -> Element {
             let conf_label = crate::i18n::tr("confidence_label", lang());
             let compare_btn = crate::i18n::tr("compare_btn", lang());
             let no_pat = crate::i18n::tr("no_patterns", lang());
+            let log_title = crate::i18n::tr("log_title", lang());
+            let log_placeholder = crate::i18n::tr("log_placeholder", lang());
+            let log_add = crate::i18n::tr("log_add", lang());
+            let log_empty = crate::i18n::tr("log_empty", lang());
 
             let mut preds = use_signal(|| db::predictions_for_person(&id));
             let mut ctx = use_signal(String::new);
@@ -56,6 +61,7 @@ pub fn PersonDetail(id: String) -> Element {
 
             let mut comparing = use_signal(|| false);
             let other_persons = use_signal(|| db::all_persons());
+            let mut log_text = use_signal(String::new);
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
@@ -134,6 +140,7 @@ pub fn PersonDetail(id: String) -> Element {
                         button { class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
                         button { class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
                         button { class: if tab() == Tab::Insights { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Insights), "✨ {insights_title}" }
+                        button { class: if tab() == Tab::Log { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Log), "{log_title}" }
                     }
 
                     if tab() == Tab::Motivations {
@@ -255,6 +262,46 @@ pub fn PersonDetail(id: String) -> Element {
                                     div { class: "pattern-item",
                                         strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
                                         p { "{bp.predicted_behavior}" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if tab() == Tab::Log {
+                        div { class: "card",
+                            h2 { "{log_title}" }
+                            div { class: "form-row",
+                                input { placeholder: "{log_placeholder}", value: "{log_text}",
+                                    oninput: move |e| log_text.set(e.value()) }
+                                button { class: "btn btn-primary", onclick: {
+                                    let pid = id.clone();
+                                    move |_| {
+                                        let t = log_text();
+                                        if t.is_empty() { return; }
+                                        let mut p = person_sig.write().clone();
+                                        if let Some(ref mut p) = p {
+                                            p.log.push(peoplemodeler_core::models::InteractionEntry {
+                                                id: uuid::Uuid::new_v4().to_string(),
+                                                timestamp: chrono::Utc::now().timestamp_millis(),
+                                                text: t,
+                                            });
+                                            db::save_person(p);
+                                            person_sig.set(db::person(&pid));
+                                        }
+                                        log_text.set(String::new());
+                                    }
+                                }, "{log_add}" }
+                            }
+                        }
+                        if person.log.is_empty() {
+                            p { "{log_empty}" }
+                        } else {
+                            div { class: "log-list",
+                                for entry in person.log.iter().rev() {
+                                    div { class: "log-entry",
+                                        small { class: "log-date", "{format_date(entry.timestamp)}" }
+                                        p { "{entry.text}" }
                                     }
                                 }
                             }

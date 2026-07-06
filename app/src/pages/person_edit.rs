@@ -42,6 +42,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         ocean: OceanScores::default(),
         confidence: 5,
         predictions: Vec::new(),
+        log: Vec::new(),
         created_at: chrono::Utc::now().timestamp_millis(),
         updated_at: chrono::Utc::now().timestamp_millis(),
     });
@@ -75,6 +76,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             ocean: ocean(),
             confidence: confidence(),
             predictions: Vec::new(),
+            log: Vec::new(),
             created_at: chrono::Utc::now().timestamp_millis(),
             updated_at: chrono::Utc::now().timestamp_millis(),
         };

@@ -132,6 +132,7 @@ impl From<LegacyPerson> for Person {
             },
             predictions: Vec::new(),
             confidence: 5,
+            log: Vec::new(),
             created_at: lp.created_at,
             updated_at: lp.updated_at,
         }

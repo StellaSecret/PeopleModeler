@@ -185,7 +185,7 @@ fn PredictionCard(prediction: Prediction, onresolve: EventHandler<()>, ondelete:
     }
 }
 
-fn format_date(ts: i64) -> String {
+pub(crate) fn format_date(ts: i64) -> String {
     chrono::DateTime::from_timestamp_millis(ts)
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| "unknown".into())
