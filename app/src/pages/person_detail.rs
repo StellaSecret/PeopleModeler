@@ -203,6 +203,22 @@ pub fn PersonDetail(id: String) -> Element {
                                 input { placeholder: "{outcome_pl}", value: "{predicted}", oninput: move |e| predicted.set(e.value()) }
                                 button { class: "btn btn-primary", onclick: move |_| add_pred(), "{add_btn}" }
                             }
+                            {
+                                let all = preds();
+                                let total = all.len();
+                                let resolved: Vec<_> = all.into_iter().filter(|p| p.resolved).collect();
+                                let n = resolved.len();
+                                if n > 0 {
+                                    let avg: u8 = resolved.iter().filter_map(|p| p.accuracy).sum::<u8>() / n as u8;
+                                    rsx! {
+                                        div { class: "pred-stats",
+                                            span { "✓ {n}/{total} — Σ {avg}/10" }
+                                        }
+                                    }
+                                } else {
+                                    rsx! {}
+                                }
+                            }
                         }
                         PredictionList { predictions: preds(), person_filter: Some(id.clone()),
                             onresolve: {
