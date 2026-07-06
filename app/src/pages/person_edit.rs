@@ -124,11 +124,41 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
                 fieldset { class: "ocean-inputs",
                     legend { "{form_ocean_title}" }
-                    OceanSlider { label: crate::i18n::tr("ocean_openness", lang()), val: ocean().openness, onchange: move |v| { let mut o = ocean.write(); o.openness = v; } }
-                    OceanSlider { label: crate::i18n::tr("ocean_conscientiousness", lang()), val: ocean().conscientiousness, onchange: move |v| { let mut o = ocean.write(); o.conscientiousness = v; } }
-                    OceanSlider { label: crate::i18n::tr("ocean_extraversion", lang()), val: ocean().extraversion, onchange: move |v| { let mut o = ocean.write(); o.extraversion = v; } }
-                    OceanSlider { label: crate::i18n::tr("ocean_agreeableness", lang()), val: ocean().agreeableness, onchange: move |v| { let mut o = ocean.write(); o.agreeableness = v; } }
-                    OceanSlider { label: crate::i18n::tr("ocean_neuroticism", lang()), val: ocean().neuroticism, onchange: move |v| { let mut o = ocean.write(); o.neuroticism = v; } }
+                    OceanSlider {
+                        label: crate::i18n::tr("ocean_openness", lang()),
+                        val: ocean().openness,
+                        onchange: move |v| { let mut o = ocean.write(); o.openness = v; },
+                        low_hint: Some(crate::i18n::tr("ocean_o_low", lang()).into()),
+                        high_hint: Some(crate::i18n::tr("ocean_o_high", lang()).into()),
+                    }
+                    OceanSlider {
+                        label: crate::i18n::tr("ocean_conscientiousness", lang()),
+                        val: ocean().conscientiousness,
+                        onchange: move |v| { let mut o = ocean.write(); o.conscientiousness = v; },
+                        low_hint: Some(crate::i18n::tr("ocean_c_low", lang()).into()),
+                        high_hint: Some(crate::i18n::tr("ocean_c_high", lang()).into()),
+                    }
+                    OceanSlider {
+                        label: crate::i18n::tr("ocean_extraversion", lang()),
+                        val: ocean().extraversion,
+                        onchange: move |v| { let mut o = ocean.write(); o.extraversion = v; },
+                        low_hint: Some(crate::i18n::tr("ocean_e_low", lang()).into()),
+                        high_hint: Some(crate::i18n::tr("ocean_e_high", lang()).into()),
+                    }
+                    OceanSlider {
+                        label: crate::i18n::tr("ocean_agreeableness", lang()),
+                        val: ocean().agreeableness,
+                        onchange: move |v| { let mut o = ocean.write(); o.agreeableness = v; },
+                        low_hint: Some(crate::i18n::tr("ocean_a_low", lang()).into()),
+                        high_hint: Some(crate::i18n::tr("ocean_a_high", lang()).into()),
+                    }
+                    OceanSlider {
+                        label: crate::i18n::tr("ocean_neuroticism", lang()),
+                        val: ocean().neuroticism,
+                        onchange: move |v| { let mut o = ocean.write(); o.neuroticism = v; },
+                        low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
+                        high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
+                    }
                 }
 
                 MotEditPanel { motivations: motivations.clone() }
@@ -287,7 +317,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
 }
 
 #[component]
-fn OceanSlider(label: String, val: u8, onchange: EventHandler<u8>) -> Element {
+fn OceanSlider(label: String, val: u8, onchange: EventHandler<u8>, low_hint: Option<String>, high_hint: Option<String>) -> Element {
     rsx! {
         div { class: "ocean-slider",
             label { "{label}" }
@@ -299,6 +329,13 @@ fn OceanSlider(label: String, val: u8, onchange: EventHandler<u8>) -> Element {
                 oninput: move |e| onchange.call(e.value().parse::<u8>().unwrap_or(5)),
             }
             span { "{val}" }
+            if let (Some(l), Some(h)) = (low_hint.as_ref(), high_hint.as_ref()) {
+                div { class: "ocean-hint",
+                    span { class: "hint-low", "↓ {l}" }
+                    span { class: "hint-sep", "|" }
+                    span { class: "hint-high", "↑ {h}" }
+                }
+            }
         }
     }
 }
