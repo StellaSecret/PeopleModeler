@@ -1,4 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function gotoNewPerson(page: Page) {
+  await page.goto('/PeopleModeler/person/new');
+  await page.getByText('Blank (start from scratch)').click();
+}
 
 test.describe('People Modeler Dioxus App', () => {
 
@@ -12,8 +17,7 @@ test.describe('People Modeler Dioxus App', () => {
   // ── Create Person ─────────────────────────────────────
 
   test('create a person and see detail', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
-    // Form has label+input pairs, no placeholders
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Marie Curie');
     await page.locator('label:has-text("Role") + input').fill('Physicist');
     await page.click('button:has-text("Save")');
@@ -23,9 +27,9 @@ test.describe('People Modeler Dioxus App', () => {
   });
 
   test('create person with ocean scores', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Alan Turing');
-    const sliders = page.locator('.ocean-slider input[type="range"]');
+    const sliders = page.locator('.ocean-inputs input[type="range"]');
     await expect(sliders).toHaveCount(5);
     await sliders.nth(0).fill('8');
     await page.click('button:has-text("Save")');
@@ -36,7 +40,7 @@ test.describe('People Modeler Dioxus App', () => {
   // ── Edit Person ───────────────────────────────────────
 
   test('edit person name', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Old Name');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -49,7 +53,7 @@ test.describe('People Modeler Dioxus App', () => {
   });
 
   test('delete person', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('To Delete');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -61,7 +65,7 @@ test.describe('People Modeler Dioxus App', () => {
   // ── Person list ───────────────────────────────────────
 
   test('person appears in list after creation', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Ada Lovelace');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -74,7 +78,7 @@ test.describe('People Modeler Dioxus App', () => {
   // ── Person detail sections ────────────────────────────
 
   test('person detail shows motivations, biases, patterns', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Test Person');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -87,7 +91,7 @@ test.describe('People Modeler Dioxus App', () => {
   // ── Predictions ───────────────────────────────────────
 
   test('add prediction for person', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Predictable');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -103,7 +107,7 @@ test.describe('People Modeler Dioxus App', () => {
   });
 
   test('resolve prediction', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Resolver');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -124,7 +128,7 @@ test.describe('People Modeler Dioxus App', () => {
   });
 
   test('delete prediction', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Deleter');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -144,7 +148,7 @@ test.describe('People Modeler Dioxus App', () => {
   // ── Insights ──────────────────────────────────────────
 
   test('insights shows persons', async ({ page }) => {
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Insight Person');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);

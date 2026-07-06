@@ -1,4 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function gotoNewPerson(page: Page) {
+  await page.goto('/PeopleModeler/person/new');
+  await page.getByText('Blank (start from scratch)').click();
+}
 
 test.describe('Person Page — Dioxus', () => {
   let personId: string;
@@ -10,7 +15,7 @@ test.describe('Person Page — Dioxus', () => {
     await page.waitForTimeout(500);
 
     // Create a person to work with
-    await page.goto('/PeopleModeler/person/new');
+    await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Alexandre');
     await page.locator('label:has-text("Role") + input').fill('Manager');
     await page.click('button:has-text("Save")');
