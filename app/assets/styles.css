@@ -100,6 +100,7 @@ body{
 }
 .search-input:focus{border-color:var(--cyan)}
 .search-input::placeholder{color:var(--text-muted)}
+.sort-select{padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:0.82rem;background:var(--surface);color:var(--text);cursor:pointer;outline:none}
 
 /* ── BUTTONS ── */
 .btn{

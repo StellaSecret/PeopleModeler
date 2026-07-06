@@ -89,6 +89,10 @@ fn en(key: &'static str) -> &'static str {
         // People list
         "search_placeholder" => "Search people...",
         "no_people_yet" => "No people yet. Tap + to add someone.",
+        "sort_by" => "Sort",
+        "sort_name" => "Name",
+        "sort_recent" => "Recent",
+        "sort_ocean" => "OCEAN",
 
         // Person detail
         "person_not_found" => "Person not found",
@@ -300,6 +304,10 @@ fn fr(key: &'static str) -> &'static str {
 
         "search_placeholder" => "Rechercher...",
         "no_people_yet" => "Aucune personne. Appuyez sur + pour ajouter.",
+        "sort_by" => "Trier",
+        "sort_name" => "Nom",
+        "sort_recent" => "Récents",
+        "sort_ocean" => "OCÉAN",
 
         "person_not_found" => "Personne introuvable",
         "edit_btn" => "✏ Modifier",
