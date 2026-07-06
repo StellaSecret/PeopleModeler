@@ -233,6 +233,26 @@ pub fn PersonDetail(id: String) -> Element {
     }
 }
 
+fn radar_poly(radius: f64, cx: f64, cy: f64, scale: f64) -> String {
+    use std::f64::consts::PI;
+    let r = radius * scale;
+    let mut pts = Vec::new();
+    for i in 0..5 {
+        let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
+        pts.push(format!("{:.1},{:.1}", cx + r * a.cos(), cy + r * a.sin()));
+    }
+    pts.push(pts[0].clone());
+    pts.join(" ")
+}
+
+fn axis_label(cx: f64, cy: f64, r: f64, i: usize) -> (f64, f64) {
+    use std::f64::consts::PI;
+    let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
+    let x = cx + (r + 16.0) * a.cos();
+    let y = cy + (r + 16.0) * a.sin();
+    (x, y)
+}
+
 #[component]
 fn OceanChart(person: Person) -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -251,19 +271,70 @@ fn OceanChart(person: Person) -> Element {
         person.ocean.agreeableness,
         person.ocean.neuroticism,
     ];
+
+    let cx = 110.0; let cy = 110.0; let r = 80.0;
+
+    use std::f64::consts::PI;
+    let pts: Vec<(f64, f64)> = scores.iter().enumerate().map(|(i, s)| {
+        let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
+        let pr = r * *s as f64 / 10.0;
+        (cx + pr * a.cos(), cy + pr * a.sin())
+    }).collect();
+    let data_poly: String = pts.iter().map(|(x, y)| format!("{:.1},{:.1}", x, y)).collect::<Vec<_>>().join(" ");
+    let data_poly = format!("{} {:.1},{:.1}", data_poly, pts[0].0, pts[0].1);
+    let label_pos: Vec<(f64, f64)> = (0..5).map(|i| {
+        axis_label(cx, cy, r, i)
+    }).collect();
+
     rsx! {
         div { class: "section ocean-chart",
             h2 { "{ocean_title}" }
-            for (i, label) in labels.iter().enumerate() {
-                div { class: "ocean-bar",
-                    span { "{label}" }
-                    div { class: "bar-wrapper",
-                        div {
-                            class: "bar-fill",
-                            style: "width: {scores[i] * 10}%",
+            div { class: "radar-wrapper",
+                svg { view_box: "0 0 220 220",
+                    // grid
+                    for level in [2, 4, 6, 8, 10] {
+                        polygon {
+                            fill: "none",
+                            stroke: "var(--border)",
+                            stroke_width: "1",
+                            points: "{radar_poly(r, cx, cy, level as f64 / 10.0)}"
                         }
                     }
-                    span { "{scores[i]}/10" }
+                    // data polygon
+                    polygon {
+                        fill: "var(--cyan)",
+                        fill_opacity: "0.2",
+                        stroke: "var(--cyan)",
+                        stroke_width: "2",
+                        points: "{data_poly}"
+                    }
+                    // data points
+                    for (x, y) in pts.iter() {
+                        circle { cx: "{x:.1}", cy: "{y:.1}", r: "3.5", fill: "var(--cyan)" }
+                    }
+                    // labels
+                    for (i, label) in labels.iter().enumerate() {
+                        text {
+                            x: "{label_pos[i].0:.1}", y: "{label_pos[i].1:.1}",
+                            text_anchor: "middle",
+                            dominant_baseline: "central",
+                            font_size: "10",
+                            fill: "var(--text-muted)",
+                            font_family: "var(--font-display)",
+                            "{label}"
+                        }
+                    }
+                    // center score summary
+                    text {
+                        x: "{cx}", y: "{cy}",
+                        text_anchor: "middle",
+                        dominant_baseline: "central",
+                        font_size: "14",
+                        font_weight: "bold",
+                        fill: "var(--text)",
+                        font_family: "var(--font-display)",
+                        "{scores.iter().sum::<u8>() / 5}/10"
+                    }
                 }
             }
         }

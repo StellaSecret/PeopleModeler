@@ -260,11 +260,8 @@ fieldset.section legend{
 
 /* ── OCEAN CHART ── */
 .ocean-chart{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem}
-.ocean-bar{display:flex;align-items:center;gap:0.75rem;margin:0.5rem 0}
-.ocean-bar>span:first-child{width:24px;font-weight:700;color:var(--cyan);font-size:0.82rem;font-family:var(--font-display)}
-.bar-wrapper{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
-.bar-fill{height:100%;background:var(--cyan);border-radius:3px;transition:width 0.3s}
-.bar{height:6px;background:var(--cyan);border-radius:3px;margin:0.35rem 0;min-width:4px!important}
+.ocean-chart .radar-wrapper{max-width:280px;margin:0 auto}
+.ocean-chart svg{width:100%;height:auto}
 
 /* ── MOTIVATION / BIAS / PATTERN ITEMS ── */
 .motivation-item,.bias-item,.pattern-item{
