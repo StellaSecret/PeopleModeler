@@ -113,6 +113,8 @@ fn en(key: &'static str) -> &'static str {
         // Person edit form
         "form_new_title" => "New Person",
         "form_edit_title" => "Edit Person",
+        "template_title" => "Quick Template",
+        "template_blank" => "Blank (start from scratch)",
         "form_name" => "Name",
         "form_role" => "Role",
         "form_context" => "Context",
@@ -333,6 +335,8 @@ fn fr(key: &'static str) -> &'static str {
 
         "form_new_title" => "Nouvelle personne",
         "form_edit_title" => "Modifier la personne",
+        "template_title" => "Modèle rapide",
+        "template_blank" => "Vierge (commencer de zéro)",
         "form_name" => "Nom",
         "form_role" => "Rôle",
         "form_context" => "Contexte",

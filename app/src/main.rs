@@ -19,6 +19,7 @@ mod android_auth;
 mod db;
 mod drive;
 mod i18n;
+mod templates;
 mod theme;
 mod pages;
 

@@ -10,7 +10,54 @@ use crate::Route;
 
 #[component]
 pub fn PersonNew() -> Element {
-    rsx! { PersonEditForm {} }
+    let lang = use_context::<Signal<Lang>>();
+    let mut selected = use_signal(|| None::<usize>);
+    let templates = crate::templates::all();
+    let new_person_title = crate::i18n::tr("form_new_title", lang());
+    let template_title = crate::i18n::tr("template_title", lang());
+    let template_blank = crate::i18n::tr("template_blank", lang());
+
+    match selected() {
+        Some(idx) => {
+            let blank = Person {
+                id: uuid::Uuid::new_v4().to_string(),
+                name: String::new(), role: String::new(), context: String::new(),
+                avatar_emoji: "👤".into(),
+                tags: Vec::new(), notes: String::new(),
+                motivations: Vec::new(), biases: Vec::new(),
+                behavioral_patterns: Vec::new(),
+                ocean: OceanScores::default(),
+                confidence: 5,
+                predictions: Vec::new(), log: Vec::new(),
+                created_at: chrono::Utc::now().timestamp_millis(),
+                updated_at: chrono::Utc::now().timestamp_millis(),
+            };
+            let person = if idx < templates.len() {
+                let t = &templates[idx];
+                Person { ocean: t.ocean.clone(), motivations: t.motivations.clone(), biases: t.biases.clone(), ..blank }
+            } else {
+                blank
+            };
+            rsx! { PersonEditForm { initial: person } }
+        }
+        None => rsx! {
+            div { class: "page",
+                h2 { "{new_person_title}" }
+                h3 { "{template_title}" }
+                div { class: "template-grid",
+                    for (i, tpl) in templates.iter().enumerate() {
+                        button { class: "template-card", onclick: move |_| selected.set(Some(i)),
+                            span { class: "template-emoji", "{tpl.emoji}" }
+                            strong { "{tpl.name}" }
+                        }
+                    }
+                }
+                p { class: "template-skip",
+                    button { class: "btn", onclick: move |_| selected.set(Some(999)), "{template_blank}" }
+                }
+            }
+        },
+    }
 }
 
 #[component]
