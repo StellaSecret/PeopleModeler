@@ -40,6 +40,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         biases: Vec::new(),
         behavioral_patterns: Vec::new(),
         ocean: OceanScores::default(),
+        confidence: 5,
         predictions: Vec::new(),
         created_at: chrono::Utc::now().timestamp_millis(),
         updated_at: chrono::Utc::now().timestamp_millis(),
@@ -52,6 +53,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut notes = use_signal(|| p.notes.clone());
     let mut tags_str = use_signal(|| p.tags.join(", "));
     let mut ocean = use_signal(|| p.ocean.clone());
+    let mut confidence = use_signal(|| p.confidence);
     let motivations = use_signal(|| p.motivations.clone());
     let biases = use_signal(|| p.biases.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
@@ -71,6 +73,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             biases: biases(),
             behavioral_patterns: patterns(),
             ocean: ocean(),
+            confidence: confidence(),
             predictions: Vec::new(),
             created_at: chrono::Utc::now().timestamp_millis(),
             updated_at: chrono::Utc::now().timestamp_millis(),
@@ -87,6 +90,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_avatar = crate::i18n::tr("form_avatar", lang());
     let form_tags = crate::i18n::tr("form_tags", lang());
     let form_notes = crate::i18n::tr("form_notes", lang());
+    let form_confidence = crate::i18n::tr("form_confidence", lang());
     let form_ocean_title = crate::i18n::tr("form_ocean_title", lang());
     let form_save = crate::i18n::tr("form_save", lang());
     let form_cancel = crate::i18n::tr("form_cancel", lang());
@@ -121,6 +125,14 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
                 label { "{form_notes}" }
                 textarea { value: "{notes}", rows: "4", oninput: move |e| notes.set(e.value()) }
+
+                label { "{form_confidence}" }
+                div { class: "ocean-slider",
+                    span { "{confidence}/10" }
+                    input { r#type: "range", min: "1", max: "10", value: "{confidence}",
+                        oninput: move |e| confidence.set(e.value().parse().unwrap_or(5)),
+                    }
+                }
 
                 fieldset { class: "ocean-inputs",
                     legend { "{form_ocean_title}" }

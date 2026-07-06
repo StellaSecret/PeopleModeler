@@ -107,6 +107,9 @@ pub fn PersonDetail(id: String) -> Element {
                                 }
                             }
                         }
+                        div { class: "confidence-badge",
+                            span { "{conf_label}: {person.confidence}/10" }
+                        }
                     }
 
                     div { class: "tab-bar",

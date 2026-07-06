@@ -131,6 +131,7 @@ impl From<LegacyPerson> for Person {
                 neuroticism: lp.neuroticism,
             },
             predictions: Vec::new(),
+            confidence: 5,
             created_at: lp.created_at,
             updated_at: lp.updated_at,
         }

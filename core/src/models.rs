@@ -216,8 +216,14 @@ pub struct Person {
     pub behavioral_patterns: Vec<BehavioralPattern>,
     pub ocean: OceanScores,
     pub predictions: Vec<Prediction>,
+    #[serde(default = "default_confidence")]
+    pub confidence: u8,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+fn default_confidence() -> u8 {
+    5
 }
 
 impl Person {

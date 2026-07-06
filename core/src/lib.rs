@@ -72,6 +72,7 @@ mod tests {
                 resolved_at: Some(2000),
                 resolved: true,
             }],
+            confidence: 5,
             created_at: 0,
             updated_at: 0,
         }
@@ -183,6 +184,7 @@ mod tests {
             behavioral_patterns: vec![],
             ocean: OceanScores::default(),
             predictions: vec![],
+            confidence: 5,
             created_at: 0,
             updated_at: 0,
         };
