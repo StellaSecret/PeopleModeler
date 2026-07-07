@@ -22,16 +22,24 @@ pub fn Insights() -> Element {
     let persons = db::all_persons();
     let title = crate::i18n::tr("insights_title", lang());
     let hint = crate::i18n::tr("insights_select_person", lang());
+    let empty = crate::i18n::tr("no_people_insights", lang());
     rsx! {
         div { class: "page",
             h2 { "{title}" }
             p { "{hint}" }
-            div { class: "person-list",
-                for p in persons {
-                    Link {
-                        to: Route::PersonDetail { id: p.id.clone() },
-                        class: "person-card",
-                        span { "{p.avatar_emoji} {p.name}" }
+            if persons.is_empty() {
+                div { class: "empty-state",
+                    div { class: "empty-icon", "📊" }
+                    p { "{empty}" }
+                }
+            } else {
+                div { class: "person-list",
+                    for p in &persons {
+                        Link {
+                            to: Route::PersonDetail { id: p.id.clone() },
+                            class: "person-card",
+                            span { "{p.avatar_emoji} {p.name}" }
+                        }
                     }
                 }
             }

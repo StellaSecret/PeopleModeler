@@ -223,6 +223,7 @@ pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<Strin
     Ok(fid)
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usize, String> {
     let client = reqwest::Client::new();
     let query = "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
@@ -259,13 +260,11 @@ pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usiz
     #[cfg(target_arch = "wasm32")]
     if let Some(pp) = passphrase.filter(|p| !p.is_empty()) {
         if !bytes.is_empty() && bytes[0] != b'{' {
-            return match crate::crypto::decrypt_with_passphrase(&bytes, pp) {
-                Some(dec) => {
-                    let text = String::from_utf8(dec).map_err(|e| format!("utf8: {e}"))?;
-                    return restore_from_json(&text);
-                }
-                None => return Err("sync_wrong_passphrase".into()),
-            };
+            if let Some(dec) = crate::crypto::decrypt_with_passphrase(&bytes, pp) {
+                let text = String::from_utf8(dec).map_err(|e| format!("utf8: {e}"))?;
+                return restore_from_json(&text);
+            }
+            return Err("sync_wrong_passphrase".into());
         }
     }
 

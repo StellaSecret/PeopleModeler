@@ -23,6 +23,7 @@ mod i18n;
 mod templates;
 mod theme;
 mod pages;
+mod toast;
 
 #[derive(Clone, Debug, PartialEq, Routable)]
 enum Route {
@@ -77,6 +78,7 @@ fn App() -> Element {
     let theme = use_signal(|| Theme::detect());
     use_context_provider(|| lang);
     use_context_provider(|| theme);
+    let _toast = toast::provide_toast();
     // Persist theme + sync to html element (web needs data-theme on <html> for body bg etc)
     use_effect(move || {
         let t = theme();
@@ -128,6 +130,7 @@ fn inject_csp() {
 fn NavLayout() -> Element {
     let mut lang = use_context::<Signal<Lang>>();
     let mut theme = use_context::<Signal<Theme>>();
+    let toast = use_context::<Signal<Option<String>>>();
     let nav_people = crate::i18n::tr("nav_people", lang());
     let nav_sync = crate::i18n::tr("nav_sync", lang());
     let toggle_lang = move |_| {
@@ -143,6 +146,7 @@ fn NavLayout() -> Element {
         let t = theme();
         theme.set(t.toggle());
     };
+    auto_clear_toast(toast);
     rsx! {
         div { class: "app", "data-theme": theme().as_str(),
             header { class: "top-bar",
@@ -166,6 +170,41 @@ fn NavLayout() -> Element {
             main { class: "content",
                 Outlet::<Route> {}
             }
+            div { class: "toast-container",
+                if let Some(msg) = toast() {
+                    div { class: "toast", key: "{msg}", "{msg}" }
+                }
+            }
         }
     }
+}
+
+fn auto_clear_toast(toast: Signal<Option<String>>) {
+    use_effect(move || {
+        if toast().is_some() {
+            let mut t = toast.clone();
+            spawn(async move {
+                sleep_ms(2000).await;
+                t.set(None);
+            });
+        }
+    });
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn sleep_ms(ms: u64) {
+    let promise = js_sys::Promise::new(&mut move |resolve, _| {
+        let _ = web_sys::window()
+            .unwrap()
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                &resolve,
+                ms as i32,
+            );
+    });
+    wasm_bindgen_futures::JsFuture::from(promise).await.ok();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn sleep_ms(ms: u64) {
+    tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
 }

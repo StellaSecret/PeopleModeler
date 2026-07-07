@@ -74,6 +74,7 @@ pub fn PersonEdit(id: String) -> Element {
 #[component]
 fn PersonEditForm(initial: Option<Person>) -> Element {
     let lang = use_context::<Signal<Lang>>();
+    let mut toast_sig = use_context::<Signal<Option<String>>>();
     let is_new = initial.is_none();
     let p = initial.unwrap_or_else(|| Person {
         id: uuid::Uuid::new_v4().to_string(),
@@ -108,7 +109,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
     let pers_id = p.id.clone();
 
-    let save = move || {
+    let mut save = move || {
         let person = Person {
             id: pers_id.clone(),
             name: name(),
@@ -128,6 +129,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             updated_at: chrono::Utc::now().timestamp_millis(),
         };
         db::save_person(&person);
+        toast_sig.set(Some(crate::i18n::tr("toast_saved", lang()).into()));
         dioxus::prelude::navigator().push(Route::PersonDetail { id: pers_id.clone() });
     };
 
@@ -269,6 +271,8 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
             }
             for (i, m) in motivations().iter().enumerate() {
                 div { class: "list-item",
+                    button { class: "reorder-btn", onclick: move |_| { mot_move(motivations, i, true); }, "▲" }
+                    button { class: "reorder-btn", onclick: move |_| { mot_move(motivations, i, false); }, "▼" }
                     strong { "{m.r#type.emoji()} {m.r#type:?}" }
                     span { " {m.intensity}/10" }
                     span { " {m.notes}" }
@@ -276,6 +280,15 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                 }
             }
         }
+    }
+}
+
+fn mot_move(mut motivations: Signal<Vec<Motivation>>, i: usize, up: bool) {
+    let len = motivations.read().len();
+    if up && i > 0 {
+        motivations.write().swap(i, i - 1);
+    } else if !up && i + 1 < len {
+        motivations.write().swap(i, i + 1);
     }
 }
 
@@ -313,6 +326,8 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
             }
             for (i, b) in biases().iter().enumerate() {
                 div { class: "list-item",
+                    button { class: "reorder-btn", onclick: move |_| { bias_move(biases, i, true); }, "▲" }
+                    button { class: "reorder-btn", onclick: move |_| { bias_move(biases, i, false); }, "▼" }
                     strong { "{b.r#type.emoji()} {b.r#type:?}" }
                     span { " {b.intensity}/10" }
                     span { " {b.evidence}" }
@@ -320,6 +335,15 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                 }
             }
         }
+    }
+}
+
+fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
+    let len = biases.read().len();
+    if up && i > 0 {
+        biases.write().swap(i, i - 1);
+    } else if !up && i + 1 < len {
+        biases.write().swap(i, i + 1);
     }
 }
 

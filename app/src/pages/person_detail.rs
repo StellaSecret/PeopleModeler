@@ -28,6 +28,7 @@ pub fn PersonDetail(id: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let mut person_sig = use_signal(|| db::person(&id));
     let mut tab = use_signal(|| Tab::Motivations);
+    let mut toast_sig = use_context::<Signal<Option<String>>>();
     let not_found = crate::i18n::tr("person_not_found", lang());
 
     let p = person_sig.read().clone();
@@ -100,6 +101,7 @@ pub fn PersonDetail(id: String) -> Element {
                             class: "btn btn-danger",
                             onclick: move |_| {
                                 db::delete_person(&id);
+                                toast_sig.set(Some(crate::i18n::tr("toast_deleted", lang()).into()));
                                 navigator().push(Route::PeopleList {});
                             },
                             "{delete_btn}"

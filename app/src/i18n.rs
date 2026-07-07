@@ -89,6 +89,11 @@ fn en(key: &'static str) -> &'static str {
         // People list
         "search_placeholder" => "Search people...",
         "no_people_yet" => "No people yet. Tap + to add someone.",
+        "no_people_insights" => "No persons yet. Add someone to see insights.",
+        "toast_saved" => "Saved",
+        "toast_deleted" => "Deleted",
+        "toast_pred_resolved" => "Prediction resolved",
+        "toast_pred_deleted" => "Prediction deleted",
         "sort_by" => "Sort",
         "sort_name" => "Name",
         "sort_recent" => "Recent",
@@ -358,6 +363,11 @@ fn fr(key: &'static str) -> &'static str {
 
         "search_placeholder" => "Rechercher...",
         "no_people_yet" => "Aucune personne. Appuyez sur + pour ajouter.",
+        "no_people_insights" => "Aucune personne encore. Ajoutez quelqu'un pour voir les analyses.",
+        "toast_saved" => "Enregistré",
+        "toast_deleted" => "Supprimé",
+        "toast_pred_resolved" => "Prédiction résolue",
+        "toast_pred_deleted" => "Prédiction supprimée",
         "sort_by" => "Trier",
         "sort_name" => "Nom",
         "sort_recent" => "Récents",
