@@ -171,6 +171,155 @@ mod tests {
     }
 
     #[test]
+    fn test_insight_context_all() {
+        assert_eq!(InsightContext::ALL.len(), 6);
+    }
+
+    #[test]
+    fn test_team_insight() {
+        let p = demo_person();
+        let insight = insights::generate_insight(InsightContext::Team, &p);
+        assert!(insight.contains("Alexandre Dubois"));
+        assert!(insight.contains("Dynamique"));
+    }
+
+    #[test]
+    fn test_stress_insight() {
+        let p = demo_person();
+        let insight = insights::generate_insight(InsightContext::Stress, &p);
+        assert!(insight.contains("Alexandre Dubois"));
+        assert!(insight.contains("stress"));
+    }
+
+    #[test]
+    fn test_communication_insight() {
+        let p = demo_person();
+        let insight = insights::generate_insight(InsightContext::Communication, &p);
+        assert!(insight.contains("Alexandre Dubois"));
+        assert!(insight.contains("communication"));
+    }
+
+    #[test]
+    fn test_leadership_insight() {
+        let p = demo_person();
+        let insight = insights::generate_insight(InsightContext::Leadership, &p);
+        assert!(insight.contains("Alexandre Dubois"));
+        assert!(insight.contains("Leadership"));
+    }
+
+    #[test]
+    fn test_growth_insight() {
+        let p = demo_person();
+        let insight = insights::generate_insight(InsightContext::Growth, &p);
+        assert!(insight.contains("Alexandre Dubois"));
+        assert!(insight.contains("Développement"));
+    }
+
+    #[test]
+    fn test_motivation_emoji() {
+        for m in &MotivationType::ALL {
+            assert!(!m.emoji().is_empty(), "emoji for {:?} is empty", m);
+        }
+    }
+
+    #[test]
+    fn test_bias_emoji() {
+        for b in &BiasType::ALL {
+            assert!(!b.emoji().is_empty(), "emoji for {:?} is empty", b);
+        }
+    }
+
+    #[test]
+    fn test_behavior_trigger_emoji() {
+        for t in &[
+            BehaviorTrigger::Stress,
+            BehaviorTrigger::Conflict,
+            BehaviorTrigger::Success,
+            BehaviorTrigger::Uncertainty,
+            BehaviorTrigger::Recognition,
+            BehaviorTrigger::Threatened,
+            BehaviorTrigger::Change,
+            BehaviorTrigger::Feedback,
+        ] {
+            assert!(!t.emoji().is_empty(), "emoji for {:?} is empty", t);
+        }
+    }
+
+    #[test]
+    fn test_behavior_trigger_serde() {
+        for expected in &[
+            BehaviorTrigger::Stress,
+            BehaviorTrigger::Conflict,
+            BehaviorTrigger::Success,
+            BehaviorTrigger::Uncertainty,
+            BehaviorTrigger::Recognition,
+            BehaviorTrigger::Threatened,
+            BehaviorTrigger::Change,
+            BehaviorTrigger::Feedback,
+        ] {
+            let json = serde_json::to_string(expected).unwrap();
+            let back: BehaviorTrigger = serde_json::from_str(&json).unwrap();
+            assert_eq!(*expected, back);
+        }
+    }
+
+    #[test]
+    fn test_interaction_entry_serde() {
+        let entry = InteractionEntry {
+            id: "e1".into(),
+            timestamp: 1000,
+            text: "Discussed project goals".into(),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: InteractionEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(entry.id, back.id);
+        assert_eq!(entry.text, back.text);
+    }
+
+    #[test]
+    fn test_person_with_behavioral_patterns_serde() {
+        let p = Person {
+            id: "bp-test".into(),
+            name: "Pattern Test".into(),
+            role: String::new(),
+            context: String::new(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            behavioral_patterns: vec![
+                BehavioralPattern {
+                    trigger: BehaviorTrigger::Change,
+                    predicted_behavior: "Embraces new processes".into(),
+                    confidence: 8,
+                },
+                BehavioralPattern {
+                    trigger: BehaviorTrigger::Feedback,
+                    predicted_behavior: "Seeks constructive criticism".into(),
+                    confidence: 6,
+                },
+            ],
+            ocean: OceanScores::default(),
+            predictions: vec![],
+            confidence: 5,
+            log: Vec::new(),
+            created_at: 0,
+            updated_at: 0,
+        };
+        let json = serde_json::to_string(&p).unwrap();
+        assert!(json.contains("Change"));
+        assert!(json.contains("Feedback"));
+        let back: Person = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.behavioral_patterns.len(), 2);
+        assert_eq!(back.behavioral_patterns[0].trigger, BehaviorTrigger::Change);
+        assert_eq!(
+            back.behavioral_patterns[1].trigger,
+            BehaviorTrigger::Feedback
+        );
+    }
+
+    #[test]
     fn test_person_serialization_minimal() {
         let p = Person {
             id: "x".into(),
