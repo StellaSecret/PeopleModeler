@@ -22,7 +22,7 @@ pub fn build_backup() -> String {
         persons: db::all_persons(),
         predictions: db::all_predictions(),
     };
-    serde_json::to_string_pretty(&data).unwrap()
+    serde_json::to_string_pretty(&data).expect("BackupData serialization failed")
 }
 
 pub fn restore_from_json(json: &str) -> Result<usize, String> {

@@ -25,8 +25,10 @@ pub extern "system" fn Java_com_stellasecret_peoplemodeler_GoogleDriveHelper_nat
 ) {
     eprintln!("[android_auth] token saved callback received");
     if let Some(lock) = TOKEN_RDY.get() {
-        if let Some(tx) = lock.lock().unwrap().take() {
-            let _ = tx.send(());
+        if let Ok(mut guard) = lock.lock() {
+            if let Some(tx) = guard.take() {
+                let _ = tx.send(());
+            }
         }
     }
 }
@@ -35,7 +37,9 @@ pub extern "system" fn Java_com_stellasecret_peoplemodeler_GoogleDriveHelper_nat
 /// Only one sender at a time; previous is dropped.
 pub fn set_token_callback(tx: tokio::sync::oneshot::Sender<()>) {
     let lock = TOKEN_RDY.get_or_init(|| Mutex::new(None));
-    *lock.lock().unwrap() = Some(tx);
+    if let Ok(mut guard) = lock.lock() {
+        *guard = Some(tx);
+    }
 }
 
 /// Called from `auth::start_oauth()` to trigger native Google Sign-In.

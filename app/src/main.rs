@@ -46,7 +46,7 @@ enum Route {
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let _rt = tokio::runtime::Runtime::new().unwrap();
+        let _rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
         let _guard = _rt.enter();
         #[cfg(target_os = "android")]
         {

@@ -88,7 +88,7 @@ pub fn start_oauth(client_id: &str, redirect_uri: &str) {
 #[cfg(target_arch = "wasm32")]
 pub fn init() {
     use wasm_bindgen::JsCast;
-    let doc = web_sys::window().unwrap().document().unwrap();
+    let doc = web_sys::window().expect("no window in WASM").document().expect("no document in WASM");
 
     if get_gis_oauth2().is_ok() {
         return;
@@ -98,7 +98,9 @@ pub fn init() {
         if let Ok(s) = script.dyn_into::<web_sys::HtmlScriptElement>() {
             s.set_src("https://accounts.google.com/gsi/client");
             s.set_defer(true);
-            let _ = doc.body().unwrap().append_child(&s);
+            if let Some(body) = doc.body() {
+                let _ = body.append_child(&s);
+            }
         }
     }
 }

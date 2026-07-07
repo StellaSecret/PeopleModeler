@@ -31,16 +31,20 @@ fn export_file(json: &str) {
     use js_sys::Array;
     let arr = Array::new();
     arr.push(&JsValue::from(json));
-    let blob = web_sys::Blob::new_with_str_sequence(&arr).unwrap();
-    let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-    let window = web_sys::window().unwrap();
-    let doc = window.document().unwrap();
-    let a = doc.create_element("a").unwrap();
+    let blob = web_sys::Blob::new_with_str_sequence(&arr).expect("Blob creation failed");
+    let url = web_sys::Url::create_object_url_with_blob(&blob).expect("Object URL creation failed");
+    let window = web_sys::window().expect("no window in WASM");
+    let doc = window.document().expect("no document in WASM");
+    let a = doc.create_element("a").expect("createElement('a') failed");
     let _ = a.set_attribute("href", &url);
     let _ = a.set_attribute("download", "peoplemodeler_backup.json");
-    let _ = doc.body().unwrap().append_child(&a);
+    if let Some(body) = doc.body() {
+        let _ = body.append_child(&a);
+    }
     let _ = js_sys::Reflect::get(&a, &"click".into());
-    let _ = doc.body().unwrap().remove_child(&a);
+    if let Some(body) = doc.body() {
+        let _ = body.remove_child(&a);
+    }
     web_sys::Url::revoke_object_url(&url).ok();
 }
 
@@ -67,9 +71,9 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
         div { class: "form-row",
             button { class: "btn", onclick: move |_| {
                 let s2 = s.clone();
-                let window = web_sys::window().unwrap();
-                let doc = window.document().unwrap();
-                let input = doc.create_element("input").unwrap();
+                let window = web_sys::window().expect("no window in WASM");
+                let doc = window.document().expect("no document in WASM");
+                let input = doc.create_element("input").expect("createElement('input') failed");
                 let _ = input.set_attribute("type", "file");
                 let _ = input.set_attribute("accept", ".json");
                 let _ = input.set_attribute("style", "display:none");
@@ -80,8 +84,8 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                         .and_then(|f| f.dyn_into::<web_sys::FileList>().ok());
                     if let Some(files) = files {
                         if files.length() > 0 {
-                            let file = files.get(0).unwrap();
-                            let reader = web_sys::FileReader::new().unwrap();
+                            let file = files.get(0).expect("file exists after length check");
+                            let reader = web_sys::FileReader::new().expect("FileReader creation failed");
                             let r2 = reader.clone();
                             let mut s3 = s2.clone();
                             let onload = Closure::<dyn FnMut()>::new(move || {
@@ -101,7 +105,9 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                         }
                     }
                 });
-                let _ = doc.body().unwrap().append_child(&input);
+                if let Some(body) = doc.body() {
+                    let _ = body.append_child(&input);
+                }
                 let _ = js_sys::Reflect::get(&input, &"click".into());
                 cb.forget();
             }, "{import_btn}" }

@@ -82,12 +82,12 @@ impl StorageBackend for WebStorage {
     fn save_person(&self, person: &Person) {
         let mut all: Vec<Person> = self.load_all_persons();
         upsert(&mut all, person);
-        gloo_storage::LocalStorage::set("pm_persons", &all).unwrap();
+        let _ = gloo_storage::LocalStorage::set("pm_persons", &all);
     }
     fn delete_person(&self, id: &str) {
         let mut all: Vec<Person> = self.load_all_persons();
         all.retain(|p| p.id != id);
-        gloo_storage::LocalStorage::set("pm_persons", &all).unwrap();
+        let _ = gloo_storage::LocalStorage::set("pm_persons", &all);
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
         gloo_storage::LocalStorage::get("pm_predictions").unwrap_or_default()
@@ -98,12 +98,12 @@ impl StorageBackend for WebStorage {
     fn save_prediction(&self, prediction: &Prediction) {
         let mut all: Vec<Prediction> = self.load_all_predictions();
         upsert(&mut all, prediction);
-        gloo_storage::LocalStorage::set("pm_predictions", &all).unwrap();
+        let _ = gloo_storage::LocalStorage::set("pm_predictions", &all);
     }
     fn delete_prediction(&self, id: &str) {
         let mut all: Vec<Prediction> = self.load_all_predictions();
         all.retain(|p| p.id != id);
-        gloo_storage::LocalStorage::set("pm_predictions", &all).unwrap();
+        let _ = gloo_storage::LocalStorage::set("pm_predictions", &all);
     }
 }
 
@@ -124,12 +124,13 @@ impl SqliteStorage {
         };
         #[cfg(not(target_os = "android"))]
         let path = "peoplemodeler.db".to_string();
-        let conn = rusqlite::Connection::open(&path).unwrap();
+        let conn = rusqlite::Connection::open(&path)
+            .expect("Failed to open SQLite database");
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS persons (id TEXT PRIMARY KEY, data TEXT NOT NULL);
              CREATE TABLE IF NOT EXISTS predictions (id TEXT PRIMARY KEY, person_id TEXT NOT NULL, data TEXT NOT NULL);",
         )
-        .unwrap();
+        .expect("Failed to initialize SQLite schema");
         Self { conn: std::sync::Mutex::new(conn) }
     }
 }
@@ -137,18 +138,16 @@ impl SqliteStorage {
 #[cfg(not(target_arch = "wasm32"))]
 impl StorageBackend for SqliteStorage {
     fn load_all_persons(&self) -> Vec<Person> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT data FROM persons").unwrap();
-        stmt.query_map([], |row| {
+        let Ok(conn) = self.conn.lock() else { return Vec::new() };
+        let Ok(mut stmt) = conn.prepare("SELECT data FROM persons") else { return Vec::new() };
+        let Ok(rows) = stmt.query_map([], |row| {
             let data: String = row.get(0)?;
-            Ok(serde_json::from_str(&data).unwrap())
-        })
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+            Ok(serde_json::from_str(&data).ok())
+        }) else { return Vec::new() };
+        rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
     }
     fn load_person(&self, id: &str) -> Option<Person> {
-        let conn = self.conn.lock().unwrap();
+        let Ok(conn) = self.conn.lock() else { return None };
         conn.query_row("SELECT data FROM persons WHERE id = ?1", [id], |row| {
             let data: String = row.get(0)?;
             serde_json::from_str(&data).map_err(|_| rusqlite::Error::ToSqlConversionFailure(Box::new(std::fmt::Error)))
@@ -156,47 +155,43 @@ impl StorageBackend for SqliteStorage {
         .ok()
     }
     fn save_person(&self, person: &Person) {
-        let conn = self.conn.lock().unwrap();
-        let data = serde_json::to_string(person).unwrap();
-        conn.execute("INSERT OR REPLACE INTO persons (id, data) VALUES (?1, ?2)", [&person.id, &data]).unwrap();
+        let Ok(conn) = self.conn.lock() else { return };
+        let Ok(data) = serde_json::to_string(person) else { return };
+        let _ = conn.execute("INSERT OR REPLACE INTO persons (id, data) VALUES (?1, ?2)", [&person.id, &data]);
     }
     fn delete_person(&self, id: &str) {
-        let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM persons WHERE id = ?1", [id]).unwrap();
-        conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id]).unwrap();
+        let Ok(conn) = self.conn.lock() else { return };
+        let _ = conn.execute("DELETE FROM persons WHERE id = ?1", [id]);
+        let _ = conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id]);
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT data FROM predictions").unwrap();
-        stmt.query_map([], |row| {
+        let Ok(conn) = self.conn.lock() else { return Vec::new() };
+        let Ok(mut stmt) = conn.prepare("SELECT data FROM predictions") else { return Vec::new() };
+        let Ok(rows) = stmt.query_map([], |row| {
             let data: String = row.get(0)?;
-            Ok(serde_json::from_str(&data).unwrap())
-        })
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+            Ok(serde_json::from_str(&data).ok())
+        }) else { return Vec::new() };
+        rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
     }
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT data FROM predictions WHERE person_id = ?1").unwrap();
-        stmt.query_map([person_id], |row| {
+        let Ok(conn) = self.conn.lock() else { return Vec::new() };
+        let Ok(mut stmt) = conn.prepare("SELECT data FROM predictions WHERE person_id = ?1") else { return Vec::new() };
+        let Ok(rows) = stmt.query_map([person_id], |row| {
             let data: String = row.get(0)?;
-            Ok(serde_json::from_str(&data).unwrap())
-        })
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+            Ok(serde_json::from_str(&data).ok())
+        }) else { return Vec::new() };
+        rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
     }
     fn save_prediction(&self, prediction: &Prediction) {
-        let conn = self.conn.lock().unwrap();
-        let data = serde_json::to_string(prediction).unwrap();
-        conn.execute(
+        let Ok(conn) = self.conn.lock() else { return };
+        let Ok(data) = serde_json::to_string(prediction) else { return };
+        let _ = conn.execute(
             "INSERT OR REPLACE INTO predictions (id, person_id, data) VALUES (?1, ?2, ?3)",
             [&prediction.id, &prediction.person_id, &data],
-        ).unwrap();
+        );
     }
     fn delete_prediction(&self, id: &str) {
-        let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM predictions WHERE id = ?1", [id]).unwrap();
+        let Ok(conn) = self.conn.lock() else { return };
+        let _ = conn.execute("DELETE FROM predictions WHERE id = ?1", [id]);
     }
 }
