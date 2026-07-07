@@ -139,6 +139,7 @@ impl From<LegacyPerson> for Person {
     }
 }
 
+#[cfg_attr(target_os = "android", allow(dead_code))]
 pub const DRIVE_SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_API: &str = "https://www.googleapis.com/drive/v3/files";
 const UPLOAD_API: &str = "https://www.googleapis.com/upload/drive/v3/files";
@@ -154,9 +155,18 @@ async fn check_response(resp: reqwest::Response) -> Result<reqwest::Response, St
     Ok(resp)
 }
 
-pub async fn drive_backup(token: &str) -> Result<String, String> {
+pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<String, String> {
     let backup = build_backup();
     let client = reqwest::Client::new();
+
+    let (body_bytes, mime_type) = match passphrase.filter(|p| !p.is_empty()) {
+        #[cfg(target_arch = "wasm32")]
+        Some(pp) => {
+            let enc = crate::crypto::encrypt_with_passphrase(backup.as_bytes(), pp);
+            (enc, "application/octet-stream")
+        }
+        _ => (backup.into_bytes(), "application/json"),
+    };
 
     let query = "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
     let search = check_response(
@@ -181,7 +191,7 @@ pub async fn drive_backup(token: &str) -> Result<String, String> {
             let meta = serde_json::json!({
                 "name": "people_modeler_backup.json",
                 "parents": ["appDataFolder"],
-                "mimeType": "application/json"
+                "mimeType": mime_type
             });
             let resp = check_response(
                 client
@@ -204,8 +214,8 @@ pub async fn drive_backup(token: &str) -> Result<String, String> {
         client
             .patch(&url)
             .header("Authorization", format!("Bearer {token}"))
-            .header("Content-Type", "application/json")
-            .body(backup)
+            .header("Content-Type", mime_type)
+            .body(body_bytes)
             .send()
             .await
             .map_err(|e| format!("send: {e}"))?
@@ -213,7 +223,7 @@ pub async fn drive_backup(token: &str) -> Result<String, String> {
     Ok(fid)
 }
 
-pub async fn drive_restore(token: &str) -> Result<usize, String> {
+pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usize, String> {
     let client = reqwest::Client::new();
     let query = "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
 
@@ -244,6 +254,21 @@ pub async fn drive_restore(token: &str) -> Result<usize, String> {
             .map_err(|e| format!("send: {e}"))?
     ).await?;
 
-    let text = resp.text().await.map_err(|e| format!("text: {e}"))?;
+    let bytes = resp.bytes().await.map_err(|e| format!("bytes: {e}"))?;
+
+    #[cfg(target_arch = "wasm32")]
+    if let Some(pp) = passphrase.filter(|p| !p.is_empty()) {
+        if !bytes.is_empty() && bytes[0] != b'{' {
+            return match crate::crypto::decrypt_with_passphrase(&bytes, pp) {
+                Some(dec) => {
+                    let text = String::from_utf8(dec).map_err(|e| format!("utf8: {e}"))?;
+                    return restore_from_json(&text);
+                }
+                None => return Err("sync_wrong_passphrase".into()),
+            };
+        }
+    }
+
+    let text = String::from_utf8(bytes.to_vec()).map_err(|e| format!("utf8: {e}"))?;
     restore_from_json(&text)
 }

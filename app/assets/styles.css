@@ -370,6 +370,10 @@ fieldset.ocean-inputs legend{
 
 /* ── SYNC ── */
 .sync-actions{display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem;max-width:300px}
+.passphrase-row{flex-wrap:wrap;max-width:400px}
+.passphrase-row label{width:100%;font-size:0.82rem;color:var(--text-muted)}
+.passphrase-input-group{display:flex;gap:0.4rem;width:100%}
+.passphrase-input-group input{flex:1}
 .hint{color:var(--text-muted);font-style:italic;margin-top:1rem;font-size:0.82rem}
 .sync-status{
   margin-top:0.75rem;padding:0.65rem 1rem;

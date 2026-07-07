@@ -190,6 +190,8 @@ pub fn SyncPage() -> Element {
     let mut status = use_signal(|| String::new());
     let mut token = use_signal(|| auth::get_token().unwrap_or_default());
     let paste_buf = use_signal(String::new);
+    let mut passphrase = use_signal(String::new);
+    let mut show_pp = use_signal(|| false);
 
     let has_token = !token().is_empty();
 
@@ -205,15 +207,13 @@ pub fn SyncPage() -> Element {
                     return;
                 }
             }
-            // Register oneshot, then check if callback already fired
+            // Register oneshot, re-check token in case JNI callback already fired
             let (tx, rx) = tokio::sync::oneshot::channel::<()>();
             crate::android_auth::set_token_callback(tx);
-            if auth::token_saved() {
-                if let Some(new_t) = auth::get_token() {
-                    if !new_t.is_empty() {
-                        t.set(new_t);
-                        return;
-                    }
+            if let Some(new_t) = auth::get_token() {
+                if !new_t.is_empty() {
+                    t.set(new_t);
+                    return;
                 }
             }
             let _ = rx.await;
@@ -230,6 +230,10 @@ pub fn SyncPage() -> Element {
     let not_configured = crate::i18n::tr("sync_not_configured", lang());
     let local_title = crate::i18n::tr("sync_local_title", lang());
     let local_desc = crate::i18n::tr("sync_local_desc", lang());
+    let pp_label = crate::i18n::tr("sync_passphrase_label", lang());
+    let pp_placeholder = crate::i18n::tr("sync_passphrase_placeholder", lang());
+    let pp_show = crate::i18n::tr("sync_passphrase_show", lang());
+    let pp_hide = crate::i18n::tr("sync_passphrase_hide", lang());
     let export_btn = crate::i18n::tr("sync_export_btn", lang());
     let token_loaded = crate::i18n::tr("sync_token_loaded", lang());
     let clear_btn = crate::i18n::tr("sync_clear_btn", lang());
@@ -259,6 +263,21 @@ pub fn SyncPage() -> Element {
 
                     {token_paste_ui(lang(), has_token, paste_buf, token, status)}
 
+                    div { class: "form-row passphrase-row",
+                        label { "{pp_label}" }
+                        div { class: "passphrase-input-group",
+                            input {
+                                r#type: if show_pp() { "text" } else { "password" },
+                                placeholder: "{pp_placeholder}",
+                                value: "{passphrase}",
+                                oninput: move |e| passphrase.set(e.value()),
+                            }
+                            button { class: "btn btn-small", onclick: move |_| show_pp.set(!show_pp()),
+                                if show_pp() { "{pp_hide}" } else { "{pp_show}" }
+                            }
+                        }
+                    }
+
                     div { class: "sync-actions",
                         button { class: "btn", onclick: move |_| {
                             let cid = drive_client_id();
@@ -274,11 +293,13 @@ pub fn SyncPage() -> Element {
                             }
                             let t = token();
                             if t.is_empty() { status.set(crate::i18n::tr("sync_no_token", lang()).into()); return; }
+                            let pp = passphrase();
                             let ll = lang();
                             status.set(crate::i18n::tr("sync_backing_up", ll).into());
                             let mut s = status.clone();
                             spawn_async(async move {
-                                match drive::drive_backup(&t).await {
+                                let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
+                                match drive::drive_backup(&t, pp_ref).await {
                                     Ok(id) => s.set(format!("{} (file id: {id})", crate::i18n::tr("sync_backed_up", ll))),
                                     Err(e) => s.set(format!("❌ {e}")),
                                 }
@@ -288,11 +309,13 @@ pub fn SyncPage() -> Element {
                         button { class: "btn", onclick: move |_| {
                             let t = token();
                             if t.is_empty() { status.set(crate::i18n::tr("sync_no_token", lang()).into()); return; }
+                            let pp = passphrase();
                             let ll = lang();
                             status.set(crate::i18n::tr("sync_restoring", ll).into());
                             let mut s = status.clone();
                             spawn_async(async move {
-                                match drive::drive_restore(&t).await {
+                                let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
+                                match drive::drive_restore(&t, pp_ref).await {
                                     Ok(n) => s.set(format!("{} {n} persons from Drive", crate::i18n::tr("sync_restored", ll))),
                                     Err(e) => s.set(format!("❌ {e}")),
                                 }

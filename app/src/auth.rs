@@ -119,6 +119,7 @@ pub fn get_token() -> Option<String> {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn set_token(token: &str) {
     #[cfg(target_arch = "wasm32")]
     {

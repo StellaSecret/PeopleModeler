@@ -69,12 +69,35 @@ where T: Identifiable,
 use gloo_storage::Storage;
 
 #[cfg(target_arch = "wasm32")]
+fn store_encrypted<T: serde::Serialize>(key: &str, val: &T) {
+    use base64::Engine;
+    let json = serde_json::to_string(val).expect("serialize");
+    let enc = crate::crypto::encrypt(json.as_bytes());
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&enc);
+    let _ = gloo_storage::LocalStorage::set(key, &b64);
+}
+
+#[cfg(target_arch = "wasm32")]
+fn load_decrypted<T: serde::de::DeserializeOwned>(key: &str) -> Vec<T> {
+    use base64::Engine;
+    let b64: Option<String> = gloo_storage::LocalStorage::get(key).ok();
+    let Some(b64) = b64 else { return Vec::new() };
+    if b64.is_empty() {
+        return Vec::new();
+    }
+    let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(&b64) else { return Vec::new() };
+    let Some(dec) = crate::crypto::decrypt(&enc) else { return Vec::new() };
+    let Ok(json) = String::from_utf8(dec) else { return Vec::new() };
+    serde_json::from_str(&json).unwrap_or_default()
+}
+
+#[cfg(target_arch = "wasm32")]
 struct WebStorage;
 
 #[cfg(target_arch = "wasm32")]
 impl StorageBackend for WebStorage {
     fn load_all_persons(&self) -> Vec<Person> {
-        gloo_storage::LocalStorage::get("pm_persons").unwrap_or_default()
+        load_decrypted("pm_persons")
     }
     fn load_person(&self, id: &str) -> Option<Person> {
         self.load_all_persons().into_iter().find(|p| p.id == id)
@@ -82,15 +105,15 @@ impl StorageBackend for WebStorage {
     fn save_person(&self, person: &Person) {
         let mut all: Vec<Person> = self.load_all_persons();
         upsert(&mut all, person);
-        let _ = gloo_storage::LocalStorage::set("pm_persons", &all);
+        store_encrypted("pm_persons", &all);
     }
     fn delete_person(&self, id: &str) {
         let mut all: Vec<Person> = self.load_all_persons();
         all.retain(|p| p.id != id);
-        let _ = gloo_storage::LocalStorage::set("pm_persons", &all);
+        store_encrypted("pm_persons", &all);
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
-        gloo_storage::LocalStorage::get("pm_predictions").unwrap_or_default()
+        load_decrypted("pm_predictions")
     }
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction> {
         self.load_all_predictions().into_iter().filter(|p| p.person_id == person_id).collect()
@@ -98,12 +121,12 @@ impl StorageBackend for WebStorage {
     fn save_prediction(&self, prediction: &Prediction) {
         let mut all: Vec<Prediction> = self.load_all_predictions();
         upsert(&mut all, prediction);
-        let _ = gloo_storage::LocalStorage::set("pm_predictions", &all);
+        store_encrypted("pm_predictions", &all);
     }
     fn delete_prediction(&self, id: &str) {
         let mut all: Vec<Prediction> = self.load_all_predictions();
         all.retain(|p| p.id != id);
-        let _ = gloo_storage::LocalStorage::set("pm_predictions", &all);
+        store_encrypted("pm_predictions", &all);
     }
 }
 

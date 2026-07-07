@@ -15,6 +15,8 @@ use crate::pages::sync::SyncPage;
 mod auth;
 #[cfg(target_os = "android")]
 mod android_auth;
+#[cfg(target_arch = "wasm32")]
+mod crypto;
 mod db;
 mod drive;
 mod i18n;
@@ -65,9 +67,11 @@ fn main() {
 
 #[allow(non_snake_case)]
 fn App() -> Element {
-    // Read OAuth token from URL fragment before any component reads get_token()
     #[cfg(target_arch = "wasm32")]
-    auth::init();
+    {
+        auth::init();
+        inject_csp();
+    }
 
     let lang = use_signal(|| Lang::detect());
     let theme = use_signal(|| Theme::detect());
@@ -88,6 +92,35 @@ fn App() -> Element {
         style { {include_str!("../assets/styles.css")} }
         Router::<Route> {}
         div { class: "noise" }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn inject_csp() {
+    let doc = match web_sys::window().and_then(|w| w.document()) {
+        Some(d) => d,
+        None => return,
+    };
+    let head = match doc.head() {
+        Some(h) => h,
+        None => return,
+    };
+    if let Ok(meta) = doc.create_element("meta") {
+        let _ = meta.set_attribute(
+            "http-equiv",
+            "Content-Security-Policy",
+        );
+        let _ = meta.set_attribute(
+            "content",
+            "default-src 'self'; \
+             script-src 'self' 'unsafe-eval' https://accounts.google.com; \
+             style-src 'self' 'unsafe-inline'; \
+             connect-src 'self' https://www.googleapis.com https://accounts.google.com; \
+             img-src 'self' data:; \
+             base-uri 'self'; \
+             form-action 'none'",
+        );
+        let _ = head.append_child(&meta);
     }
 }
 
