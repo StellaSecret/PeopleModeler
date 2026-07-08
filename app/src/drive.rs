@@ -25,7 +25,37 @@ pub fn build_backup() -> String {
     serde_json::to_string_pretty(&data).expect("BackupData serialization failed")
 }
 
+fn validate_backup(json: &str) -> Result<(), Vec<String>> {
+    let val: serde_json::Value = serde_json::from_str(json).map_err(|e| vec![format!("Invalid JSON: {e}")])?;
+    let mut errors = Vec::new();
+    match &val["version"] {
+        serde_json::Value::Null => errors.push("Missing required field: version".into()),
+        serde_json::Value::Number(n) if !n.is_u64() => errors.push("version must be a positive integer".into()),
+        _ => {}
+    }
+    let persons = match &val["persons"] {
+        serde_json::Value::Null => { errors.push("Missing required field: persons".into()); None }
+        serde_json::Value::Array(a) => Some(a),
+        _ => { errors.push("persons must be an array".into()); None }
+    };
+    if let Some(arr) = persons {
+        for (i, p) in arr.iter().enumerate() {
+            if p.get("id").and_then(|v| v.as_str()).is_none() {
+                errors.push(format!("persons[{i}]: missing or invalid 'id'"));
+            }
+            if p.get("name").and_then(|v| v.as_str()).is_none() {
+                errors.push(format!("persons[{i}]: missing or invalid 'name'"));
+            }
+        }
+    }
+    if errors.is_empty() { Ok(()) } else { Err(errors) }
+}
+
 pub fn restore_from_json(json: &str) -> Result<usize, String> {
+    if let Err(errs) = validate_backup(json) {
+        return Err(format!("Validation failed: {}", errs.join("; ")));
+    }
+
     if let Ok(data) = serde_json::from_str::<BackupData>(json) {
         let count = data.persons.len();
         for p in &data.persons {
