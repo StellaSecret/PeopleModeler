@@ -8,6 +8,21 @@ use std::sync::OnceLock;
 static TOKEN_CLIENT: OnceLock<wasm_bindgen::JsValue> = OnceLock::new();
 
 #[cfg(target_arch = "wasm32")]
+use std::cell::RefCell;
+
+#[cfg(target_arch = "wasm32")]
+thread_local! {
+    static TOKEN_LISTENERS: RefCell<Vec<Box<dyn FnMut(&str)>>> = const { RefCell::new(Vec::new()) };
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn on_token_received(cb: Box<dyn FnMut(&str)>) {
+    TOKEN_LISTENERS.with(|listeners| {
+        listeners.borrow_mut().push(cb);
+    });
+}
+
+#[cfg(target_arch = "wasm32")]
 pub fn start_oauth(client_id: &str, _redirect_uri: &str) {
     use wasm_bindgen::JsCast;
 
@@ -33,6 +48,11 @@ pub fn start_oauth(client_id: &str, _redirect_uri: &str) {
             .and_then(|t| t.as_string())
         {
             set_token(&token);
+            TOKEN_LISTENERS.with(|listeners| {
+                for cb in listeners.borrow_mut().iter_mut() {
+                    cb(&token);
+                }
+            });
         }
     }) as Box<dyn FnMut(wasm_bindgen::JsValue)>);
 

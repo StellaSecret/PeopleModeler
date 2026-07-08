@@ -281,6 +281,13 @@ pub fn SyncPage() -> Element {
                     div { class: "sync-actions",
                         button { class: "btn", onclick: move |_| {
                             let cid = drive_client_id();
+                            #[cfg(target_arch = "wasm32")]
+                            {
+                                let mut t = token.clone();
+                                auth::on_token_received(Box::new(move |new_token: &str| {
+                                    t.set(new_token.to_string());
+                                }));
+                            }
                             auth::start_oauth(cid, "https://stellasecret.github.io/PeopleModeler/spa.html");
                         }, "{sign_in}" }
 
