@@ -27,6 +27,7 @@ fn mask_token(t: &str) -> String {
 
 #[cfg(target_arch = "wasm32")]
 fn export_file(json: &str) {
+    use wasm_bindgen::JsCast;
     use wasm_bindgen::JsValue;
     use js_sys::Array;
     let arr = Array::new();
@@ -41,7 +42,9 @@ fn export_file(json: &str) {
     if let Some(body) = doc.body() {
         let _ = body.append_child(&a);
     }
-    let _ = js_sys::Reflect::get(&a, &"click".into());
+    if let Some(el) = a.dyn_ref::<web_sys::HtmlElement>() {
+        el.click();
+    }
     if let Some(body) = doc.body() {
         let _ = body.remove_child(&a);
     }
@@ -108,7 +111,11 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                 if let Some(body) = doc.body() {
                     let _ = body.append_child(&input);
                 }
-                let _ = js_sys::Reflect::get(&input, &"click".into());
+                let target: &web_sys::EventTarget = input.unchecked_ref();
+                target.add_event_listener_with_callback("change", cb.as_ref().unchecked_ref()).ok();
+                if let Some(el) = input.dyn_ref::<web_sys::HtmlElement>() {
+                    el.click();
+                }
                 cb.forget();
             }, "{import_btn}" }
         }

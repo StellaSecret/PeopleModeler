@@ -201,6 +201,8 @@ fn en(key: &'static str) -> &'static str {
         "ctx_uncertainty" => "Uncertainty",
         "ctx_recognition" => "Recognition",
         "ctx_threatened" => "Threatened",
+        "ctx_change" => "Change",
+        "ctx_feedback" => "Feedback",
 
         // Predictions
         "pred_all_title" => "All Predictions",
@@ -524,6 +526,8 @@ fn fr(key: &'static str) -> &'static str {
         "ctx_uncertainty" => "Incertitude",
         "ctx_recognition" => "Reconnaissance",
         "ctx_threatened" => "Menacé",
+        "ctx_change" => "Changement",
+        "ctx_feedback" => "Feedback",
 
         "pred_all_title" => "Toutes les prédictions",
         "pred_for" => "🔮 Prédictions pour",

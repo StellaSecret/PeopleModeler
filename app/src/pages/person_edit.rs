@@ -8,6 +8,13 @@ use crate::db;
 use crate::i18n::Lang;
 use crate::Route;
 
+fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
+    match l {
+        Lang::Fr => peoplemodeler_core::i18n::Lang::Fr,
+        Lang::En => peoplemodeler_core::i18n::Lang::En,
+    }
+}
+
 #[component]
 pub fn PersonNew() -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -145,6 +152,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_ocean_title = crate::i18n::tr("form_ocean_title", lang());
     let form_save = crate::i18n::tr("form_save", lang());
     let form_cancel = crate::i18n::tr("form_cancel", lang());
+    let cl = core_lang(lang());
 
     rsx! {
         div { class: "page",
@@ -227,9 +235,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     }
                 }
 
-                MotEditPanel { motivations: motivations.clone() }
-                BiasEditPanel { biases: biases.clone() }
-                PatternEditPanel { patterns: patterns.clone() }
+                MotEditPanel { motivations: motivations.clone(), lang: cl }
+                BiasEditPanel { biases: biases.clone(), lang: cl }
+                PatternEditPanel { patterns: patterns.clone(), lang: lang() }
 
                 div { class: "form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
@@ -241,16 +249,16 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 }
 
 #[component]
-fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
-    let lang = use_context::<Signal<Lang>>();
+fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+    let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| MotivationType::Achievement);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let edit_motivations = crate::i18n::tr("edit_motivations", lang());
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang());
-    let add_btn = crate::i18n::tr("add_btn", lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", lang());
+    let edit_motivations = crate::i18n::tr("edit_motivations", app_lang());
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
+    let add_btn = crate::i18n::tr("add_btn", app_lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
 
     rsx! {
         fieldset { class: "section",
@@ -259,7 +267,7 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                 select { value: "{sel_type}",
                     onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
                     for t in MotivationType::ALL {
-                        option { value: "{t:?}", "{t.emoji()} {t:?}" }
+                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
                     }
                 }
                 input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
@@ -283,7 +291,7 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                     sel_intensity.set(5);
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
-            div { class: "helper-text", "{mot_helper(&sel_type(), lang())}" }
+            div { class: "helper-text", "{mot_helper(&sel_type(), app_lang())}" }
             for (i, m) in motivations().iter().enumerate() {
                 div { class: "list-item",
                     button { class: "reorder-btn", aria_label: "Move motivation up", onclick: move |_| { mot_move(motivations, i, true); }, "▲" }
@@ -297,7 +305,7 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                             edit_idx.set(Some(i));
                         }
                     }, "✏" }
-                    strong { "{m.r#type.emoji()} {m.r#type:?}" }
+                    strong { "{m.r#type.emoji()} {m.r#type.i18n(lang).label}" }
                     span { " {m.intensity}/10" }
                     span { " {m.notes}" }
                     button { class: "btn btn-small", aria_label: "Delete motivation", onclick: move |_| { motivations.write().remove(i); }, "✕" }
@@ -317,16 +325,16 @@ fn mot_move(mut motivations: Signal<Vec<Motivation>>, i: usize, up: bool) {
 }
 
 #[component]
-fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
-    let lang = use_context::<Signal<Lang>>();
+fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+    let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| BiasType::Confirmation);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_evidence = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let edit_biases = crate::i18n::tr("edit_biases", lang());
-    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", lang());
-    let add_btn = crate::i18n::tr("add_btn", lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", lang());
+    let edit_biases = crate::i18n::tr("edit_biases", app_lang());
+    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", app_lang());
+    let add_btn = crate::i18n::tr("add_btn", app_lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
 
     rsx! {
         fieldset { class: "section",
@@ -335,7 +343,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                 select { value: "{sel_type}",
                     onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
                     for t in BiasType::ALL {
-                        option { value: "{t:?}", "{t.emoji()} {t:?}" }
+                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
                     }
                 }
                 input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
@@ -359,7 +367,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                     sel_intensity.set(5);
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
-            div { class: "helper-text", "{bias_helper(&sel_type(), lang())}" }
+            div { class: "helper-text", "{bias_helper(&sel_type(), app_lang())}" }
             for (i, b) in biases().iter().enumerate() {
                 div { class: "list-item",
                     button { class: "reorder-btn", aria_label: "Move bias up", onclick: move |_| { bias_move(biases, i, true); }, "▲" }
@@ -373,7 +381,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                             edit_idx.set(Some(i));
                         }
                     }, "✏" }
-                    strong { "{b.r#type.emoji()} {b.r#type:?}" }
+                    strong { "{b.r#type.emoji()} {b.r#type.i18n(lang).label}" }
                     span { " {b.intensity}/10" }
                     span { " {b.evidence}" }
                     button { class: "btn btn-small", aria_label: "Delete bias", onclick: move |_| { biases.write().remove(i); }, "✕" }
@@ -393,21 +401,34 @@ fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
 }
 
 #[component]
-fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
-    let lang = use_context::<Signal<Lang>>();
+fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Element {
+    let ctx_stress = crate::i18n::tr("ctx_stress", lang);
+    let ctx_conflict = crate::i18n::tr("ctx_conflict", lang);
+    let ctx_success = crate::i18n::tr("ctx_success", lang);
+    let ctx_uncertainty = crate::i18n::tr("ctx_uncertainty", lang);
+    let ctx_recognition = crate::i18n::tr("ctx_recognition", lang);
+    let ctx_threatened = crate::i18n::tr("ctx_threatened", lang);
+    let ctx_change = crate::i18n::tr("ctx_change", lang);
+    let ctx_feedback = crate::i18n::tr("ctx_feedback", lang);
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(String::new);
     let mut sel_conf = use_signal(|| 5u8);
 
-    let edit_patterns = crate::i18n::tr("edit_patterns", lang());
-    let ctx_stress = crate::i18n::tr("ctx_stress", lang());
-    let ctx_conflict = crate::i18n::tr("ctx_conflict", lang());
-    let ctx_success = crate::i18n::tr("ctx_success", lang());
-    let ctx_uncertainty = crate::i18n::tr("ctx_uncertainty", lang());
-    let ctx_recognition = crate::i18n::tr("ctx_recognition", lang());
-    let ctx_threatened = crate::i18n::tr("ctx_threatened", lang());
-    let outcome_pl = crate::i18n::tr("pred_outcome_placeholder", lang());
-    let add_btn = crate::i18n::tr("add_btn", lang());
+    let edit_patterns = crate::i18n::tr("edit_patterns", lang);
+    let outcome_pl = crate::i18n::tr("pred_outcome_placeholder", lang);
+    let add_btn = crate::i18n::tr("add_btn", lang);
+    let trigger_label = |t: BehaviorTrigger| -> &'static str {
+        match t {
+            BehaviorTrigger::Stress => ctx_stress,
+            BehaviorTrigger::Conflict => ctx_conflict,
+            BehaviorTrigger::Success => ctx_success,
+            BehaviorTrigger::Uncertainty => ctx_uncertainty,
+            BehaviorTrigger::Recognition => ctx_recognition,
+            BehaviorTrigger::Threatened => ctx_threatened,
+            BehaviorTrigger::Change => ctx_change,
+            BehaviorTrigger::Feedback => ctx_feedback,
+        }
+    };
 
     rsx! {
         fieldset { class: "section",
@@ -421,6 +442,8 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
                     option { value: "Uncertainty", "{ctx_uncertainty}" }
                     option { value: "Recognition", "{ctx_recognition}" }
                     option { value: "Threatened", "{ctx_threatened}" }
+                    option { value: "Change", "{ctx_change}" }
+                    option { value: "Feedback", "{ctx_feedback}" }
                 }
                 input { placeholder: "{outcome_pl}", value: "{sel_behavior}",
                     oninput: move |e| { sel_behavior.set(e.value()); }
@@ -434,10 +457,10 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
                     sel_behavior.set(String::new());
                 }, "{add_btn}" }
             }
-            div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang())}" }
+            div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
-                    strong { "{bp.trigger:?}" }
+                    strong { "{trigger_label(bp.trigger)}" }
                     span { " {bp.predicted_behavior}" }
                     span { " ({bp.confidence}/10)" }
                     button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); }, "✕" }
