@@ -243,9 +243,11 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
     let mut sel_type = use_signal(|| MotivationType::Achievement);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
+    let mut edit_idx = use_signal(|| None::<usize>);
     let edit_motivations = crate::i18n::tr("edit_motivations", lang());
     let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang());
     let add_btn = crate::i18n::tr("add_btn", lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", lang());
 
     rsx! {
         fieldset { class: "section",
@@ -265,14 +267,33 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                     oninput: move |e| { sel_notes.set(e.value()); }
                 }
                 button { class: "btn", onclick: move |_| {
-                    motivations.write().push(Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
+                    if let Some(idx) = edit_idx() {
+                        let mut items = motivations.write();
+                        if idx < items.len() {
+                            items[idx] = Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
+                        }
+                        edit_idx.set(None);
+                    } else {
+                        motivations.write().push(Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
+                    }
                     sel_notes.set(String::new());
-                }, "{add_btn}" }
+                    sel_intensity.set(5);
+                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
+            div { class: "helper-text", "{mot_helper(&sel_type(), lang())}" }
             for (i, m) in motivations().iter().enumerate() {
                 div { class: "list-item",
                     button { class: "reorder-btn", onclick: move |_| { mot_move(motivations, i, true); }, "▲" }
                     button { class: "reorder-btn", onclick: move |_| { mot_move(motivations, i, false); }, "▼" }
+                    button { class: "btn btn-small", onclick: {
+                        let m = m.clone();
+                        move |_| {
+                            sel_type.set(m.r#type);
+                            sel_intensity.set(m.intensity);
+                            sel_notes.set(m.notes.clone());
+                            edit_idx.set(Some(i));
+                        }
+                    }, "✏" }
                     strong { "{m.r#type.emoji()} {m.r#type:?}" }
                     span { " {m.intensity}/10" }
                     span { " {m.notes}" }
@@ -298,9 +319,11 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
     let mut sel_type = use_signal(|| BiasType::Confirmation);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_evidence = use_signal(String::new);
+    let mut edit_idx = use_signal(|| None::<usize>);
     let edit_biases = crate::i18n::tr("edit_biases", lang());
     let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", lang());
     let add_btn = crate::i18n::tr("add_btn", lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", lang());
 
     rsx! {
         fieldset { class: "section",
@@ -320,14 +343,33 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                     oninput: move |e| { sel_evidence.set(e.value()); }
                 }
                 button { class: "btn", onclick: move |_| {
-                    biases.write().push(Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
+                    if let Some(idx) = edit_idx() {
+                        let mut items = biases.write();
+                        if idx < items.len() {
+                            items[idx] = Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
+                        }
+                        edit_idx.set(None);
+                    } else {
+                        biases.write().push(Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
+                    }
                     sel_evidence.set(String::new());
-                }, "{add_btn}" }
+                    sel_intensity.set(5);
+                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
+            div { class: "helper-text", "{bias_helper(&sel_type(), lang())}" }
             for (i, b) in biases().iter().enumerate() {
                 div { class: "list-item",
                     button { class: "reorder-btn", onclick: move |_| { bias_move(biases, i, true); }, "▲" }
                     button { class: "reorder-btn", onclick: move |_| { bias_move(biases, i, false); }, "▼" }
+                    button { class: "btn btn-small", onclick: {
+                        let b = b.clone();
+                        move |_| {
+                            sel_type.set(b.r#type);
+                            sel_intensity.set(b.intensity);
+                            sel_evidence.set(b.evidence.clone());
+                            edit_idx.set(Some(i));
+                        }
+                    }, "✏" }
                     strong { "{b.r#type.emoji()} {b.r#type:?}" }
                     span { " {b.intensity}/10" }
                     span { " {b.evidence}" }
@@ -389,6 +431,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
                     sel_behavior.set(String::new());
                 }, "{add_btn}" }
             }
+            div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang())}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
                     strong { "{bp.trigger:?}" }
@@ -422,6 +465,47 @@ fn OceanSlider(label: String, val: u8, onchange: EventHandler<u8>, low_hint: Opt
                 }
             }
         }
+    }
+}
+
+fn mot_helper(t: &MotivationType, lang: Lang) -> &'static str {
+    match t {
+        MotivationType::Achievement => crate::i18n::tr("mot_helper_achievement", lang),
+        MotivationType::Power => crate::i18n::tr("mot_helper_power", lang),
+        MotivationType::Affiliation => crate::i18n::tr("mot_helper_affiliation", lang),
+        MotivationType::Security => crate::i18n::tr("mot_helper_security", lang),
+        MotivationType::Autonomy => crate::i18n::tr("mot_helper_autonomy", lang),
+        MotivationType::Recognition => crate::i18n::tr("mot_helper_recognition", lang),
+        MotivationType::Learning => crate::i18n::tr("mot_helper_learning", lang),
+        MotivationType::Helping => crate::i18n::tr("mot_helper_helping", lang),
+    }
+}
+
+fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
+    match t {
+        BiasType::Confirmation => crate::i18n::tr("bias_helper_confirmation", lang),
+        BiasType::Anchoring => crate::i18n::tr("bias_helper_anchoring", lang),
+        BiasType::Availability => crate::i18n::tr("bias_helper_availability", lang),
+        BiasType::SunkCost => crate::i18n::tr("bias_helper_sunk_cost", lang),
+        BiasType::DunningKruger => crate::i18n::tr("bias_helper_dunning_kruger", lang),
+        BiasType::LossAversion => crate::i18n::tr("bias_helper_loss_aversion", lang),
+        BiasType::SocialProof => crate::i18n::tr("bias_helper_social_proof", lang),
+        BiasType::Authority => crate::i18n::tr("bias_helper_authority", lang),
+        BiasType::Recency => crate::i18n::tr("bias_helper_recency", lang),
+        BiasType::InGroup => crate::i18n::tr("bias_helper_in_group", lang),
+    }
+}
+
+fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
+    match t {
+        BehaviorTrigger::Stress => crate::i18n::tr("pattern_helper_stress", lang),
+        BehaviorTrigger::Conflict => crate::i18n::tr("pattern_helper_conflict", lang),
+        BehaviorTrigger::Success => crate::i18n::tr("pattern_helper_success", lang),
+        BehaviorTrigger::Uncertainty => crate::i18n::tr("pattern_helper_uncertainty", lang),
+        BehaviorTrigger::Recognition => crate::i18n::tr("pattern_helper_recognition", lang),
+        BehaviorTrigger::Threatened => crate::i18n::tr("pattern_helper_threat", lang),
+        BehaviorTrigger::Change => crate::i18n::tr("pattern_helper_change", lang),
+        BehaviorTrigger::Feedback => crate::i18n::tr("pattern_helper_feedback", lang),
     }
 }
 
