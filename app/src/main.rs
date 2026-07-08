@@ -78,6 +78,7 @@ fn App() -> Element {
     {
         auth::init();
         inject_csp();
+        register_sw();
     }
 
     let lang = use_signal(|| Lang::detect());
@@ -131,6 +132,21 @@ fn inject_csp() {
              form-action 'none'",
         );
         let _ = head.append_child(&meta);
+    }
+    // manifest for PWA
+    if let Ok(link) = doc.create_element("link") {
+        let _ = link.set_attribute("rel", "manifest");
+        let _ = link.set_attribute("href", "/PeopleModeler/manifest.json");
+        let _ = head.append_child(&link);
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn register_sw() {
+    if let Ok(Some(reg)) = web_sys::window()
+        .and_then(|w| w.navigator().service_worker())
+    {
+        let _ = reg.register("/PeopleModeler/sw.js");
     }
 }
 

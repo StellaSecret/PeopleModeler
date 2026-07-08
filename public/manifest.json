@@ -1,0 +1,18 @@
+{
+  "name": "People Modeler",
+  "short_name": "PplModeler",
+  "description": "Model people as systems — motivations, biases, behaviors, predictions",
+  "start_url": "/PeopleModeler/",
+  "scope": "/PeopleModeler/",
+  "display": "standalone",
+  "background_color": "#080C14",
+  "theme_color": "#00D4AA",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
