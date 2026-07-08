@@ -187,10 +187,10 @@ fn NavLayout() -> Element {
                     Link { to: Route::SyncPage {}, "{nav_sync}" }
                 }
                 div { class: "toggle-group",
-                    button { class: "theme-toggle", onclick: toggle_theme,
+                    button { class: "theme-toggle", aria_label: "Toggle theme", onclick: toggle_theme,
                         { theme().label() }
                     }
-                    button { class: "lang-toggle", onclick: toggle_lang,
+                    button { class: "lang-toggle", aria_label: "Toggle language", onclick: toggle_lang,
                         if lang() == Lang::Fr { "EN" } else { "FR" }
                     }
                 }

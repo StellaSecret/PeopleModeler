@@ -69,7 +69,7 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
     let import_btn = crate::i18n::tr("sync_import_btn", lang);
     rsx! {
         div { class: "form-row",
-            button { class: "btn", onclick: move |_| {
+            button { class: "btn", aria_label: "{import_btn}", onclick: move |_| {
                 let s2 = s.clone();
                 let window = web_sys::window().expect("no window in WASM");
                 let doc = window.document().expect("no document in WASM");
@@ -146,7 +146,7 @@ fn token_paste_ui(lang: Lang, has_token: bool, mut paste_buf: Signal<String>, mu
                     value: "{paste_buf}",
                     oninput: move |e| paste_buf.set(e.value()),
                 }
-                button { class: "btn btn-small", onclick: move |_| {
+                button { class: "btn btn-small", aria_label: "{save_btn}", onclick: move |_| {
                     let raw = paste_buf();
                     let t = parse_token_from_url(&raw).unwrap_or(raw);
                     if !t.is_empty() {
@@ -253,11 +253,11 @@ pub fn SyncPage() -> Element {
                     div { class: "form-row",
                         if has_token {
                             p { class: "token-ok", "{token_loaded} ({mask_token(&token())})" }
-                            button { class: "btn btn-small", onclick: move |_| {
-                                auth::clear_token();
-                                token.set(String::new());
-                                status.set(crate::i18n::tr("sync_token_cleared", lang()).into());
-                            }, "{clear_btn}" }
+                    button { class: "btn btn-small", aria_label: "{clear_btn}", onclick: move |_| {
+                        auth::clear_token();
+                        token.set(String::new());
+                        status.set(crate::i18n::tr("sync_token_cleared", lang()).into());
+                    }, "{clear_btn}" }
                         }
                     }
 
@@ -272,14 +272,14 @@ pub fn SyncPage() -> Element {
                                 value: "{passphrase}",
                                 oninput: move |e| passphrase.set(e.value()),
                             }
-                            button { class: "btn btn-small", onclick: move |_| show_pp.set(!show_pp()),
+                            button { class: "btn btn-small", aria_label: "Toggle passphrase visibility", onclick: move |_| show_pp.set(!show_pp()),
                                 if show_pp() { "{pp_hide}" } else { "{pp_show}" }
                             }
                         }
                     }
 
                     div { class: "sync-actions",
-                        button { class: "btn", onclick: move |_| {
+                        button { class: "btn", aria_label: "{sign_in}", onclick: move |_| {
                             let cid = drive_client_id();
                             #[cfg(target_arch = "wasm32")]
                             {
@@ -291,7 +291,7 @@ pub fn SyncPage() -> Element {
                             auth::start_oauth(cid, "https://stellasecret.github.io/PeopleModeler/spa.html");
                         }, "{sign_in}" }
 
-                        button { class: "btn", onclick: move |_| {
+                        button { class: "btn", aria_label: "{backup_btn}", onclick: move |_| {
                             if db::all_persons().is_empty() {
                                 status.set(no_data_warn.into());
                                 #[cfg(target_arch = "wasm32")]
@@ -313,7 +313,7 @@ pub fn SyncPage() -> Element {
                             });
                         }, "{backup_btn}" }
 
-                        button { class: "btn", onclick: move |_| {
+                        button { class: "btn", aria_label: "{restore_btn}", onclick: move |_| {
                             let t = token();
                             if t.is_empty() { status.set(crate::i18n::tr("sync_no_token", lang()).into()); return; }
                             let pp = passphrase();
@@ -339,7 +339,7 @@ pub fn SyncPage() -> Element {
                 p { "{local_desc}" }
 
                 div { class: "sync-actions",
-                    button { class: "btn btn-primary", onclick: move |_| {
+                    button { class: "btn btn-primary", aria_label: "{export_btn}", onclick: move |_| {
                         if db::all_persons().is_empty() {
                             status.set(no_data_warn.into());
                             #[cfg(target_arch = "wasm32")]

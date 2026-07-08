@@ -57,11 +57,13 @@ pub fn PeopleList() -> Element {
                 input {
                     class: "search-input",
                     placeholder: "{search_placeholder}",
+                    aria_label: "Search people",
                     value: "{search}",
                     oninput: move |e| search.set(e.value()),
                 }
                 select {
                     class: "sort-select",
+                    aria_label: "Sort by",
                     value: "{sort():?}",
                     onchange: move |e| {
                         sort.set(match e.value().as_str() {
@@ -93,7 +95,7 @@ pub fn PeopleList() -> Element {
                     p { "{no_people}" }
                 }
             }
-            Link { to: Route::PersonNew {}, class: "fab", "＋" }
+            Link { to: Route::PersonNew {}, class: "fab", aria_label: "Add new person", "＋" }
         }
     }
 }

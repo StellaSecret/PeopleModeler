@@ -61,7 +61,7 @@ pub fn Relationships() -> Element {
         div { class: "page",
             h2 { "{title}" }
 
-            button { class: "btn", onclick: move |_| adding.set(!adding()), "{add_label}" }
+            button { class: "btn", aria_label: "{add_label}", onclick: move |_| adding.set(!adding()), "{add_label}" }
 
             if adding() {
                 div { class: "section",

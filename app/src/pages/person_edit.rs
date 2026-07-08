@@ -151,20 +151,23 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
                 label { "{form_name}" }
-                input { value: "{name}", oninput: move |e| name.set(e.value()) }
+                input { aria_label: "{form_name}", value: "{name}", oninput: move |e| name.set(e.value()) }
 
                 label { "{form_role}" }
-                input { value: "{role}", oninput: move |e| role.set(e.value()) }
+                input { aria_label: "{form_role}", value: "{role}", oninput: move |e| role.set(e.value()) }
 
                 label { "{form_context}" }
-                textarea { value: "{context}", oninput: move |e| context.set(e.value()) }
+                textarea { aria_label: "{form_context}", value: "{context}", oninput: move |e| context.set(e.value()) }
 
                 label { "{form_avatar}" }
-                div { class: "emoji-picker",
+                div { class: "emoji-picker", role: "radiogroup", aria_label: "{form_avatar}",
                     for e in AVATAR_EMOJIS {
                         button {
                             class: "emoji-btn",
                             class: if emoji() == *e { "selected" },
+                            role: "radio",
+                            aria_label: "Avatar {e}",
+                            aria_checked: if emoji() == *e { "true" } else { "false" },
                             onclick: move |_| emoji.set(e.to_string()),
                             "{e}"
                         }
@@ -172,10 +175,10 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 }
 
                 label { "{form_tags}" }
-                input { value: "{tags_str}", oninput: move |e| tags_str.set(e.value()) }
+                input { aria_label: "{form_tags}", value: "{tags_str}", oninput: move |e| tags_str.set(e.value()) }
 
                 label { "{form_notes}" }
-                textarea { value: "{notes}", rows: "4", oninput: move |e| notes.set(e.value()) }
+                textarea { aria_label: "{form_notes}", value: "{notes}", rows: "4", oninput: move |e| notes.set(e.value()) }
 
                 label { "{form_confidence}" }
                 div { class: "ocean-slider",
@@ -229,8 +232,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 PatternEditPanel { patterns: patterns.clone() }
 
                 div { class: "form-actions",
-                    button { class: "btn btn-primary", onclick: move |_| save(), "{form_save}" }
-                    Link { to: Route::PeopleList {}, class: "btn", "{form_cancel}" }
+                    button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
+                    Link { to: Route::PeopleList {}, class: "btn", aria_label: "{form_cancel}", "{form_cancel}" }
                 }
             }
         }
@@ -266,7 +269,7 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                 input { placeholder: "{notes_pl}", value: "{sel_notes}",
                     oninput: move |e| { sel_notes.set(e.value()); }
                 }
-                button { class: "btn", onclick: move |_| {
+                button { class: "btn", aria_label: if edit_idx().is_some() { "Update motivation" } else { "Add motivation" }, onclick: move |_| {
                     if let Some(idx) = edit_idx() {
                         let mut items = motivations.write();
                         if idx < items.len() {
@@ -283,9 +286,9 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
             div { class: "helper-text", "{mot_helper(&sel_type(), lang())}" }
             for (i, m) in motivations().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", onclick: move |_| { mot_move(motivations, i, true); }, "▲" }
-                    button { class: "reorder-btn", onclick: move |_| { mot_move(motivations, i, false); }, "▼" }
-                    button { class: "btn btn-small", onclick: {
+                    button { class: "reorder-btn", aria_label: "Move motivation up", onclick: move |_| { mot_move(motivations, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move motivation down", onclick: move |_| { mot_move(motivations, i, false); }, "▼" }
+                    button { class: "btn btn-small", aria_label: "Edit motivation", onclick: {
                         let m = m.clone();
                         move |_| {
                             sel_type.set(m.r#type);
@@ -297,7 +300,7 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>) -> Element {
                     strong { "{m.r#type.emoji()} {m.r#type:?}" }
                     span { " {m.intensity}/10" }
                     span { " {m.notes}" }
-                    button { class: "btn btn-small", onclick: move |_| { motivations.write().remove(i); }, "✕" }
+                    button { class: "btn btn-small", aria_label: "Delete motivation", onclick: move |_| { motivations.write().remove(i); }, "✕" }
                 }
             }
         }
@@ -342,7 +345,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                 input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
                     oninput: move |e| { sel_evidence.set(e.value()); }
                 }
-                button { class: "btn", onclick: move |_| {
+                button { class: "btn", aria_label: if edit_idx().is_some() { "Update bias" } else { "Add bias" }, onclick: move |_| {
                     if let Some(idx) = edit_idx() {
                         let mut items = biases.write();
                         if idx < items.len() {
@@ -359,9 +362,9 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
             div { class: "helper-text", "{bias_helper(&sel_type(), lang())}" }
             for (i, b) in biases().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", onclick: move |_| { bias_move(biases, i, true); }, "▲" }
-                    button { class: "reorder-btn", onclick: move |_| { bias_move(biases, i, false); }, "▼" }
-                    button { class: "btn btn-small", onclick: {
+                    button { class: "reorder-btn", aria_label: "Move bias up", onclick: move |_| { bias_move(biases, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move bias down", onclick: move |_| { bias_move(biases, i, false); }, "▼" }
+                    button { class: "btn btn-small", aria_label: "Edit bias", onclick: {
                         let b = b.clone();
                         move |_| {
                             sel_type.set(b.r#type);
@@ -373,7 +376,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>) -> Element {
                     strong { "{b.r#type.emoji()} {b.r#type:?}" }
                     span { " {b.intensity}/10" }
                     span { " {b.evidence}" }
-                    button { class: "btn btn-small", onclick: move |_| { biases.write().remove(i); }, "✕" }
+                    button { class: "btn btn-small", aria_label: "Delete bias", onclick: move |_| { biases.write().remove(i); }, "✕" }
                 }
             }
         }
@@ -426,7 +429,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
                     oninput: move |e| { sel_conf.set(e.value().parse().unwrap_or(5)); }
                 }
                 span { "{sel_conf}" }
-                button { class: "btn", onclick: move |_| {
+                button { class: "btn", aria_label: "Add pattern", onclick: move |_| {
                     patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), confidence: sel_conf() });
                     sel_behavior.set(String::new());
                 }, "{add_btn}" }
@@ -437,7 +440,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>) -> Element {
                     strong { "{bp.trigger:?}" }
                     span { " {bp.predicted_behavior}" }
                     span { " ({bp.confidence}/10)" }
-                    button { class: "btn btn-small", onclick: move |_| { patterns.write().remove(i); }, "✕" }
+                    button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); }, "✕" }
                 }
             }
         }

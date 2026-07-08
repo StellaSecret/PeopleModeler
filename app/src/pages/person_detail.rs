@@ -154,14 +154,14 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                     }
 
-                    div { class: "tab-bar",
-                        button { class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }
-                        button { class: if tab() == Tab::Biases { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Biases), "🧠 {bias_title}" }
-                        button { class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
-                        button { class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
-                        button { class: if tab() == Tab::Insights { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Insights), "✨ {insights_title}" }
-                        button { class: if tab() == Tab::Log { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Log), "{log_title}" }
-                        button { class: if tab() == Tab::Relationships { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Relationships), "{rel_person_rel}" }
+                    div { class: "tab-bar", role: "tablist",
+                        button { role: "tab", aria_label: "{mot_title}", class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }
+                        button { role: "tab", aria_label: "{bias_title}", class: if tab() == Tab::Biases { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Biases), "🧠 {bias_title}" }
+                        button { role: "tab", aria_label: "{ocean_title}", class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
+                        button { role: "tab", aria_label: "{pred_title}", class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
+                        button { role: "tab", aria_label: "{insights_title}", class: if tab() == Tab::Insights { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Insights), "✨ {insights_title}" }
+                        button { role: "tab", aria_label: "Log", class: if tab() == Tab::Log { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Log), "{log_title}" }
+                        button { role: "tab", aria_label: "Relationships", class: if tab() == Tab::Relationships { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Relationships), "{rel_person_rel}" }
                     }
 
                     if tab() == Tab::Motivations {
@@ -293,9 +293,9 @@ pub fn PersonDetail(id: String) -> Element {
                         div { class: "card",
                             h2 { "{log_title}" }
                             div { class: "form-row",
-                                input { placeholder: "{log_placeholder}", value: "{log_text}",
+                                input { placeholder: "{log_placeholder}", aria_label: "New log entry", value: "{log_text}",
                                     oninput: move |e| log_text.set(e.value()) }
-                                button { class: "btn btn-primary", onclick: {
+                                button { class: "btn btn-primary", aria_label: "{log_add}", onclick: {
                                     let pid = id.clone();
                                     move |_| {
                                         let t = log_text();
@@ -351,7 +351,7 @@ pub fn PersonDetail(id: String) -> Element {
                         RelationshipSection { person_id: id.clone(), rels: person_rels(), rel_person_rel, rel_none, rel_title }
                     }
 
-                    Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", "✏" }
+                    Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "Edit person", "✏" }
                 }
             }
         }
