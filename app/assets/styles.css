@@ -91,6 +91,15 @@ body{
 /* ── TOOLBAR ── */
 .toolbar{display:flex;gap:0.75rem;margin-bottom:1.5rem;align-items:center}
 
+/* ── BULK BAR ── */
+.bulk-bar{display:flex;align-items:center;gap:0.75rem;padding:0.5rem 1rem;background:var(--surface);border:1px solid var(--cyan);border-radius:var(--radius);margin-bottom:0.75rem;font-size:0.85rem;color:var(--text)}
+.bulk-bar .btn-small{padding:0.3rem 0.7rem}
+
+/* ── PERSON CARD CHECKBOX ── */
+.person-card-wrapper{display:flex;align-items:stretch;gap:0.5rem}
+.person-card-check{display:flex;align-items:center;padding-left:0.25rem}
+.person-card-check input{width:1.1rem;height:1.1rem;cursor:pointer;accent-color:var(--cyan)}
+
 /* ── SEARCH ── */
 .search-input{
   flex:1;padding:0.7rem 1rem;
