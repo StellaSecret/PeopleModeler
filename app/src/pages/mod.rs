@@ -4,4 +4,6 @@ pub mod people_list;
 pub mod person_detail;
 pub mod person_edit;
 pub mod predictions;
+pub mod relationships;
 pub mod sync;
+pub mod timeline;

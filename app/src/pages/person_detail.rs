@@ -21,6 +21,7 @@ enum Tab {
     Predictions,
     Insights,
     Log,
+    Relationships,
 }
 
 #[component]
@@ -30,6 +31,7 @@ pub fn PersonDetail(id: String) -> Element {
     let mut tab = use_signal(|| Tab::Motivations);
     let mut toast_sig = use_context::<Signal<Option<String>>>();
     let not_found = crate::i18n::tr("person_not_found", lang());
+    let tag_filter = use_context::<Signal<Option<String>>>();
 
     let p = person_sig.read().clone();
     match p {
@@ -52,6 +54,9 @@ pub fn PersonDetail(id: String) -> Element {
             let log_placeholder = crate::i18n::tr("log_placeholder", lang());
             let log_add = crate::i18n::tr("log_add", lang());
             let log_empty = crate::i18n::tr("log_empty", lang());
+            let rel_person_rel = crate::i18n::tr("rel_person_rel", lang());
+            let rel_none = crate::i18n::tr("rel_none", lang());
+            let rel_title = crate::i18n::tr("rel_title", lang());
 
             let mut preds = use_signal(|| db::predictions_for_person(&id));
             let mut ctx = use_signal(String::new);
@@ -63,6 +68,11 @@ pub fn PersonDetail(id: String) -> Element {
             let mut comparing = use_signal(|| false);
             let other_persons = use_signal(|| db::all_persons());
             let mut log_text = use_signal(String::new);
+            let person_rels = use_signal(|| {
+                let all = db::all_relationships();
+                let pid = id.clone();
+                all.into_iter().filter(|r| r.source_id == pid || r.target_id == pid).collect::<Vec<_>>()
+            });
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
@@ -127,7 +137,15 @@ pub fn PersonDetail(id: String) -> Element {
                         if !person.tags.is_empty() {
                             div { class: "tags",
                                 for tag in &person.tags {
-                                    span { class: "tag", "{tag}" }
+                                    span {
+                                        class: "tag tag-clickable",
+                                        onclick: {
+                                            let t = tag.clone();
+                                            let mut tf = tag_filter.clone();
+                                            move |_| tf.set(Some(t.clone()))
+                                        },
+                                        "{tag}"
+                                    }
                                 }
                             }
                         }
@@ -143,6 +161,7 @@ pub fn PersonDetail(id: String) -> Element {
                         button { class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
                         button { class: if tab() == Tab::Insights { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Insights), "✨ {insights_title}" }
                         button { class: if tab() == Tab::Log { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Log), "{log_title}" }
+                        button { class: if tab() == Tab::Relationships { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Relationships), "{rel_person_rel}" }
                     }
 
                     if tab() == Tab::Motivations {
@@ -302,12 +321,34 @@ pub fn PersonDetail(id: String) -> Element {
                             div { class: "log-list",
                                 for entry in person.log.iter().rev() {
                                     div { class: "log-entry",
-                                        small { class: "log-date", "{format_date(entry.timestamp)}" }
+                                        div { class: "log-entry-header",
+                                            small { class: "log-date", "{format_date(entry.timestamp)}" }
+                                            button {
+                                                class: "btn-icon btn-danger",
+                                                onclick: {
+                                                    let eid = entry.id.clone();
+                                                    let pid = id.clone();
+                                                    move |_| {
+                                                        let mut p = person_sig.write().clone();
+                                                        if let Some(ref mut p) = p {
+                                                            p.log.retain(|e| e.id != eid);
+                                                            db::save_person(p);
+                                                            person_sig.set(db::person(&pid));
+                                                        }
+                                                    }
+                                                },
+                                                "✕"
+                                            }
+                                        }
                                         p { "{entry.text}" }
                                     }
                                 }
                             }
                         }
+                    }
+
+                    if tab() == Tab::Relationships {
+                        RelationshipSection { person_id: id.clone(), rels: person_rels(), rel_person_rel, rel_none, rel_title }
                     }
 
                     Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", "✏" }
@@ -421,6 +462,46 @@ fn OceanChart(person: Person) -> Element {
                     }
                 }
             }
+        }
+    }
+}
+
+use peoplemodeler_core::models::Relationship;
+
+fn render_rel_item(rel: &Relationship, person_id: &str) -> Element {
+    let other_id = if rel.source_id == person_id { &rel.target_id } else { &rel.source_id };
+    let other = db::person(other_id);
+    let dir = if rel.source_id == person_id { "→" } else { "←" };
+    rsx! {
+        div { class: "relationship-item",
+            if let Some(ref o) = other {
+                Link { to: Route::PersonDetail { id: other_id.to_string() }, "{o.avatar_emoji} {o.name}" }
+            } else {
+                span { "{other_id}" }
+            }
+            span { " {dir} " }
+            span { class: "tag", "{rel.r#type}" }
+            if !rel.notes.is_empty() {
+                p { class: "note", "{rel.notes}" }
+            }
+        }
+    }
+}
+
+#[component]
+fn RelationshipSection(person_id: String, rels: Vec<Relationship>, rel_person_rel: String, rel_none: String, rel_title: String) -> Element {
+    rsx! {
+        div { class: "section",
+            h2 { "{rel_person_rel}" }
+            if rels.is_empty() {
+                p { "{rel_none}" }
+            } else {
+                for rel in rels {
+                    {render_rel_item(&rel, &person_id)}
+                }
+            }
+            div { class: "section" }
+            Link { to: Route::Relationships {}, class: "btn", "{rel_title}" }
         }
     }
 }

@@ -14,20 +14,28 @@ pub fn PeopleList() -> Element {
     let persons = use_signal(|| db::all_persons());
     let mut search = use_signal(String::new);
     let mut sort = use_signal(|| SortBy::Recent);
+    let tag_filter = use_context::<Signal<Option<String>>>();
+    let mut tag_filter_w = tag_filter.clone();
+    let tag_clear = crate::i18n::tr("tag_clear", lang());
+    let filter_label = use_memo(move || {
+        tag_filter().as_ref().map_or(String::new(), |tag| crate::i18n::tr_fmt("tag_filter", lang(), &[("tag", tag)]))
+    });
 
     let filtered = use_memo(move || {
         let q = search().to_lowercase();
-        let mut items = if q.is_empty() {
-            persons()
-        } else {
-            persons().into_iter().filter(|p| {
+        let mut items: Vec<Person> = persons();
+        if let Some(ref tag) = tag_filter() {
+            items.retain(|p| p.tags.iter().any(|t| t == tag));
+        }
+        if !q.is_empty() {
+            items.retain(|p| {
                 p.name.to_lowercase().contains(&q)
                     || p.role.to_lowercase().contains(&q)
                     || p.context.to_lowercase().contains(&q)
                     || p.notes.to_lowercase().contains(&q)
                     || p.tags.iter().any(|t| t.to_lowercase().contains(&q))
-            }).collect::<Vec<_>>()
-        };
+            });
+        }
         match sort() {
             SortBy::Name => items.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
             SortBy::Recent => items.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
@@ -67,6 +75,12 @@ pub fn PeopleList() -> Element {
                     option { value: "Ocean", {crate::i18n::tr("sort_ocean", lang())} }
                 }
             }
+            if let Some(ref _tag) = tag_filter() {
+                div { class: "tag-filter-banner",
+                    span { "{filter_label()}" }
+                    button { class: "btn btn-small", onclick: move |_| tag_filter_w.set(None), "{tag_clear}" }
+                }
+            }
             if has_items {
                 div { class: "person-list",
                     for person in filtered() {
@@ -87,6 +101,7 @@ pub fn PeopleList() -> Element {
 #[component]
 fn PersonCard(person: Person) -> Element {
     let o = &person.ocean;
+    let tag_filter = use_context::<Signal<Option<String>>>();
     rsx! {
         Link {
             to: Route::PersonDetail { id: person.id.clone() },
@@ -108,7 +123,15 @@ fn PersonCard(person: Person) -> Element {
             if !person.tags.is_empty() {
                 div { class: "tags",
                     for tag in &person.tags {
-                        span { class: "tag", "{tag}" }
+                        span {
+                            class: "tag tag-clickable",
+                            onclick: {
+                                let t = tag.clone();
+                                let mut tf = tag_filter.clone();
+                                move |_| tf.set(Some(t.clone()))
+                            },
+                            "{tag}"
+                        }
                     }
                 }
             }

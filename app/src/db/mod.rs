@@ -2,6 +2,7 @@ use std::sync::OnceLock;
 
 use peoplemodeler_core::models::Person;
 use peoplemodeler_core::models::Prediction;
+use peoplemodeler_core::models::Relationship;
 
 static DB: OnceLock<Box<dyn StorageBackend + Send + Sync>> = OnceLock::new();
 
@@ -29,6 +30,9 @@ trait StorageBackend: Send + Sync {
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction>;
     fn save_prediction(&self, prediction: &Prediction);
     fn delete_prediction(&self, id: &str);
+    fn load_all_relationships(&self) -> Vec<Relationship>;
+    fn save_relationship(&self, relationship: &Relationship);
+    fn delete_relationship(&self, id: &str);
 }
 
 pub fn all_persons() -> Vec<Person> { db().load_all_persons() }
@@ -39,6 +43,9 @@ pub fn all_predictions() -> Vec<Prediction> { db().load_all_predictions() }
 pub fn predictions_for_person(person_id: &str) -> Vec<Prediction> { db().load_predictions_for_person(person_id) }
 pub fn save_prediction(prediction: &Prediction) { db().save_prediction(prediction); }
 pub fn delete_prediction(id: &str) { db().delete_prediction(id); }
+pub fn all_relationships() -> Vec<Relationship> { db().load_all_relationships() }
+pub fn save_relationship(relationship: &Relationship) { db().save_relationship(relationship); }
+pub fn delete_relationship(id: &str) { db().delete_relationship(id); }
 
 #[cfg(target_arch = "wasm32")]
 trait Identifiable {
@@ -50,6 +57,10 @@ impl Identifiable for Person {
 }
 #[cfg(target_arch = "wasm32")]
 impl Identifiable for Prediction {
+    fn id(&self) -> &str { &self.id }
+}
+#[cfg(target_arch = "wasm32")]
+impl Identifiable for Relationship {
     fn id(&self) -> &str { &self.id }
 }
 
@@ -128,6 +139,19 @@ impl StorageBackend for WebStorage {
         all.retain(|p| p.id != id);
         store_encrypted("pm_predictions", &all);
     }
+    fn load_all_relationships(&self) -> Vec<Relationship> {
+        load_decrypted("pm_relationships")
+    }
+    fn save_relationship(&self, relationship: &Relationship) {
+        let mut all: Vec<Relationship> = self.load_all_relationships();
+        upsert(&mut all, relationship);
+        store_encrypted("pm_relationships", &all);
+    }
+    fn delete_relationship(&self, id: &str) {
+        let mut all: Vec<Relationship> = self.load_all_relationships();
+        all.retain(|r| r.id != id);
+        store_encrypted("pm_relationships", &all);
+    }
 }
 
 // ---- SQLite Storage (Native) ----
@@ -151,7 +175,8 @@ impl SqliteStorage {
             .expect("Failed to open SQLite database");
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS persons (id TEXT PRIMARY KEY, data TEXT NOT NULL);
-             CREATE TABLE IF NOT EXISTS predictions (id TEXT PRIMARY KEY, person_id TEXT NOT NULL, data TEXT NOT NULL);",
+              CREATE TABLE IF NOT EXISTS predictions (id TEXT PRIMARY KEY, person_id TEXT NOT NULL, data TEXT NOT NULL);
+              CREATE TABLE IF NOT EXISTS relationships (id TEXT PRIMARY KEY, data TEXT NOT NULL);",
         )
         .expect("Failed to initialize SQLite schema");
         Self { conn: std::sync::Mutex::new(conn) }
@@ -216,5 +241,23 @@ impl StorageBackend for SqliteStorage {
     fn delete_prediction(&self, id: &str) {
         let Ok(conn) = self.conn.lock() else { return };
         let _ = conn.execute("DELETE FROM predictions WHERE id = ?1", [id]);
+    }
+    fn load_all_relationships(&self) -> Vec<Relationship> {
+        let Ok(conn) = self.conn.lock() else { return Vec::new() };
+        let Ok(mut stmt) = conn.prepare("SELECT data FROM relationships") else { return Vec::new() };
+        let Ok(rows) = stmt.query_map([], |row| {
+            let data: String = row.get(0)?;
+            Ok(serde_json::from_str(&data).ok())
+        }) else { return Vec::new() };
+        rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
+    }
+    fn save_relationship(&self, relationship: &Relationship) {
+        let Ok(conn) = self.conn.lock() else { return };
+        let Ok(data) = serde_json::to_string(relationship) else { return };
+        let _ = conn.execute("INSERT OR REPLACE INTO relationships (id, data) VALUES (?1, ?2)", [&relationship.id, &data]);
+    }
+    fn delete_relationship(&self, id: &str) {
+        let Ok(conn) = self.conn.lock() else { return };
+        let _ = conn.execute("DELETE FROM relationships WHERE id = ?1", [id]);
     }
 }

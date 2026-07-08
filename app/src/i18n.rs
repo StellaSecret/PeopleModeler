@@ -82,6 +82,8 @@ fn en(key: &'static str) -> &'static str {
         // Nav
         "nav_app_title" => "PeopleModeler",
         "nav_people" => "People",
+        "nav_relationships" => "Relationships",
+        "nav_timeline" => "Timeline",
         "nav_pred" => "Pred",
         "nav_insights" => "Insights",
         "nav_sync" => "Sync",
@@ -379,6 +381,28 @@ fn en(key: &'static str) -> &'static str {
         "compare_strategy" => "Interaction Strategy",
         "compare_ethics" => "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate.",
 
+        // Relationships
+        "rel_title" => "Relationships",
+        "rel_add" => "＋ Add Relationship",
+        "rel_from" => "From",
+        "rel_to" => "To",
+        "rel_type" => "Type",
+        "rel_notes" => "Notes",
+        "rel_none" => "No relationships yet.",
+        "rel_type_placeholder" => "e.g. works_with, manages, friends, family",
+        "rel_confirm_delete" => "Delete this relationship?",
+        "rel_person_rel" => "Relationships",
+
+        // Timeline
+        "tl_title" => "Timeline",
+        "tl_empty" => "No interaction entries yet.",
+        "tl_today" => "Today",
+        "tl_yesterday" => "Yesterday",
+
+        // Tags
+        "tag_filter" => "Tag: {tag}",
+        "tag_clear" => "✕ Clear filter",
+
         _ => key,
     }
 }
@@ -387,6 +411,8 @@ fn fr(key: &'static str) -> &'static str {
     match key {
         "nav_app_title" => "PeopleModeler",
         "nav_people" => "Personnes",
+        "nav_relationships" => "Relations",
+        "nav_timeline" => "Chrono",
         "nav_pred" => "Préd.",
         "nav_insights" => "Analyses",
         "nav_sync" => "Sync",
@@ -670,6 +696,28 @@ fn fr(key: &'static str) -> &'static str {
         "compare_friction" => "Points de friction",
         "compare_strategy" => "Stratégie d'interaction",
         "compare_ethics" => "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler.",
+
+        // Relationships
+        "rel_title" => "Relations",
+        "rel_add" => "＋ Ajouter une relation",
+        "rel_from" => "De",
+        "rel_to" => "Vers",
+        "rel_type" => "Type",
+        "rel_notes" => "Notes",
+        "rel_none" => "Aucune relation.",
+        "rel_type_placeholder" => "ex: travaille_avec, dirige, amis, famille",
+        "rel_confirm_delete" => "Supprimer cette relation ?",
+        "rel_person_rel" => "Relations",
+
+        // Timeline
+        "tl_title" => "Chronologie",
+        "tl_empty" => "Aucune entrée d'interaction.",
+        "tl_today" => "Aujourd'hui",
+        "tl_yesterday" => "Hier",
+
+        // Tags
+        "tag_filter" => "Tag : {tag}",
+        "tag_clear" => "✕ Effacer le filtre",
 
         _ => key,
     }

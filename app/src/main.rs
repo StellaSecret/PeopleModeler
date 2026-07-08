@@ -11,6 +11,8 @@ use crate::pages::person_edit::PersonNew;
 use crate::pages::predictions::Predictions;
 use crate::pages::compare::ComparePersons;
 use crate::pages::sync::SyncPage;
+use crate::pages::relationships::Relationships;
+use crate::pages::timeline::Timeline;
 
 mod auth;
 #[cfg(target_os = "android")]
@@ -44,6 +46,10 @@ enum Route {
     SyncPage {},
     #[route("/compare/:id1/:id2")]
     ComparePersons { id1: String, id2: String },
+    #[route("/relationships")]
+    Relationships {},
+    #[route("/timeline")]
+    Timeline {},
 }
 
 fn main() {
@@ -76,8 +82,10 @@ fn App() -> Element {
 
     let lang = use_signal(|| Lang::detect());
     let theme = use_signal(|| Theme::detect());
+    let tag_filter: Signal<Option<String>> = use_signal(|| None);
     use_context_provider(|| lang);
     use_context_provider(|| theme);
+    use_context_provider(|| tag_filter);
     let _toast = toast::provide_toast();
     // Persist theme + sync to html element (web needs data-theme on <html> for body bg etc)
     use_effect(move || {
@@ -132,6 +140,8 @@ fn NavLayout() -> Element {
     let mut theme = use_context::<Signal<Theme>>();
     let toast = use_context::<Signal<Option<String>>>();
     let nav_people = crate::i18n::tr("nav_people", lang());
+    let nav_relationships = crate::i18n::tr("nav_relationships", lang());
+    let nav_timeline = crate::i18n::tr("nav_timeline", lang());
     let nav_sync = crate::i18n::tr("nav_sync", lang());
     let toggle_lang = move |_| {
         let mut l = lang();
@@ -156,6 +166,8 @@ fn NavLayout() -> Element {
                 }
                 div { class: "nav-links",
                     Link { to: Route::PeopleList {}, "{nav_people}" }
+                    Link { to: Route::Relationships {}, "{nav_relationships}" }
+                    Link { to: Route::Timeline {}, "{nav_timeline}" }
                     Link { to: Route::SyncPage {}, "{nav_sync}" }
                 }
                 div { class: "toggle-group",

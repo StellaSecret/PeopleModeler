@@ -216,6 +216,16 @@ impl Default for OceanScores {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Relationship {
+    pub id: String,
+    pub source_id: String,
+    pub target_id: String,
+    pub r#type: String,
+    pub notes: String,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Person {
     pub id: String,
     pub name: String,

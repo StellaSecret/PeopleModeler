@@ -12,16 +12,18 @@ test.describe('SPA Navigation', () => {
     await expect(page.locator('.nav-links')).toBeVisible();
   });
 
-  test('nav links exist: People, Sync', async ({ page }) => {
+  test('nav links exist and link to correct routes', async ({ page }) => {
     await page.goto('/PeopleModeler/');
-    const nav = page.locator('.nav-links');
-    await expect(nav.getByText('People')).toBeVisible();
-    await expect(nav.getByText('Sync')).toBeVisible();
+    const links = page.locator('.nav-links a');
+    await expect(links.nth(0)).toHaveAttribute('href', /PeopleModeler\/?$/);
+    await expect(links.nth(1)).toHaveAttribute('href', /relationships/);
+    await expect(links.nth(2)).toHaveAttribute('href', /timeline/);
+    await expect(links.nth(3)).toHaveAttribute('href', /sync/);
   });
 
   test('click Sync nav goes to /sync', async ({ page }) => {
     await page.goto('/PeopleModeler/');
-    await page.locator('.nav-links a').nth(1).click();
+    await page.locator('.nav-links a').nth(3).click();
     await expect(page).toHaveURL(/\/sync/);
   });
 
