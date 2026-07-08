@@ -327,7 +327,7 @@ fieldset.ocean-inputs legend{
   background:var(--cyan);border:2px solid var(--bg);cursor:pointer
 }
 .ocean-slider span{width:24px;text-align:center;font-weight:700;color:var(--cyan);font-size:0.82rem;font-family:var(--font-display)}
-.ocean-slider .ocean-hint{display:flex;gap:0.5rem;font-size:0.7rem;color:var(--text-muted);margin-top:0.25rem;flex:0 0 100%;opacity:0.75}
+.ocean-slider .ocean-hint{display:flex;flex-wrap:wrap;gap:0.5rem;font-size:0.7rem;color:var(--text-muted);margin-top:0.25rem;flex:0 0 100%;opacity:0.75}
 .ocean-slider .ocean-hint .hint-low{color:var(--text-muted)}
 .ocean-slider .ocean-hint .hint-sep{opacity:0.3}
 .ocean-slider .ocean-hint .hint-high{color:var(--text-muted)}
@@ -540,6 +540,9 @@ fieldset.ocean-inputs legend{
 .empty-state{text-align:center;padding:3rem 1rem;color:var(--text-muted)}
 .empty-state .empty-icon{font-size:3rem;margin-bottom:0.5rem}
 .empty-state p{margin:0}
+
+/* Helper text for selectors */
+.helper-text{font-size:0.75rem;color:var(--text-muted);margin:0.2rem 0 0.5rem 0;font-style:italic;padding-left:0.2rem}
 
 /* Drag reorder buttons */
 .reorder-btn{background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:1px 6px;font-size:0.75rem;color:var(--text-muted);line-height:1;margin-right:0.25rem;transition:color 0.15s,border-color 0.15s}
