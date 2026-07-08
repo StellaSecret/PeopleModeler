@@ -26,6 +26,7 @@ mod templates;
 mod theme;
 mod pages;
 mod toast;
+mod undo;
 
 #[derive(Clone, Debug, PartialEq, Routable)]
 enum Route {
@@ -143,10 +144,9 @@ fn inject_csp() {
 
 #[cfg(target_arch = "wasm32")]
 fn register_sw() {
-    if let Ok(Some(reg)) = web_sys::window()
-        .and_then(|w| w.navigator().service_worker())
-    {
-        let _ = reg.register("/PeopleModeler/sw.js");
+    if let Some(w) = web_sys::window() {
+        let sw = w.navigator().service_worker();
+        let _ = sw.register("/PeopleModeler/sw.js");
     }
 }
 
@@ -173,6 +173,26 @@ fn NavLayout() -> Element {
         theme.set(t.toggle());
     };
     auto_clear_toast(toast);
+    // Ctrl+Z undo handler
+    #[cfg(target_arch = "wasm32")]
+    {
+        use wasm_bindgen::prelude::Closure;
+        use wasm_bindgen::JsCast;
+        let t2 = toast.clone();
+        let cb: Closure<dyn FnMut(web_sys::KeyboardEvent)> = Closure::new(move |e: web_sys::KeyboardEvent| {
+            if e.ctrl_key() && e.key() == "z" {
+                let mut t = t2.clone();
+                if crate::undo::undo() {
+                    t.set(Some("↩ Undo".into()));
+                }
+            }
+        });
+        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+            let _ = doc.add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref());
+        }
+        cb.forget();
+    }
+    let can_undo = crate::undo::can_undo();
     rsx! {
         div { class: "app", "data-theme": theme().as_str(),
             header { class: "top-bar",
@@ -187,6 +207,14 @@ fn NavLayout() -> Element {
                     Link { to: Route::SyncPage {}, "{nav_sync}" }
                 }
                 div { class: "toggle-group",
+                    if can_undo {
+                        button { class: "undo-btn", aria_label: "Undo (Ctrl+Z)", onclick: move |_| {
+                            let mut t = toast.clone();
+                            if crate::undo::undo() {
+                                t.set(Some("↩ Undo".into()));
+                            }
+                        }, "↩" }
+                    }
                     button { class: "theme-toggle", aria_label: "Toggle theme", onclick: toggle_theme,
                         { theme().label() }
                     }

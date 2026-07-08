@@ -4,6 +4,8 @@ use peoplemodeler_core::models::Person;
 use peoplemodeler_core::models::Prediction;
 use peoplemodeler_core::models::Relationship;
 
+use crate::undo;
+
 static DB: OnceLock<Box<dyn StorageBackend + Send + Sync>> = OnceLock::new();
 
 pub fn init() {
@@ -37,15 +39,15 @@ trait StorageBackend: Send + Sync {
 
 pub fn all_persons() -> Vec<Person> { db().load_all_persons() }
 pub fn person(id: &str) -> Option<Person> { db().load_person(id) }
-pub fn save_person(person: &Person) { db().save_person(person); }
-pub fn delete_person(id: &str) { db().delete_person(id); }
+pub fn save_person(person: &Person) { undo::push_snapshot(); db().save_person(person); }
+pub fn delete_person(id: &str) { undo::push_snapshot(); db().delete_person(id); }
 pub fn all_predictions() -> Vec<Prediction> { db().load_all_predictions() }
 pub fn predictions_for_person(person_id: &str) -> Vec<Prediction> { db().load_predictions_for_person(person_id) }
-pub fn save_prediction(prediction: &Prediction) { db().save_prediction(prediction); }
-pub fn delete_prediction(id: &str) { db().delete_prediction(id); }
+pub fn save_prediction(prediction: &Prediction) { undo::push_snapshot(); db().save_prediction(prediction); }
+pub fn delete_prediction(id: &str) { undo::push_snapshot(); db().delete_prediction(id); }
 pub fn all_relationships() -> Vec<Relationship> { db().load_all_relationships() }
-pub fn save_relationship(relationship: &Relationship) { db().save_relationship(relationship); }
-pub fn delete_relationship(id: &str) { db().delete_relationship(id); }
+pub fn save_relationship(relationship: &Relationship) { undo::push_snapshot(); db().save_relationship(relationship); }
+pub fn delete_relationship(id: &str) { undo::push_snapshot(); db().delete_relationship(id); }
 
 #[cfg(target_arch = "wasm32")]
 trait Identifiable {
