@@ -328,6 +328,7 @@ fieldset.ocean-inputs legend{
 }
 .ocean-slider span{width:24px;text-align:center;font-weight:700;color:var(--cyan);font-size:0.82rem;font-family:var(--font-display)}
 .ocean-slider .ocean-hint{display:flex;flex-wrap:wrap;gap:0.5rem;font-size:0.7rem;color:var(--text-muted);margin-top:0.25rem;flex:0 0 100%;opacity:0.75}
+.ocean-slider .ocean-hint span{width:auto}
 .ocean-slider .ocean-hint .hint-low{color:var(--text-muted)}
 .ocean-slider .ocean-hint .hint-sep{opacity:0.3}
 .ocean-slider .ocean-hint .hint-high{color:var(--text-muted)}
