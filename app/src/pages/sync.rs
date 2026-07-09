@@ -1,8 +1,8 @@
-use dioxus::prelude::*;
 use crate::auth;
 use crate::db;
 use crate::drive;
 use crate::i18n::Lang;
+use dioxus::prelude::*;
 
 const ENV_CLIENT_ID: Option<&str> = option_env!("GOOGLE_CLIENT_ID");
 const HAS_CLIENT: bool = match ENV_CLIENT_ID {
@@ -19,7 +19,7 @@ fn drive_client_id() -> &'static str {
 
 fn mask_token(t: &str) -> String {
     if t.len() > 8 {
-        format!("{}…{}", &t[..4], &t[t.len()-4..])
+        format!("{}…{}", &t[..4], &t[t.len() - 4..])
     } else {
         "****".to_string()
     }
@@ -27,9 +27,9 @@ fn mask_token(t: &str) -> String {
 
 #[cfg(target_arch = "wasm32")]
 fn export_file(json: &str) {
+    use js_sys::Array;
     use wasm_bindgen::JsCast;
     use wasm_bindgen::JsValue;
-    use js_sys::Array;
     let arr = Array::new();
     arr.push(&JsValue::from(json));
     let blob = web_sys::Blob::new_with_str_sequence(&arr).expect("Blob creation failed");
@@ -60,7 +60,7 @@ fn export_file(json: &str) {
     #[cfg(not(target_os = "android"))]
     {
         let path = std::path::PathBuf::from(
-            "/data/data/com.stellasecret.peoplemodeler/files/peoplemodeler_backup.json"
+            "/data/data/com.stellasecret.peoplemodeler/files/peoplemodeler_backup.json",
         );
         if let Some(dir) = path.parent() {
             let _ = std::fs::create_dir_all(dir);
@@ -73,8 +73,8 @@ fn export_file(json: &str) {
 
 #[cfg(target_arch = "wasm32")]
 fn import_button(lang: Lang, status: Signal<String>) -> Element {
-    use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
+    use wasm_bindgen::prelude::Closure;
     let s = status.clone();
     let import_btn = crate::i18n::tr("sync_import_btn", lang);
     rsx! {
@@ -157,15 +157,28 @@ fn android_import_button(lang: Lang, status: Signal<String>) -> Element {
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 fn import_ui(lang: Lang, status: Signal<String>) -> Element {
     #[cfg(target_arch = "wasm32")]
-    { return import_button(lang, status); }
+    {
+        return import_button(lang, status);
+    }
     #[cfg(target_os = "android")]
-    { return android_import_button(lang, status); }
+    {
+        return android_import_button(lang, status);
+    }
     #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
     rsx! {}
 }
 
-#[cfg_attr(any(target_arch = "wasm32", target_os = "android"), allow(unused_mut, unused_variables))]
-fn token_paste_ui(lang: Lang, has_token: bool, mut paste_buf: Signal<String>, mut token: Signal<String>, mut status: Signal<String>) -> Element {
+#[cfg_attr(
+    any(target_arch = "wasm32", target_os = "android"),
+    allow(unused_mut, unused_variables)
+)]
+fn token_paste_ui(
+    lang: Lang,
+    has_token: bool,
+    mut paste_buf: Signal<String>,
+    mut token: Signal<String>,
+    mut status: Signal<String>,
+) -> Element {
     #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
     if !has_token {
         let ts1 = crate::i18n::tr("sync_token_instruction_1", lang);

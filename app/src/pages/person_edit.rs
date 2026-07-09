@@ -1,12 +1,12 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
-    BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores, Person,
-    BehaviorTrigger, ReputationTrait, ReputationTraitType, AVATAR_EMOJIS,
+    AVATAR_EMOJIS, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType,
+    OceanScores, Person, RepDim, RepScores,
 };
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     match l {
@@ -28,20 +28,32 @@ pub fn PersonNew() -> Element {
         Some(idx) => {
             let blank = Person {
                 id: uuid::Uuid::new_v4().to_string(),
-                name: String::new(), role: String::new(), context: String::new(),
+                name: String::new(),
+                role: String::new(),
+                context: String::new(),
                 avatar_emoji: "👤".into(),
-                tags: Vec::new(), notes: String::new(),
-                motivations: Vec::new(), biases: Vec::new(), reputation: Vec::new(),
+                tags: Vec::new(),
+                notes: String::new(),
+                motivations: Vec::new(),
+                biases: Vec::new(),
+                rep_scores: RepScores::default(),
                 behavioral_patterns: Vec::new(),
                 ocean: OceanScores::default(),
                 confidence: 5,
-                predictions: Vec::new(), log: Vec::new(),
+                predictions: Vec::new(),
+                log: Vec::new(),
                 created_at: chrono::Utc::now().timestamp_millis(),
                 updated_at: chrono::Utc::now().timestamp_millis(),
             };
             let person = if idx < templates.len() {
                 let t = &templates[idx];
-                Person { ocean: t.ocean.clone(), motivations: t.motivations.clone(), biases: t.biases.clone(), reputation: t.reputation.clone(), ..blank }
+                Person {
+                    ocean: t.ocean.clone(),
+                    motivations: t.motivations.clone(),
+                    biases: t.biases.clone(),
+                    rep_scores: t.rep_scores.clone(),
+                    ..blank
+                }
             } else {
                 blank
             };
@@ -93,7 +105,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         notes: String::new(),
         motivations: Vec::new(),
         biases: Vec::new(),
-        reputation: Vec::new(),
+        rep_scores: RepScores::default(),
         behavioral_patterns: Vec::new(),
         ocean: OceanScores::default(),
         confidence: 5,
@@ -113,7 +125,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut confidence = use_signal(|| p.confidence);
     let motivations = use_signal(|| p.motivations.clone());
     let biases = use_signal(|| p.biases.clone());
-    let reputation = use_signal(|| p.reputation.clone());
+    let rep_scores = use_signal(|| p.rep_scores.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
 
     let pers_id = p.id.clone();
@@ -125,11 +137,15 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             role: role(),
             context: context(),
             avatar_emoji: emoji(),
-            tags: tags_str().split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect(),
+            tags: tags_str()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
             notes: notes(),
             motivations: motivations(),
             biases: biases(),
-            reputation: reputation(),
+            rep_scores: rep_scores(),
             behavioral_patterns: patterns(),
             ocean: ocean(),
             confidence: confidence(),
@@ -140,7 +156,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         };
         db::save_person(&person);
         toast_sig.set(Some(crate::i18n::tr("toast_saved", lang()).into()));
-        dioxus::prelude::navigator().push(Route::PersonDetail { id: pers_id.clone() });
+        dioxus::prelude::navigator().push(Route::PersonDetail {
+            id: pers_id.clone(),
+        });
     };
 
     let form_new_title = crate::i18n::tr("form_new_title", lang());
@@ -240,7 +258,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
                 MotEditPanel { motivations: motivations.clone(), lang: cl }
                 BiasEditPanel { biases: biases.clone(), lang: cl }
-                RepEditPanel { reputation: reputation.clone(), lang: cl }
+                RepEditPanel { rep_scores: rep_scores.clone(), lang: cl }
                 PatternEditPanel { patterns: patterns.clone(), lang: lang() }
 
                 div { class: "form-actions",
@@ -253,7 +271,10 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 }
 
 #[component]
-fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+fn MotEditPanel(
+    motivations: Signal<Vec<Motivation>>,
+    lang: peoplemodeler_core::i18n::Lang,
+) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| MotivationType::Achievement);
     let mut sel_intensity = use_signal(|| 5u8);
@@ -405,90 +426,104 @@ fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
 }
 
 #[component]
-fn RepEditPanel(reputation: Signal<Vec<ReputationTrait>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+fn RepEditPanel(rep_scores: Signal<RepScores>, lang: peoplemodeler_core::i18n::Lang) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
-    let mut sel_type = use_signal(|| ReputationTraitType::Hardworker);
-    let mut sel_intensity = use_signal(|| 5u8);
-    let mut sel_evidence = use_signal(String::new);
-    let mut edit_idx = use_signal(|| None::<usize>);
     let edit_rep = crate::i18n::tr("edit_reputation", app_lang());
-    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", app_lang());
-    let add_btn = crate::i18n::tr("add_btn", app_lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+    let cl = core_lang(app_lang());
+
+    let rep_data: Vec<_> = RepDim::ALL
+        .iter()
+        .map(|dim| {
+            let ri = dim.i18n(cl);
+            let cur = rep_scores.read().score(*dim);
+            (*dim, ri, cur)
+        })
+        .collect();
 
     rsx! {
-        fieldset { class: "section",
+        fieldset { class: "ocean-inputs",
             legend { "{edit_rep}" }
-            div { class: "add-row",
-                select { value: "{sel_type}",
-                    onchange: move |e| { sel_type.set(parse_reputation_type(&e.value())); },
-                    for t in ReputationTraitType::ALL {
-                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+            {rep_data.into_iter().map(|(dim, ri, cur)| {
+                let start_val = cur.unwrap_or(5);
+                let start_on = cur.is_some();
+                rsx! {
+                    RepDimSlider {
+                        dim,
+                        label_a: ri.label_a,
+                        label_b: ri.label_b,
+                        desc: ri.desc,
+                        start_val,
+                        start_on,
+                        onchange: move |(on, val): (bool, u8)| {
+                            let mut s = rep_scores.write();
+                            let new = if on { Some(val.clamp(0, 10)) } else { None };
+                            match dim {
+                                RepDim::HardworkerLazy => s.hardworker_lazy = new,
+                                RepDim::AuthoritativeSubmissive => s.authoritative_submissive = new,
+                                RepDim::HonestDeceitful => s.honest_deceitful = new,
+                                RepDim::ReliableFlaky => s.reliable_flaky = new,
+                                RepDim::HumbleArrogant => s.humble_arrogant = new,
+                                RepDim::CalmReactive => s.calm_reactive = new,
+                                RepDim::DiplomaticBlunt => s.diplomatic_blunt = new,
+                                RepDim::GenerousSelfish => s.generous_selfish = new,
+                            }
+                        }
                     }
                 }
-                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
-                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
-                }
-                span { "{sel_intensity}" }
-                input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
-                    oninput: move |e| { sel_evidence.set(e.value()); }
-                }
-                button { class: "btn", aria_label: if edit_idx().is_some() { "Update reputation trait" } else { "Add reputation trait" }, onclick: move |_| {
-                    if let Some(idx) = edit_idx() {
-                        let mut items = reputation.write();
-                        if idx < items.len() {
-                            items[idx] = ReputationTrait { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
-                        }
-                        edit_idx.set(None);
-                    } else {
-                        reputation.write().push(ReputationTrait { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
-                    }
-                    sel_evidence.set(String::new());
-                    sel_intensity.set(5);
-                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-            }
-            div { class: "helper-text", "{rep_helper(&sel_type(), app_lang())}" }
-            for (i, r) in reputation().iter().enumerate() {
-                div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move reputation trait up", onclick: move |_| { rep_move(reputation, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move reputation trait down", onclick: move |_| { rep_move(reputation, i, false); }, "▼" }
-                    button { class: "btn btn-small", aria_label: "Edit reputation trait", onclick: {
-                        let r = r.clone();
-                        move |_| {
-                            sel_type.set(r.r#type);
-                            sel_intensity.set(r.intensity);
-                            sel_evidence.set(r.evidence.clone());
-                            edit_idx.set(Some(i));
-                        }
-                    }, "✏" }
-                    strong { "{r.r#type.emoji()} {r.r#type.i18n(lang).label}" }
-                    span { " {r.intensity}/10" }
-                    span { " {r.evidence}" }
-                    button { class: "btn btn-small", aria_label: "Delete reputation trait", onclick: move |_| { reputation.write().remove(i); }, "✕" }
-                }
-            }
+            })}
         }
     }
 }
 
-fn rep_move(mut reputation: Signal<Vec<ReputationTrait>>, i: usize, up: bool) {
-    let len = reputation.read().len();
-    if up && i > 0 {
-        reputation.write().swap(i, i - 1);
-    } else if !up && i + 1 < len {
-        reputation.write().swap(i, i + 1);
-    }
-}
+#[component]
+fn RepDimSlider(
+    dim: RepDim,
+    label_a: &'static str,
+    label_b: &'static str,
+    desc: &'static str,
+    start_val: u8,
+    start_on: bool,
+    onchange: EventHandler<(bool, u8)>,
+) -> Element {
+    let mut on = use_signal(|| start_on);
+    let mut val = use_signal(|| start_val);
 
-fn parse_reputation_type(s: &str) -> ReputationTraitType {
-    match s {
-        "Lazy" => ReputationTraitType::Lazy,
-        "Hardworker" => ReputationTraitType::Hardworker,
-        "SmoothTalker" => ReputationTraitType::SmoothTalker,
-        "GetItDone" => ReputationTraitType::GetItDone,
-        "Reliable" => ReputationTraitType::Reliable,
-        "Impulsive" => ReputationTraitType::Impulsive,
-        _ => ReputationTraitType::Hardworker,
+    rsx! {
+        div { class: "ocean-slider",
+            div { class: "ocean-header",
+                span { class: "ocean-label",
+                    "{dim.emoji()} {label_b} ← → {label_a}"
+                }
+                label { class: "dim-toggle",
+                    input { r#type: "checkbox",
+                        checked: on(),
+                        oninput: move |e| {
+                            let new = e.value() == "true";
+                            on.set(new);
+                            onchange.call((new, val()));
+                        }
+                    }
+                    if on() { "✓" } else { "✗" }
+                }
+            }
+            if on() {
+                div { class: "rep-slider-bar",
+                    span { class: "rep-pole-b", "{label_b}" }
+                    input { r#type: "range", min: "0", max: "10", value: "{val}",
+                        oninput: move |e| {
+                            let v = e.value().parse().unwrap_or(5);
+                            val.set(v);
+                            onchange.call((true, v));
+                        }
+                    }
+                    span { class: "rep-pole-a", "{label_a}" }
+                }
+                div { class: "rep-dim-value",
+                    strong { "{val}/10" }
+                    span { " — {desc}" }
+                }
+            }
+        }
     }
 }
 
@@ -563,7 +598,13 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
 }
 
 #[component]
-fn OceanSlider(label: String, val: u8, onchange: EventHandler<u8>, low_hint: Option<String>, high_hint: Option<String>) -> Element {
+fn OceanSlider(
+    label: String,
+    val: u8,
+    onchange: EventHandler<u8>,
+    low_hint: Option<String>,
+    high_hint: Option<String>,
+) -> Element {
     rsx! {
         div { class: "ocean-slider",
             label { "{label}" }
@@ -611,17 +652,6 @@ fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
         BiasType::Authority => crate::i18n::tr("bias_helper_authority", lang),
         BiasType::Recency => crate::i18n::tr("bias_helper_recency", lang),
         BiasType::InGroup => crate::i18n::tr("bias_helper_in_group", lang),
-    }
-}
-
-fn rep_helper(t: &ReputationTraitType, lang: Lang) -> &'static str {
-    match t {
-        ReputationTraitType::Hardworker => crate::i18n::tr("rep_helper_hardworker", lang),
-        ReputationTraitType::GetItDone => crate::i18n::tr("rep_helper_get_it_done", lang),
-        ReputationTraitType::Reliable => crate::i18n::tr("rep_helper_reliable", lang),
-        ReputationTraitType::SmoothTalker => crate::i18n::tr("rep_helper_smooth_talker", lang),
-        ReputationTraitType::Impulsive => crate::i18n::tr("rep_helper_impulsive", lang),
-        ReputationTraitType::Lazy => crate::i18n::tr("rep_helper_lazy", lang),
     }
 }
 

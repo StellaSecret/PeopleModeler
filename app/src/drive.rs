@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use peoplemodeler_core::models::{
-    BehavioralPattern, BehaviorTrigger, Bias, BiasType, Motivation, MotivationType, OceanScores,
-    Person, Prediction,
+    BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
+    Person, Prediction, RepScores,
 };
 
 use crate::db;
@@ -26,17 +26,26 @@ pub fn build_backup() -> String {
 }
 
 fn validate_backup(json: &str) -> Result<(), Vec<String>> {
-    let val: serde_json::Value = serde_json::from_str(json).map_err(|e| vec![format!("Invalid JSON: {e}")])?;
+    let val: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| vec![format!("Invalid JSON: {e}")])?;
     let mut errors = Vec::new();
     match &val["version"] {
         serde_json::Value::Null => errors.push("Missing required field: version".into()),
-        serde_json::Value::Number(n) if !n.is_u64() => errors.push("version must be a positive integer".into()),
+        serde_json::Value::Number(n) if !n.is_u64() => {
+            errors.push("version must be a positive integer".into())
+        }
         _ => {}
     }
     let persons = match &val["persons"] {
-        serde_json::Value::Null => { errors.push("Missing required field: persons".into()); None }
+        serde_json::Value::Null => {
+            errors.push("Missing required field: persons".into());
+            None
+        }
         serde_json::Value::Array(a) => Some(a),
-        _ => { errors.push("persons must be an array".into()); None }
+        _ => {
+            errors.push("persons must be an array".into());
+            None
+        }
     };
     if let Some(arr) = persons {
         for (i, p) in arr.iter().enumerate() {
@@ -48,7 +57,11 @@ fn validate_backup(json: &str) -> Result<(), Vec<String>> {
             }
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 pub fn restore_from_json(json: &str) -> Result<usize, String> {
@@ -138,22 +151,34 @@ impl From<LegacyPerson> for Person {
             avatar_emoji: lp.avatar_emoji,
             tags: lp.tags,
             notes: lp.notes,
-            motivations: lp.motivations.into_iter().map(|m| Motivation {
-                r#type: m.r#type,
-                intensity: m.intensity,
-                notes: m.notes,
-            }).collect(),
-            biases: lp.biases.into_iter().map(|b| Bias {
-                r#type: b.r#type,
-                intensity: b.intensity,
-                evidence: b.evidence,
-            }).collect(),
-            reputation: vec![],
-            behavioral_patterns: lp.behavioral_patterns.into_iter().map(|bp| BehavioralPattern {
-                trigger: bp.trigger,
-                predicted_behavior: bp.predicted_behavior,
-                confidence: bp.confidence,
-            }).collect(),
+            motivations: lp
+                .motivations
+                .into_iter()
+                .map(|m| Motivation {
+                    r#type: m.r#type,
+                    intensity: m.intensity,
+                    notes: m.notes,
+                })
+                .collect(),
+            biases: lp
+                .biases
+                .into_iter()
+                .map(|b| Bias {
+                    r#type: b.r#type,
+                    intensity: b.intensity,
+                    evidence: b.evidence,
+                })
+                .collect(),
+            rep_scores: RepScores::default(),
+            behavioral_patterns: lp
+                .behavioral_patterns
+                .into_iter()
+                .map(|bp| BehavioralPattern {
+                    trigger: bp.trigger,
+                    predicted_behavior: bp.predicted_behavior,
+                    confidence: bp.confidence,
+                })
+                .collect(),
             ocean: OceanScores {
                 openness: lp.openness,
                 conscientiousness: lp.conscientiousness,
@@ -174,7 +199,6 @@ impl From<LegacyPerson> for Person {
 pub const DRIVE_SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_API: &str = "https://www.googleapis.com/drive/v3/files";
 const UPLOAD_API: &str = "https://www.googleapis.com/upload/drive/v3/files";
-
 
 // Check HTTP response: if not 2xx, read body and return error with status + body
 async fn check_response(resp: reqwest::Response) -> Result<reqwest::Response, String> {
@@ -199,16 +223,22 @@ pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<Strin
         _ => (backup.into_bytes(), "application/json"),
     };
 
-    let query = "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
+    let query =
+        "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
     let search = check_response(
         client
             .get(DRIVE_API)
-            .query(&[("q", query), ("fields", "files(id)"), ("spaces", "appDataFolder")])
+            .query(&[
+                ("q", query),
+                ("fields", "files(id)"),
+                ("spaces", "appDataFolder"),
+            ])
             .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
-            .map_err(|e| format!("send: {e}"))?
-    ).await?;
+            .map_err(|e| format!("send: {e}"))?,
+    )
+    .await?;
 
     let search_body: serde_json::Value = search.json().await.map_err(|e| format!("json: {e}"))?;
     let file_id = search_body["files"]
@@ -232,10 +262,13 @@ pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<Strin
                     .body(meta.to_string())
                     .send()
                     .await
-                    .map_err(|e| format!("send: {e}"))?
-            ).await?;
+                    .map_err(|e| format!("send: {e}"))?,
+            )
+            .await?;
             let body: serde_json::Value = resp.json().await.map_err(|e| format!("json: {e}"))?;
-            body["id"].as_str().map(String::from)
+            body["id"]
+                .as_str()
+                .map(String::from)
                 .ok_or_else(|| format!("Failed to create Drive file: {}", body))?
         }
     };
@@ -249,25 +282,32 @@ pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<Strin
             .body(body_bytes)
             .send()
             .await
-            .map_err(|e| format!("send: {e}"))?
-    ).await?;
+            .map_err(|e| format!("send: {e}"))?,
+    )
+    .await?;
     Ok(fid)
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usize, String> {
     let client = reqwest::Client::new();
-    let query = "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
+    let query =
+        "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
 
     let search = check_response(
         client
             .get(DRIVE_API)
-            .query(&[("q", query), ("fields", "files(id)"), ("spaces", "appDataFolder")])
+            .query(&[
+                ("q", query),
+                ("fields", "files(id)"),
+                ("spaces", "appDataFolder"),
+            ])
             .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
-            .map_err(|e| format!("send: {e}"))?
-    ).await?;
+            .map_err(|e| format!("send: {e}"))?,
+    )
+    .await?;
 
     let search_body: serde_json::Value = search.json().await.map_err(|e| format!("json: {e}"))?;
     let file_id = search_body["files"]
@@ -283,8 +323,9 @@ pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usiz
             .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
-            .map_err(|e| format!("send: {e}"))?
-    ).await?;
+            .map_err(|e| format!("send: {e}"))?,
+    )
+    .await?;
 
     let bytes = resp.bytes().await.map_err(|e| format!("bytes: {e}"))?;
 

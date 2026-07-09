@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::Prediction;
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[component]
 pub fn Predictions() -> Element {
@@ -91,10 +91,18 @@ pub fn PersonPredictions(person_id: String) -> Element {
 }
 
 #[component]
-pub fn PredictionList(predictions: Vec<Prediction>, person_filter: Option<String>, onresolve: EventHandler<()>, ondelete: EventHandler<()>) -> Element {
+pub fn PredictionList(
+    predictions: Vec<Prediction>,
+    person_filter: Option<String>,
+    onresolve: EventHandler<()>,
+    ondelete: EventHandler<()>,
+) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let filtered = if let Some(ref pid) = person_filter {
-        predictions.into_iter().filter(|p| &p.person_id == pid).collect::<Vec<_>>()
+        predictions
+            .into_iter()
+            .filter(|p| &p.person_id == pid)
+            .collect::<Vec<_>>()
     } else {
         predictions
     };
@@ -114,7 +122,11 @@ pub fn PredictionList(predictions: Vec<Prediction>, person_filter: Option<String
 }
 
 #[component]
-fn PredictionCard(prediction: Prediction, onresolve: EventHandler<()>, ondelete: EventHandler<()>) -> Element {
+fn PredictionCard(
+    prediction: Prediction,
+    onresolve: EventHandler<()>,
+    ondelete: EventHandler<()>,
+) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let resolved = prediction.resolved;
     let pred_label = crate::i18n::tr("pred_predicted_label", lang());
@@ -130,8 +142,14 @@ fn PredictionCard(prediction: Prediction, onresolve: EventHandler<()>, ondelete:
     let mut actual = use_signal(String::new);
     let mut accuracy = use_signal(|| 5u8);
 
-    let outcome_str = prediction.actual_outcome.clone().unwrap_or_else(|| "N/A".into());
-    let acc_str = prediction.accuracy.map(|a| format!("{acc_label}: {a}/10")).unwrap_or_default();
+    let outcome_str = prediction
+        .actual_outcome
+        .clone()
+        .unwrap_or_else(|| "N/A".into());
+    let acc_str = prediction
+        .accuracy
+        .map(|a| format!("{acc_label}: {a}/10"))
+        .unwrap_or_default();
     let del_id = prediction.id.clone();
     let delete = move || {
         db::delete_prediction(&del_id);
@@ -140,7 +158,9 @@ fn PredictionCard(prediction: Prediction, onresolve: EventHandler<()>, ondelete:
     let resolve_pred = prediction.clone();
     let mut resolve = move || {
         let a = actual();
-        if a.is_empty() { return; }
+        if a.is_empty() {
+            return;
+        }
         let mut p = resolve_pred.clone();
         p.actual_outcome = Some(a);
         p.accuracy = Some(accuracy());

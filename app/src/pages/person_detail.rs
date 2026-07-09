@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction};
+use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction, RepDim};
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
 use crate::pages::predictions::{PredictionList, format_date};
-use crate::Route;
 
 fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     match l {
@@ -73,12 +73,23 @@ pub fn PersonDetail(id: String) -> Element {
             let person_rels = use_signal(|| {
                 let all = db::all_relationships();
                 let pid = id.clone();
-                all.into_iter().filter(|r| r.source_id == pid || r.target_id == pid).collect::<Vec<_>>()
+                all.into_iter()
+                    .filter(|r| r.source_id == pid || r.target_id == pid)
+                    .collect::<Vec<_>>()
             });
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
             let insight_text = crate::pages::insights::generate_insight(person, &trigger(), lang());
+
+            let cl = core_lang(lang());
+            let rep_items: Vec<_> = RepDim::ALL
+                .iter()
+                .filter_map(|d| {
+                    let score = person.rep_scores.score(*d)?;
+                    Some((d, score))
+                })
+                .collect();
 
             let id_pred = id.clone();
             let mut add_pred = move || {
@@ -221,22 +232,32 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                         div { class: "section",
                             h2 { "{rep_title}" }
-                            for r in &person.reputation {
-                                div { class: "bias-item",
-                                    div { class: "item-icon", "{r.r#type.emoji()}" }
-                                    div { class: "item-info",
-                                        div { class: "item-name", "{r.r#type.i18n(core_lang(lang())).label}" }
-                                        div { class: "item-bar-row",
-                                            div { class: "item-bar",
-                                                div { class: "item-bar-fill red", style: "width: {r.intensity * 10}%" }
+                            {rep_items.iter().map(|(dim, score)| {
+                                let ri = dim.i18n(cl);
+                                let label = if *score >= 5 {
+                                    format!("{} {} {}/10", ri.label_a, dim.emoji(), score)
+                                } else {
+                                    format!("{} {} {}/10", ri.label_b, dim.emoji(), score)
+                                };
+                                rsx! {
+                                    div { class: "bias-item",
+                                        div { class: "item-info",
+                                            div { class: "item-name", "{label}" }
+                                            div { class: "item-bar-row",
+                                                div { class: "item-bar",
+                                                    div { class: "item-bar-fill red", style: "width: {score * 10}%" }
+                                                }
+                                                div { class: "item-intensity", "{score}/10" }
                                             }
-                                            div { class: "item-intensity", "{r.intensity}/10" }
                                         }
-                                        if !r.evidence.is_empty() { div { class: "item-notes", "{r.evidence}" } }
                                     }
                                 }
-                            }
-                            if person.reputation.is_empty() { p { "{no_rep}" } }
+                            })}
+                            {if rep_items.is_empty() {
+                                rsx! { p { "{no_rep}" } }
+                            } else {
+                                rsx! {}
+                            }}
                         }
                     }
 
@@ -418,19 +439,27 @@ fn OceanChart(person: Person) -> Element {
         person.ocean.neuroticism,
     ];
 
-    let cx = 110.0; let cy = 110.0; let r = 80.0;
+    let cx = 110.0;
+    let cy = 110.0;
+    let r = 80.0;
 
     use std::f64::consts::PI;
-    let pts: Vec<(f64, f64)> = scores.iter().enumerate().map(|(i, s)| {
-        let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
-        let pr = r * *s as f64 / 10.0;
-        (cx + pr * a.cos(), cy + pr * a.sin())
-    }).collect();
-    let data_poly: String = pts.iter().map(|(x, y)| format!("{:.1},{:.1}", x, y)).collect::<Vec<_>>().join(" ");
+    let pts: Vec<(f64, f64)> = scores
+        .iter()
+        .enumerate()
+        .map(|(i, s)| {
+            let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
+            let pr = r * *s as f64 / 10.0;
+            (cx + pr * a.cos(), cy + pr * a.sin())
+        })
+        .collect();
+    let data_poly: String = pts
+        .iter()
+        .map(|(x, y)| format!("{:.1},{:.1}", x, y))
+        .collect::<Vec<_>>()
+        .join(" ");
     let data_poly = format!("{} {:.1},{:.1}", data_poly, pts[0].0, pts[0].1);
-    let label_pos: Vec<(f64, f64)> = (0..5).map(|i| {
-        axis_label(cx, cy, r, i)
-    }).collect();
+    let label_pos: Vec<(f64, f64)> = (0..5).map(|i| axis_label(cx, cy, r, i)).collect();
 
     rsx! {
         div { class: "section ocean-chart",
@@ -490,9 +519,17 @@ fn OceanChart(person: Person) -> Element {
 use peoplemodeler_core::models::Relationship;
 
 fn render_rel_item(rel: &Relationship, person_id: &str) -> Element {
-    let other_id = if rel.source_id == person_id { &rel.target_id } else { &rel.source_id };
+    let other_id = if rel.source_id == person_id {
+        &rel.target_id
+    } else {
+        &rel.source_id
+    };
     let other = db::person(other_id);
-    let dir = if rel.source_id == person_id { "→" } else { "←" };
+    let dir = if rel.source_id == person_id {
+        "→"
+    } else {
+        "←"
+    };
     rsx! {
         div { class: "relationship-item",
             if let Some(ref o) = other {
@@ -510,7 +547,13 @@ fn render_rel_item(rel: &Relationship, person_id: &str) -> Element {
 }
 
 #[component]
-fn RelationshipSection(person_id: String, rels: Vec<Relationship>, rel_person_rel: String, rel_none: String, rel_title: String) -> Element {
+fn RelationshipSection(
+    person_id: String,
+    rels: Vec<Relationship>,
+    rel_person_rel: String,
+    rel_none: String,
+    rel_title: String,
+) -> Element {
     rsx! {
         div { class: "section",
             h2 { "{rel_person_rel}" }

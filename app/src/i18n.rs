@@ -54,7 +54,9 @@ impl Lang {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let _ = std::fs::write(
-                std::env::current_dir().map_or_else(|_| ".".into(), |p| p).join(".pm_lang"),
+                std::env::current_dir()
+                    .map_or_else(|_| ".".into(), |p| p)
+                    .join(".pm_lang"),
                 s,
             );
         }
@@ -111,12 +113,7 @@ fn en(key: &'static str) -> &'static str {
         "no_biases" => "No biases recorded.",
         "reputation_title" => "Reputation",
         "no_reputation" => "No reputation traits recorded.",
-        "rep_helper_hardworker" => "Puts in sustained effort, doesn't give up",
-        "rep_helper_get_it_done" => "Decisive action-taker who makes things happen",
-        "rep_helper_reliable" => "Keeps commitments, others trust their word",
-        "rep_helper_smooth_talker" => "Charismatic communicator who persuades easily",
-        "rep_helper_impulsive" => "Acts on impulse, changes direction quickly",
-        "rep_helper_lazy" => "Avoids effort, puts things off",
+
         "patterns_title" => "Behavioral Patterns",
         "no_patterns" => "No behavioral patterns recorded.",
         "predictions_insights" => "Predictions & Insights",
@@ -274,64 +271,120 @@ fn en(key: &'static str) -> &'static str {
         "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
         "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
         "strategy_stress_low_e" => "Low extraversion — give quiet space to decompress.",
-        "strategy_stress_high_c" => "High conscientiousness — break problems into actionable steps.",
-        "strategy_stress_low_a" => "Low agreeableness — may become short or irritable under pressure.",
+        "strategy_stress_high_c" => {
+            "High conscientiousness — break problems into actionable steps."
+        }
+        "strategy_stress_low_a" => {
+            "Low agreeableness — may become short or irritable under pressure."
+        }
         "strategy_stress_low_c" => "Low conscientiousness — may become disorganized or avoidant.",
-        "strategy_stress_high_o" => "High openness — may overthink and spiral into worst-case scenarios.",
+        "strategy_stress_high_o" => {
+            "High openness — may overthink and spiral into worst-case scenarios."
+        }
         "strategy_stress_power" => "Power-driven — let them regain control in one domain.",
         "strategy_stress_security" => "Security-driven — reinforce stability and routine.",
         "strategy_stress_fallback" => "Monitor stress signals and adjust environment.",
 
         "strategy_conflict_low_a" => "Low agreeableness — address conflict directly with facts.",
-        "strategy_conflict_high_a" => "High agreeableness — soften confrontation, focus on harmony.",
-        "strategy_conflict_high_n" => "High neuroticism — de-escalate and provide emotional safety.",
+        "strategy_conflict_high_a" => {
+            "High agreeableness — soften confrontation, focus on harmony."
+        }
+        "strategy_conflict_high_n" => {
+            "High neuroticism — de-escalate and provide emotional safety."
+        }
         "strategy_conflict_high_e" => "High extraversion — let them talk it through.",
-        "strategy_conflict_high_c" => "High conscientiousness — may rigidly insist on rules and procedures.",
-        "strategy_conflict_low_e" => "Low extraversion — may withdraw or stonewall instead of engaging.",
+        "strategy_conflict_high_c" => {
+            "High conscientiousness — may rigidly insist on rules and procedures."
+        }
+        "strategy_conflict_low_e" => {
+            "Low extraversion — may withdraw or stonewall instead of engaging."
+        }
         "strategy_conflict_fallback" => "Mediate with balanced communication.",
 
-        "strategy_success_high_o" => "High openness — channel success into new creative challenges.",
-        "strategy_success_high_c" => "High conscientiousness — leverage success as validation of process.",
+        "strategy_success_high_o" => {
+            "High openness — channel success into new creative challenges."
+        }
+        "strategy_success_high_c" => {
+            "High conscientiousness — leverage success as validation of process."
+        }
         "strategy_success_low_e" => "Low extraversion — may feel overwhelmed by public attention.",
-        "strategy_success_high_a" => "High agreeableness — may deflect credit to avoid standing out.",
-        "strategy_success_recognition" => "Recognition-driven — publicly acknowledge their achievement.",
+        "strategy_success_high_a" => {
+            "High agreeableness — may deflect credit to avoid standing out."
+        }
+        "strategy_success_recognition" => {
+            "Recognition-driven — publicly acknowledge their achievement."
+        }
         "strategy_success_power" => "Power-driven — give them ownership of the next initiative.",
         "strategy_success_fallback" => "Celebrate success and identify growth areas.",
 
-        "strategy_uncertainty_high_n" => "High neuroticism — provide clear timelines and frequent updates.",
-        "strategy_uncertainty_low_n" => "Low neuroticism — they handle ambiguity well; trust their resilience.",
+        "strategy_uncertainty_high_n" => {
+            "High neuroticism — provide clear timelines and frequent updates."
+        }
+        "strategy_uncertainty_low_n" => {
+            "Low neuroticism — they handle ambiguity well; trust their resilience."
+        }
         "strategy_uncertainty_high_o" => "High openness — frame uncertainty as opportunity.",
-        "strategy_uncertainty_low_o" => "Low openness — provide concrete examples and familiar frameworks.",
-        "strategy_uncertainty_high_c" => "High conscientiousness — needs a concrete plan immediately.",
-        "strategy_uncertainty_high_e" => "High extraversion — may over-socialize to cope with ambiguity.",
-        "strategy_uncertainty_fallback" => "Acknowledge uncertainty and provide available information.",
+        "strategy_uncertainty_low_o" => {
+            "Low openness — provide concrete examples and familiar frameworks."
+        }
+        "strategy_uncertainty_high_c" => {
+            "High conscientiousness — needs a concrete plan immediately."
+        }
+        "strategy_uncertainty_high_e" => {
+            "High extraversion — may over-socialize to cope with ambiguity."
+        }
+        "strategy_uncertainty_fallback" => {
+            "Acknowledge uncertainty and provide available information."
+        }
 
         "strategy_recognition_high" => "Strong recognition drive — give frequent, specific praise.",
-        "strategy_recognition_mid" => "Moderate recognition drive — acknowledge contributions regularly.",
+        "strategy_recognition_mid" => {
+            "Moderate recognition drive — acknowledge contributions regularly."
+        }
         "strategy_recognition_low" => "Low recognition need — avoid over-praising.",
         "strategy_recognition_high_e" => "High extraversion — public recognition is effective.",
-        "strategy_recognition_low_e" => "Low extraversion — prefer private, written acknowledgment.",
+        "strategy_recognition_low_e" => {
+            "Low extraversion — prefer private, written acknowledgment."
+        }
         "strategy_recognition_fallback" => "Match recognition style to their comfort level.",
 
-        "strategy_threat_low_a" => "Low agreeableness — they may push back; address concerns calmly.",
-        "strategy_threat_high_a" => "High agreeableness — they may concede too easily; check true feelings.",
-        "strategy_threat_high_n" => "High neuroticism — perceived threats are amplified; offer reassurance.",
-        "strategy_threat_power" => "Power-driven — threat to status is serious; involve them in decisions.",
+        "strategy_threat_low_a" => {
+            "Low agreeableness — they may push back; address concerns calmly."
+        }
+        "strategy_threat_high_a" => {
+            "High agreeableness — they may concede too easily; check true feelings."
+        }
+        "strategy_threat_high_n" => {
+            "High neuroticism — perceived threats are amplified; offer reassurance."
+        }
+        "strategy_threat_power" => {
+            "Power-driven — threat to status is serious; involve them in decisions."
+        }
         "strategy_threat_fallback" => "Listen actively and validate their concerns.",
 
-        "strategy_change_high_n" => "High neuroticism — may resist change; provide stability anchors.",
+        "strategy_change_high_n" => {
+            "High neuroticism — may resist change; provide stability anchors."
+        }
         "strategy_change_low_n" => "Low neuroticism — adapts well; leverage as change champion.",
         "strategy_change_high_c" => "High conscientiousness — needs a clear transition roadmap.",
         "strategy_change_low_e" => "Low extraversion — needs time to process change privately.",
-        "strategy_change_high_o" => "High openness — embrace change; give them a role in shaping it.",
+        "strategy_change_high_o" => {
+            "High openness — embrace change; give them a role in shaping it."
+        }
         "strategy_change_fallback" => "Communicate the why and involve them in the transition.",
 
-        "strategy_feedback_high_n" => "High neuroticism — may take feedback personally; use gentle framing.",
+        "strategy_feedback_high_n" => {
+            "High neuroticism — may take feedback personally; use gentle framing."
+        }
         "strategy_feedback_low_n" => "Low neuroticism — handles critical feedback well; be direct.",
         "strategy_feedback_low_a" => "Low agreeableness — may reject feedback; focus on data.",
         "strategy_feedback_low_e" => "Low extraversion — prefers private, written feedback.",
-        "strategy_feedback_high_c" => "High conscientiousness — values detailed, actionable feedback.",
-        "strategy_feedback_fallback" => "Balance praise and constructive input with specific examples.",
+        "strategy_feedback_high_c" => {
+            "High conscientiousness — values detailed, actionable feedback."
+        }
+        "strategy_feedback_fallback" => {
+            "Balance praise and constructive input with specific examples."
+        }
 
         // Sync / Drive
         "sync_title" => "☁ Sync & Backup",
@@ -347,7 +400,9 @@ fn en(key: &'static str) -> &'static str {
         "sync_restoring" => "Restoring...",
         "sync_restored" => "✅ Restored",
         "sync_restore_btn" => "☁ Restore from Drive",
-        "sync_not_configured" => "Google Drive backup not configured at build time. Set GOOGLE_CLIENT_ID env var before building.",
+        "sync_not_configured" => {
+            "Google Drive backup not configured at build time. Set GOOGLE_CLIENT_ID env var before building."
+        }
         "sync_local_title" => "Local Backup",
         "sync_local_desc" => "Export all data as JSON or import from a previous backup.",
         "sync_exported" => "✅ Exported",
@@ -363,7 +418,9 @@ fn en(key: &'static str) -> &'static str {
         "sync_token_paste_title" => "Paste Token",
         "sync_token_instruction_1" => "1. Tap 'Sign in with Google' — opens your browser",
         "sync_token_instruction_2" => "2. Sign in and grant access",
-        "sync_token_instruction_3" => "3. Browser redirects to the web app — copy the token from the address bar before the page loads",
+        "sync_token_instruction_3" => {
+            "3. Browser redirects to the web app — copy the token from the address bar before the page loads"
+        }
         "sync_token_instruction_4" => "4. Paste the URL below and tap Save",
         "sync_paste_placeholder" => "Paste the full redirect URL here",
         "sync_token_saved" => "✅ Token saved",
@@ -390,7 +447,9 @@ fn en(key: &'static str) -> &'static str {
         "compare_synergies" => "Synergies",
         "compare_friction" => "Friction Points",
         "compare_strategy" => "Interaction Strategy",
-        "compare_ethics" => "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate.",
+        "compare_ethics" => {
+            "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
+        }
 
         // Relationships
         "rel_title" => "Relationships",
@@ -449,12 +508,7 @@ fn fr(key: &'static str) -> &'static str {
         "no_biases" => "Aucun biais enregistré.",
         "reputation_title" => "Réputation",
         "no_reputation" => "Aucun trait de réputation enregistré.",
-        "rep_helper_hardworker" => "Fournit un effort soutenu, n'abandonne pas",
-        "rep_helper_get_it_done" => "Décidé, fait avancer les choses concrètement",
-        "rep_helper_reliable" => "Tient ses engagements, inspire confiance",
-        "rep_helper_smooth_talker" => "Communicateur charismatique qui persuade facilement",
-        "rep_helper_impulsive" => "Agit sur un coup de tête, change de cap vite",
-        "rep_helper_lazy" => "Évite l'effort, reporte les tâches",
+
         "patterns_title" => "Patterns comportementaux",
         "no_patterns" => "Aucun pattern comportemental enregistré.",
         "predictions_insights" => "Prédictions & Analyses",
@@ -564,7 +618,9 @@ fn fr(key: &'static str) -> &'static str {
         "pred_cancel_btn" => "Annuler",
 
         "insights_title" => "📊 Analyses",
-        "insights_select_person" => "Sélectionnez une personne pour voir les analyses comportementales.",
+        "insights_select_person" => {
+            "Sélectionnez une personne pour voir les analyses comportementales."
+        }
         "insights_for" => "📊 Analyses pour",
         "insights_observed" => "Patterns observés",
         "log_title" => "📋 Journal",
@@ -600,67 +656,151 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_change_header" => "Quand {name} fait face au changement :",
         "strategy_feedback_header" => "Quand {name} reçoit du feedback :",
 
-        "strategy_stress_high_n" => "Névrosisme élevé — offrez du soutien émotionnel avant les solutions.",
-        "strategy_stress_high_e" => "Extraversion élevée — permettez l'expression verbale du stress.",
+        "strategy_stress_high_n" => {
+            "Névrosisme élevé — offrez du soutien émotionnel avant les solutions."
+        }
+        "strategy_stress_high_e" => {
+            "Extraversion élevée — permettez l'expression verbale du stress."
+        }
         "strategy_stress_low_e" => "Faible extraversion — laissez de l'espace pour décompresser.",
-        "strategy_stress_high_c" => "Conscienciosité élevée — décomposez les problèmes en étapes actionnables.",
+        "strategy_stress_high_c" => {
+            "Conscienciosité élevée — décomposez les problèmes en étapes actionnables."
+        }
         "strategy_stress_low_a" => "Faible agréabilité — peut devenir irritable sous pression.",
         "strategy_stress_low_c" => "Faible conscienciosité — peut devenir désorganisé ou éviter.",
         "strategy_stress_high_o" => "Haute ouverture — peut trop réfléchir et imaginer le pire.",
-        "strategy_stress_power" => "Motivé par le pouvoir — laissez-lui reprendre le contrôle sur un domaine.",
-        "strategy_stress_security" => "Motivé par la sécurité — renforcez la stabilité et la routine.",
-        "strategy_stress_fallback" => "Surveillez les signaux de stress et ajustez l'environnement.",
+        "strategy_stress_power" => {
+            "Motivé par le pouvoir — laissez-lui reprendre le contrôle sur un domaine."
+        }
+        "strategy_stress_security" => {
+            "Motivé par la sécurité — renforcez la stabilité et la routine."
+        }
+        "strategy_stress_fallback" => {
+            "Surveillez les signaux de stress et ajustez l'environnement."
+        }
 
-        "strategy_conflict_low_a" => "Faible agréabilité — abordez le conflit directement avec des faits.",
-        "strategy_conflict_high_a" => "Haute agréabilité — adoucissez la confrontation, concentrez-vous sur l'harmonie.",
-        "strategy_conflict_high_n" => "Névrosisme élevé — désamorcez et offrez un espace de sécurité émotionnelle.",
+        "strategy_conflict_low_a" => {
+            "Faible agréabilité — abordez le conflit directement avec des faits."
+        }
+        "strategy_conflict_high_a" => {
+            "Haute agréabilité — adoucissez la confrontation, concentrez-vous sur l'harmonie."
+        }
+        "strategy_conflict_high_n" => {
+            "Névrosisme élevé — désamorcez et offrez un espace de sécurité émotionnelle."
+        }
         "strategy_conflict_high_e" => "Extraversion élevée — laissez-les parler pour évacuer.",
-        "strategy_conflict_high_c" => "Haute conscienciosité — peut insister rigidement sur les règles.",
+        "strategy_conflict_high_c" => {
+            "Haute conscienciosité — peut insister rigidement sur les règles."
+        }
         "strategy_conflict_low_e" => "Faible extraversion — peut se retirer au lieu de s'engager.",
         "strategy_conflict_fallback" => "Médiateur avec une communication équilibrée.",
 
-        "strategy_success_high_o" => "Haute ouverture — canalisez le succès vers de nouveaux défis créatifs.",
-        "strategy_success_high_c" => "Haute conscienciosité — utilisez le succès comme validation du processus.",
-        "strategy_success_low_e" => "Faible extraversion — peut se sentir submergé par l'attention publique.",
-        "strategy_success_high_a" => "Haute agréabilité — peut détourner le crédit pour éviter de se démarquer.",
-        "strategy_success_recognition" => "Motivé par la reconnaissance — reconnaissez publiquement leur accomplissement.",
-        "strategy_success_power" => "Motivé par le pouvoir — donnez-leur la propriété de la prochaine initiative.",
+        "strategy_success_high_o" => {
+            "Haute ouverture — canalisez le succès vers de nouveaux défis créatifs."
+        }
+        "strategy_success_high_c" => {
+            "Haute conscienciosité — utilisez le succès comme validation du processus."
+        }
+        "strategy_success_low_e" => {
+            "Faible extraversion — peut se sentir submergé par l'attention publique."
+        }
+        "strategy_success_high_a" => {
+            "Haute agréabilité — peut détourner le crédit pour éviter de se démarquer."
+        }
+        "strategy_success_recognition" => {
+            "Motivé par la reconnaissance — reconnaissez publiquement leur accomplissement."
+        }
+        "strategy_success_power" => {
+            "Motivé par le pouvoir — donnez-leur la propriété de la prochaine initiative."
+        }
         "strategy_success_fallback" => "Célébrez le succès et identifiez les axes de croissance.",
 
-        "strategy_uncertainty_high_n" => "Névrosisme élevé — fournissez des échéances claires et des mises à jour fréquentes.",
-        "strategy_uncertainty_low_n" => "Faible névrosisme — gère bien l'ambiguïté ; faites confiance à sa résilience.",
-        "strategy_uncertainty_high_o" => "Haute ouverture — cadrez l'incertitude comme une opportunité.",
-        "strategy_uncertainty_low_o" => "Faible ouverture — fournissez des exemples concrets et des cadres familiers.",
-        "strategy_uncertainty_high_c" => "Haute conscienciosité — a besoin d'un plan concret immédiatement.",
-        "strategy_uncertainty_high_e" => "Haute extraversion — peut trop socialiser pour gérer l'ambiguïté.",
-        "strategy_uncertainty_fallback" => "Reconnaissez l'incertitude et fournissez les informations disponibles.",
+        "strategy_uncertainty_high_n" => {
+            "Névrosisme élevé — fournissez des échéances claires et des mises à jour fréquentes."
+        }
+        "strategy_uncertainty_low_n" => {
+            "Faible névrosisme — gère bien l'ambiguïté ; faites confiance à sa résilience."
+        }
+        "strategy_uncertainty_high_o" => {
+            "Haute ouverture — cadrez l'incertitude comme une opportunité."
+        }
+        "strategy_uncertainty_low_o" => {
+            "Faible ouverture — fournissez des exemples concrets et des cadres familiers."
+        }
+        "strategy_uncertainty_high_c" => {
+            "Haute conscienciosité — a besoin d'un plan concret immédiatement."
+        }
+        "strategy_uncertainty_high_e" => {
+            "Haute extraversion — peut trop socialiser pour gérer l'ambiguïté."
+        }
+        "strategy_uncertainty_fallback" => {
+            "Reconnaissez l'incertitude et fournissez les informations disponibles."
+        }
 
-        "strategy_recognition_high" => "Fort besoin de reconnaissance — donnez des éloges fréquents et spécifiques.",
-        "strategy_recognition_mid" => "Besoin modéré de reconnaissance — reconnaissez les contributions régulièrement.",
-        "strategy_recognition_low" => "Faible besoin de reconnaissance — évitez les éloges excessifs.",
-        "strategy_recognition_high_e" => "Extraversion élevée — la reconnaissance publique est efficace.",
-        "strategy_recognition_low_e" => "Faible extraversion — préférez une reconnaissance privée et écrite.",
-        "strategy_recognition_fallback" => "Adaptez le style de reconnaissance à leur niveau de confort.",
+        "strategy_recognition_high" => {
+            "Fort besoin de reconnaissance — donnez des éloges fréquents et spécifiques."
+        }
+        "strategy_recognition_mid" => {
+            "Besoin modéré de reconnaissance — reconnaissez les contributions régulièrement."
+        }
+        "strategy_recognition_low" => {
+            "Faible besoin de reconnaissance — évitez les éloges excessifs."
+        }
+        "strategy_recognition_high_e" => {
+            "Extraversion élevée — la reconnaissance publique est efficace."
+        }
+        "strategy_recognition_low_e" => {
+            "Faible extraversion — préférez une reconnaissance privée et écrite."
+        }
+        "strategy_recognition_fallback" => {
+            "Adaptez le style de reconnaissance à leur niveau de confort."
+        }
 
-        "strategy_threat_low_a" => "Faible agréabilité — peut réagir ; abordez les préoccupations calmement.",
-        "strategy_threat_high_a" => "Haute agréabilité — peut céder trop facilement ; vérifiez les vrais sentiments.",
-        "strategy_threat_high_n" => "Névrosisme élevé — les menaces perçues sont amplifiées ; offrez du réconfort.",
-        "strategy_threat_power" => "Motivé par le pouvoir — la menace au statut est sérieuse ; impliquez-le dans les décisions.",
+        "strategy_threat_low_a" => {
+            "Faible agréabilité — peut réagir ; abordez les préoccupations calmement."
+        }
+        "strategy_threat_high_a" => {
+            "Haute agréabilité — peut céder trop facilement ; vérifiez les vrais sentiments."
+        }
+        "strategy_threat_high_n" => {
+            "Névrosisme élevé — les menaces perçues sont amplifiées ; offrez du réconfort."
+        }
+        "strategy_threat_power" => {
+            "Motivé par le pouvoir — la menace au statut est sérieuse ; impliquez-le dans les décisions."
+        }
         "strategy_threat_fallback" => "Écoutez activement et validez ses préoccupations.",
 
-        "strategy_change_high_n" => "Névrosisme élevé — peut résister au changement ; offrez des points d'ancrage.",
-        "strategy_change_low_n" => "Faible névrosisme — s'adapte bien ; exploitez comme champion du changement.",
-        "strategy_change_high_c" => "Haute conscienciosité — a besoin d'une feuille de route claire.",
-        "strategy_change_low_e" => "Faible extraversion — a besoin de temps pour digérer le changement en privé.",
-        "strategy_change_high_o" => "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif.",
+        "strategy_change_high_n" => {
+            "Névrosisme élevé — peut résister au changement ; offrez des points d'ancrage."
+        }
+        "strategy_change_low_n" => {
+            "Faible névrosisme — s'adapte bien ; exploitez comme champion du changement."
+        }
+        "strategy_change_high_c" => {
+            "Haute conscienciosité — a besoin d'une feuille de route claire."
+        }
+        "strategy_change_low_e" => {
+            "Faible extraversion — a besoin de temps pour digérer le changement en privé."
+        }
+        "strategy_change_high_o" => {
+            "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif."
+        }
         "strategy_change_fallback" => "Expliquez le pourquoi et impliquez-les dans la transition.",
 
-        "strategy_feedback_high_n" => "Névrosisme élevé — peut prendre le feedback personnellement ; utilisez un ton doux.",
+        "strategy_feedback_high_n" => {
+            "Névrosisme élevé — peut prendre le feedback personnellement ; utilisez un ton doux."
+        }
         "strategy_feedback_low_n" => "Faible névrosisme — gère bien les critiques ; soyez direct.",
-        "strategy_feedback_low_a" => "Faible agréabilité — peut rejeter le feedback ; basez-vous sur des faits.",
+        "strategy_feedback_low_a" => {
+            "Faible agréabilité — peut rejeter le feedback ; basez-vous sur des faits."
+        }
         "strategy_feedback_low_e" => "Faible extraversion — préfère un feedback écrit et privé.",
-        "strategy_feedback_high_c" => "Haute conscienciosité — apprécie un feedback détaillé et actionnable.",
-        "strategy_feedback_fallback" => "Équilibrez éloges et critiques constructives avec des exemples précis.",
+        "strategy_feedback_high_c" => {
+            "Haute conscienciosité — apprécie un feedback détaillé et actionnable."
+        }
+        "strategy_feedback_fallback" => {
+            "Équilibrez éloges et critiques constructives avec des exemples précis."
+        }
 
         "sync_title" => "☁ Sync & Sauvegarde",
         "sync_gdrive_title" => "Synchronisation Google Drive",
@@ -675,9 +815,13 @@ fn fr(key: &'static str) -> &'static str {
         "sync_restoring" => "Restauration en cours...",
         "sync_restored" => "✅ Restauré",
         "sync_restore_btn" => "☁ Restaurer depuis Drive",
-        "sync_not_configured" => "Sauvegarde Google Drive non configurée. Définissez GOOGLE_CLIENT_ID avant de compiler.",
+        "sync_not_configured" => {
+            "Sauvegarde Google Drive non configurée. Définissez GOOGLE_CLIENT_ID avant de compiler."
+        }
         "sync_local_title" => "Sauvegarde locale",
-        "sync_local_desc" => "Exportez toutes les données en JSON ou importez depuis une sauvegarde.",
+        "sync_local_desc" => {
+            "Exportez toutes les données en JSON ou importez depuis une sauvegarde."
+        }
         "sync_exported" => "✅ Exporté",
         "sync_export_btn" => "📥 Exporter JSON",
         "sync_import_btn" => "📤 Importer JSON",
@@ -691,7 +835,9 @@ fn fr(key: &'static str) -> &'static str {
         "sync_token_paste_title" => "Coller le jeton",
         "sync_token_instruction_1" => "1. Appuyez sur « Connexion Google » — le navigateur s'ouvre",
         "sync_token_instruction_2" => "2. Connectez-vous et autorisez l'accès",
-        "sync_token_instruction_3" => "3. Le navigateur redirige vers l'app web — copiez le jeton depuis la barre d'adresse avant que la page ne charge",
+        "sync_token_instruction_3" => {
+            "3. Le navigateur redirige vers l'app web — copiez le jeton depuis la barre d'adresse avant que la page ne charge"
+        }
         "sync_token_instruction_4" => "4. Collez l'URL ci-dessous et appuyez sur Enregistrer",
         "sync_paste_placeholder" => "Collez l'URL de redirection complète ici",
         "sync_token_saved" => "✅ Jeton enregistré",
@@ -717,7 +863,9 @@ fn fr(key: &'static str) -> &'static str {
         "compare_synergies" => "Synergies",
         "compare_friction" => "Points de friction",
         "compare_strategy" => "Stratégie d'interaction",
-        "compare_ethics" => "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler.",
+        "compare_ethics" => {
+            "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
+        }
 
         // Relationships
         "rel_title" => "Relations",

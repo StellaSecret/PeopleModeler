@@ -3,12 +3,16 @@ use std::collections::HashSet;
 use dioxus::prelude::*;
 use peoplemodeler_core::models::Person;
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum SortBy { Name, Recent, Ocean }
+enum SortBy {
+    Name,
+    Recent,
+    Ocean,
+}
 
 #[component]
 pub fn PeopleList() -> Element {
@@ -20,7 +24,9 @@ pub fn PeopleList() -> Element {
     let mut tag_filter_w = tag_filter.clone();
     let tag_clear = crate::i18n::tr("tag_clear", lang());
     let filter_label = use_memo(move || {
-        tag_filter().as_ref().map_or(String::new(), |tag| crate::i18n::tr_fmt("tag_filter", lang(), &[("tag", tag)]))
+        tag_filter().as_ref().map_or(String::new(), |tag| {
+            crate::i18n::tr_fmt("tag_filter", lang(), &[("tag", tag)])
+        })
     });
     let mut selected_ids = use_signal(HashSet::<String>::new);
     let mut merge_target = use_signal(|| None::<String>);
@@ -44,8 +50,17 @@ pub fn PeopleList() -> Element {
             SortBy::Name => items.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
             SortBy::Recent => items.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
             SortBy::Ocean => items.sort_by(|a, b| {
-                let avg = |p: &Person| (p.ocean.openness + p.ocean.conscientiousness + p.ocean.extraversion + p.ocean.agreeableness + p.ocean.neuroticism) as f64 / 5.0;
-                avg(b).partial_cmp(&avg(a)).unwrap_or(std::cmp::Ordering::Equal)
+                let avg = |p: &Person| {
+                    (p.ocean.openness
+                        + p.ocean.conscientiousness
+                        + p.ocean.extraversion
+                        + p.ocean.agreeableness
+                        + p.ocean.neuroticism) as f64
+                        / 5.0
+                };
+                avg(b)
+                    .partial_cmp(&avg(a))
+                    .unwrap_or(std::cmp::Ordering::Equal)
             }),
         }
         items
@@ -56,7 +71,9 @@ pub fn PeopleList() -> Element {
 
     let mut delete_selected = move || {
         let ids: Vec<String> = selected_ids.read().iter().cloned().collect();
-        if ids.is_empty() { return; }
+        if ids.is_empty() {
+            return;
+        }
         for pid in &ids {
             db::delete_person(pid);
         }
@@ -66,12 +83,16 @@ pub fn PeopleList() -> Element {
 
     let mut merge_selected = move || {
         let ids: Vec<String> = selected_ids.read().iter().cloned().collect();
-        if ids.len() < 2 { return; }
+        if ids.len() < 2 {
+            return;
+        }
         let keeper_id = ids[0].clone();
         let keeper = db::person(&keeper_id);
         let Some(mut keeper) = keeper else { return };
         for pid in ids.iter().skip(1) {
-            let Some(other) = db::person(pid) else { continue };
+            let Some(other) = db::person(pid) else {
+                continue;
+            };
             for t in other.tags {
                 if !keeper.tags.contains(&t) {
                     keeper.tags.push(t);
@@ -97,7 +118,11 @@ pub fn PeopleList() -> Element {
 
     let search_placeholder = crate::i18n::tr("search_placeholder", lang());
     let no_people = crate::i18n::tr("no_people_yet", lang());
-    let select_all_label = if sel_len == filtered().len() { "Deselect all" } else { "Select all" };
+    let select_all_label = if sel_len == filtered().len() {
+        "Deselect all"
+    } else {
+        "Select all"
+    };
 
     rsx! {
         div { class: "page",

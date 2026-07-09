@@ -14,7 +14,11 @@ impl Theme {
                 .and_then(|s| s.get_item("theme").ok())
                 .flatten();
             if let Some(t) = stored {
-                return if t == "light" { Theme::Light } else { Theme::Dark };
+                return if t == "light" {
+                    Theme::Light
+                } else {
+                    Theme::Dark
+                };
             }
             if let Some(w) = web_sys::window() {
                 if let Ok(Some(mq)) = w.match_media("(prefers-color-scheme: light)") {

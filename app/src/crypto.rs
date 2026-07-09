@@ -1,6 +1,6 @@
 use chacha20poly1305::{
-    aead::{Aead, KeyInit},
     ChaCha20Poly1305, Key, Nonce,
+    aead::{Aead, KeyInit},
 };
 
 const KEY_SESSION_KEY: &str = "pm_enc_key";
@@ -108,7 +108,8 @@ fn hex_decode(s: &str) -> Option<Vec<u8>> {
     if s.len() % 2 != 0 {
         return None;
     }
-    (0..s.len()).step_by(2)
+    (0..s.len())
+        .step_by(2)
         .map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
         .collect()
 }

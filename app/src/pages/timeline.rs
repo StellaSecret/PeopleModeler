@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 use crate::pages::predictions::format_date;
 
 #[component]
@@ -18,7 +18,9 @@ pub fn Timeline() -> Element {
             let pid = p.id.clone();
             let name = p.name.clone();
             let emoji = p.avatar_emoji.clone();
-            p.log.into_iter().map(move |e| (pid.clone(), name.clone(), emoji.clone(), e))
+            p.log
+                .into_iter()
+                .map(move |e| (pid.clone(), name.clone(), emoji.clone(), e))
         })
         .collect();
     entries.sort_by(|a, b| b.3.timestamp.cmp(&a.3.timestamp));

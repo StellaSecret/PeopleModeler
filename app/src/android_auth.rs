@@ -50,7 +50,9 @@ pub fn start_sign_in() {
             eprintln!("[android_auth] JVM found, attaching thread");
             match jvm.attach_current_thread() {
                 Ok(mut env) => {
-                    eprintln!("[android_auth] thread attached, calling GoogleDriveHelper.startSignIn");
+                    eprintln!(
+                        "[android_auth] thread attached, calling GoogleDriveHelper.startSignIn"
+                    );
                     match env.call_static_method(
                         "com/stellasecret/peoplemodeler/GoogleDriveHelper",
                         "startSignIn",

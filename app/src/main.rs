@@ -2,31 +2,31 @@ use dioxus::prelude::*;
 use dioxus_router::Outlet;
 
 use crate::i18n::Lang;
-use crate::theme::Theme;
+use crate::pages::compare::ComparePersons;
 use crate::pages::insights::Insights;
 use crate::pages::people_list::PeopleList;
 use crate::pages::person_detail::PersonDetail;
 use crate::pages::person_edit::PersonEdit;
 use crate::pages::person_edit::PersonNew;
 use crate::pages::predictions::Predictions;
-use crate::pages::compare::ComparePersons;
-use crate::pages::sync::SyncPage;
 use crate::pages::relationships::Relationships;
+use crate::pages::sync::SyncPage;
 use crate::pages::timeline::Timeline;
+use crate::theme::Theme;
 
-mod auth;
 #[cfg(target_os = "android")]
 mod android_auth;
 #[cfg(target_os = "android")]
 mod android_share;
+mod auth;
 #[cfg(target_arch = "wasm32")]
 mod crypto;
 mod db;
 mod drive;
 mod i18n;
+mod pages;
 mod templates;
 mod theme;
-mod pages;
 mod toast;
 mod undo;
 
@@ -62,7 +62,8 @@ fn main() {
         let _guard = _rt.enter();
         #[cfg(target_os = "android")]
         {
-            let data_dir = std::path::PathBuf::from("/data/data/com.stellasecret.peoplemodeler/files");
+            let data_dir =
+                std::path::PathBuf::from("/data/data/com.stellasecret.peoplemodeler/files");
             let _ = std::env::set_current_dir(&data_dir);
         }
         db::init();
@@ -103,19 +104,21 @@ fn App() -> Element {
     // Ctrl+Z undo handler (one-time setup)
     #[cfg(target_arch = "wasm32")]
     {
-        use wasm_bindgen::prelude::Closure;
         use wasm_bindgen::JsCast;
+        use wasm_bindgen::prelude::Closure;
         use_hook(move || {
             let mut toast = _toast.clone();
-            let cb: Closure<dyn FnMut(web_sys::KeyboardEvent)> = Closure::new(move |e: web_sys::KeyboardEvent| {
-                if e.ctrl_key() && e.key() == "z" {
-                    if crate::undo::undo() {
-                        toast.set(Some("↩ Undo".into()));
+            let cb: Closure<dyn FnMut(web_sys::KeyboardEvent)> =
+                Closure::new(move |e: web_sys::KeyboardEvent| {
+                    if e.ctrl_key() && e.key() == "z" {
+                        if crate::undo::undo() {
+                            toast.set(Some("↩ Undo".into()));
+                        }
                     }
-                }
-            });
+                });
             if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-                let _ = doc.add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref());
+                let _ =
+                    doc.add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref());
             }
             cb.forget();
         });
@@ -154,7 +157,10 @@ fn init_pwa() {
         let _ = head.append_child(&link);
     }
     if let Some(w) = web_sys::window() {
-        let _ = w.navigator().service_worker().register("/PeopleModeler/sw.js");
+        let _ = w
+            .navigator()
+            .service_worker()
+            .register("/PeopleModeler/sw.js");
     }
 }
 
@@ -241,10 +247,7 @@ async fn sleep_ms(ms: u64) {
     let promise = js_sys::Promise::new(&mut move |resolve, _| {
         let _ = web_sys::window()
             .unwrap()
-            .set_timeout_with_callback_and_timeout_and_arguments_0(
-                &resolve,
-                ms as i32,
-            );
+            .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, ms as i32);
     });
     wasm_bindgen_futures::JsFuture::from(promise).await.ok();
 }

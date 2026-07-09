@@ -108,7 +108,10 @@ pub fn start_oauth(client_id: &str, redirect_uri: &str) {
 #[cfg(target_arch = "wasm32")]
 pub fn init() {
     use wasm_bindgen::JsCast;
-    let doc = web_sys::window().expect("no window in WASM").document().expect("no document in WASM");
+    let doc = web_sys::window()
+        .expect("no window in WASM")
+        .document()
+        .expect("no document in WASM");
 
     if get_gis_oauth2().is_ok() {
         return;
@@ -135,7 +138,9 @@ pub fn get_token() -> Option<String> {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let path = token_path()?;
-        std::fs::read_to_string(&path).ok().map(|s| s.trim().to_string())
+        std::fs::read_to_string(&path)
+            .ok()
+            .map(|s| s.trim().to_string())
     }
 }
 
@@ -175,6 +180,7 @@ pub fn clear_token() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn token_path() -> Option<std::path::PathBuf> {
-    std::env::current_dir().ok().map(|p| p.join(".pm_drive_token"))
+    std::env::current_dir()
+        .ok()
+        .map(|p| p.join(".pm_drive_token"))
 }
-

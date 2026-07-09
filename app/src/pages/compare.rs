@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehaviorTrigger, BiasType, Person, ReputationTraitType};
+use peoplemodeler_core::models::{BehaviorTrigger, BiasType, Person, RepDim, RepScores};
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     match l {
@@ -198,48 +198,17 @@ fn CompatRing(score: u8) -> Element {
     }
 }
 
-fn reputation_synergy(a_type: Option<&ReputationTraitType>, b_type: Option<&ReputationTraitType>) -> f64 {
-    match (a_type, b_type) {
-        (Some(a), Some(b)) => match (a, b) {
-            (ReputationTraitType::Hardworker, ReputationTraitType::Hardworker) => 0.8,
-            (ReputationTraitType::Hardworker, ReputationTraitType::Lazy)
-            | (ReputationTraitType::Lazy, ReputationTraitType::Hardworker) => -0.7,
-            (ReputationTraitType::Hardworker, ReputationTraitType::SmoothTalker)
-            | (ReputationTraitType::SmoothTalker, ReputationTraitType::Hardworker) => 0.4,
-            (ReputationTraitType::Hardworker, ReputationTraitType::GetItDone)
-            | (ReputationTraitType::GetItDone, ReputationTraitType::Hardworker) => 0.5,
-            (ReputationTraitType::Hardworker, ReputationTraitType::Reliable)
-            | (ReputationTraitType::Reliable, ReputationTraitType::Hardworker) => 0.6,
-            (ReputationTraitType::Hardworker, ReputationTraitType::Impulsive)
-            | (ReputationTraitType::Impulsive, ReputationTraitType::Hardworker) => 0.0,
-            (ReputationTraitType::Lazy, ReputationTraitType::Lazy) => -0.6,
-            (ReputationTraitType::Lazy, ReputationTraitType::SmoothTalker)
-            | (ReputationTraitType::SmoothTalker, ReputationTraitType::Lazy) => -0.5,
-            (ReputationTraitType::Lazy, ReputationTraitType::GetItDone)
-            | (ReputationTraitType::GetItDone, ReputationTraitType::Lazy) => -0.7,
-            (ReputationTraitType::Lazy, ReputationTraitType::Reliable)
-            | (ReputationTraitType::Reliable, ReputationTraitType::Lazy) => -0.4,
-            (ReputationTraitType::Lazy, ReputationTraitType::Impulsive)
-            | (ReputationTraitType::Impulsive, ReputationTraitType::Lazy) => -0.3,
-            (ReputationTraitType::SmoothTalker, ReputationTraitType::SmoothTalker) => -0.3,
-            (ReputationTraitType::SmoothTalker, ReputationTraitType::GetItDone)
-            | (ReputationTraitType::GetItDone, ReputationTraitType::SmoothTalker) => 0.7,
-            (ReputationTraitType::SmoothTalker, ReputationTraitType::Reliable)
-            | (ReputationTraitType::Reliable, ReputationTraitType::SmoothTalker) => 0.5,
-            (ReputationTraitType::SmoothTalker, ReputationTraitType::Impulsive)
-            | (ReputationTraitType::Impulsive, ReputationTraitType::SmoothTalker) => 0.0,
-            (ReputationTraitType::GetItDone, ReputationTraitType::GetItDone) => 0.5,
-            (ReputationTraitType::GetItDone, ReputationTraitType::Reliable)
-            | (ReputationTraitType::Reliable, ReputationTraitType::GetItDone) => 0.6,
-            (ReputationTraitType::GetItDone, ReputationTraitType::Impulsive)
-            | (ReputationTraitType::Impulsive, ReputationTraitType::GetItDone) => -0.2,
-            (ReputationTraitType::Reliable, ReputationTraitType::Reliable) => 0.6,
-            (ReputationTraitType::Reliable, ReputationTraitType::Impulsive)
-            | (ReputationTraitType::Impulsive, ReputationTraitType::Reliable) => -0.3,
-            (ReputationTraitType::Impulsive, ReputationTraitType::Impulsive) => -0.4,
-        },
-        _ => 0.0,
+fn rep_scores_synergy(a: &RepScores, b: &RepScores) -> f64 {
+    let mut sum = 0.0;
+    let mut count = 0;
+    for dim in RepDim::ALL {
+        if let (Some(va), Some(vb)) = (a.score(dim), b.score(dim)) {
+            let dist = if va >= vb { va - vb } else { vb - va };
+            sum += 1.0 - dist as f64 / 10.0;
+            count += 1;
+        }
     }
+    if count == 0 { 0.5 } else { sum / count as f64 }
 }
 
 fn bias_synergy(a_type: Option<&BiasType>, b_type: Option<&BiasType>) -> f64 {
@@ -250,7 +219,10 @@ fn bias_synergy(a_type: Option<&BiasType>, b_type: Option<&BiasType>) -> f64 {
     }
 }
 
-fn pattern_synergy(a_trigger: Option<&BehaviorTrigger>, b_trigger: Option<&BehaviorTrigger>) -> f64 {
+fn pattern_synergy(
+    a_trigger: Option<&BehaviorTrigger>,
+    b_trigger: Option<&BehaviorTrigger>,
+) -> f64 {
     match (a_trigger, b_trigger) {
         (Some(a), Some(b)) => match (a, b) {
             (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
@@ -303,7 +275,13 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
     };
 
     let nd = oa.neuroticism.abs_diff(ob.neuroticism);
-    let n = if nd <= 2 { 0.8 } else if nd <= 4 { 0.5 } else { 0.3 };
+    let n = if nd <= 2 {
+        0.8
+    } else if nd <= 4 {
+        0.5
+    } else {
+        0.3
+    };
 
     let ocean = (oc + ea + n) / 3.0;
 
@@ -317,17 +295,8 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
         _ => 0.5,
     };
 
-    // Reputation: raw score from -0.7..0.8, normalized to 0..1
-    let rep_raw = {
-        let ra = a.top_reputation().map(|r| &r.r#type);
-        let rb = b.top_reputation().map(|r| &r.r#type);
-        let r = reputation_synergy(ra, rb);
-        let w = match (a.top_reputation(), b.top_reputation()) {
-            (Some(r1), Some(r2)) => (r1.intensity.min(r2.intensity) as f64) / 10.0,
-            _ => 1.0,
-        };
-        r * w
-    };
+    // Reputation: distance-based synergy, average of shared dimensions
+    let rep_raw = rep_scores_synergy(&a.rep_scores, &b.rep_scores);
     let rep = (rep_raw + 1.0) / 2.0;
 
     // Patterns: weighted by min confidence / 10
@@ -388,7 +357,9 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         } else {
             format!("{nb} brings creative vision, {na} ensures rigorous execution")
         });
-    } else if oa.openness.abs_diff(ob.openness) <= 2 && oa.conscientiousness.abs_diff(ob.conscientiousness) <= 2 {
+    } else if oa.openness.abs_diff(ob.openness) <= 2
+        && oa.conscientiousness.abs_diff(ob.conscientiousness) <= 2
+    {
         syn.push(if lang == Lang::Fr {
             "Profils OCEAN très proches — communication fluide et attentes alignées".into()
         } else {
@@ -426,9 +397,15 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         }
         (Some(m1), Some(_)) => {
             syn.push(if lang == Lang::Fr {
-                format!("Motivation {} partagée — même langage, mêmes priorités", m1.r#type.i18n(cl).label)
+                format!(
+                    "Motivation {} partagée — même langage, mêmes priorités",
+                    m1.r#type.i18n(cl).label
+                )
             } else {
-                format!("Shared {} motivation — same language, same priorities", m1.r#type.i18n(cl).label)
+                format!(
+                    "Shared {} motivation — same language, same priorities",
+                    m1.r#type.i18n(cl).label
+                )
             });
         }
         _ => {}
@@ -466,68 +443,54 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         });
     }
 
-    // Reputation synergy
-    match (a.top_reputation().map(|r| &r.r#type), b.top_reputation().map(|r| &r.r#type)) {
-        (Some(ReputationTraitType::Hardworker), Some(ReputationTraitType::Hardworker)) => {
-            syn.push(if lang == Lang::Fr {
-                format!("Les deux sont travailleurs — productivité et respect mutuel assurés")
-            } else {
-                format!("Both are hard workers — productivity and mutual respect assured")
-            });
+    // Reputation synergy (distance-based, per shared dimension)
+    {
+        let cl = core_lang(lang);
+        for dim in RepDim::ALL {
+            if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {
+                let ri = dim.i18n(cl);
+                let close = va.abs_diff(vb) <= 2;
+                let both_high = va >= 7 && vb >= 7;
+                let both_low = va <= 3 && vb <= 3;
+                if close && both_high {
+                    syn.push(if lang == Lang::Fr {
+                        format!("Tous deux {} — affinité naturelle", ri.label_a)
+                    } else {
+                        format!("Both {} — natural affinity", ri.label_a)
+                    });
+                } else if close && both_low {
+                    syn.push(if lang == Lang::Fr {
+                        format!("Tous deux {} — complicité inattendue", ri.label_b)
+                    } else {
+                        format!("Both {} — unexpected camaraderie", ri.label_b)
+                    });
+                } else if !close && va > vb {
+                    fri.push(if lang == Lang::Fr {
+                        format!(
+                            "{na} plus {} que {nb} — déséquilibre sur ce trait",
+                            ri.label_a
+                        )
+                    } else {
+                        format!(
+                            "{na} more {} than {nb} — imbalance on this trait",
+                            ri.label_a
+                        )
+                    });
+                } else if !close {
+                    fri.push(if lang == Lang::Fr {
+                        format!(
+                            "{na} plus {} que {nb} — déséquilibre sur ce trait",
+                            ri.label_b
+                        )
+                    } else {
+                        format!(
+                            "{na} more {} than {nb} — imbalance on this trait",
+                            ri.label_b
+                        )
+                    });
+                }
+            }
         }
-        (Some(ReputationTraitType::Hardworker), Some(ReputationTraitType::Lazy))
-        | (Some(ReputationTraitType::Lazy), Some(ReputationTraitType::Hardworker)) => {
-            fri.push(if lang == Lang::Fr {
-                format!("{na} travaille dur pendant que {nb} tire au flanc — frustration probable")
-            } else {
-                format!("{na} works hard while {nb} coasts — frustration likely")
-            });
-        }
-        (Some(ReputationTraitType::SmoothTalker), Some(ReputationTraitType::GetItDone))
-        | (Some(ReputationTraitType::GetItDone), Some(ReputationTraitType::SmoothTalker)) => {
-            syn.push(if lang == Lang::Fr {
-                format!("{na} convainc, {nb} exécute — duo complémentaire efficace")
-            } else {
-                format!("{na} sells, {nb} delivers — effective complementary duo")
-            });
-        }
-        (Some(ReputationTraitType::Reliable), Some(ReputationTraitType::Reliable)) => {
-            syn.push(if lang == Lang::Fr {
-                format!("Tous deux fiables — confiance mutuelle et stabilité")
-            } else {
-                format!("Both reliable — mutual trust and stability")
-            });
-        }
-        (Some(ReputationTraitType::GetItDone), Some(ReputationTraitType::GetItDone)) => {
-            syn.push(if lang == Lang::Fr {
-                format!("Tous deux orientés action — les choses avancent vite")
-            } else {
-                format!("Both action-oriented — things get done fast")
-            });
-        }
-        (Some(ReputationTraitType::Lazy), Some(ReputationTraitType::Lazy)) => {
-            fri.push(if lang == Lang::Fr {
-                format!("Tous deux peu motivés — risque d'enlisement")
-            } else {
-                format!("Both unmotivated — risk of stagnation")
-            });
-        }
-        (Some(ReputationTraitType::Impulsive), Some(ReputationTraitType::Impulsive)) => {
-            fri.push(if lang == Lang::Fr {
-                format!("Tous deux impulsifs — décisions chaotiques à prévoir")
-            } else {
-                format!("Both impulsive — expect chaotic decisions")
-            });
-        }
-        (Some(ReputationTraitType::Reliable), Some(ReputationTraitType::Impulsive))
-        | (Some(ReputationTraitType::Impulsive), Some(ReputationTraitType::Reliable)) => {
-            fri.push(if lang == Lang::Fr {
-                format!("{na} est fiable mais {nb} change d'avis sans cesse — friction")
-            } else {
-                format!("{na} is reliable but {nb} keeps changing direction — friction")
-            });
-        }
-        _ => {}
     }
 
     // Bias conflict
@@ -549,9 +512,15 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         }
         (Some(b1), Some(b2)) if b1.r#type == b2.r#type => {
             fri.push(if lang == Lang::Fr {
-                format!("Même biais {} des deux côtés — angles morts renforcés", b1.r#type.i18n(cl).label)
+                format!(
+                    "Même biais {} des deux côtés — angles morts renforcés",
+                    b1.r#type.i18n(cl).label
+                )
             } else {
-                format!("Same {} bias on both sides — reinforced blind spots", b1.r#type.i18n(cl).label)
+                format!(
+                    "Same {} bias on both sides — reinforced blind spots",
+                    b1.r#type.i18n(cl).label
+                )
             });
         }
         _ => {}
@@ -562,47 +531,45 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         a.behavioral_patterns.iter().max_by_key(|p| p.confidence),
         b.behavioral_patterns.iter().max_by_key(|p| p.confidence),
     ) {
-        (Some(pa), Some(pb)) => {
-            match (&pa.trigger, &pb.trigger) {
-                (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
-                    syn.push(if lang == Lang::Fr {
-                        "Tous deux s'adaptent au changement — organisation fluide".into()
-                    } else {
-                        "Both adapt well to change — smooth transitions".into()
-                    });
-                }
-                (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => {
-                    syn.push(if lang == Lang::Fr {
-                        "Tous deux réceptifs aux retours — culture d'amélioration continue".into()
-                    } else {
-                        "Both receptive to feedback — culture of continuous improvement".into()
-                    });
-                }
-                (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => {
-                    fri.push(if lang == Lang::Fr {
-                        "Tous deux conflictuels en situation tendue — risque d'escalade".into()
-                    } else {
-                        "Both combative under tension — risk of escalation".into()
-                    });
-                }
-                (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => {
-                    fri.push(if lang == Lang::Fr {
-                        "Tous deux stressés sous pression — anxiété contagieuse".into()
-                    } else {
-                        "Both stressed under pressure — contagious anxiety".into()
-                    });
-                }
-                (BehaviorTrigger::Change, BehaviorTrigger::Feedback)
-                | (BehaviorTrigger::Feedback, BehaviorTrigger::Change) => {
-                    syn.push(if lang == Lang::Fr {
-                        "L'un s'adapte, l'autre apprend — duo qui évolue ensemble".into()
-                    } else {
-                        "One adapts, one learns — a duo that grows together".into()
-                    });
-                }
-                _ => {}
+        (Some(pa), Some(pb)) => match (&pa.trigger, &pb.trigger) {
+            (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
+                syn.push(if lang == Lang::Fr {
+                    "Tous deux s'adaptent au changement — organisation fluide".into()
+                } else {
+                    "Both adapt well to change — smooth transitions".into()
+                });
             }
-        }
+            (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => {
+                syn.push(if lang == Lang::Fr {
+                    "Tous deux réceptifs aux retours — culture d'amélioration continue".into()
+                } else {
+                    "Both receptive to feedback — culture of continuous improvement".into()
+                });
+            }
+            (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => {
+                fri.push(if lang == Lang::Fr {
+                    "Tous deux conflictuels en situation tendue — risque d'escalade".into()
+                } else {
+                    "Both combative under tension — risk of escalation".into()
+                });
+            }
+            (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => {
+                fri.push(if lang == Lang::Fr {
+                    "Tous deux stressés sous pression — anxiété contagieuse".into()
+                } else {
+                    "Both stressed under pressure — contagious anxiety".into()
+                });
+            }
+            (BehaviorTrigger::Change, BehaviorTrigger::Feedback)
+            | (BehaviorTrigger::Feedback, BehaviorTrigger::Change) => {
+                syn.push(if lang == Lang::Fr {
+                    "L'un s'adapte, l'autre apprend — duo qui évolue ensemble".into()
+                } else {
+                    "One adapts, one learns — a duo that grows together".into()
+                });
+            }
+            _ => {}
+        },
         _ => {}
     }
 
@@ -610,7 +577,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     let ed = oa.extraversion.abs_diff(ob.extraversion);
     if ed >= 4 {
         fri.push(if lang == Lang::Fr {
-            "Écart d'extraversion important — rythme social et besoin de stimulation différents".into()
+            "Écart d'extraversion important — rythme social et besoin de stimulation différents"
+                .into()
         } else {
             "Large extraversion gap — different social pace and stimulation needs".into()
         });
@@ -664,7 +632,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // Conflict resolution
     if oa.agreeableness >= 7 && ob.agreeableness >= 7 {
         str.push(if lang == Lang::Fr {
-            "En cas de conflit, privilégier la médiation — les deux parties chercheront l'harmonie".into()
+            "En cas de conflit, privilégier la médiation — les deux parties chercheront l'harmonie"
+                .into()
         } else {
             "In conflict, prioritize mediation — both parties will seek harmony".into()
         });

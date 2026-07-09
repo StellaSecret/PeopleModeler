@@ -34,7 +34,9 @@ pub fn Relationships() -> Element {
             return;
         }
         for cid in checked().iter() {
-            if *cid == src { continue; }
+            if *cid == src {
+                continue;
+            }
             let rel = Relationship {
                 id: uuid::Uuid::new_v4().to_string(),
                 source_id: src.clone(),
@@ -54,7 +56,11 @@ pub fn Relationships() -> Element {
     };
 
     let person_name = |id: &str| -> String {
-        persons_list.iter().find(|p| p.id == id).map(|p| format!("{} {}", p.avatar_emoji, p.name)).unwrap_or_else(|| id.to_string())
+        persons_list
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| format!("{} {}", p.avatar_emoji, p.name))
+            .unwrap_or_else(|| id.to_string())
     };
 
     rsx! {

@@ -1,4 +1,4 @@
-use crate::models::{BiasType, MotivationType, ReputationTraitType};
+use crate::models::{BiasType, MotivationType, RepDim};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -183,65 +183,61 @@ impl BiasType {
 }
 
 pub struct RepI18n {
-    pub label: &'static str,
+    pub label_a: &'static str,
+    pub label_b: &'static str,
     pub desc: &'static str,
 }
 
-impl ReputationTraitType {
+impl RepDim {
     pub fn i18n(&self, lang: Lang) -> RepI18n {
-        match lang {
+        let (label_a, label_b) = match lang {
             Lang::Fr => match self {
-                Self::Lazy => RepI18n {
-                    label: "Paresseux",
-                    desc: "Évite l'effort, reporte les tâches",
-                },
-                Self::Hardworker => RepI18n {
-                    label: "Travailleur",
-                    desc: "Persévérant, appliqué, ne lâche rien",
-                },
-                Self::SmoothTalker => RepI18n {
-                    label: "Baratineur",
-                    desc: "Charmeur, persuasif, sait embobiner",
-                },
-                Self::GetItDone => RepI18n {
-                    label: "Exécutant",
-                    desc: "Orienté action, décisif, fait avancer les choses",
-                },
-                Self::Reliable => RepI18n {
-                    label: "Fiable",
-                    desc: "Digne de confiance, tient ses engagements",
-                },
-                Self::Impulsive => RepI18n {
-                    label: "Impulsif",
-                    desc: "Agit sans réfléchir, spontané, change d'avis vite",
-                },
+                Self::HardworkerLazy => ("Travailleur", "Paresseux"),
+                Self::AuthoritativeSubmissive => ("Autoritaire", "Soumis"),
+                Self::HonestDeceitful => ("Honnête", "Fourbe"),
+                Self::ReliableFlaky => ("Fiable", "Inconstant"),
+                Self::HumbleArrogant => ("Humble", "Arrogant"),
+                Self::CalmReactive => ("Calme", "Réactif"),
+                Self::DiplomaticBlunt => ("Diplomate", "Direct"),
+                Self::GenerousSelfish => ("Généreux", "Égoïste"),
             },
             Lang::En => match self {
-                Self::Lazy => RepI18n {
-                    label: "Lazy",
-                    desc: "Avoids effort, procrastinates",
-                },
-                Self::Hardworker => RepI18n {
-                    label: "Hardworker",
-                    desc: "Persistent, diligent, grinds it out",
-                },
-                Self::SmoothTalker => RepI18n {
-                    label: "Smooth talker",
-                    desc: "Charming, persuasive, smooth operator",
-                },
-                Self::GetItDone => RepI18n {
-                    label: "Get it done",
-                    desc: "Action-biased, decisive, makes things happen",
-                },
-                Self::Reliable => RepI18n {
-                    label: "Reliable",
-                    desc: "Trustworthy, keeps commitments",
-                },
-                Self::Impulsive => RepI18n {
-                    label: "Impulsive",
-                    desc: "Acts without thinking, spontaneous, changes mind fast",
-                },
+                Self::HardworkerLazy => ("Hardworker", "Lazy"),
+                Self::AuthoritativeSubmissive => ("Authoritative", "Submissive"),
+                Self::HonestDeceitful => ("Honest", "Deceitful"),
+                Self::ReliableFlaky => ("Reliable", "Flaky"),
+                Self::HumbleArrogant => ("Humble", "Arrogant"),
+                Self::CalmReactive => ("Calm", "Reactive"),
+                Self::DiplomaticBlunt => ("Diplomatic", "Blunt"),
+                Self::GenerousSelfish => ("Generous", "Selfish"),
             },
+        };
+        let desc = match lang {
+            Lang::Fr => match self {
+                Self::HardworkerLazy => "Effort vs. fainéantise",
+                Self::AuthoritativeSubmissive => "Commandement vs. obéissance",
+                Self::HonestDeceitful => "Vérité vs. tromperie",
+                Self::ReliableFlaky => "Constance vs. versatilité",
+                Self::HumbleArrogant => "Modestie vs. orgueil",
+                Self::CalmReactive => "Sérénité vs. réactivité émotionnelle",
+                Self::DiplomaticBlunt => "Tact vs. franchise",
+                Self::GenerousSelfish => "Altruisme vs. égoïsme",
+            },
+            Lang::En => match self {
+                Self::HardworkerLazy => "Effort vs. laziness",
+                Self::AuthoritativeSubmissive => "Command vs. obedience",
+                Self::HonestDeceitful => "Truth vs. deception",
+                Self::ReliableFlaky => "Consistency vs. unreliability",
+                Self::HumbleArrogant => "Modesty vs. pride",
+                Self::CalmReactive => "Serenity vs. emotional reactivity",
+                Self::DiplomaticBlunt => "Tact vs. directness",
+                Self::GenerousSelfish => "Altruism vs. selfishness",
+            },
+        };
+        RepI18n {
+            label_a,
+            label_b,
+            desc,
         }
     }
 }

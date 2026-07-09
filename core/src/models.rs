@@ -1,54 +1,156 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ReputationTraitType {
-    #[serde(alias = "LAZY")]
-    Lazy,
-    #[serde(alias = "HARDWORKER")]
-    Hardworker,
-    #[serde(alias = "SMOOTH_TALKER")]
-    SmoothTalker,
-    #[serde(alias = "GET_IT_DONE")]
-    GetItDone,
-    #[serde(alias = "RELIABLE")]
-    Reliable,
-    #[serde(alias = "IMPULSIVE")]
-    Impulsive,
+pub enum RepDim {
+    #[serde(alias = "HARDWORKER_LAZY")]
+    HardworkerLazy,
+    #[serde(alias = "AUTHORITATIVE_SUBMISSIVE")]
+    AuthoritativeSubmissive,
+    #[serde(alias = "HONEST_DECEITFUL")]
+    HonestDeceitful,
+    #[serde(alias = "RELIABLE_FLAKY")]
+    ReliableFlaky,
+    #[serde(alias = "HUMBLE_ARROGANT")]
+    HumbleArrogant,
+    #[serde(alias = "CALM_REACTIVE")]
+    CalmReactive,
+    #[serde(alias = "DIPLOMATIC_BLUNT")]
+    DiplomaticBlunt,
+    #[serde(alias = "GENEROUS_SELFISH")]
+    GenerousSelfish,
 }
 
-impl std::fmt::Display for ReputationTraitType {
+impl std::fmt::Display for RepDim {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }
 }
 
-impl ReputationTraitType {
-    pub const ALL: [Self; 6] = [
-        Self::Hardworker,
-        Self::GetItDone,
-        Self::Reliable,
-        Self::SmoothTalker,
-        Self::Impulsive,
-        Self::Lazy,
+impl RepDim {
+    pub const ALL: [Self; 8] = [
+        Self::HardworkerLazy,
+        Self::AuthoritativeSubmissive,
+        Self::HonestDeceitful,
+        Self::ReliableFlaky,
+        Self::HumbleArrogant,
+        Self::CalmReactive,
+        Self::DiplomaticBlunt,
+        Self::GenerousSelfish,
     ];
 
     pub fn emoji(&self) -> &'static str {
         match self {
-            Self::Lazy => "🛋️",
-            Self::Hardworker => "💪",
-            Self::SmoothTalker => "🗣️",
-            Self::GetItDone => "⚡",
-            Self::Reliable => "🤝",
-            Self::Impulsive => "🎲",
+            Self::HardworkerLazy => "💪",
+            Self::AuthoritativeSubmissive => "👑",
+            Self::HonestDeceitful => "🫡",
+            Self::ReliableFlaky => "🤝",
+            Self::HumbleArrogant => "🌱",
+            Self::CalmReactive => "🧘",
+            Self::DiplomaticBlunt => "🤝",
+            Self::GenerousSelfish => "🎁",
+        }
+    }
+
+    pub fn pole_a_label(&self, lang: crate::i18n::Lang) -> &'static str {
+        match lang {
+            crate::i18n::Lang::Fr => match self {
+                Self::HardworkerLazy => "Travailleur",
+                Self::AuthoritativeSubmissive => "Autoritaire",
+                Self::HonestDeceitful => "Honnête",
+                Self::ReliableFlaky => "Fiable",
+                Self::HumbleArrogant => "Humble",
+                Self::CalmReactive => "Calme",
+                Self::DiplomaticBlunt => "Diplomate",
+                Self::GenerousSelfish => "Généreux",
+            },
+            crate::i18n::Lang::En => match self {
+                Self::HardworkerLazy => "Hardworker",
+                Self::AuthoritativeSubmissive => "Authoritative",
+                Self::HonestDeceitful => "Honest",
+                Self::ReliableFlaky => "Reliable",
+                Self::HumbleArrogant => "Humble",
+                Self::CalmReactive => "Calm",
+                Self::DiplomaticBlunt => "Diplomatic",
+                Self::GenerousSelfish => "Generous",
+            },
+        }
+    }
+
+    pub fn pole_b_label(&self, lang: crate::i18n::Lang) -> &'static str {
+        match lang {
+            crate::i18n::Lang::Fr => match self {
+                Self::HardworkerLazy => "Paresseux",
+                Self::AuthoritativeSubmissive => "Soumis",
+                Self::HonestDeceitful => "Fourbe",
+                Self::ReliableFlaky => "Inconstant",
+                Self::HumbleArrogant => "Arrogant",
+                Self::CalmReactive => "Réactif",
+                Self::DiplomaticBlunt => "Direct",
+                Self::GenerousSelfish => "Égoïste",
+            },
+            crate::i18n::Lang::En => match self {
+                Self::HardworkerLazy => "Lazy",
+                Self::AuthoritativeSubmissive => "Submissive",
+                Self::HonestDeceitful => "Deceitful",
+                Self::ReliableFlaky => "Flaky",
+                Self::HumbleArrogant => "Arrogant",
+                Self::CalmReactive => "Reactive",
+                Self::DiplomaticBlunt => "Blunt",
+                Self::GenerousSelfish => "Selfish",
+            },
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ReputationTrait {
-    pub r#type: ReputationTraitType,
-    pub intensity: u8,
-    pub evidence: String,
+pub struct RepScores {
+    #[serde(default)]
+    pub hardworker_lazy: Option<u8>,
+    #[serde(default)]
+    pub authoritative_submissive: Option<u8>,
+    #[serde(default)]
+    pub honest_deceitful: Option<u8>,
+    #[serde(default)]
+    pub reliable_flaky: Option<u8>,
+    #[serde(default)]
+    pub humble_arrogant: Option<u8>,
+    #[serde(default)]
+    pub calm_reactive: Option<u8>,
+    #[serde(default)]
+    pub diplomatic_blunt: Option<u8>,
+    #[serde(default)]
+    pub generous_selfish: Option<u8>,
+}
+
+impl RepScores {
+    /// Score for a given dimension: 0=pole B, 10=pole A
+    pub fn score(&self, dim: RepDim) -> Option<u8> {
+        match dim {
+            RepDim::HardworkerLazy => self.hardworker_lazy,
+            RepDim::AuthoritativeSubmissive => self.authoritative_submissive,
+            RepDim::HonestDeceitful => self.honest_deceitful,
+            RepDim::ReliableFlaky => self.reliable_flaky,
+            RepDim::HumbleArrogant => self.humble_arrogant,
+            RepDim::CalmReactive => self.calm_reactive,
+            RepDim::DiplomaticBlunt => self.diplomatic_blunt,
+            RepDim::GenerousSelfish => self.generous_selfish,
+        }
+    }
+}
+
+impl Default for RepScores {
+    fn default() -> Self {
+        Self {
+            hardworker_lazy: None,
+            authoritative_submissive: None,
+            honest_deceitful: None,
+            reliable_flaky: None,
+            humble_arrogant: None,
+            calm_reactive: None,
+            diplomatic_blunt: None,
+            generous_selfish: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -288,7 +390,7 @@ pub struct Person {
     pub motivations: Vec<Motivation>,
     pub biases: Vec<Bias>,
     #[serde(default)]
-    pub reputation: Vec<ReputationTrait>,
+    pub rep_scores: RepScores,
     pub behavioral_patterns: Vec<BehavioralPattern>,
     pub ocean: OceanScores,
     #[serde(default)]
@@ -311,10 +413,6 @@ impl Person {
 
     pub fn top_bias(&self) -> Option<&Bias> {
         self.biases.iter().max_by_key(|b| b.intensity)
-    }
-
-    pub fn top_reputation(&self) -> Option<&ReputationTrait> {
-        self.reputation.iter().max_by_key(|r| r.intensity)
     }
 }
 

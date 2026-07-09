@@ -12,9 +12,9 @@ pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 8] = [
     BehaviorTrigger::Feedback,
 ];
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[component]
 pub fn Insights() -> Element {
@@ -69,7 +69,11 @@ pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang
     let pd = crate::i18n::tr("insights_primary_driver", lang);
     let kb = crate::i18n::tr("insights_key_bias", lang);
     let rec = crate::i18n::tr("insights_recommendations", lang);
-    lines.push(crate::i18n::tr_fmt("insights_context_analysis", lang, &[("trigger", tl), ("name", &p.name)]));
+    lines.push(crate::i18n::tr_fmt(
+        "insights_context_analysis",
+        lang,
+        &[("trigger", tl), ("name", &p.name)],
+    ));
     lines.push(String::new());
 
     if let Some(m) = top_mot {
@@ -123,8 +127,12 @@ fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if let Some(m) = p.top_motivation() {
         match m.r#type {
-            peoplemodeler_core::models::MotivationType::Power => s.push(crate::i18n::tr("strategy_stress_power", lang).into()),
-            peoplemodeler_core::models::MotivationType::Security => s.push(crate::i18n::tr("strategy_stress_security", lang).into()),
+            peoplemodeler_core::models::MotivationType::Power => {
+                s.push(crate::i18n::tr("strategy_stress_power", lang).into())
+            }
+            peoplemodeler_core::models::MotivationType::Security => {
+                s.push(crate::i18n::tr("strategy_stress_security", lang).into())
+            }
             _ => {}
         }
     }

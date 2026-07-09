@@ -54,7 +54,7 @@ mod tests {
                 },
             ],
             behavioral_patterns: vec![],
-            reputation: vec![],
+            rep_scores: RepScores::default(),
             ocean: OceanScores {
                 openness: 8,
                 conscientiousness: 6,
@@ -289,7 +289,7 @@ mod tests {
             notes: String::new(),
             motivations: vec![],
             biases: vec![],
-            reputation: vec![],
+            rep_scores: RepScores::default(),
             behavioral_patterns: vec![
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Change,
@@ -322,7 +322,56 @@ mod tests {
     }
 
     #[test]
-    fn test_reputation_serde_roundtrip() {
+    fn test_rep_scores_serde() {
+        let s = RepScores {
+            hardworker_lazy: Some(8),
+            authoritative_submissive: Some(3),
+            honest_deceitful: None,
+            reliable_flaky: Some(7),
+            humble_arrogant: Some(9),
+            calm_reactive: Some(2),
+            diplomatic_blunt: None,
+            generous_selfish: Some(6),
+        };
+        let json = serde_json::to_string(&s).unwrap();
+        let back: RepScores = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.hardworker_lazy, Some(8));
+        assert_eq!(back.authoritative_submissive, Some(3));
+        assert_eq!(back.honest_deceitful, None);
+        assert_eq!(back.generous_selfish, Some(6));
+    }
+
+    #[test]
+    fn test_rep_scores_default() {
+        let s = RepScores::default();
+        assert_eq!(s.score(RepDim::HardworkerLazy), None);
+        assert_eq!(s.score(RepDim::GenerousSelfish), None);
+    }
+
+    #[test]
+    fn test_rep_dim_all() {
+        assert_eq!(RepDim::ALL.len(), 8);
+    }
+
+    #[test]
+    fn test_rep_dim_i18n() {
+        let fr = RepDim::HardworkerLazy.i18n(Lang::Fr);
+        assert_eq!(fr.label_a, "Travailleur");
+        assert_eq!(fr.label_b, "Paresseux");
+        let en = RepDim::HardworkerLazy.i18n(Lang::En);
+        assert_eq!(en.label_a, "Hardworker");
+        assert_eq!(en.label_b, "Lazy");
+    }
+
+    #[test]
+    fn test_rep_dim_emoji() {
+        for d in &RepDim::ALL {
+            assert!(!d.emoji().is_empty(), "emoji for {:?} is empty", d);
+        }
+    }
+
+    #[test]
+    fn test_rep_scores_in_person_serde() {
         let p = Person {
             id: "rep-test".into(),
             name: "Rep Test".into(),
@@ -333,18 +382,11 @@ mod tests {
             notes: String::new(),
             motivations: vec![],
             biases: vec![],
-            reputation: vec![
-                ReputationTrait {
-                    r#type: ReputationTraitType::Hardworker,
-                    intensity: 9,
-                    evidence: "Never misses deadlines".into(),
-                },
-                ReputationTrait {
-                    r#type: ReputationTraitType::Reliable,
-                    intensity: 8,
-                    evidence: "Team trusts them".into(),
-                },
-            ],
+            rep_scores: RepScores {
+                hardworker_lazy: Some(9),
+                reliable_flaky: Some(7),
+                ..RepScores::default()
+            },
             behavioral_patterns: vec![],
             ocean: OceanScores::default(),
             predictions: vec![],
@@ -355,67 +397,9 @@ mod tests {
         };
         let json = serde_json::to_string(&p).unwrap();
         let back: Person = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.reputation.len(), 2);
-        assert_eq!(back.reputation[0].r#type, ReputationTraitType::Hardworker);
-        assert_eq!(back.reputation[0].intensity, 9);
-        assert_eq!(back.reputation[1].r#type, ReputationTraitType::Reliable);
-    }
-
-    #[test]
-    fn test_top_reputation() {
-        let p = Person {
-            id: "top-rep".into(),
-            name: "Top Rep".into(),
-            role: String::new(),
-            context: String::new(),
-            avatar_emoji: "🧑".into(),
-            tags: vec![],
-            notes: String::new(),
-            motivations: vec![],
-            biases: vec![],
-            reputation: vec![
-                ReputationTrait {
-                    r#type: ReputationTraitType::Lazy,
-                    intensity: 3,
-                    evidence: String::new(),
-                },
-                ReputationTrait {
-                    r#type: ReputationTraitType::SmoothTalker,
-                    intensity: 8,
-                    evidence: "Charmer".into(),
-                },
-            ],
-            behavioral_patterns: vec![],
-            ocean: OceanScores::default(),
-            predictions: vec![],
-            confidence: 5,
-            log: Vec::new(),
-            created_at: 0,
-            updated_at: 0,
-        };
-        let top = p.top_reputation().unwrap();
-        assert_eq!(top.r#type, ReputationTraitType::SmoothTalker);
-        assert_eq!(top.intensity, 8);
-    }
-
-    #[test]
-    fn test_reputation_enum_all() {
-        assert_eq!(ReputationTraitType::ALL.len(), 6);
-    }
-
-    #[test]
-    fn test_reputation_i18n() {
-        let fr = ReputationTraitType::Hardworker.i18n(Lang::Fr);
-        assert_eq!(fr.label, "Travailleur");
-        let en = ReputationTraitType::Hardworker.i18n(Lang::En);
-        assert_eq!(en.label, "Hardworker");
-    }
-
-    #[test]
-    fn test_reputation_emoji() {
-        for r in &ReputationTraitType::ALL {
-            assert!(!r.emoji().is_empty(), "emoji for {:?} is empty", r);
-        }
+        assert_eq!(back.rep_scores.hardworker_lazy, Some(9));
+        assert_eq!(back.rep_scores.reliable_flaky, Some(7));
+        assert_eq!(back.rep_scores.humble_arrogant, None);
     }
 
     #[test]
@@ -430,7 +414,7 @@ mod tests {
             notes: String::new(),
             motivations: vec![],
             biases: vec![],
-            reputation: vec![],
+            rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
             ocean: OceanScores::default(),
             predictions: vec![],
