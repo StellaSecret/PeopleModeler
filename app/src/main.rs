@@ -70,6 +70,16 @@ fn main() {
     }
     #[cfg(target_arch = "wasm32")]
     {
+        // Inject CSS into <head> before Dioxus mounts
+        // so Firefox doesn't show a blank unstyled page while WASM compiles.
+        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+            if let Some(head) = doc.head() {
+                if let Ok(style) = doc.create_element("style") {
+                    style.set_text_content(Some(include_str!("../assets/styles.css")));
+                    let _ = head.append_child(&style);
+                }
+            }
+        }
         db::init();
         dioxus::launch(App);
     }
