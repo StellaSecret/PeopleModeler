@@ -24,11 +24,18 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
     match (p1(), p2()) {
         (Some(a), Some(b)) => {
-            let score = compute_synergy_score(&a, &b);
+            let brk = compute_synergy_score(&a, &b);
+            let score = brk.total;
             let (synergies, frictions, strategies) = compare_analysis(&a, &b, lang());
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
             let compare_synergy = crate::i18n::tr("compare_synergy", lang());
+            let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
+            let cat_ocean = crate::i18n::tr("compare_cat_ocean", lang());
+            let cat_rep = crate::i18n::tr("compare_cat_reputation", lang());
+            let cat_mot = crate::i18n::tr("compare_cat_motivation", lang());
+            let cat_pat = crate::i18n::tr("compare_cat_patterns", lang());
+            let cat_bias = crate::i18n::tr("compare_cat_bias", lang());
             let top_mot_label = crate::i18n::tr("compare_top_mot", lang());
             let bias_label = crate::i18n::tr("compare_bias_main", lang());
             let ocean_label = crate::i18n::tr("compare_ocean", lang());
@@ -78,6 +85,14 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                             div { class: "compatibility-score",
                                 CompatRing { score }
                                 div { class: "compat-label", "{score}%", br {} "{compare_synergy}" }
+                            }
+                            div { class: "breakdown-section",
+                                h4 { "{compare_breakdown}" }
+                                BreakdownBars {
+                                    cat_ocean, cat_rep, cat_mot, cat_pat, cat_bias,
+                                    s_ocean: brk.ocean, s_rep: brk.reputation,
+                                    s_mot: brk.motivation, s_pat: brk.patterns, s_bias: brk.bias,
+                                }
                             }
                         }
 
@@ -154,6 +169,35 @@ fn PersonCard(person: Person) -> Element {
         div { class: "compare-avatar", "{person.avatar_emoji}" }
         h3 { "{person.name}" }
         p { "{person.role}" }
+    }
+}
+
+#[component]
+fn BreakdownBars(
+    cat_ocean: String, cat_rep: String, cat_mot: String, cat_pat: String, cat_bias: String,
+    s_ocean: f64, s_rep: f64, s_mot: f64, s_pat: f64, s_bias: f64,
+) -> Element {
+    let cats = [
+        (&cat_ocean, s_ocean),
+        (&cat_rep, s_rep),
+        (&cat_mot, s_mot),
+        (&cat_pat, s_pat),
+        (&cat_bias, s_bias),
+    ];
+    let pcts: Vec<u8> = cats.iter().map(|(_, v)| (*v * 100.0) as u8).collect();
+
+    rsx! {
+        div { class: "breakdown-bars",
+            for (i, (label, _)) in cats.iter().enumerate() {
+                div { class: "bb-row",
+                    span { class: "bb-label", "{label}" }
+                    div { class: "bb-bar",
+                        div { class: "bb-fill", width: "{pcts[i]}%" }
+                    }
+                    span { class: "bb-pct", "{pcts[i]}%" }
+                }
+            }
+        }
     }
 }
 
@@ -246,7 +290,16 @@ fn pattern_synergy(
     }
 }
 
-fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
+struct SynergyBreakdown {
+    pub total: u8,
+    pub ocean: f64,
+    pub reputation: f64,
+    pub motivation: f64,
+    pub patterns: f64,
+    pub bias: f64,
+}
+
+fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let oa = &a.ocean;
     let ob = &b.ocean;
 
@@ -296,8 +349,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
     };
 
     // Reputation: distance-based synergy, average of shared dimensions
-    let rep_raw = rep_scores_synergy(&a.rep_scores, &b.rep_scores);
-    let rep = (rep_raw + 1.0) / 2.0;
+    let reputation = rep_scores_synergy(&a.rep_scores, &b.rep_scores);
 
     // Patterns: weighted by min confidence / 10
     let pat_raw = {
@@ -310,7 +362,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
         };
         r * w
     };
-    let pat = (pat_raw + 0.5).clamp(0.0, 1.0);
+    let patterns = (pat_raw + 0.5).clamp(0.0, 1.0);
 
     // Bias: different types = bonus
     let bias_raw = {
@@ -323,11 +375,13 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
         };
         r * w
     };
-    let bias = 0.5 + bias_raw;
+    let bias = (0.5 + bias_raw).clamp(0.0, 1.0);
 
-    let raw = ocean * 0.35 + mot_raw * 0.20 + rep * 0.20 + pat * 0.15 + bias * 0.10;
-    let score = (raw * 100.0).round() as u8;
-    score.max(25).min(98)
+    let motivation = mot_raw;
+    let raw = ocean * 0.30 + reputation * 0.30 + motivation * 0.20 + patterns * 0.12 + bias * 0.08;
+    let score = ((raw * 100.0).round() as u8).max(25).min(98);
+
+    SynergyBreakdown { total: score, ocean, reputation, motivation, patterns, bias }
 }
 
 fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<String>, Vec<String>) {

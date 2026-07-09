@@ -50,6 +50,16 @@
 .mb-bar { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
 .mb-bar > div { height: 100%; background: var(--cyan); border-radius: 3px; }
 
+/* Breakdown bars */
+.breakdown-section { width: 100%; margin-top: 0.5rem; }
+.breakdown-section h4 { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.5rem; text-align: center; }
+.breakdown-bars { display: flex; flex-direction: column; gap: 0.35rem; }
+.bb-row { display: flex; align-items: center; gap: 0.4rem; }
+.bb-label { width: 60px; font-size: 0.68rem; color: var(--text-muted); text-align: right; font-family: var(--font-mono); }
+.bb-bar { flex: 1; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+.bb-fill { height: 100%; background: var(--cyan); border-radius: 2px; }
+.bb-pct { width: 28px; font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); text-align: right; }
+
 /* VS Divider */
 .vs-divider {
   display: flex;

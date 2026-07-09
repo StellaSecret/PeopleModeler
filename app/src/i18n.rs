@@ -447,6 +447,12 @@ fn en(key: &'static str) -> &'static str {
         "compare_synergies" => "Synergies",
         "compare_friction" => "Friction Points",
         "compare_strategy" => "Interaction Strategy",
+        "compare_breakdown" => "Breakdown",
+        "compare_cat_ocean" => "OCEAN",
+        "compare_cat_reputation" => "Reputation",
+        "compare_cat_motivation" => "Motivation",
+        "compare_cat_patterns" => "Patterns",
+        "compare_cat_bias" => "Bias",
         "compare_ethics" => {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
         }
@@ -863,6 +869,12 @@ fn fr(key: &'static str) -> &'static str {
         "compare_synergies" => "Synergies",
         "compare_friction" => "Points de friction",
         "compare_strategy" => "Stratégie d'interaction",
+        "compare_breakdown" => "Détail",
+        "compare_cat_ocean" => "OCÉAN",
+        "compare_cat_reputation" => "Réputation",
+        "compare_cat_motivation" => "Motivation",
+        "compare_cat_patterns" => "Patterns",
+        "compare_cat_bias" => "Biais",
         "compare_ethics" => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
         }
