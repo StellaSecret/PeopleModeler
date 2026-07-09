@@ -187,9 +187,32 @@ Person
 ├── biases[]             # type (enum), intensity (1-10), evidence
 ├── behavioralPatterns[] # trigger, predictedBehavior, confidence
 ├── ocean                # O, C, E, A, N (1-10 each)
+├── rep_scores           # 8 dimensions Option<u8> (0-10), bipolar:
+│                        #   Hardworker↔Lazy, Authoritative↔Submissive
+│                        #   Honest↔Deceitful, Reliable↔Flaky
+│                        #   Humble↔Arrogant, Calm↔Reactive
+│                        #   Diplomatic↔Blunt, Generous↔Selfish
+│                        #   ≥5 = pole A, <5 = pole B, None = non-renseigné
 ├── tags[]
-└── predictions[]        # context, predicted, actual, accuracy, resolvedAt
+├── predictions[]        # context, predicted, actual, accuracy, resolvedAt
+├── relationships[]      # sourceId, targetId, type, strength
+├── log[]                # InteractionEntry: type, description, timestamp
+└── confidence           # 1-10, fiabilité perçue du profil
 ```
+
+### Score de synergie (comparaison 2 personnes)
+
+```
+Synergy = OCEAN×30% + Réputation×30% + Motivation×20% + Patterns×12% + Biais×8%
+```
+
+- **OCEAN**: complémentarité O-C, E-A, similarité N (distance ≤3)
+- **Réputation**: moyenne des similarités sur les dimensions partagées
+  `1.0 - |a - b| / 10` par dimension, moyenne des dimensions renseignées
+- **Motivation**: bonus si types différents, pondéré par intensité min
+- **Patterns**: complémentarité des triggers, pondéré par confiance
+- **Biais**: bonus si types différents
+- Plafond \[25, 98\] — jamais 0% ou 100%
 
 ---
 
