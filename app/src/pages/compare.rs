@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{Person, ReputationTraitType};
+use peoplemodeler_core::models::{BehaviorTrigger, BiasType, Person, ReputationTraitType};
 
 use crate::db;
 use crate::i18n::Lang;
@@ -242,6 +242,38 @@ fn reputation_synergy(a_type: Option<&ReputationTraitType>, b_type: Option<&Repu
     }
 }
 
+fn bias_synergy(a_type: Option<&BiasType>, b_type: Option<&BiasType>) -> f64 {
+    match (a_type, b_type) {
+        (Some(a), Some(b)) if a != b => 0.3,
+        (Some(_), Some(_)) => 0.0,
+        _ => 0.0,
+    }
+}
+
+fn pattern_synergy(a_trigger: Option<&BehaviorTrigger>, b_trigger: Option<&BehaviorTrigger>) -> f64 {
+    match (a_trigger, b_trigger) {
+        (Some(a), Some(b)) => match (a, b) {
+            (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
+            (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => 0.3,
+            (BehaviorTrigger::Feedback, BehaviorTrigger::Change)
+            | (BehaviorTrigger::Change, BehaviorTrigger::Feedback) => 0.3,
+            (BehaviorTrigger::Success, BehaviorTrigger::Success) => 0.3,
+            (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => -0.3,
+            (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => -0.2,
+            (BehaviorTrigger::Stress, BehaviorTrigger::Conflict)
+            | (BehaviorTrigger::Conflict, BehaviorTrigger::Stress) => -0.3,
+            (BehaviorTrigger::Change, BehaviorTrigger::Stress)
+            | (BehaviorTrigger::Stress, BehaviorTrigger::Change) => -0.2,
+            (BehaviorTrigger::Conflict, BehaviorTrigger::Uncertainty)
+            | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) => -0.2,
+            (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition)
+            | (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) => 0.2,
+            _ => 0.0,
+        },
+        _ => 0.0,
+    }
+}
+
 fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
     let oa = &a.ocean;
     let ob = &b.ocean;
@@ -273,21 +305,59 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
     let nd = oa.neuroticism.abs_diff(ob.neuroticism);
     let n = if nd <= 2 { 0.8 } else if nd <= 4 { 0.5 } else { 0.3 };
 
-    let ocean_score = (oc + ea + n) / 3.0;
+    let ocean = (oc + ea + n) / 3.0;
 
-    let ma = a.top_motivation();
-    let mb = b.top_motivation();
-    let mot = match (ma, mb) {
-        (Some(m1), Some(m2)) if m1.r#type != m2.r#type => 0.8,
-        (Some(_), Some(_)) => 0.5,
+    // Motivation: weighted by min intensity / 10, different types get bonus
+    let mot_raw = match (a.top_motivation(), b.top_motivation()) {
+        (Some(m1), Some(m2)) => {
+            let w = (m1.intensity.min(m2.intensity) as f64) / 10.0;
+            let base = if m1.r#type != m2.r#type { 0.6 } else { 0.3 };
+            base + 0.4 * w
+        }
         _ => 0.5,
     };
 
-    let ra = a.top_reputation();
-    let rb = b.top_reputation();
-    let rep = reputation_synergy(ra.map(|r| &r.r#type), rb.map(|r| &r.r#type));
+    // Reputation: raw score from -0.7..0.8, normalized to 0..1
+    let rep_raw = {
+        let ra = a.top_reputation().map(|r| &r.r#type);
+        let rb = b.top_reputation().map(|r| &r.r#type);
+        let r = reputation_synergy(ra, rb);
+        let w = match (a.top_reputation(), b.top_reputation()) {
+            (Some(r1), Some(r2)) => (r1.intensity.min(r2.intensity) as f64) / 10.0,
+            _ => 1.0,
+        };
+        r * w
+    };
+    let rep = (rep_raw + 1.0) / 2.0;
 
-    let score = (ocean_score * 70.0_f64 + mot * 15.0_f64 + rep * 15.0_f64).round() as u8;
+    // Patterns: weighted by min confidence / 10
+    let pat_raw = {
+        let pa = a.behavioral_patterns.iter().max_by_key(|p| p.confidence);
+        let pb = b.behavioral_patterns.iter().max_by_key(|p| p.confidence);
+        let r = pattern_synergy(pa.map(|p| &p.trigger), pb.map(|p| &p.trigger));
+        let w = match (pa, pb) {
+            (Some(p1), Some(p2)) => (p1.confidence.min(p2.confidence) as f64) / 10.0,
+            _ => 1.0,
+        };
+        r * w
+    };
+    let pat = (pat_raw + 0.5).clamp(0.0, 1.0);
+
+    // Bias: different types = bonus
+    let bias_raw = {
+        let ba = a.top_bias();
+        let bb = b.top_bias();
+        let r = bias_synergy(ba.map(|b| &b.r#type), bb.map(|b| &b.r#type));
+        let w = match (ba, bb) {
+            (Some(b1), Some(b2)) => (b1.intensity.min(b2.intensity) as f64) / 10.0,
+            _ => 1.0,
+        };
+        r * w
+    };
+    let bias = 0.5 + bias_raw;
+
+    let raw = ocean * 0.35 + mot_raw * 0.20 + rep * 0.20 + pat * 0.15 + bias * 0.10;
+    let score = (raw * 100.0).round() as u8;
     score.max(25).min(98)
 }
 
@@ -476,6 +546,62 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
                     b2.r#type.i18n(cl).label,
                 )
             });
+        }
+        (Some(b1), Some(b2)) if b1.r#type == b2.r#type => {
+            fri.push(if lang == Lang::Fr {
+                format!("Même biais {} des deux côtés — angles morts renforcés", b1.r#type.i18n(cl).label)
+            } else {
+                format!("Same {} bias on both sides — reinforced blind spots", b1.r#type.i18n(cl).label)
+            });
+        }
+        _ => {}
+    }
+
+    // --- Behavioral Patterns ---
+    match (
+        a.behavioral_patterns.iter().max_by_key(|p| p.confidence),
+        b.behavioral_patterns.iter().max_by_key(|p| p.confidence),
+    ) {
+        (Some(pa), Some(pb)) => {
+            match (&pa.trigger, &pb.trigger) {
+                (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
+                    syn.push(if lang == Lang::Fr {
+                        "Tous deux s'adaptent au changement — organisation fluide".into()
+                    } else {
+                        "Both adapt well to change — smooth transitions".into()
+                    });
+                }
+                (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => {
+                    syn.push(if lang == Lang::Fr {
+                        "Tous deux réceptifs aux retours — culture d'amélioration continue".into()
+                    } else {
+                        "Both receptive to feedback — culture of continuous improvement".into()
+                    });
+                }
+                (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => {
+                    fri.push(if lang == Lang::Fr {
+                        "Tous deux conflictuels en situation tendue — risque d'escalade".into()
+                    } else {
+                        "Both combative under tension — risk of escalation".into()
+                    });
+                }
+                (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => {
+                    fri.push(if lang == Lang::Fr {
+                        "Tous deux stressés sous pression — anxiété contagieuse".into()
+                    } else {
+                        "Both stressed under pressure — contagious anxiety".into()
+                    });
+                }
+                (BehaviorTrigger::Change, BehaviorTrigger::Feedback)
+                | (BehaviorTrigger::Feedback, BehaviorTrigger::Change) => {
+                    syn.push(if lang == Lang::Fr {
+                        "L'un s'adapte, l'autre apprend — duo qui évolue ensemble".into()
+                    } else {
+                        "One adapts, one learns — a duo that grows together".into()
+                    });
+                }
+                _ => {}
+            }
         }
         _ => {}
     }
