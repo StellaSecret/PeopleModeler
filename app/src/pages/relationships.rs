@@ -3,7 +3,6 @@ use peoplemodeler_core::models::Relationship;
 
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[component]
 pub fn Relationships() -> Element {
@@ -14,42 +13,43 @@ pub fn Relationships() -> Element {
     let title = crate::i18n::tr("rel_title", lang());
     let add_label = crate::i18n::tr("rel_add", lang());
     let none = crate::i18n::tr("rel_none", lang());
-    let rel_from = crate::i18n::tr("rel_from", lang());
-    let rel_to = crate::i18n::tr("rel_to", lang());
     let type_pl = crate::i18n::tr("rel_type_placeholder", lang());
     let notes_pl = crate::i18n::tr("rel_notes", lang());
     let add_btn = crate::i18n::tr("common_add", lang());
     let del_btn = crate::i18n::tr("common_delete", lang());
+    let rel_from = crate::i18n::tr("rel_from", lang());
 
-    let mut source_id = use_signal(String::new);
-    let mut target_id = use_signal(String::new);
+    let mut adding = use_signal(|| false);
     let mut r#type = use_signal(String::new);
     let mut notes = use_signal(String::new);
-    let mut adding = use_signal(|| false);
+    let mut checked = use_signal(|| std::collections::HashSet::<String>::new());
+    let mut source_id = use_signal(String::new);
 
     let persons_list = persons();
 
     let mut add_rel = move || {
-        let sid = source_id();
-        let tid = target_id();
+        let src = source_id();
         let t = r#type();
-        if sid.is_empty() || tid.is_empty() || sid == tid || t.is_empty() {
+        if src.is_empty() || t.is_empty() {
             return;
         }
-        let rel = Relationship {
-            id: uuid::Uuid::new_v4().to_string(),
-            source_id: sid,
-            target_id: tid,
-            r#type: t,
-            notes: notes(),
-            created_at: chrono::Utc::now().timestamp_millis(),
-        };
-        db::save_relationship(&rel);
+        for cid in checked().iter() {
+            if *cid == src { continue; }
+            let rel = Relationship {
+                id: uuid::Uuid::new_v4().to_string(),
+                source_id: src.clone(),
+                target_id: cid.clone(),
+                r#type: t.clone(),
+                notes: notes(),
+                created_at: chrono::Utc::now().timestamp_millis(),
+            };
+            db::save_relationship(&rel);
+        }
         rels.set(db::all_relationships());
-        source_id.set(String::new());
-        target_id.set(String::new());
         r#type.set(String::new());
         notes.set(String::new());
+        checked.set(std::collections::HashSet::new());
+        source_id.set(String::new());
         adding.set(false);
     };
 
@@ -64,31 +64,45 @@ pub fn Relationships() -> Element {
             button { class: "btn", aria_label: "{add_label}", onclick: move |_| adding.set(!adding()), "{add_label}" }
 
             if adding() {
-                div { class: "section",
+                div { class: "section rel-form",
+                    p { class: "rel-hint", "{rel_from}" }
+                    div { class: "rel-person-list",
+                        for p in &persons_list {
+                            div { class: "rel-person-row",
+                                input {
+                                    r#type: "radio",
+                                    name: "rel-source",
+                                    value: "{p.id}",
+                                    checked: source_id() == p.id,
+                                    onchange: {
+                                        let pid = p.id.clone();
+                                        move |_| source_id.set(pid.clone())
+                                    },
+                                }
+                                input {
+                                    r#type: "checkbox",
+                                    checked: checked().contains(&p.id),
+                                    onchange: {
+                                        let pid = p.id.clone();
+                                        move |_| {
+                                            let mut c = checked();
+                                            if c.contains(&pid) { c.remove(&pid); }
+                                            else { c.insert(pid.clone()); }
+                                            checked.set(c);
+                                        }
+                                    },
+                                }
+                                span { class: "rel-avatar", "{p.avatar_emoji}" }
+                                span { "{p.name}" }
+                            }
+                        }
+                    }
                     div { class: "form-row",
-                        select {
-                            value: "{source_id}",
-                            onchange: move |e| source_id.set(e.value()),
-                            option { value: "", "— {rel_from} —" }
-                            for p in &persons_list {
-                                option { value: "{p.id}", "{p.avatar_emoji} {p.name}" }
-                            }
-                        }
-                        select {
-                            value: "{target_id}",
-                            onchange: move |e| target_id.set(e.value()),
-                            option { value: "", "— {rel_to} —" }
-                            for p in &persons_list {
-                                option { value: "{p.id}", "{p.avatar_emoji} {p.name}" }
-                            }
-                        }
                         input {
                             placeholder: "{type_pl}",
                             value: "{r#type}",
                             oninput: move |e| r#type.set(e.value()),
                         }
-                    }
-                    div { class: "form-row",
                         input {
                             placeholder: "{notes_pl}",
                             value: "{notes}",
@@ -106,17 +120,9 @@ pub fn Relationships() -> Element {
                     for rel in rels() {
                         div { class: "relationship-card",
                             div { class: "relationship-card-row",
-                                Link {
-                                    to: Route::PersonDetail { id: rel.source_id.clone() },
-                                    class: "person-link",
-                                    "{person_name(&rel.source_id)}"
-                                }
+                                span { class: "person-name", "{person_name(&rel.source_id)}" }
                                 span { class: "arrow", "→" }
-                                Link {
-                                    to: Route::PersonDetail { id: rel.target_id.clone() },
-                                    class: "person-link",
-                                    "{person_name(&rel.target_id)}"
-                                }
+                                span { class: "person-name", "{person_name(&rel.target_id)}" }
                                 span { class: "tag", "{rel.r#type}" }
                             }
                             if !rel.notes.is_empty() {

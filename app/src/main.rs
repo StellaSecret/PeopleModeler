@@ -17,6 +17,8 @@ use crate::pages::timeline::Timeline;
 mod auth;
 #[cfg(target_os = "android")]
 mod android_auth;
+#[cfg(target_os = "android")]
+mod android_share;
 #[cfg(target_arch = "wasm32")]
 mod crypto;
 mod db;

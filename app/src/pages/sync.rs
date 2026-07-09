@@ -53,14 +53,21 @@ fn export_file(json: &str) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn export_file(json: &str) {
-    let path = std::path::PathBuf::from(
-        "/data/data/com.stellasecret.peoplemodeler/files/peoplemodeler_backup.json"
-    );
-    if let Some(dir) = path.parent() {
-        let _ = std::fs::create_dir_all(dir);
+    #[cfg(target_os = "android")]
+    {
+        crate::android_share::share_export_file(json);
     }
-    if let Err(e) = std::fs::write(&path, json) {
-        eprintln!("Export failed: {e}");
+    #[cfg(not(target_os = "android"))]
+    {
+        let path = std::path::PathBuf::from(
+            "/data/data/com.stellasecret.peoplemodeler/files/peoplemodeler_backup.json"
+        );
+        if let Some(dir) = path.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        if let Err(e) = std::fs::write(&path, json) {
+            eprintln!("Export failed: {e}");
+        }
     }
 }
 
@@ -122,11 +129,38 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
     }
 }
 
+#[cfg(target_os = "android")]
+fn android_import_button(lang: Lang, status: Signal<String>) -> Element {
+    let import_btn = crate::i18n::tr("sync_import_btn", lang);
+    let restore_ok = crate::i18n::tr("sync_restored", lang);
+    rsx! {
+        div { class: "form-row",
+            button { class: "btn", aria_label: "{import_btn}", onclick: move |_| {
+                let mut s = status.clone();
+                crate::android_share::start_import();
+                let (tx, rx) = tokio::sync::oneshot::channel::<String>();
+                crate::android_share::set_import_callback(tx);
+                dioxus::prelude::spawn(async move {
+                    let content = rx.await.unwrap_or_default();
+                    if !content.is_empty() {
+                        match crate::drive::restore_from_json(&content) {
+                            Ok(n) => s.set(format!("{} {n} persons", restore_ok)),
+                            Err(e) => s.set(format!("❌ {e}")),
+                        }
+                    }
+                });
+            }, "{import_btn}" }
+        }
+    }
+}
+
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 fn import_ui(lang: Lang, status: Signal<String>) -> Element {
     #[cfg(target_arch = "wasm32")]
-    return import_button(lang, status);
-    #[cfg(not(target_arch = "wasm32"))]
+    { return import_button(lang, status); }
+    #[cfg(target_os = "android")]
+    { return android_import_button(lang, status); }
+    #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
     rsx! {}
 }
 
