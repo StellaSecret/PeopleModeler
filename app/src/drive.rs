@@ -148,6 +148,7 @@ impl From<LegacyPerson> for Person {
                 intensity: b.intensity,
                 evidence: b.evidence,
             }).collect(),
+            reputation: vec![],
             behavioral_patterns: lp.behavioral_patterns.into_iter().map(|bp| BehavioralPattern {
                 trigger: bp.trigger,
                 predicted_behavior: bp.predicted_behavior,

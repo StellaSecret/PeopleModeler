@@ -1,4 +1,4 @@
-use crate::models::{BiasType, MotivationType};
+use crate::models::{BiasType, MotivationType, ReputationTraitType};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -176,6 +176,70 @@ impl BiasType {
                 Self::InGroup => BiasI18n {
                     label: "In-group",
                     desc: "Favors members of own group",
+                },
+            },
+        }
+    }
+}
+
+pub struct RepI18n {
+    pub label: &'static str,
+    pub desc: &'static str,
+}
+
+impl ReputationTraitType {
+    pub fn i18n(&self, lang: Lang) -> RepI18n {
+        match lang {
+            Lang::Fr => match self {
+                Self::Lazy => RepI18n {
+                    label: "Paresseux",
+                    desc: "Évite l'effort, reporte les tâches",
+                },
+                Self::Hardworker => RepI18n {
+                    label: "Travailleur",
+                    desc: "Persévérant, appliqué, ne lâche rien",
+                },
+                Self::SmoothTalker => RepI18n {
+                    label: "Baratineur",
+                    desc: "Charmeur, persuasif, sait embobiner",
+                },
+                Self::GetItDone => RepI18n {
+                    label: "Exécutant",
+                    desc: "Orienté action, décisif, fait avancer les choses",
+                },
+                Self::Reliable => RepI18n {
+                    label: "Fiable",
+                    desc: "Digne de confiance, tient ses engagements",
+                },
+                Self::Impulsive => RepI18n {
+                    label: "Impulsif",
+                    desc: "Agit sans réfléchir, spontané, change d'avis vite",
+                },
+            },
+            Lang::En => match self {
+                Self::Lazy => RepI18n {
+                    label: "Lazy",
+                    desc: "Avoids effort, procrastinates",
+                },
+                Self::Hardworker => RepI18n {
+                    label: "Hardworker",
+                    desc: "Persistent, diligent, grinds it out",
+                },
+                Self::SmoothTalker => RepI18n {
+                    label: "Smooth talker",
+                    desc: "Charming, persuasive, smooth operator",
+                },
+                Self::GetItDone => RepI18n {
+                    label: "Get it done",
+                    desc: "Action-biased, decisive, makes things happen",
+                },
+                Self::Reliable => RepI18n {
+                    label: "Reliable",
+                    desc: "Trustworthy, keeps commitments",
+                },
+                Self::Impulsive => RepI18n {
+                    label: "Impulsive",
+                    desc: "Acts without thinking, spontaneous, changes mind fast",
                 },
             },
         }

@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::Person;
+use peoplemodeler_core::models::{Person, ReputationTraitType};
 
 use crate::db;
 use crate::i18n::Lang;
@@ -198,6 +198,50 @@ fn CompatRing(score: u8) -> Element {
     }
 }
 
+fn reputation_synergy(a_type: Option<&ReputationTraitType>, b_type: Option<&ReputationTraitType>) -> f64 {
+    match (a_type, b_type) {
+        (Some(a), Some(b)) => match (a, b) {
+            (ReputationTraitType::Hardworker, ReputationTraitType::Hardworker) => 0.8,
+            (ReputationTraitType::Hardworker, ReputationTraitType::Lazy)
+            | (ReputationTraitType::Lazy, ReputationTraitType::Hardworker) => -0.7,
+            (ReputationTraitType::Hardworker, ReputationTraitType::SmoothTalker)
+            | (ReputationTraitType::SmoothTalker, ReputationTraitType::Hardworker) => 0.4,
+            (ReputationTraitType::Hardworker, ReputationTraitType::GetItDone)
+            | (ReputationTraitType::GetItDone, ReputationTraitType::Hardworker) => 0.5,
+            (ReputationTraitType::Hardworker, ReputationTraitType::Reliable)
+            | (ReputationTraitType::Reliable, ReputationTraitType::Hardworker) => 0.6,
+            (ReputationTraitType::Hardworker, ReputationTraitType::Impulsive)
+            | (ReputationTraitType::Impulsive, ReputationTraitType::Hardworker) => 0.0,
+            (ReputationTraitType::Lazy, ReputationTraitType::Lazy) => -0.6,
+            (ReputationTraitType::Lazy, ReputationTraitType::SmoothTalker)
+            | (ReputationTraitType::SmoothTalker, ReputationTraitType::Lazy) => -0.5,
+            (ReputationTraitType::Lazy, ReputationTraitType::GetItDone)
+            | (ReputationTraitType::GetItDone, ReputationTraitType::Lazy) => -0.7,
+            (ReputationTraitType::Lazy, ReputationTraitType::Reliable)
+            | (ReputationTraitType::Reliable, ReputationTraitType::Lazy) => -0.4,
+            (ReputationTraitType::Lazy, ReputationTraitType::Impulsive)
+            | (ReputationTraitType::Impulsive, ReputationTraitType::Lazy) => -0.3,
+            (ReputationTraitType::SmoothTalker, ReputationTraitType::SmoothTalker) => -0.3,
+            (ReputationTraitType::SmoothTalker, ReputationTraitType::GetItDone)
+            | (ReputationTraitType::GetItDone, ReputationTraitType::SmoothTalker) => 0.7,
+            (ReputationTraitType::SmoothTalker, ReputationTraitType::Reliable)
+            | (ReputationTraitType::Reliable, ReputationTraitType::SmoothTalker) => 0.5,
+            (ReputationTraitType::SmoothTalker, ReputationTraitType::Impulsive)
+            | (ReputationTraitType::Impulsive, ReputationTraitType::SmoothTalker) => 0.0,
+            (ReputationTraitType::GetItDone, ReputationTraitType::GetItDone) => 0.5,
+            (ReputationTraitType::GetItDone, ReputationTraitType::Reliable)
+            | (ReputationTraitType::Reliable, ReputationTraitType::GetItDone) => 0.6,
+            (ReputationTraitType::GetItDone, ReputationTraitType::Impulsive)
+            | (ReputationTraitType::Impulsive, ReputationTraitType::GetItDone) => -0.2,
+            (ReputationTraitType::Reliable, ReputationTraitType::Reliable) => 0.6,
+            (ReputationTraitType::Reliable, ReputationTraitType::Impulsive)
+            | (ReputationTraitType::Impulsive, ReputationTraitType::Reliable) => -0.3,
+            (ReputationTraitType::Impulsive, ReputationTraitType::Impulsive) => -0.4,
+        },
+        _ => 0.0,
+    }
+}
+
 fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
     let oa = &a.ocean;
     let ob = &b.ocean;
@@ -239,7 +283,11 @@ fn compute_synergy_score(a: &Person, b: &Person) -> u8 {
         _ => 0.5,
     };
 
-    let score = (ocean_score * 85.0_f64 + mot * 15.0_f64).round() as u8;
+    let ra = a.top_reputation();
+    let rb = b.top_reputation();
+    let rep = reputation_synergy(ra.map(|r| &r.r#type), rb.map(|r| &r.r#type));
+
+    let score = (ocean_score * 70.0_f64 + mot * 15.0_f64 + rep * 15.0_f64).round() as u8;
     score.max(25).min(98)
 }
 
@@ -346,6 +394,70 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         } else {
             format!("{reactive} more reactive to stress than {stable} — risk of misunderstanding")
         });
+    }
+
+    // Reputation synergy
+    match (a.top_reputation().map(|r| &r.r#type), b.top_reputation().map(|r| &r.r#type)) {
+        (Some(ReputationTraitType::Hardworker), Some(ReputationTraitType::Hardworker)) => {
+            syn.push(if lang == Lang::Fr {
+                format!("Les deux sont travailleurs — productivité et respect mutuel assurés")
+            } else {
+                format!("Both are hard workers — productivity and mutual respect assured")
+            });
+        }
+        (Some(ReputationTraitType::Hardworker), Some(ReputationTraitType::Lazy))
+        | (Some(ReputationTraitType::Lazy), Some(ReputationTraitType::Hardworker)) => {
+            fri.push(if lang == Lang::Fr {
+                format!("{na} travaille dur pendant que {nb} tire au flanc — frustration probable")
+            } else {
+                format!("{na} works hard while {nb} coasts — frustration likely")
+            });
+        }
+        (Some(ReputationTraitType::SmoothTalker), Some(ReputationTraitType::GetItDone))
+        | (Some(ReputationTraitType::GetItDone), Some(ReputationTraitType::SmoothTalker)) => {
+            syn.push(if lang == Lang::Fr {
+                format!("{na} convainc, {nb} exécute — duo complémentaire efficace")
+            } else {
+                format!("{na} sells, {nb} delivers — effective complementary duo")
+            });
+        }
+        (Some(ReputationTraitType::Reliable), Some(ReputationTraitType::Reliable)) => {
+            syn.push(if lang == Lang::Fr {
+                format!("Tous deux fiables — confiance mutuelle et stabilité")
+            } else {
+                format!("Both reliable — mutual trust and stability")
+            });
+        }
+        (Some(ReputationTraitType::GetItDone), Some(ReputationTraitType::GetItDone)) => {
+            syn.push(if lang == Lang::Fr {
+                format!("Tous deux orientés action — les choses avancent vite")
+            } else {
+                format!("Both action-oriented — things get done fast")
+            });
+        }
+        (Some(ReputationTraitType::Lazy), Some(ReputationTraitType::Lazy)) => {
+            fri.push(if lang == Lang::Fr {
+                format!("Tous deux peu motivés — risque d'enlisement")
+            } else {
+                format!("Both unmotivated — risk of stagnation")
+            });
+        }
+        (Some(ReputationTraitType::Impulsive), Some(ReputationTraitType::Impulsive)) => {
+            fri.push(if lang == Lang::Fr {
+                format!("Tous deux impulsifs — décisions chaotiques à prévoir")
+            } else {
+                format!("Both impulsive — expect chaotic decisions")
+            });
+        }
+        (Some(ReputationTraitType::Reliable), Some(ReputationTraitType::Impulsive))
+        | (Some(ReputationTraitType::Impulsive), Some(ReputationTraitType::Reliable)) => {
+            fri.push(if lang == Lang::Fr {
+                format!("{na} est fiable mais {nb} change d'avis sans cesse — friction")
+            } else {
+                format!("{na} is reliable but {nb} keeps changing direction — friction")
+            });
+        }
+        _ => {}
     }
 
     // Bias conflict

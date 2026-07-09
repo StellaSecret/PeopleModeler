@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores, Person,
-    BehaviorTrigger, AVATAR_EMOJIS,
+    BehaviorTrigger, ReputationTrait, ReputationTraitType, AVATAR_EMOJIS,
 };
 
 use crate::db;
@@ -31,7 +31,7 @@ pub fn PersonNew() -> Element {
                 name: String::new(), role: String::new(), context: String::new(),
                 avatar_emoji: "👤".into(),
                 tags: Vec::new(), notes: String::new(),
-                motivations: Vec::new(), biases: Vec::new(),
+                motivations: Vec::new(), biases: Vec::new(), reputation: Vec::new(),
                 behavioral_patterns: Vec::new(),
                 ocean: OceanScores::default(),
                 confidence: 5,
@@ -41,7 +41,7 @@ pub fn PersonNew() -> Element {
             };
             let person = if idx < templates.len() {
                 let t = &templates[idx];
-                Person { ocean: t.ocean.clone(), motivations: t.motivations.clone(), biases: t.biases.clone(), ..blank }
+                Person { ocean: t.ocean.clone(), motivations: t.motivations.clone(), biases: t.biases.clone(), reputation: t.reputation.clone(), ..blank }
             } else {
                 blank
             };
@@ -93,6 +93,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         notes: String::new(),
         motivations: Vec::new(),
         biases: Vec::new(),
+        reputation: Vec::new(),
         behavioral_patterns: Vec::new(),
         ocean: OceanScores::default(),
         confidence: 5,
@@ -112,6 +113,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut confidence = use_signal(|| p.confidence);
     let motivations = use_signal(|| p.motivations.clone());
     let biases = use_signal(|| p.biases.clone());
+    let reputation = use_signal(|| p.reputation.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
 
     let pers_id = p.id.clone();
@@ -127,6 +129,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             notes: notes(),
             motivations: motivations(),
             biases: biases(),
+            reputation: reputation(),
             behavioral_patterns: patterns(),
             ocean: ocean(),
             confidence: confidence(),
@@ -237,6 +240,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
                 MotEditPanel { motivations: motivations.clone(), lang: cl }
                 BiasEditPanel { biases: biases.clone(), lang: cl }
+                RepEditPanel { reputation: reputation.clone(), lang: cl }
                 PatternEditPanel { patterns: patterns.clone(), lang: lang() }
 
                 div { class: "form-actions",
@@ -401,6 +405,94 @@ fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
 }
 
 #[component]
+fn RepEditPanel(reputation: Signal<Vec<ReputationTrait>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+    let app_lang = use_context::<Signal<Lang>>();
+    let mut sel_type = use_signal(|| ReputationTraitType::Hardworker);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_evidence = use_signal(String::new);
+    let mut edit_idx = use_signal(|| None::<usize>);
+    let edit_rep = crate::i18n::tr("edit_reputation", app_lang());
+    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", app_lang());
+    let add_btn = crate::i18n::tr("add_btn", app_lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+
+    rsx! {
+        fieldset { class: "section",
+            legend { "{edit_rep}" }
+            div { class: "add-row",
+                select { value: "{sel_type}",
+                    onchange: move |e| { sel_type.set(parse_reputation_type(&e.value())); },
+                    for t in ReputationTraitType::ALL {
+                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                    }
+                }
+                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
+                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                }
+                span { "{sel_intensity}" }
+                input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
+                    oninput: move |e| { sel_evidence.set(e.value()); }
+                }
+                button { class: "btn", aria_label: if edit_idx().is_some() { "Update reputation trait" } else { "Add reputation trait" }, onclick: move |_| {
+                    if let Some(idx) = edit_idx() {
+                        let mut items = reputation.write();
+                        if idx < items.len() {
+                            items[idx] = ReputationTrait { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
+                        }
+                        edit_idx.set(None);
+                    } else {
+                        reputation.write().push(ReputationTrait { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
+                    }
+                    sel_evidence.set(String::new());
+                    sel_intensity.set(5);
+                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+            }
+            div { class: "helper-text", "{rep_helper(&sel_type(), app_lang())}" }
+            for (i, r) in reputation().iter().enumerate() {
+                div { class: "list-item",
+                    button { class: "reorder-btn", aria_label: "Move reputation trait up", onclick: move |_| { rep_move(reputation, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move reputation trait down", onclick: move |_| { rep_move(reputation, i, false); }, "▼" }
+                    button { class: "btn btn-small", aria_label: "Edit reputation trait", onclick: {
+                        let r = r.clone();
+                        move |_| {
+                            sel_type.set(r.r#type);
+                            sel_intensity.set(r.intensity);
+                            sel_evidence.set(r.evidence.clone());
+                            edit_idx.set(Some(i));
+                        }
+                    }, "✏" }
+                    strong { "{r.r#type.emoji()} {r.r#type.i18n(lang).label}" }
+                    span { " {r.intensity}/10" }
+                    span { " {r.evidence}" }
+                    button { class: "btn btn-small", aria_label: "Delete reputation trait", onclick: move |_| { reputation.write().remove(i); }, "✕" }
+                }
+            }
+        }
+    }
+}
+
+fn rep_move(mut reputation: Signal<Vec<ReputationTrait>>, i: usize, up: bool) {
+    let len = reputation.read().len();
+    if up && i > 0 {
+        reputation.write().swap(i, i - 1);
+    } else if !up && i + 1 < len {
+        reputation.write().swap(i, i + 1);
+    }
+}
+
+fn parse_reputation_type(s: &str) -> ReputationTraitType {
+    match s {
+        "Lazy" => ReputationTraitType::Lazy,
+        "Hardworker" => ReputationTraitType::Hardworker,
+        "SmoothTalker" => ReputationTraitType::SmoothTalker,
+        "GetItDone" => ReputationTraitType::GetItDone,
+        "Reliable" => ReputationTraitType::Reliable,
+        "Impulsive" => ReputationTraitType::Impulsive,
+        _ => ReputationTraitType::Hardworker,
+    }
+}
+
+#[component]
 fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Element {
     let ctx_stress = crate::i18n::tr("ctx_stress", lang);
     let ctx_conflict = crate::i18n::tr("ctx_conflict", lang);
@@ -519,6 +611,17 @@ fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
         BiasType::Authority => crate::i18n::tr("bias_helper_authority", lang),
         BiasType::Recency => crate::i18n::tr("bias_helper_recency", lang),
         BiasType::InGroup => crate::i18n::tr("bias_helper_in_group", lang),
+    }
+}
+
+fn rep_helper(t: &ReputationTraitType, lang: Lang) -> &'static str {
+    match t {
+        ReputationTraitType::Hardworker => crate::i18n::tr("rep_helper_hardworker", lang),
+        ReputationTraitType::GetItDone => crate::i18n::tr("rep_helper_get_it_done", lang),
+        ReputationTraitType::Reliable => crate::i18n::tr("rep_helper_reliable", lang),
+        ReputationTraitType::SmoothTalker => crate::i18n::tr("rep_helper_smooth_talker", lang),
+        ReputationTraitType::Impulsive => crate::i18n::tr("rep_helper_impulsive", lang),
+        ReputationTraitType::Lazy => crate::i18n::tr("rep_helper_lazy", lang),
     }
 }
 

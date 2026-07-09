@@ -1,6 +1,57 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReputationTraitType {
+    #[serde(alias = "LAZY")]
+    Lazy,
+    #[serde(alias = "HARDWORKER")]
+    Hardworker,
+    #[serde(alias = "SMOOTH_TALKER")]
+    SmoothTalker,
+    #[serde(alias = "GET_IT_DONE")]
+    GetItDone,
+    #[serde(alias = "RELIABLE")]
+    Reliable,
+    #[serde(alias = "IMPULSIVE")]
+    Impulsive,
+}
+
+impl std::fmt::Display for ReputationTraitType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl ReputationTraitType {
+    pub const ALL: [Self; 6] = [
+        Self::Hardworker,
+        Self::GetItDone,
+        Self::Reliable,
+        Self::SmoothTalker,
+        Self::Impulsive,
+        Self::Lazy,
+    ];
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            Self::Lazy => "🛋️",
+            Self::Hardworker => "💪",
+            Self::SmoothTalker => "🗣️",
+            Self::GetItDone => "⚡",
+            Self::Reliable => "🤝",
+            Self::Impulsive => "🎲",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReputationTrait {
+    pub r#type: ReputationTraitType,
+    pub intensity: u8,
+    pub evidence: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MotivationType {
     #[serde(alias = "POWER")]
     Power,
@@ -236,6 +287,8 @@ pub struct Person {
     pub notes: String,
     pub motivations: Vec<Motivation>,
     pub biases: Vec<Bias>,
+    #[serde(default)]
+    pub reputation: Vec<ReputationTrait>,
     pub behavioral_patterns: Vec<BehavioralPattern>,
     pub ocean: OceanScores,
     #[serde(default)]
@@ -258,6 +311,10 @@ impl Person {
 
     pub fn top_bias(&self) -> Option<&Bias> {
         self.biases.iter().max_by_key(|b| b.intensity)
+    }
+
+    pub fn top_reputation(&self) -> Option<&ReputationTrait> {
+        self.reputation.iter().max_by_key(|r| r.intensity)
     }
 }
 

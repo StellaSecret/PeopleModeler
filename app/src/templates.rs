@@ -1,5 +1,5 @@
 use peoplemodeler_core::models::{
-    Bias, BiasType, Motivation, MotivationType, OceanScores,
+    Bias, BiasType, Motivation, MotivationType, OceanScores, ReputationTrait,
 };
 
 pub struct Archetype {
@@ -8,6 +8,7 @@ pub struct Archetype {
     pub ocean: OceanScores,
     pub motivations: Vec<Motivation>,
     pub biases: Vec<Bias>,
+    pub reputation: Vec<ReputationTrait>,
 }
 
 pub fn all() -> Vec<Archetype> {
@@ -25,6 +26,7 @@ pub fn all() -> Vec<Archetype> {
                 Bias { r#type: BiasType::Confirmation, intensity: 6, evidence: String::new() },
                 Bias { r#type: BiasType::DunningKruger, intensity: 7, evidence: String::new() },
             ],
+            reputation: vec![],
         },
         Archetype {
             name: "The Analyst",
@@ -39,6 +41,7 @@ pub fn all() -> Vec<Archetype> {
                 Bias { r#type: BiasType::Anchoring, intensity: 7, evidence: String::new() },
                 Bias { r#type: BiasType::SunkCost, intensity: 5, evidence: String::new() },
             ],
+            reputation: vec![],
         },
         Archetype {
             name: "The People Person",
@@ -53,6 +56,7 @@ pub fn all() -> Vec<Archetype> {
                 Bias { r#type: BiasType::SocialProof, intensity: 8, evidence: String::new() },
                 Bias { r#type: BiasType::InGroup, intensity: 7, evidence: String::new() },
             ],
+            reputation: vec![],
         },
         Archetype {
             name: "The Creative",
@@ -67,6 +71,7 @@ pub fn all() -> Vec<Archetype> {
                 Bias { r#type: BiasType::Availability, intensity: 7, evidence: String::new() },
                 Bias { r#type: BiasType::Recency, intensity: 6, evidence: String::new() },
             ],
+            reputation: vec![],
         },
     ]
 }

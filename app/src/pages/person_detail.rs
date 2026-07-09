@@ -46,6 +46,8 @@ pub fn PersonDetail(id: String) -> Element {
             let insights_title = crate::i18n::tr("insights_title", lang());
             let no_mot = crate::i18n::tr("no_motivations", lang());
             let no_bias = crate::i18n::tr("no_biases", lang());
+            let rep_title = crate::i18n::tr("reputation_title", lang());
+            let no_rep = crate::i18n::tr("no_reputation", lang());
             let pat_title = crate::i18n::tr("patterns_title", lang());
             let conf_label = crate::i18n::tr("confidence_label", lang());
             let compare_btn = crate::i18n::tr("compare_btn", lang());
@@ -216,6 +218,25 @@ pub fn PersonDetail(id: String) -> Element {
                                 }
                             }
                             if person.biases.is_empty() { p { "{no_bias}" } }
+                        }
+                        div { class: "section",
+                            h2 { "{rep_title}" }
+                            for r in &person.reputation {
+                                div { class: "bias-item",
+                                    div { class: "item-icon", "{r.r#type.emoji()}" }
+                                    div { class: "item-info",
+                                        div { class: "item-name", "{r.r#type.i18n(core_lang(lang())).label}" }
+                                        div { class: "item-bar-row",
+                                            div { class: "item-bar",
+                                                div { class: "item-bar-fill red", style: "width: {r.intensity * 10}%" }
+                                            }
+                                            div { class: "item-intensity", "{r.intensity}/10" }
+                                        }
+                                        if !r.evidence.is_empty() { div { class: "item-notes", "{r.evidence}" } }
+                                    }
+                                }
+                            }
+                            if person.reputation.is_empty() { p { "{no_rep}" } }
                         }
                     }
 
