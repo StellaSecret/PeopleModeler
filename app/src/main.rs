@@ -78,8 +78,7 @@ fn App() -> Element {
     #[cfg(target_arch = "wasm32")]
     {
         auth::init();
-        inject_csp();
-        register_sw();
+        init_pwa();
     }
 
     let lang = use_signal(|| Lang::detect());
@@ -89,6 +88,26 @@ fn App() -> Element {
     use_context_provider(|| theme);
     use_context_provider(|| tag_filter);
     let _toast = toast::provide_toast();
+    // Ctrl+Z undo handler (one-time setup)
+    #[cfg(target_arch = "wasm32")]
+    {
+        use wasm_bindgen::prelude::Closure;
+        use wasm_bindgen::JsCast;
+        use_hook(move || {
+            let mut toast = _toast.clone();
+            let cb: Closure<dyn FnMut(web_sys::KeyboardEvent)> = Closure::new(move |e: web_sys::KeyboardEvent| {
+                if e.ctrl_key() && e.key() == "z" {
+                    if crate::undo::undo() {
+                        toast.set(Some("↩ Undo".into()));
+                    }
+                }
+            });
+            if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+                let _ = doc.add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref());
+            }
+            cb.forget();
+        });
+    }
     // Persist theme + sync to html element (web needs data-theme on <html> for body bg etc)
     use_effect(move || {
         let t = theme();
@@ -108,7 +127,7 @@ fn App() -> Element {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn inject_csp() {
+fn init_pwa() {
     let doc = match web_sys::window().and_then(|w| w.document()) {
         Some(d) => d,
         None => return,
@@ -117,36 +136,13 @@ fn inject_csp() {
         Some(h) => h,
         None => return,
     };
-    if let Ok(meta) = doc.create_element("meta") {
-        let _ = meta.set_attribute(
-            "http-equiv",
-            "Content-Security-Policy",
-        );
-        let _ = meta.set_attribute(
-            "content",
-            "default-src 'self'; \
-             script-src 'self' 'unsafe-eval' https://accounts.google.com; \
-             style-src 'self' 'unsafe-inline'; \
-             connect-src 'self' https://www.googleapis.com https://accounts.google.com; \
-             img-src 'self' data:; \
-             base-uri 'self'; \
-             form-action 'none'",
-        );
-        let _ = head.append_child(&meta);
-    }
-    // manifest for PWA
     if let Ok(link) = doc.create_element("link") {
         let _ = link.set_attribute("rel", "manifest");
         let _ = link.set_attribute("href", "/PeopleModeler/manifest.json");
         let _ = head.append_child(&link);
     }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn register_sw() {
     if let Some(w) = web_sys::window() {
-        let sw = w.navigator().service_worker();
-        let _ = sw.register("/PeopleModeler/sw.js");
+        let _ = w.navigator().service_worker().register("/PeopleModeler/sw.js");
     }
 }
 
@@ -173,25 +169,6 @@ fn NavLayout() -> Element {
         theme.set(t.toggle());
     };
     auto_clear_toast(toast);
-    // Ctrl+Z undo handler
-    #[cfg(target_arch = "wasm32")]
-    {
-        use wasm_bindgen::prelude::Closure;
-        use wasm_bindgen::JsCast;
-        let t2 = toast.clone();
-        let cb: Closure<dyn FnMut(web_sys::KeyboardEvent)> = Closure::new(move |e: web_sys::KeyboardEvent| {
-            if e.ctrl_key() && e.key() == "z" {
-                let mut t = t2.clone();
-                if crate::undo::undo() {
-                    t.set(Some("↩ Undo".into()));
-                }
-            }
-        });
-        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-            let _ = doc.add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref());
-        }
-        cb.forget();
-    }
     let can_undo = crate::undo::can_undo();
     rsx! {
         div { class: "app", "data-theme": theme().as_str(),
