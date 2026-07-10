@@ -55,13 +55,17 @@ pub fn interpret_neuroticism(score: u8) -> &'static str {
     }
 }
 
+fn fmt_trait(val: Option<u8>, f: impl FnOnce(u8) -> &'static str) -> String {
+    val.map(f).unwrap_or("—").to_string()
+}
+
 pub fn interpret_all(ocean: &OceanScores) -> String {
     format!(
         "O: {}\nC: {}\nE: {}\nA: {}\nN: {}",
-        interpret_openness(ocean.openness),
-        interpret_conscientiousness(ocean.conscientiousness),
-        interpret_extraversion(ocean.extraversion),
-        interpret_agreeableness(ocean.agreeableness),
-        interpret_neuroticism(ocean.neuroticism),
+        fmt_trait(ocean.openness, interpret_openness),
+        fmt_trait(ocean.conscientiousness, interpret_conscientiousness),
+        fmt_trait(ocean.extraversion, interpret_extraversion),
+        fmt_trait(ocean.agreeableness, interpret_agreeableness),
+        fmt_trait(ocean.neuroticism, interpret_neuroticism),
     )
 }

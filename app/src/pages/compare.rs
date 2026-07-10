@@ -202,16 +202,18 @@ fn BreakdownBars(
 }
 
 #[component]
-fn MiniBars(scores: [u8; 5]) -> Element {
+fn MiniBars(scores: [Option<u8>; 5]) -> Element {
     let labels = ["O", "C", "E", "A", "N"];
+    let vals: [String; 5] = scores.map(|s| s.map_or("-".to_string(), |v| v.to_string()));
     rsx! {
         div { class: "mini-bars",
-            for (i, &s) in scores.iter().enumerate() {
+            for (i, s) in scores.iter().enumerate() {
                 div { class: "mb-row",
                     span { "{labels[i]}" }
                     div { class: "mb-bar",
-                        div { class: "mb-fill", width: "{s * 10}%" }
+                        div { class: "mb-fill", width: "{s.unwrap_or(0) * 10}%" }
                     }
+                    span { "{vals[i]}" }
                 }
             }
         }
@@ -340,19 +342,29 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let oa = &a.ocean;
     let ob = &b.ocean;
 
-    // Continuous distance per trait (replaces old 3-tier)
-    let sim = |x: u8, y: u8| 1.0 - (x.abs_diff(y) as f64) / 10.0;
+    let sim = |x: Option<u8>, y: Option<u8>| match (x, y) {
+        (Some(a), Some(b)) => 1.0 - (a.abs_diff(b) as f64) / 10.0,
+        _ => 0.5,
+    };
 
     let oc = (sim(oa.openness, ob.openness) + sim(oa.conscientiousness, ob.conscientiousness)) / 2.0;
     let ea = (sim(oa.extraversion, ob.extraversion) + sim(oa.agreeableness, ob.agreeableness)) / 2.0;
     let n = sim(oa.neuroticism, ob.neuroticism);
 
-    let oc_bonus = if (oa.openness >= 7 && ob.conscientiousness >= 7)
-        || (ob.openness >= 7 && oa.conscientiousness >= 7)
-    { 0.15 } else { 0.0 };
-    let ea_bonus = if (oa.extraversion >= 7 && ob.agreeableness >= 7)
-        || (ob.extraversion >= 7 && oa.agreeableness >= 7)
-    { 0.15 } else { 0.0 };
+    let oc_bonus = match (oa.openness, ob.conscientiousness) {
+        (Some(o), Some(c)) if o >= 7 && c >= 7 => 0.15,
+        _ => match (ob.openness, oa.conscientiousness) {
+            (Some(o), Some(c)) if o >= 7 && c >= 7 => 0.15,
+            _ => 0.0,
+        },
+    };
+    let ea_bonus = match (oa.extraversion, ob.agreeableness) {
+        (Some(e), Some(a)) if e >= 7 && a >= 7 => 0.15,
+        _ => match (ob.extraversion, oa.agreeableness) {
+            (Some(e), Some(a)) if e >= 7 && a >= 7 => 0.15,
+            _ => 0.0,
+        },
+    };
 
     let ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
 
@@ -437,20 +449,20 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // --- Synergies ---
 
     // O-C complementarity
-    if oa.openness >= 7 && ob.conscientiousness >= 7 {
+    if oa.openness.zip(ob.conscientiousness).map_or(false, |(o, c)| o >= 7 && c >= 7) {
         syn.push(if lang == Lang::Fr {
             format!("{na} apporte la vision créative, {nb} assure l'exécution rigoureuse")
         } else {
             format!("{na} brings creative vision, {nb} ensures rigorous execution")
         });
-    } else if ob.openness >= 7 && oa.conscientiousness >= 7 {
+    } else if ob.openness.zip(oa.conscientiousness).map_or(false, |(o, c)| o >= 7 && c >= 7) {
         syn.push(if lang == Lang::Fr {
             format!("{nb} apporte la vision créative, {na} assure l'exécution rigoureuse")
         } else {
             format!("{nb} brings creative vision, {na} ensures rigorous execution")
         });
-    } else if oa.openness.abs_diff(ob.openness) <= 2
-        && oa.conscientiousness.abs_diff(ob.conscientiousness) <= 2
+    } else if oa.openness.zip(ob.openness).map_or(false, |(a, b)| a.abs_diff(b) <= 2)
+        && oa.conscientiousness.zip(ob.conscientiousness).map_or(false, |(a, b)| a.abs_diff(b) <= 2)
     {
         syn.push(if lang == Lang::Fr {
             "Profils OCEAN très proches — communication fluide et attentes alignées".into()
@@ -460,8 +472,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // E-A complementarity
-    if (oa.extraversion >= 7 && ob.agreeableness >= 7)
-        || (ob.extraversion >= 7 && oa.agreeableness >= 7)
+    if oa.extraversion.zip(ob.agreeableness).map_or(false, |(e, a)| e >= 7 && a >= 7)
+        || ob.extraversion.zip(oa.agreeableness).map_or(false, |(e, a)| e >= 7 && a >= 7)
     {
         syn.push(if lang == Lang::Fr {
             "Extraversion et agréabilité se compensent : l'un conduit, l'autre harmonise".into()
@@ -506,13 +518,13 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // --- Frictions ---
 
     // Agreeableness gap
-    if oa.agreeableness >= 7 && ob.agreeableness <= 4 {
+    if oa.agreeableness.map_or(false, |v| v >= 7) && ob.agreeableness.map_or(false, |v| v <= 4) {
         fri.push(if lang == Lang::Fr {
             format!("{nb} (faible A) peut sembler agressif pour {na} (haute A)")
         } else {
             format!("{nb} (low A) may seem aggressive to {na} (high A)")
         });
-    } else if ob.agreeableness >= 7 && oa.agreeableness <= 4 {
+    } else if ob.agreeableness.map_or(false, |v| v >= 7) && oa.agreeableness.map_or(false, |v| v <= 4) {
         fri.push(if lang == Lang::Fr {
             format!("{na} (faible A) peut sembler agressif pour {nb} (haute A)")
         } else {
@@ -521,18 +533,23 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Neuroticism gap
-    let nd = oa.neuroticism.abs_diff(ob.neuroticism);
-    if nd >= 3 {
-        let (stable, reactive) = if oa.neuroticism <= ob.neuroticism {
-            (&na, &nb)
-        } else {
-            (&nb, &na)
-        };
-        fri.push(if lang == Lang::Fr {
-            format!("{reactive} plus réactif au stress que {stable} — risque d'incompréhension")
-        } else {
-            format!("{reactive} more reactive to stress than {stable} — risk of misunderstanding")
-        });
+    match (oa.neuroticism, ob.neuroticism) {
+        (Some(na_n), Some(nb_n)) => {
+            let nd = na_n.abs_diff(nb_n);
+            if nd >= 3 {
+                let (stable, reactive) = if na_n <= nb_n {
+                    (&na, &nb)
+                } else {
+                    (&nb, &na)
+                };
+                fri.push(if lang == Lang::Fr {
+                    format!("{reactive} plus réactif au stress que {stable} — risque d'incompréhension")
+                } else {
+                    format!("{reactive} more reactive to stress than {stable} — risk of misunderstanding")
+                });
+            }
+        }
+        _ => {}
     }
 
     // Reputation synergy (distance-based, per shared dimension)
@@ -666,14 +683,16 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Extraversion gap friction
-    let ed = oa.extraversion.abs_diff(ob.extraversion);
-    if ed >= 4 {
-        fri.push(if lang == Lang::Fr {
-            "Écart d'extraversion important — rythme social et besoin de stimulation différents"
-                .into()
-        } else {
-            "Large extraversion gap — different social pace and stimulation needs".into()
-        });
+    if let (Some(ea_e), Some(eb_e)) = (oa.extraversion, ob.extraversion) {
+        let ed = ea_e.abs_diff(eb_e);
+        if ed >= 4 {
+            fri.push(if lang == Lang::Fr {
+                "Écart d'extraversion important — rythme social et besoin de stimulation différents"
+                    .into()
+            } else {
+                "Large extraversion gap — different social pace and stimulation needs".into()
+            });
+        }
     }
 
     // --- Strategies ---
@@ -713,7 +732,7 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Conscientiousness-based strategy
-    if oa.conscientiousness >= 7 || ob.conscientiousness >= 7 {
+    if oa.conscientiousness.map_or(false, |v| v >= 7) || ob.conscientiousness.map_or(false, |v| v >= 7) {
         str.push(if lang == Lang::Fr {
             "Présenter les informations de manière structurée avec des données tangibles".into()
         } else {
@@ -722,14 +741,14 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Conflict resolution
-    if oa.agreeableness >= 7 && ob.agreeableness >= 7 {
+    if oa.agreeableness.map_or(false, |v| v >= 7) && ob.agreeableness.map_or(false, |v| v >= 7) {
         str.push(if lang == Lang::Fr {
             "En cas de conflit, privilégier la médiation — les deux parties chercheront l'harmonie"
                 .into()
         } else {
             "In conflict, prioritize mediation — both parties will seek harmony".into()
         });
-    } else if oa.agreeableness <= 4 && ob.agreeableness <= 4 {
+    } else if oa.agreeableness.map_or(false, |v| v <= 4) && ob.agreeableness.map_or(false, |v| v <= 4) {
         str.push(if lang == Lang::Fr {
             "En cas de désaccord, aller droit au fait — les deux préfèrent la franchise".into()
         } else {

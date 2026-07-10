@@ -35,7 +35,7 @@ pub fn PeopleList() -> Element {
         let q = search().to_lowercase();
         let mut items: Vec<Person> = persons();
         if let Some(ref tag) = tag_filter() {
-            items.retain(|p| p.tags.iter().any(|t| t == tag));
+            items.retain(|p| p.tags.iter().any(|t| t.name == *tag));
         }
         if !q.is_empty() {
             items.retain(|p| {
@@ -43,20 +43,19 @@ pub fn PeopleList() -> Element {
                     || p.role.to_lowercase().contains(&q)
                     || p.context.to_lowercase().contains(&q)
                     || p.notes.to_lowercase().contains(&q)
-                    || p.tags.iter().any(|t| t.to_lowercase().contains(&q))
+                    || p.tags.iter().any(|t| t.name.to_lowercase().contains(&q))
             });
         }
         match sort() {
             SortBy::Name => items.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
             SortBy::Recent => items.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
             SortBy::Ocean => items.sort_by(|a, b| {
-                let avg = |p: &Person| {
-                    (p.ocean.openness
-                        + p.ocean.conscientiousness
-                        + p.ocean.extraversion
-                        + p.ocean.agreeableness
-                        + p.ocean.neuroticism) as f64
-                        / 5.0
+                let avg = |p: &Person| -> f64 {
+                    let vals: Vec<u8> = [p.ocean.openness, p.ocean.conscientiousness, p.ocean.extraversion, p.ocean.agreeableness, p.ocean.neuroticism]
+                        .iter().filter_map(|&v| v).collect();
+                    let sum: u8 = vals.iter().sum();
+                    let count = vals.len().max(1);
+                    sum as f64 / count as f64
                 };
                 avg(b)
                     .partial_cmp(&avg(a))
@@ -234,12 +233,21 @@ fn PersonCard(person: Person, is_selected: bool, on_toggle: EventHandler<()>) ->
                         small { "{person.role}" }
                     }
                 }
-                div { class: "ocean-mini",
-                    span { "O:{o.openness}" }
-                    span { "C:{o.conscientiousness}" }
-                    span { "E:{o.extraversion}" }
-                    span { "A:{o.agreeableness}" }
-                    span { "N:{o.neuroticism}" }
+                {
+                    let os = o.openness.map_or("-".to_string(), |v| v.to_string());
+                    let cs = o.conscientiousness.map_or("-".to_string(), |v| v.to_string());
+                    let es = o.extraversion.map_or("-".to_string(), |v| v.to_string());
+                    let a_s = o.agreeableness.map_or("-".to_string(), |v| v.to_string());
+                    let ns = o.neuroticism.map_or("-".to_string(), |v| v.to_string());
+                    rsx! {
+                        div { class: "ocean-mini",
+                            span { "O:{os}" }
+                            span { "C:{cs}" }
+                            span { "E:{es}" }
+                            span { "A:{a_s}" }
+                            span { "N:{ns}" }
+                        }
+                    }
                 }
                 if !person.tags.is_empty() {
                     div { class: "tags",
@@ -247,7 +255,7 @@ fn PersonCard(person: Person, is_selected: bool, on_toggle: EventHandler<()>) ->
                             span {
                                 class: "tag tag-clickable",
                                 onclick: {
-                                    let t = tag.clone();
+                                    let t = tag.name.clone();
                                     let mut tf = tag_filter.clone();
                                     move |_| tf.set(Some(t.clone()))
                                 },

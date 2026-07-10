@@ -154,9 +154,9 @@ pub fn PersonDetail(id: String) -> Element {
                                     span {
                                         class: "tag tag-clickable",
                                         onclick: {
-                                            let t = tag.clone();
-                                            let mut tf = tag_filter.clone();
-                                            move |_| tf.set(Some(t.clone()))
+                                        let t = tag.name.clone();
+                                        let mut tf = tag_filter.clone();
+                                        move |_| tf.set(Some(t.clone()))
                                         },
                                         "{tag}"
                                     }
@@ -451,7 +451,7 @@ fn OceanChart(person: Person) -> Element {
         .enumerate()
         .map(|(i, s)| {
             let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
-            let pr = r * *s as f64 / 10.0;
+            let pr = r * s.unwrap_or(0) as f64 / 10.0;
             (cx + pr * a.cos(), cy + pr * a.sin())
         })
         .collect();
@@ -462,6 +462,9 @@ fn OceanChart(person: Person) -> Element {
         .join(" ");
     let data_poly = format!("{} {:.1},{:.1}", data_poly, pts[0].0, pts[0].1);
     let label_pos: Vec<(f64, f64)> = (0..5).map(|i| axis_label(cx, cy, r, i)).collect();
+    let total: u8 = scores.iter().filter_map(|s| *s).sum();
+    let count = scores.iter().filter(|s| s.is_some()).count().max(1);
+    let avg_score = total / count as u8;
 
     rsx! {
         div { class: "section ocean-chart",
@@ -510,7 +513,7 @@ fn OceanChart(person: Person) -> Element {
                         font_weight: "bold",
                         fill: "var(--text)",
                         font_family: "var(--font-display)",
-                        "{scores.iter().sum::<u8>() / 5}/10"
+                        "{avg_score}/10"
                     }
                 }
             }

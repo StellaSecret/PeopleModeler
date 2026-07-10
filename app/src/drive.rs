@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use peoplemodeler_core::models::{
     BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
-    Person, Prediction, RepScores,
+    Person, Prediction, RepScores, Tag,
 };
 
 use crate::db;
@@ -149,7 +149,7 @@ impl From<LegacyPerson> for Person {
             role: lp.role,
             context: lp.context,
             avatar_emoji: lp.avatar_emoji,
-            tags: lp.tags,
+            tags: lp.tags.into_iter().map(|t| Tag { name: t, color: None }).collect(),
             notes: lp.notes,
             motivations: lp
                 .motivations
@@ -180,11 +180,11 @@ impl From<LegacyPerson> for Person {
                 })
                 .collect(),
             ocean: OceanScores {
-                openness: lp.openness,
-                conscientiousness: lp.conscientiousness,
-                extraversion: lp.extraversion,
-                agreeableness: lp.agreeableness,
-                neuroticism: lp.neuroticism,
+                openness: Some(lp.openness),
+                conscientiousness: Some(lp.conscientiousness),
+                extraversion: Some(lp.extraversion),
+                agreeableness: Some(lp.agreeableness),
+                neuroticism: Some(lp.neuroticism),
             },
             predictions: Vec::new(),
             confidence: 5,

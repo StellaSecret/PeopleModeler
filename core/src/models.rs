@@ -1,4 +1,14 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+pub fn clamp_u8_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    let v = u8::deserialize(d)?.clamp(1, 10);
+    Ok(v)
+}
+
+pub fn clamp_u8_opt_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u8>, D::Error> {
+    let v = Option::<u8>::deserialize(d)?;
+    Ok(v.map(|x| x.clamp(1, 10)))
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RepDim {
@@ -123,6 +133,10 @@ pub struct RepScores {
 }
 
 impl RepScores {
+    pub fn has_any(&self) -> bool {
+        RepDim::ALL.iter().any(|d| self.score(*d).is_some())
+    }
+
     /// Score for a given dimension: 0=pole B, 10=pole A
     pub fn score(&self, dim: RepDim) -> Option<u8> {
         match dim {
@@ -309,6 +323,7 @@ impl BehaviorTrigger {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Motivation {
     pub r#type: MotivationType,
+    #[serde(deserialize_with = "clamp_u8_1_10")]
     pub intensity: u8,
     pub notes: String,
 }
@@ -316,6 +331,7 @@ pub struct Motivation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Bias {
     pub r#type: BiasType,
+    #[serde(deserialize_with = "clamp_u8_1_10")]
     pub intensity: u8,
     pub evidence: String,
 }
@@ -324,6 +340,7 @@ pub struct Bias {
 pub struct BehavioralPattern {
     pub trigger: BehaviorTrigger,
     pub predicted_behavior: String,
+    #[serde(deserialize_with = "clamp_u8_1_10")]
     pub confidence: u8,
 }
 
@@ -349,23 +366,59 @@ pub struct InteractionEntry {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OceanScores {
-    pub openness: u8,
-    pub conscientiousness: u8,
-    pub extraversion: u8,
-    pub agreeableness: u8,
-    pub neuroticism: u8,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub openness: Option<u8>,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub conscientiousness: Option<u8>,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub extraversion: Option<u8>,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub agreeableness: Option<u8>,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub neuroticism: Option<u8>,
 }
 
 impl Default for OceanScores {
     fn default() -> Self {
         Self {
-            openness: 5,
-            conscientiousness: 5,
-            extraversion: 5,
-            agreeableness: 5,
-            neuroticism: 5,
+            openness: None,
+            conscientiousness: None,
+            extraversion: None,
+            agreeableness: None,
+            neuroticism: None,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RelationType {
+    WorksWith,
+    Manages,
+    ReportsTo,
+    Friends,
+    Family,
+    Partner,
+    Mentors,
+    Collaborates,
+}
+
+impl std::fmt::Display for RelationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl RelationType {
+    pub const ALL: [Self; 8] = [
+        Self::WorksWith,
+        Self::Manages,
+        Self::ReportsTo,
+        Self::Friends,
+        Self::Family,
+        Self::Partner,
+        Self::Mentors,
+        Self::Collaborates,
+    ];
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -373,9 +426,22 @@ pub struct Relationship {
     pub id: String,
     pub source_id: String,
     pub target_id: String,
-    pub r#type: String,
+    pub r#type: RelationType,
     pub notes: String,
     pub created_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Tag {
+    pub name: String,
+    #[serde(default)]
+    pub color: Option<String>,
+}
+
+impl std::fmt::Display for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -385,7 +451,7 @@ pub struct Person {
     pub role: String,
     pub context: String,
     pub avatar_emoji: String,
-    pub tags: Vec<String>,
+    pub tags: Vec<Tag>,
     pub notes: String,
     pub motivations: Vec<Motivation>,
     pub biases: Vec<Bias>,
@@ -396,7 +462,7 @@ pub struct Person {
     #[serde(default)]
     pub log: Vec<InteractionEntry>,
     pub predictions: Vec<Prediction>,
-    #[serde(default = "default_confidence")]
+    #[serde(default = "default_confidence", deserialize_with = "clamp_u8_1_10")]
     pub confidence: u8,
     pub created_at: i64,
     pub updated_at: i64,
@@ -410,7 +476,6 @@ impl Person {
     pub fn top_motivation(&self) -> Option<&Motivation> {
         self.motivations.iter().max_by_key(|m| m.intensity)
     }
-
     pub fn top_bias(&self) -> Option<&Bias> {
         self.biases.iter().max_by_key(|b| b.intensity)
     }

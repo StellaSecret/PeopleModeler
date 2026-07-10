@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::Relationship;
+use peoplemodeler_core::models::{RelationType, Relationship};
 
 use crate::db;
 use crate::i18n::Lang;
@@ -14,14 +14,13 @@ pub fn Relationships() -> Element {
     let title = crate::i18n::tr("rel_title", lang());
     let add_label = crate::i18n::tr("rel_add", lang());
     let none = crate::i18n::tr("rel_none", lang());
-    let type_pl = crate::i18n::tr("rel_type_placeholder", lang());
     let notes_pl = crate::i18n::tr("rel_notes", lang());
     let add_btn = crate::i18n::tr("common_add", lang());
     let del_btn = crate::i18n::tr("common_delete", lang());
     let rel_from = crate::i18n::tr("rel_from", lang());
 
     let mut adding = use_signal(|| false);
-    let mut r#type = use_signal(String::new);
+    let mut r#type = use_signal(|| RelationType::WorksWith);
     let mut notes = use_signal(String::new);
     let mut checked = use_signal(|| std::collections::HashSet::<String>::new());
     let mut source_id = use_signal(String::new);
@@ -30,8 +29,7 @@ pub fn Relationships() -> Element {
 
     let mut add_rel = move || {
         let src = source_id();
-        let t = r#type();
-        if src.is_empty() || t.is_empty() {
+        if src.is_empty() {
             return;
         }
         for cid in checked().iter() {
@@ -42,14 +40,13 @@ pub fn Relationships() -> Element {
                 id: uuid::Uuid::new_v4().to_string(),
                 source_id: src.clone(),
                 target_id: cid.clone(),
-                r#type: t.clone(),
+                r#type: r#type(),
                 notes: notes(),
                 created_at: chrono::Utc::now().timestamp_millis(),
             };
             db::save_relationship(&rel);
         }
         rels.set(db::all_relationships());
-        r#type.set(String::new());
         notes.set(String::new());
         checked.set(std::collections::HashSet::new());
         source_id.set(String::new());
@@ -105,10 +102,23 @@ pub fn Relationships() -> Element {
                         }
                     }
                     div { class: "form-row",
-                        input {
-                            placeholder: "{type_pl}",
-                            value: "{r#type}",
-                            oninput: move |e| r#type.set(e.value()),
+                        select {
+                            value: "{r#type():?}",
+                            onchange: move |e| {
+                                r#type.set(match e.value().as_str() {
+                                    "Manages" => RelationType::Manages,
+                                    "ReportsTo" => RelationType::ReportsTo,
+                                    "Friends" => RelationType::Friends,
+                                    "Family" => RelationType::Family,
+                                    "Partner" => RelationType::Partner,
+                                    "Mentors" => RelationType::Mentors,
+                                    "Collaborates" => RelationType::Collaborates,
+                                    _ => RelationType::WorksWith,
+                                });
+                            },
+                            for rt in RelationType::ALL {
+                                option { value: "{rt:?}", "{rt:?}" }
+                            }
                         }
                         input {
                             placeholder: "{notes_pl}",

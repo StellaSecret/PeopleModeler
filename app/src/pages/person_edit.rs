@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     AVATAR_EMOJIS, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType,
-    OceanScores, Person, RepDim, RepScores,
+    OceanScores, Person, RepDim, RepScores, Tag,
 };
 
 use crate::Route;
@@ -120,7 +120,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut context = use_signal(|| p.context.clone());
     let mut emoji = use_signal(|| p.avatar_emoji.clone());
     let mut notes = use_signal(|| p.notes.clone());
-    let mut tags_str = use_signal(|| p.tags.join(", "));
+    let mut tags_str = use_signal(|| p.tags.iter().map(|t| t.name.clone()).collect::<Vec<_>>().join(", "));
     let mut ocean = use_signal(|| p.ocean.clone());
     let mut confidence = use_signal(|| p.confidence);
     let motivations = use_signal(|| p.motivations.clone());
@@ -141,6 +141,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
+                .map(|name| Tag { name, color: None })
                 .collect(),
             notes: notes(),
             motivations: motivations(),
@@ -602,11 +603,12 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
 #[component]
 fn OceanSlider(
     label: String,
-    val: u8,
-    onchange: EventHandler<u8>,
+    val: Option<u8>,
+    onchange: EventHandler<Option<u8>>,
     low_hint: Option<String>,
     high_hint: Option<String>,
 ) -> Element {
+    let current = val.unwrap_or(5);
     rsx! {
         div { class: "ocean-slider",
             label { "{label}" }
@@ -614,10 +616,10 @@ fn OceanSlider(
                 r#type: "range",
                 min: "1",
                 max: "10",
-                value: "{val}",
-                oninput: move |e| onchange.call(e.value().parse::<u8>().unwrap_or(5)),
+                value: "{current}",
+                oninput: move |e| onchange.call(Some(e.value().parse::<u8>().unwrap_or(5))),
             }
-            span { "{val}" }
+            span { if val.is_some() { "{current}" } else { "—" } }
             if let (Some(l), Some(h)) = (low_hint.as_ref(), high_hint.as_ref()) {
                 div { class: "ocean-hint",
                     span { class: "hint-low", "↓ {l}" }

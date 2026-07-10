@@ -35,8 +35,8 @@ pub fn prediction_accuracy_score(predictions: &[Prediction]) -> f64 {
 }
 
 pub fn suggest_outcome(person: &Person, _context: &str) -> String {
-    let top_mot = person.top_motivation();
-    let top_bias = person.top_bias();
+    let top_mot = person.motivations.iter().max_by_key(|m| m.intensity);
+    let top_bias = person.biases.iter().max_by_key(|b| b.intensity);
 
     match (top_mot, top_bias) {
         (Some(m), Some(b)) => format!(

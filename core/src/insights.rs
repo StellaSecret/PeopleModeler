@@ -56,11 +56,15 @@ fn fmt_biases(p: &Person) -> String {
 
 pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
     let top_mot = p
-        .top_motivation()
+        .motivations
+        .iter()
+        .max_by_key(|m| m.intensity)
         .map(|m| m.r#type.i18n(crate::i18n::Lang::Fr).label)
         .unwrap_or("—");
     let top_bias = p
-        .top_bias()
+        .biases
+        .iter()
+        .max_by_key(|b| b.intensity)
         .map(|b| b.r#type.i18n(crate::i18n::Lang::Fr).label)
         .unwrap_or("—");
     match ctx {

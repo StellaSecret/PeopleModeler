@@ -17,11 +17,11 @@ pub fn all() -> Vec<Archetype> {
             name: "The Leader",
             emoji: "👑",
             ocean: OceanScores {
-                openness: 8,
-                conscientiousness: 8,
-                extraversion: 9,
-                agreeableness: 3,
-                neuroticism: 4,
+                openness: Some(8),
+                conscientiousness: Some(8),
+                extraversion: Some(9),
+                agreeableness: Some(3),
+                neuroticism: Some(4),
             },
             motivations: vec![
                 Motivation {
@@ -58,11 +58,11 @@ pub fn all() -> Vec<Archetype> {
             name: "The Analyst",
             emoji: "🔬",
             ocean: OceanScores {
-                openness: 4,
-                conscientiousness: 9,
-                extraversion: 3,
-                agreeableness: 5,
-                neuroticism: 5,
+                openness: Some(4),
+                conscientiousness: Some(9),
+                extraversion: Some(3),
+                agreeableness: Some(5),
+                neuroticism: Some(5),
             },
             motivations: vec![
                 Motivation {
@@ -99,11 +99,11 @@ pub fn all() -> Vec<Archetype> {
             name: "The People Person",
             emoji: "🤝",
             ocean: OceanScores {
-                openness: 6,
-                conscientiousness: 5,
-                extraversion: 9,
-                agreeableness: 9,
-                neuroticism: 3,
+                openness: Some(6),
+                conscientiousness: Some(5),
+                extraversion: Some(9),
+                agreeableness: Some(9),
+                neuroticism: Some(3),
             },
             motivations: vec![
                 Motivation {
@@ -140,11 +140,11 @@ pub fn all() -> Vec<Archetype> {
             name: "The Creative",
             emoji: "🎨",
             ocean: OceanScores {
-                openness: 10,
-                conscientiousness: 3,
-                extraversion: 6,
-                agreeableness: 6,
-                neuroticism: 6,
+                openness: Some(10),
+                conscientiousness: Some(3),
+                extraversion: Some(6),
+                agreeableness: Some(6),
+                neuroticism: Some(6),
             },
             motivations: vec![
                 Motivation {

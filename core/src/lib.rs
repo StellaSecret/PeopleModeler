@@ -22,7 +22,20 @@ mod tests {
             role: "Directeur Commercial".into(),
             context: "Contexte pro · Partenaire".into(),
             avatar_emoji: "🧠".into(),
-            tags: vec!["Business".into(), "Décideur".into(), "Négociateur".into()],
+            tags: vec![
+                Tag {
+                    name: "Business".into(),
+                    color: None,
+                },
+                Tag {
+                    name: "Décideur".into(),
+                    color: None,
+                },
+                Tag {
+                    name: "Négociateur".into(),
+                    color: None,
+                },
+            ],
             notes: String::new(),
             motivations: vec![
                 Motivation {
@@ -56,11 +69,11 @@ mod tests {
             behavioral_patterns: vec![],
             rep_scores: RepScores::default(),
             ocean: OceanScores {
-                openness: 8,
-                conscientiousness: 6,
-                extraversion: 9,
-                agreeableness: 4,
-                neuroticism: 5,
+                openness: Some(8),
+                conscientiousness: Some(6),
+                extraversion: Some(9),
+                agreeableness: Some(4),
+                neuroticism: Some(5),
             },
             predictions: vec![Prediction {
                 id: "p1".into(),
