@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehavioralPattern, BehaviorTrigger, BiasType, MotivationType, Person, RepDim, RepScores};
+use peoplemodeler_core::models::{BehavioralPattern, BehaviorTrigger, BiasType, MotivationType, Person, RepDim};
 
 use crate::Route;
 use crate::db;
@@ -242,19 +242,6 @@ fn CompatRing(score: u8) -> Element {
     }
 }
 
-fn rep_scores_synergy(a: &RepScores, b: &RepScores) -> f64 {
-    let mut sum = 0.0;
-    let mut count = 0;
-    for dim in RepDim::ALL {
-        if let (Some(va), Some(vb)) = (a.score(dim), b.score(dim)) {
-            let dist = if va >= vb { va - vb } else { vb - va };
-            sum += 1.0 - dist as f64 / 10.0;
-            count += 1;
-        }
-    }
-    if count == 0 { 0.5 } else { sum / count as f64 }
-}
-
 fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
     if a == b { return 0.2; }
     use MotivationType::*;
@@ -353,64 +340,84 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let oa = &a.ocean;
     let ob = &b.ocean;
 
-    let oc = if (oa.openness >= 7 && ob.conscientiousness >= 7)
+    // Continuous distance per trait (replaces old 3-tier)
+    let sim = |x: u8, y: u8| 1.0 - (x.abs_diff(y) as f64) / 10.0;
+
+    let oc = (sim(oa.openness, ob.openness) + sim(oa.conscientiousness, ob.conscientiousness)) / 2.0;
+    let ea = (sim(oa.extraversion, ob.extraversion) + sim(oa.agreeableness, ob.agreeableness)) / 2.0;
+    let n = sim(oa.neuroticism, ob.neuroticism);
+
+    let oc_bonus = if (oa.openness >= 7 && ob.conscientiousness >= 7)
         || (ob.openness >= 7 && oa.conscientiousness >= 7)
-    {
-        1.0
-    } else if oa.openness.abs_diff(ob.openness) <= 3
-        && oa.conscientiousness.abs_diff(ob.conscientiousness) <= 3
-    {
-        0.7
-    } else {
-        0.15
-    };
-
-    let ea = if (oa.extraversion >= 7 && ob.agreeableness >= 7)
+    { 0.15 } else { 0.0 };
+    let ea_bonus = if (oa.extraversion >= 7 && ob.agreeableness >= 7)
         || (ob.extraversion >= 7 && oa.agreeableness >= 7)
-    {
-        1.0
-    } else if oa.extraversion.abs_diff(ob.extraversion) <= 3
-        && oa.agreeableness.abs_diff(ob.agreeableness) <= 3
-    {
-        0.7
-    } else {
-        0.15
-    };
+    { 0.15 } else { 0.0 };
 
-    let nd = oa.neuroticism.abs_diff(ob.neuroticism);
-    let n = if nd <= 2 {
-        0.8
-    } else if nd <= 4 {
-        0.5
-    } else {
-        0.1
-    };
+    let ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
 
-    let ocean = (oc + ea + n) / 3.0;
+    // Reputation: distance per shared dimension
+    let mut rep_sum = 0.0;
+    let mut rep_count = 0;
+    for dim in RepDim::ALL {
+        if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {
+            let dist = if va >= vb { va - vb } else { vb - va };
+            rep_sum += 1.0 - dist as f64 / 10.0;
+            rep_count += 1;
+        }
+    }
+    let (reputation, rep_active) = if rep_count == 0 {
+        (0.0, false)
+    } else {
+        (rep_sum / rep_count as f64, true)
+    };
 
     // Motivation: all-pair weighted synergy
-    let motivation = all_pair_weighted_avg(
-        &a.motivations,
-        &b.motivations,
-        |m| m.intensity,
-        |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
-    );
-
-    // Reputation: distance-based synergy, average of shared dimensions
-    let reputation = rep_scores_synergy(&a.rep_scores, &b.rep_scores);
+    let mot_active = !a.motivations.is_empty() && !b.motivations.is_empty();
+    let motivation = if mot_active {
+        all_pair_weighted_avg(
+            &a.motivations, &b.motivations,
+            |m| m.intensity,
+            |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
+        )
+    } else { 0.0 };
 
     // Patterns: all-pair weighted synergy
-    let patterns = pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns);
+    let pat_active = !a.behavioral_patterns.is_empty() && !b.behavioral_patterns.is_empty();
+    let patterns = if pat_active {
+        pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns)
+    } else { 0.0 };
 
     // Bias: all-pair weighted synergy
-    let bias = all_pair_weighted_avg(
-        &a.biases,
-        &b.biases,
-        |b| b.intensity,
-        |ba, bb| bias_pair_synergy(ba.r#type, bb.r#type),
-    );
-    let raw = ocean * 0.20 + reputation * 0.31 + motivation * 0.23 + patterns * 0.17 + bias * 0.09;
-    let score = ((raw * 100.0).round() as u8).max(25).min(98);
+    let bias_active = !a.biases.is_empty() && !b.biases.is_empty();
+    let bias = if bias_active {
+        all_pair_weighted_avg(
+            &a.biases, &b.biases,
+            |b| b.intensity,
+            |ba, bb| bias_pair_synergy(ba.r#type, bb.r#type),
+        )
+    } else { 0.0 };
+
+    // Base weights when all categories have data
+    const W_OCEAN: f64 = 0.19;
+    const W_REP: f64 = 0.29;
+    const W_MOT: f64 = 0.21;
+    const W_PAT: f64 = 0.16;
+    const W_BIAS: f64 = 0.15;
+
+    // Sum only active categories, normalize by total active weight
+    let mut raw = 0.0;
+    let mut total_w = 0.0;
+
+    raw += ocean * W_OCEAN; total_w += W_OCEAN;
+    if rep_active { raw += reputation * W_REP; total_w += W_REP; }
+    if mot_active { raw += motivation * W_MOT; total_w += W_MOT; }
+    if pat_active { raw += patterns * W_PAT; total_w += W_PAT; }
+    if bias_active { raw += bias * W_BIAS; total_w += W_BIAS; }
+
+    let score = if total_w > 0.0 {
+        (raw / total_w * 100.0).round() as u8
+    } else { 0 };
 
     SynergyBreakdown { total: score, ocean, reputation, motivation, patterns, bias }
 }

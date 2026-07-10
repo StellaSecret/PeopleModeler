@@ -202,62 +202,55 @@ Person
 
 ### Score de synergie (comparaison 2 personnes)
 
-```
-Synergy = OCEAN×20% + Réputation×31% + Motivation×23% + Patterns×17% + Biais×9%
-```
-
-Chaque catégorie produit un score brut dans [0, 1], puis on applique la pondération
-et on plafonne le résultat final dans [25, 98].
-
-#### 1. OCEAN (20%)
-
-Trois sous-scores indépendants, chacun dépendant des valeurs OCEAN (1-10) de A et B :
-
-| Sous-score | Condition | Valeur | Logique |
-|---|---|---|---|
-| **OC** (O-C) | `O≥7 ∧ C≥7` (un des deux a O haut, l'autre C haut) | 1.0 | Complémentarité Ouverture / Conscience |
-| | `\|O_A - O_B\| ≤ 3 ∧ \|C_A - C_B\| ≤ 3` | 0.7 | Profils similaires |
-| | Sinon | 0.15 | Pas de synergie particulière |
-| **EA** (E-A) | `E≥7 ∧ A≥7` (un E haut, l'autre A haut) | 1.0 | Complémentarité Extraversion / Agréabilité |
-| | `\|E_A - E_B\| ≤ 3 ∧ \|A_A - A_B\| ≤ 3` | 0.7 | Profils similaires |
-| | Sinon | 0.15 | Pas de synergie particulière |
-| **N** (Névrosisme) | `\|N_A - N_B\| ≤ 2` | 0.8 | Niveaux proches (stabilité similaire) |
-| | `\|N_A - N_B\| ≤ 4` | 0.5 | Modérément proches |
-| | Sinon | 0.1 | Niveaux opposés |
+Pondérations de base quand toutes les catégories ont des données :
 
 ```
-OCEAN_brut = (OC + EA + N) / 3       → plage ~[0.13, 0.93]
+OCEAN×19% + Réputation×29% + Motivation×21% + Patterns×16% + Biais×15%
 ```
 
-#### 2. Réputation (31%)
+Si une catégorie n'a pas de données (ex: aucun pattern partagé), son poids est
+redistribué proportionnellement aux autres catégories actives.
 
-Pour chaque dimension de réputation (8 dimensions bipolaires : Autorité, Chaleur,
-Compétence, Intégrité, Sociabilité, Dominance, Fiabilité, Prestige) :
+#### 1. OCEAN (19%)
 
-- Si A et B ont tous deux renseigné la dimension :
-  ```
-  similarité = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
-  ```
-- Si aucune dimension commune : score = 0.5 (neutre).
+Distance continue par trait (1-10) + bonus de complémentarité :
 
 ```
-Rep_brut = moyenne des similarités sur les dimensions partagées   → [0.0, 1.0]
+sim(x, y) = 1.0 - |x - y| / 10          → [0.0, 1.0] par trait
+
+OC = (sim(O_A, O_B) + sim(C_A, C_B)) / 2
+EA = (sim(E_A, E_B) + sim(A_A, A_B)) / 2
+N  =  sim(N_A, N_B)
+
+oc_bonus = 0.15 si (O_A≥7 ∧ C_B≥7) ∨ (O_B≥7 ∧ C_A≥7), sinon 0
+ea_bonus = 0.15 si (E_A≥7 ∧ A_B≥7) ∨ (E_B≥7 ∧ A_A≥7), sinon 0
+
+OCEAN_brut = (min(OC + oc_bonus, 1) + min(EA + ea_bonus, 1) + N) / 3
 ```
 
-#### 3. Motivation (23%)
+- `sim` remplace les anciens paliers (0.15/0.7/1.0) par une valeur continue
+- `bonus` récompense la complémentarité O-C et E-A sans remplacer la distance
 
-Toutes les paires de motivations sont combinées. Chaque motivation a un `type`
-(parmi 8 valeurs) et une `intensity` (1-10).
+#### 2. Réputation (29%)
+
+Pour chaque dimension (8 bipolaires) où A et B ont une valeur :
 
 ```
-pour chaque paire (mot_A, mot_B) :
-    poids = intensity_A × intensity_B / 100    → [0.01, 1.0]
-    score = motivation_synergy(type_A, type_B)
-
-Mot_brut = 0.5 + moyenne_pondérée(score × poids) / somme(poids)   → clamp [0, 1]
+similarité = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
+Rep_brut = moyenne des similarités sur les dimensions partagées
 ```
 
-La table `motivation_synergy(tA, tB)` (bonus = synergique, malus = conflictuel) :
+- Si **aucune** dimension commune : catégorie inactive, poids redistribué
+
+#### 3. Motivation (21%)
+
+Toutes les paires pondérées par `intensity_A × intensity_B / 100` :
+
+```
+Mot_brut = 0.5 + moyenne_pondérée(mot_synergy(type_A, type_B))   → clamp [0, 1]
+```
+
+Table `motivation_synergy(tA, tB)` :
 
 | tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping |
 |---|---|---|---|---|---|---|---|---|
@@ -270,22 +263,15 @@ La table `motivation_synergy(tA, tB)` (bonus = synergique, malus = conflictuel) 
 | **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 |
 | **Helping** | 0 | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 |
 
-(Si aucune paire : score = 0.5 neutre. Même type = +0.2, partage de moteur.)
+#### 4. Patterns (16%)
 
-#### 4. Patterns (17%)
-
-Toutes les paires de patterns sont combinées. Chaque pattern a un `trigger` (parmi
-8 valeurs) et une `confidence` (1-10).
+Toutes les paires pondérées par `conf_A × conf_B / 100` :
 
 ```
-pour chaque paire (pattern_A, pattern_B) :
-    poids = confidence_A × confidence_B / 100        → [0.01, 1.0]
-    score = trigger_synergy(trigger_A, trigger_B) × poids
-
-Patterns_brut = (somme des scores) / (somme des poids) + 0.5   → clamp [0.0, 1.0]
+Patterns_brut = 0.5 + moyenne_pondérée(trigger_synergy(tA, tB))   → clamp [0, 1]
 ```
 
-La table `trigger_synergy(tA, tB)` :
+Table `trigger_synergy(tA, tB)` :
 
 | tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened |
 |---|---|---|---|---|---|---|---|---|
@@ -298,40 +284,30 @@ La table `trigger_synergy(tA, tB)` :
 | **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-(Si aucune paire : score = 0.5 neutre)
+#### 5. Biais (15%)
 
-#### 5. Biais (9%)
-
-Toutes les paires de biais sont combinées. Chaque biais a un `type` (parmi
-10 valeurs) et une `intensity` (1-10).
+Toutes les paires pondérées par `intensity_A × intensity_B / 100` :
 
 ```
-pour chaque paire (bias_A, bias_B) :
-    poids = intensity_A × intensity_B / 100    → [0.01, 1.0]
-    score = 0.2 si types différents, -0.2 si identiques
-
-Biais_brut = 0.5 + moyenne_pondérée(score × poids) / somme(poids)   → clamp [0, 1]
+Biais_brut = 0.5 + moyenne_pondérée(bias_synergy(tA, tB))   → clamp [0, 1]
+bias_synergy = +0.2 si types différents, -0.2 si identiques
 ```
 
-- Types **différents** → bonus +0.2 (biais différents se compensent)
-- Même **type** → malus -0.2 (même distorsion amplifiée)
-- Pas de paire → score = 0.5 neutre
+- Types **différents** → bonus (biais se compensent)
+- Même **type** → malus (même distorsion amplifiée)
+- Plage effective : ~[0.3, 0.7]
 
-Plage effective : ~[0.3, 0.7].
-
-#### Agrégation finale
+#### Agrégation finale (poids dynamiques)
 
 ```
-raw  = OCEAN_brut × 0.20
-     + Rep_brut    × 0.31
-     + Mot_brut    × 0.23
-     + Pat_brut    × 0.17
-     + Biais_brut  × 0.09
-
-score = round(raw × 100).max(25).min(98)   → [25, 98]
+raw = Σ(score_cat × poids_cat)  pour chaque catégorie active
+total_w = Σ(poids_cat)
+score = round(raw / total_w × 100)   → [0, 100] (plus de plafond)
 ```
 
-Le plafond évite les extrêmes absolus (jamais 0% ou 100% de compatibilité).
+Quand une catégorie manque de données (ex: aucun pattern, aucune dimension
+de réputation commune) → elle est exclue et son poids est réparti
+proportionnellement sur les catégories restantes.
 
 ---
 
