@@ -606,8 +606,6 @@ fieldset.ocean-inputs legend{
 .rel-person-row:hover{background:var(--bg)}
 .rel-person-row input[type="radio"],.rel-person-row input[type="checkbox"]{width:1rem;height:1rem;cursor:pointer;accent-color:var(--cyan)}
 .rel-person-row .rel-avatar{font-size:1.1rem;line-height:1}
-.rel-person-row .person-name{font-size:.85rem;font-weight:600;color:var(--text);flex:1}
-
 /* Log entry header with delete button */
 .log-entry-header{display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
 .log-entry .btn-icon{background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--text-muted);transition:color 0.15s,border-color 0.15s;padding:0;line-height:1}

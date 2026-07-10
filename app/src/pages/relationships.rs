@@ -3,6 +3,7 @@ use peoplemodeler_core::models::Relationship;
 
 use crate::db;
 use crate::i18n::Lang;
+use crate::Route;
 
 #[component]
 pub fn Relationships() -> Element {
@@ -126,9 +127,9 @@ pub fn Relationships() -> Element {
                     for rel in rels() {
                         div { class: "relationship-card",
                             div { class: "relationship-card-row",
-                                span { class: "person-name", "{person_name(&rel.source_id)}" }
+                                Link { to: Route::PersonDetail { id: rel.source_id.clone() }, class: "person-link", "{person_name(&rel.source_id)}" }
                                 span { class: "arrow", "→" }
-                                span { class: "person-name", "{person_name(&rel.target_id)}" }
+                                Link { to: Route::PersonDetail { id: rel.target_id.clone() }, class: "person-link", "{person_name(&rel.target_id)}" }
                                 span { class: "tag", "{rel.r#type}" }
                             }
                             if !rel.notes.is_empty() {
