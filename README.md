@@ -263,8 +263,21 @@ Pour chaque dimension (8 bipolaires) où A et B ont une valeur :
 
 ```
 similarité = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
-Rep_brut = moyenne des similarités sur les dimensions partagées
+Rep_brut = Σ(similarité_dim × poids_dim) / Σ(poids_dim)
 ```
+
+Les dimensions ont des poids différents selon leur impact relationnel :
+
+| Dimension | Poids |
+|---|---|
+| Honnête ↔ Trompeur | 0.20 |
+| Fiable ↔ Inconstant | 0.15 |
+| Autoritaire ↔ Soumis | 0.15 |
+| Humble ↔ Arrogant | 0.15 |
+| Travailleur ↔ Paresseux | 0.10 |
+| Calme ↔ Réactif | 0.10 |
+| Diplomate ↔ Direct | 0.10 |
+| Généreux ↔ Égoïste | 0.05 |
 
 - Si **aucune** dimension commune : catégorie inactive, poids redistribué
 
@@ -302,16 +315,19 @@ Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **
 (indépendance neutre), Security × Security = **0.0** (statu quo). Les autres
 (Achievement, Affiliation, Learning, Helping) restent à **+0.2** (alignement).
 
+🔄 Complémentarité : paires asymétriques productives — Power × Helping = **+0.1**
+(l'un dirige, l'autre soutient), Achievement × Affiliation = **+0.1** (résultats + harmonie).
+
 | tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping |
 |---|---|---|---|---|---|---|---|---|
-| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0 | 0 |
-| **Achievement** | +0.3 | +0.2 | 0 | −0.2 | +0.2 | +0.3 | +0.3 | 0 |
-| **Affiliation** | −0.2 | 0 | +0.2 | +0.2 | −0.1 | −0.1 | 0 | +0.3 |
+| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0 | **+0.1** |
+| **Achievement** | +0.3 | +0.2 | **+0.1** | −0.2 | +0.2 | +0.3 | +0.3 | 0 |
+| **Affiliation** | −0.2 | **+0.1** | +0.2 | +0.2 | −0.1 | −0.1 | 0 | +0.3 |
 | **Security** | −0.1 | −0.2 | +0.2 | **0.0** | −0.3 | 0 | 0 | +0.2 |
 | **Autonomy** | +0.2 | +0.2 | −0.1 | −0.3 | **0.0** | 0 | +0.2 | 0 |
 | **Recognition** | +0.2 | +0.3 | −0.1 | 0 | 0 | **−0.1** | 0 | 0 |
 | **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 |
-| **Helping** | 0 | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 |
+| **Helping** | **+0.1** | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 |
 
 #### 4. Patterns (16%)
 
@@ -333,6 +349,22 @@ Table `trigger_synergy(tA, tB)` :
 | **Uncertainty** | 0 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 |
 | **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+**Pénalité danger Patterns** — lorsque les deux personnes n'ont **que** des
+déclencheurs négatifs (Conflict, Stress, Threatened), aucun pattern positif
+n'équilibre la relation :
+
+```
+pénalité_Patterns = 0.05 si les deux n'ont que des déclencheurs négatifs
+                     0.00 sinon
+```
+
+Patterns final après modulation et pénalité :
+
+```
+Patterns_penalisé = max(Patterns_brut - pénalité_Patterns, 0)
+Patterns_final = min(Patterns_penalisé × (1 + modulations_biais_Patterns), 1)
+```
 
 #### 5. Biais (15%)
 
@@ -391,17 +423,22 @@ pénalité_historique =
 raw = Σ(score_cat × poids_cat)  pour chaque catégorie active
 total_w = Σ(poids_cat)
 
-danger_total = pénalité_OCEAN × 0.19 + pénalité_Rep × 0.29 + pénalité_historique
-score = round(raw / total_w × 100) − round(danger_total × 100)
-       → clamp [0, 100]
+score = round(raw / total_w × 100)  → clamp [0, 100]
+```
+
+Les pénalités danger sont déjà appliquées au niveau de chaque catégorie
+(OCEAN, Réputation, Patterns) avant l'agrégation. Le champ `danger` du
+`SynergyBreakdown` expose la somme pondérée des pénalités pour transparence
+(sans double soustraction) :
+
+```
+danger = pénalité_OCEAN × 0.19 + pénalité_Rep × 0.29
+       + pénalité_Patterns × 0.16 + pénalité_historique
 ```
 
 Quand une catégorie manque de données (ex: aucun pattern, aucune dimension
 de réputation commune) → elle est exclue et son poids est réparti
 proportionnellement sur les catégories restantes.
-
-Le champ `danger` du `SynergyBreakdown` expose `danger_total` pour
-transparence (affichage futur).
 
 ---
 

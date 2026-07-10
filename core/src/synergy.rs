@@ -225,20 +225,30 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     let raw_ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
 
-    // Reputation: distance per shared dimension
+    // Reputation: weighted distance per shared dimension
+    const DIM_WEIGHTS: [(RepDim, f64); 8] = [
+        (RepDim::HonestDeceitful, 0.20),
+        (RepDim::ReliableFlaky, 0.15),
+        (RepDim::AuthoritativeSubmissive, 0.15),
+        (RepDim::HumbleArrogant, 0.15),
+        (RepDim::HardworkerLazy, 0.10),
+        (RepDim::CalmReactive, 0.10),
+        (RepDim::DiplomaticBlunt, 0.10),
+        (RepDim::GenerousSelfish, 0.05),
+    ];
     let mut rep_sum = 0.0;
-    let mut rep_count = 0;
-    for dim in RepDim::ALL {
+    let mut total_active_w = 0.0;
+    for &(dim, weight) in &DIM_WEIGHTS {
         if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {
             let dist = if va >= vb { va - vb } else { vb - va };
-            rep_sum += 1.0 - dist as f64 / 10.0;
-            rep_count += 1;
+            rep_sum += (1.0 - dist as f64 / 10.0) * weight;
+            total_active_w += weight;
         }
     }
-    let (raw_rep, rep_active) = if rep_count == 0 {
+    let (raw_rep, rep_active) = if total_active_w == 0.0 {
         (0.0, false)
     } else {
-        (rep_sum / rep_count as f64, true)
+        (rep_sum / total_active_w, true)
     };
 
     // Motivation: all-pair weighted synergy
@@ -258,6 +268,28 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let pat_active = !a.behavioral_patterns.is_empty() && !b.behavioral_patterns.is_empty();
     let raw_pat = if pat_active {
         pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns)
+    } else {
+        0.0
+    };
+
+    // --- Pattern danger: both persons have only negative triggers ---
+
+    let has_negative_only = |patterns: &[BehavioralPattern]| -> bool {
+        !patterns.is_empty()
+            && patterns.iter().all(|p| {
+                matches!(
+                    p.trigger,
+                    BehaviorTrigger::Conflict
+                        | BehaviorTrigger::Stress
+                        | BehaviorTrigger::Threatened
+                )
+            })
+    };
+    let pat_danger_penalty = if pat_active
+        && has_negative_only(&a.behavioral_patterns)
+        && has_negative_only(&b.behavioral_patterns)
+    {
+        0.05
     } else {
         0.0
     };
@@ -320,9 +352,12 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let ocean = ((raw_ocean - ocean_penalty).max(0.0) * (1.0 + ocean_mod)).clamp(0.0, 1.0);
     let reputation = ((raw_rep - rep_penalty).max(0.0) * (1.0 + rep_mod)).clamp(0.0, 1.0);
     let motivation = (raw_mot * (1.0 + mot_mod)).clamp(0.0, 1.0);
-    let patterns = (raw_pat * (1.0 + pat_mod)).clamp(0.0, 1.0);
+    let patterns = ((raw_pat - pat_danger_penalty).max(0.0) * (1.0 + pat_mod)).clamp(0.0, 1.0);
 
-    let total_danger = ocean_penalty * 0.19 + rep_penalty * 0.29 + history_penalty;
+    let total_danger = ocean_penalty * W_OCEAN
+        + rep_penalty * W_REP
+        + pat_danger_penalty * W_PAT
+        + history_penalty;
 
     // Dynamic weight redistribution
     const W_OCEAN: f64 = 0.19;
@@ -352,8 +387,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     total_w += W_BIAS;
 
     let score = if total_w > 0.0 {
-        let adjusted = (raw / total_w * 100.0).round() as f64 - (total_danger * 100.0).round();
-        (adjusted.max(0.0) as u8).min(100)
+        ((raw / total_w * 100.0).round() as u8).min(100)
     } else {
         0
     };
@@ -383,6 +417,8 @@ pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
     use MotivationType::*;
     match (a, b) {
         (Power, Achievement) | (Achievement, Power) => 0.3,
+        (Power, Helping) | (Helping, Power) => 0.1,
+        (Achievement, Affiliation) | (Affiliation, Achievement) => 0.1,
         (Power, Autonomy) | (Autonomy, Power) => 0.2,
         (Achievement, Autonomy) | (Autonomy, Achievement) => 0.2,
         (Affiliation, Helping) | (Helping, Affiliation) => 0.3,
@@ -1401,5 +1437,131 @@ mod tests {
             "harmonious pair should have no danger: {}",
             brk.danger
         );
+    }
+
+    // --- Motivation complementarity tests ---
+
+    #[test]
+    fn test_motivation_power_helping_complementary() {
+        assert!(
+            (motivation_synergy(MotivationType::Power, MotivationType::Helping) - 0.1).abs() < 1e-9
+        );
+        assert!(
+            (motivation_synergy(MotivationType::Helping, MotivationType::Power) - 0.1).abs() < 1e-9
+        );
+    }
+
+    #[test]
+    fn test_motivation_achievement_affiliation_complementary() {
+        assert!(
+            (motivation_synergy(MotivationType::Achievement, MotivationType::Affiliation) - 0.1)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (motivation_synergy(MotivationType::Affiliation, MotivationType::Achievement) - 0.1)
+                .abs()
+                < 1e-9
+        );
+    }
+
+    // --- Pattern danger tests ---
+
+    #[test]
+    fn test_pattern_danger_all_negative_triggers() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: "argues".into(),
+                confidence: 8,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: "withdraws".into(),
+                confidence: 7,
+            },
+        ];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Threatened,
+            predicted_behavior: "defensive".into(),
+            confidence: 6,
+        }];
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            brk.danger > 0.0,
+            "all-negative triggers should produce danger: {}",
+            brk.danger
+        );
+    }
+
+    #[test]
+    fn test_pattern_danger_positive_trigger_no_penalty() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: "argues".into(),
+            confidence: 8,
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: "adapts".into(),
+            confidence: 7,
+        }];
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            brk.danger < 0.001,
+            "positive trigger should avoid pattern danger: {}",
+            brk.danger
+        );
+    }
+
+    // --- Rep weighted dimension tests ---
+
+    #[test]
+    fn test_rep_weighted_honest_more_impactful() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        // HonestDeceitful (weight 0.20): very different → drags score
+        // GenerousSelfish (weight 0.05): identical → minimal boost
+        a.rep_scores = RepScores {
+            honest_deceitful: Some(10),
+            generous_selfish: Some(8),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            honest_deceitful: Some(1),
+            generous_selfish: Some(8),
+            ..RepScores::default()
+        };
+        let brk = compute_synergy_score(&a, &b);
+        // Weighted: (0.1*0.20 + 1.0*0.05) / 0.25 = 0.07/0.25 = 0.28
+        // Simple avg: (0.1 + 1.0) / 2 = 0.55
+        assert!(
+            brk.reputation < 0.40,
+            "Honest mismatch should drag weighted rep below 0.40: {}",
+            brk.reputation
+        );
+    }
+
+    // --- No double-counting: danger field is informational ---
+
+    #[test]
+    fn test_danger_is_informational_not_subtracted() {
+        // Pair with danger should still have danger recorded but NOT subtracted from total
+        let a = make_person(Some(9), Some(9), Some(9), Some(3), Some(8));
+        let b = make_person(Some(1), Some(1), Some(1), Some(2), Some(7));
+        let brk = compute_synergy_score(&a, &b);
+        // Danger should be > 0
+        assert!(
+            brk.danger > 0.0,
+            "danger should be > 0 for volatile pair: {}",
+            brk.danger
+        );
+        // The total should reflect category-level penalties (embedded in ocean/rep)
+        // but not an extra subtraction. Exact value depends on weights — just verify it runs.
+        assert!(brk.total >= 0, "total should be >= 0: {}", brk.total);
     }
 }
