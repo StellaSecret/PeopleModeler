@@ -206,14 +206,108 @@ Person
 Synergy = OCEAN×20% + Réputation×31% + Motivation×23% + Patterns×17% + Biais×9%
 ```
 
-- **OCEAN**: complémentarité O-C, E-A, similarité N (distance ≤3), floor 0.15/0.15/0.1
-- **Réputation**: moyenne des similarités sur les dimensions partagées
-  `1.0 - |a - b| / 10` par dimension, moyenne des dimensions renseignées
-- **Motivation**: bonus si types différents, pondéré par intensité min
-- **Patterns**: moyenne pondérée de toutes les paires trigger×trigger,
-  poids = `conf_a × conf_b / 100`, puis décalage +0.5 → plage [0.2, 0.8]
-- **Biais**: bonus si types différents
-- Plafond \[25, 98\] — jamais 0% ou 100%
+Chaque catégorie produit un score brut dans [0, 1], puis on applique la pondération
+et on plafonne le résultat final dans [25, 98].
+
+#### 1. OCEAN (20%)
+
+Trois sous-scores indépendants, chacun dépendant des valeurs OCEAN (1-10) de A et B :
+
+| Sous-score | Condition | Valeur | Logique |
+|---|---|---|---|
+| **OC** (O-C) | `O≥7 ∧ C≥7` (un des deux a O haut, l'autre C haut) | 1.0 | Complémentarité Ouverture / Conscience |
+| | `\|O_A - O_B\| ≤ 3 ∧ \|C_A - C_B\| ≤ 3` | 0.7 | Profils similaires |
+| | Sinon | 0.15 | Pas de synergie particulière |
+| **EA** (E-A) | `E≥7 ∧ A≥7` (un E haut, l'autre A haut) | 1.0 | Complémentarité Extraversion / Agréabilité |
+| | `\|E_A - E_B\| ≤ 3 ∧ \|A_A - A_B\| ≤ 3` | 0.7 | Profils similaires |
+| | Sinon | 0.15 | Pas de synergie particulière |
+| **N** (Névrosisme) | `\|N_A - N_B\| ≤ 2` | 0.8 | Niveaux proches (stabilité similaire) |
+| | `\|N_A - N_B\| ≤ 4` | 0.5 | Modérément proches |
+| | Sinon | 0.1 | Niveaux opposés |
+
+```
+OCEAN_brut = (OC + EA + N) / 3       → plage ~[0.13, 0.93]
+```
+
+#### 2. Réputation (31%)
+
+Pour chaque dimension de réputation (8 dimensions bipolaires : Autorité, Chaleur,
+Compétence, Intégrité, Sociabilité, Dominance, Fiabilité, Prestige) :
+
+- Si A et B ont tous deux renseigné la dimension :
+  ```
+  similarité = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
+  ```
+- Si aucune dimension commune : score = 0.5 (neutre).
+
+```
+Rep_brut = moyenne des similarités sur les dimensions partagées   → [0.0, 1.0]
+```
+
+#### 3. Motivation (23%)
+
+Seule la motivation principale (`top_motivation()`, intensité max) de chaque personne
+est utilisée.
+
+```
+w = min(intensité_A, intensité_B) / 10        → [0.1, 1.0]  (pondération)
+base = 0.6 si types différents, 0.3 si identiques
+Mot_brut = base + 0.4 × w                     → [0.34, 1.0]
+```
+
+Si l'un des deux n'a pas de motivation : score = 0.5.
+
+#### 4. Patterns (17%)
+
+Toutes les paires de patterns sont combinées. Chaque pattern a un `trigger` (parmi
+8 valeurs) et une `confidence` (1-10).
+
+```
+pour chaque paire (pattern_A, pattern_B) :
+    poids = confidence_A × confidence_B / 100        → [0.01, 1.0]
+    score = trigger_synergy(trigger_A, trigger_B) × poids
+
+Patterns_brut = (somme des scores) / (somme des poids) + 0.5   → clamp [0.0, 1.0]
+```
+
+La table `trigger_synergy(tA, tB)` :
+
+| tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened |
+|---|---|---|---|---|---|---|---|---|
+| **Change** | +0.3 | +0.3 | 0 | 0 | -0.2 | 0 | 0 | 0 |
+| **Feedback** | +0.3 | +0.3 | 0 | 0 | 0 | 0 | +0.2 | 0 |
+| **Success** | 0 | 0 | +0.3 | 0 | 0 | 0 | 0 | 0 |
+| **Conflict** | 0 | 0 | 0 | -0.3 | -0.3 | -0.2 | 0 | 0 |
+| **Stress** | -0.2 | 0 | 0 | -0.3 | -0.2 | 0 | 0 | 0 |
+| **Uncertainty** | 0 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 |
+| **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+(Si aucune paire : score = 0.5 neutre)
+
+#### 5. Biais (9%)
+
+Seul le biais principal (`top_bias()`, intensité max) de chaque personne est utilisé.
+
+```
+bias_raw = 0.3 si types de biais différents, 0.0 si identiques ou absents
+w = min(intensité_A, intensité_B) / 10                 → [0.1, 1.0]
+Biais_brut = (0.5 + bias_raw × w).clamp(0, 1)         → [0.5, 0.8]
+```
+
+#### Agrégation finale
+
+```
+raw  = OCEAN_brut × 0.20
+     + Rep_brut    × 0.31
+     + Mot_brut    × 0.23
+     + Pat_brut    × 0.17
+     + Biais_brut  × 0.09
+
+score = round(raw × 100).max(25).min(98)   → [25, 98]
+```
+
+Le plafond évite les extrêmes absolus (jamais 0% ou 100% de compatibilité).
 
 ---
 
