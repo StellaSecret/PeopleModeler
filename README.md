@@ -23,6 +23,7 @@ people-modeler/
 │   ├── src/
 │   │   ├── lib.rs              # Point d'entrée, exports WASM/JNI
 │   │   ├── models.rs           # Types partagés (Person, Prediction, BehaviorTrigger)
+│   │   ├── synergy.rs          # Score de synergie (OCEAN, Rep, Mot, Pat, Bias)
 │   │   ├── insights.rs         # Génération d'insights comportementaux
 │   │   ├── ocean.rs            # Interprétation OCEAN
 │   │   ├── wasm.rs             # Exports WebAssembly (JS)
@@ -286,16 +287,42 @@ Table `trigger_synergy(tA, tB)` :
 
 #### 5. Biais (15%)
 
-Toutes les paires pondérées par `intensity_A × intensity_B / 100` :
+Les biais ne sont **pas** scorés directement. Chaque type de biais module une
+autre catégorie du score quand il est partagé par les deux personnes :
 
 ```
-Biais_brut = 0.5 + moyenne_pondérée(bias_synergy(tA, tB))   → clamp [0, 1]
-bias_synergy = +0.2 si types différents, -0.2 si identiques
+biais_modificateur(type) → (cible, coefficient)
+
+Anchoring     → OCEAN       +0.10  (ancrage des premières impressions)
+Confirmation  → Réputation  +0.10  (recherche de confirmation)
+Availability  → Patterns    +0.10  (poids des événements récents)
+SunkCost      → Motivation  +0.10  (investissement passé)
+DunningKruger → OCEAN       -0.10  (auto-évaluation distordue)
+LossAversion  → Patterns    -0.10  (poids excessif du négatif)
+SocialProof   → Réputation  +0.08  (influence du groupe)
+Authority     → Motivation  +0.08  (déférence à l'autorité)
+Recency       → Patterns    +0.08  (emphase sur le récent)
+InGroup       → OCEAN       +0.08  (favoritisme endogroupe)
 ```
 
-- Types **différents** → bonus (biais se compensent)
-- Même **type** → malus (même distorsion amplifiée)
-- Plage effective : ~[0.3, 0.7]
+Pour chaque paire de biais **de même type** (partagés par A et B) :
+
+```
+modulation = coefficient × (intensity_A × intensity_B / 100)
+score_cat_modulé = score_cat_brut × (1.0 + Σ_modulations)   → clamp [0, 1]
+```
+
+**Score de biais** pour l'affichage : fraction des types de biais partagés :
+
+```
+biais_score = shared_types / max(len(A_types), len(B_types))
+             → 0.5 si aucun biais renseigné
+```
+
+- Biais partagé = les deux personnes ont le même biais → modulation appliquée
+- Biais non partagé = pas d'effet (ni bonus, ni malus)
+- Plus les biais partagés sont intenses, plus la modulation est forte
+- Remplace l'ancien système `bias_pair_synergy` (même=-0.2, différent=+0.2)
 
 #### Agrégation finale (poids dynamiques)
 

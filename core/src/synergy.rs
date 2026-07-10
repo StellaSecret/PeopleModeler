@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::models::{BehaviorTrigger, BehavioralPattern, BiasType, MotivationType, Person, RepDim};
 
 pub struct SynergyBreakdown {
@@ -7,6 +9,65 @@ pub struct SynergyBreakdown {
     pub motivation: f64,
     pub patterns: f64,
     pub bias: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum BiasTarget {
+    Ocean,
+    Reputation,
+    Motivation,
+    Patterns,
+}
+
+struct Modulation {
+    target: BiasTarget,
+    coefficient: f64,
+}
+
+fn bias_modifier(ty: BiasType) -> Option<Modulation> {
+    use BiasType::*;
+    match ty {
+        Anchoring => Some(Modulation {
+            target: BiasTarget::Ocean,
+            coefficient: 0.10,
+        }),
+        Confirmation => Some(Modulation {
+            target: BiasTarget::Reputation,
+            coefficient: 0.10,
+        }),
+        Availability => Some(Modulation {
+            target: BiasTarget::Patterns,
+            coefficient: 0.10,
+        }),
+        SunkCost => Some(Modulation {
+            target: BiasTarget::Motivation,
+            coefficient: 0.10,
+        }),
+        DunningKruger => Some(Modulation {
+            target: BiasTarget::Ocean,
+            coefficient: -0.10,
+        }),
+        LossAversion => Some(Modulation {
+            target: BiasTarget::Patterns,
+            coefficient: -0.10,
+        }),
+        SocialProof => Some(Modulation {
+            target: BiasTarget::Reputation,
+            coefficient: 0.08,
+        }),
+        Authority => Some(Modulation {
+            target: BiasTarget::Motivation,
+            coefficient: 0.08,
+        }),
+        Recency => Some(Modulation {
+            target: BiasTarget::Patterns,
+            coefficient: 0.08,
+        }),
+        InGroup => Some(Modulation {
+            target: BiasTarget::Ocean,
+            coefficient: 0.08,
+        }),
+    }
 }
 
 pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
@@ -39,7 +100,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         },
     };
 
-    let ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
+    let raw_ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
 
     // Reputation: distance per shared dimension
     let mut rep_sum = 0.0;
@@ -51,7 +112,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
             rep_count += 1;
         }
     }
-    let (reputation, rep_active) = if rep_count == 0 {
+    let (raw_rep, rep_active) = if rep_count == 0 {
         (0.0, false)
     } else {
         (rep_sum / rep_count as f64, true)
@@ -59,7 +120,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     // Motivation: all-pair weighted synergy
     let mot_active = !a.motivations.is_empty() && !b.motivations.is_empty();
-    let motivation = if mot_active {
+    let raw_mot = if mot_active {
         all_pair_weighted_avg(
             &a.motivations,
             &b.motivations,
@@ -72,33 +133,61 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     // Patterns: all-pair weighted synergy
     let pat_active = !a.behavioral_patterns.is_empty() && !b.behavioral_patterns.is_empty();
-    let patterns = if pat_active {
+    let raw_pat = if pat_active {
         pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns)
     } else {
         0.0
     };
 
-    // Bias: all-pair weighted synergy
-    let bias_active = !a.biases.is_empty() && !b.biases.is_empty();
-    let bias = if bias_active {
-        all_pair_weighted_avg(
-            &a.biases,
-            &b.biases,
-            |b| b.intensity,
-            |ba, bb| bias_pair_synergy(ba.r#type, bb.r#type),
-        )
+    // --- Bias: shared-type modulation system ---
+
+    // Count unique shared bias types
+    let a_types: HashSet<BiasType> = a.biases.iter().map(|b| b.r#type).collect();
+    let b_types: HashSet<BiasType> = b.biases.iter().map(|b| b.r#type).collect();
+    let shared_count = a_types.intersection(&b_types).count();
+    let max_unique = a_types.len().max(b_types.len());
+    let bias_score = if max_unique > 0 {
+        shared_count as f64 / max_unique as f64
     } else {
-        0.0
+        0.5
     };
 
-    // Base weights when all categories have data
+    // Accumulate bias modulations weighted by intensity pairs
+    let mut ocean_mod = 0.0;
+    let mut rep_mod = 0.0;
+    let mut mot_mod = 0.0;
+    let mut pat_mod = 0.0;
+
+    for ba in &a.biases {
+        for bb in &b.biases {
+            if ba.r#type == bb.r#type {
+                let w = (ba.intensity as f64 * bb.intensity as f64) / 100.0;
+                if let Some(m) = bias_modifier(ba.r#type) {
+                    let delta = m.coefficient * w;
+                    match m.target {
+                        BiasTarget::Ocean => ocean_mod += delta,
+                        BiasTarget::Reputation => rep_mod += delta,
+                        BiasTarget::Motivation => mot_mod += delta,
+                        BiasTarget::Patterns => pat_mod += delta,
+                    }
+                }
+            }
+        }
+    }
+
+    // Apply modulations
+    let ocean = (raw_ocean * (1.0 + ocean_mod)).clamp(0.0, 1.0);
+    let reputation = (raw_rep * (1.0 + rep_mod)).clamp(0.0, 1.0);
+    let motivation = (raw_mot * (1.0 + mot_mod)).clamp(0.0, 1.0);
+    let patterns = (raw_pat * (1.0 + pat_mod)).clamp(0.0, 1.0);
+
+    // Dynamic weight redistribution
     const W_OCEAN: f64 = 0.19;
     const W_REP: f64 = 0.29;
     const W_MOT: f64 = 0.21;
     const W_PAT: f64 = 0.16;
     const W_BIAS: f64 = 0.15;
 
-    // Sum only active categories, normalize by total active weight
     let mut raw = 0.0;
     let mut total_w = 0.0;
 
@@ -116,10 +205,8 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         raw += patterns * W_PAT;
         total_w += W_PAT;
     }
-    if bias_active {
-        raw += bias * W_BIAS;
-        total_w += W_BIAS;
-    }
+    raw += bias_score * W_BIAS;
+    total_w += W_BIAS;
 
     let score = if total_w > 0.0 {
         (raw / total_w * 100.0).round() as u8
@@ -133,7 +220,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         reputation,
         motivation,
         patterns,
-        bias,
+        bias: bias_score,
     }
 }
 
@@ -168,10 +255,6 @@ pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
         (Recognition, Affiliation) | (Affiliation, Recognition) => -0.1,
         _ => 0.0,
     }
-}
-
-pub fn bias_pair_synergy(a: BiasType, b: BiasType) -> f64 {
-    if a == b { -0.2 } else { 0.2 }
 }
 
 pub fn all_pair_weighted_avg<T, F>(
@@ -480,19 +563,164 @@ mod tests {
         );
     }
 
-    // --- bias_pair_synergy tests ---
+    // --- bias_modifier tests ---
 
     #[test]
-    fn test_bias_same_type() {
+    fn test_bias_modifier_all_types_have_mapping() {
+        for ty in &BiasType::ALL {
+            assert!(
+                bias_modifier(*ty).is_some(),
+                "bias_modifier missing for {:?}",
+                ty
+            );
+        }
+    }
+
+    #[test]
+    fn test_bias_modifier_anchoring_ocean() {
+        let m = bias_modifier(BiasType::Anchoring).unwrap();
+        assert!(matches!(m.target, BiasTarget::Ocean));
+        assert!((m.coefficient - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_modifier_confirmation_rep() {
+        let m = bias_modifier(BiasType::Confirmation).unwrap();
+        assert!(matches!(m.target, BiasTarget::Reputation));
+        assert!((m.coefficient - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_modifier_availability_patterns() {
+        let m = bias_modifier(BiasType::Availability).unwrap();
+        assert!(matches!(m.target, BiasTarget::Patterns));
+        assert!((m.coefficient - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_modifier_sunkcost_motivation() {
+        let m = bias_modifier(BiasType::SunkCost).unwrap();
+        assert!(matches!(m.target, BiasTarget::Motivation));
+        assert!((m.coefficient - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_modifier_dunningkruger_ocean_negative() {
+        let m = bias_modifier(BiasType::DunningKruger).unwrap();
+        assert!(matches!(m.target, BiasTarget::Ocean));
+        assert!((m.coefficient - (-0.10)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_modifier_lossaversion_patterns_negative() {
+        let m = bias_modifier(BiasType::LossAversion).unwrap();
+        assert!(matches!(m.target, BiasTarget::Patterns));
+        assert!((m.coefficient - (-0.10)).abs() < 1e-9);
+    }
+
+    // --- bias modulation end-to-end tests ---
+
+    #[test]
+    fn test_bias_shared_types_boost_bias_score() {
+        let mut a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let brk = compute_synergy_score(&a, &b);
         assert!(
-            (bias_pair_synergy(BiasType::Anchoring, BiasType::Anchoring) - (-0.2)).abs() < 1e-9
+            (brk.bias - 1.0).abs() < 0.001,
+            "bias_score should be 1.0 when all types shared, got {}",
+            brk.bias
         );
     }
 
     #[test]
-    fn test_bias_different_type() {
+    fn test_bias_no_shared_types_zero_score() {
+        let mut a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let brk = compute_synergy_score(&a, &b);
         assert!(
-            (bias_pair_synergy(BiasType::Anchoring, BiasType::Confirmation) - 0.2).abs() < 1e-9
+            (brk.bias - 0.0).abs() < 0.001,
+            "bias_score should be 0.0 when no shared types, got {}",
+            brk.bias
+        );
+    }
+
+    #[test]
+    fn test_bias_no_biases_neutral() {
+        let a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let b = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            (brk.bias - 0.5).abs() < 0.001,
+            "bias_score should be 0.5 when no biases, got {}",
+            brk.bias
+        );
+    }
+
+    #[test]
+    fn test_bias_modulation_anchoring_boosts_ocean() {
+        let mut a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 10,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 10,
+            evidence: String::new(),
+        }];
+        let brk = compute_synergy_score(&a, &b);
+        let no_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let no_b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        let brk_no = compute_synergy_score(&no_a, &no_b);
+        assert!(
+            brk.ocean > brk_no.ocean,
+            "Anchoring should boost ocean ({} vs {})",
+            brk.ocean,
+            brk_no.ocean
+        );
+    }
+
+    #[test]
+    fn test_bias_modulation_dunningkruger_dampens_ocean() {
+        let mut a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        a.biases = vec![Bias {
+            r#type: BiasType::DunningKruger,
+            intensity: 10,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::DunningKruger,
+            intensity: 10,
+            evidence: String::new(),
+        }];
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            (brk.ocean - 0.72).abs() < 0.001,
+            "ocean should be dampened by DunningKruger: {}",
+            brk.ocean
         );
     }
 
@@ -522,7 +750,6 @@ mod tests {
         let b = [TestItem { intensity: 10 }];
         let score = |_: &TestItem, _: &TestItem| 1.0_f64;
         let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        // w = (10*10)/100 = 1.0; sum=1.0*1.0=1.0; total_w=1.0; 0.5 + 1.0/1.0 = 1.5, clamped to 1.0
         assert!((result - 1.0).abs() < 0.001);
     }
 
@@ -532,7 +759,6 @@ mod tests {
         let b = [TestItem { intensity: 5 }];
         let score = |_: &TestItem, _: &TestItem| 0.8_f64;
         let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        // w=0.25, sum=0.8*0.25=0.2, total_w=0.25, 0.5+0.8=1.3 -> 1.0
         assert!((result - 1.0).abs() < 0.001);
     }
 
@@ -542,7 +768,6 @@ mod tests {
         let b = [TestItem { intensity: 10 }];
         let score = |_: &TestItem, _: &TestItem| -1.0_f64;
         let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        // w=1.0, sum=-1.0, total_w=1.0; 0.5 + (-1.0)/1.0 = -0.5, clamped to 0.0
         assert!((result - 0.0).abs() < 0.001);
     }
 
@@ -552,9 +777,6 @@ mod tests {
         let b = [TestItem { intensity: 10 }];
         let score = |_: &TestItem, _: &TestItem| 1.0_f64;
         let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        // pair (10,10): w=1.0, score=1.0
-        // pair (2,10): w=0.2, score=1.0
-        // sum=1.0+0.2=1.2; total_w=1.2; 0.5+1.2/1.2=1.5 -> 1.0
         assert!((result - 1.0).abs() < 0.001);
     }
 
@@ -579,9 +801,6 @@ mod tests {
             predicted_behavior: "welcomes change".into(),
             confidence: 6,
         }];
-        // trigger_synergy(Change,Change)=0.3
-        // w=(8*6)/100=0.48; sum=0.3*0.48=0.144; total_w=0.48
-        // 0.5 + 0.144/0.48 = 0.5 + 0.3 = 0.8
         let result = pattern_synergy(&a, &b);
         assert!((result - 0.8).abs() < 0.001);
     }
@@ -605,7 +824,6 @@ mod tests {
         let a = make_person(Some(8), None, Some(5), Some(5), Some(5));
         let b = make_person(None, Some(8), Some(5), Some(5), Some(5));
         let brk = compute_synergy_score(&a, &b);
-        // With missing traits, ocean is computed from what's available; default sim=0.5 for missing
         assert!(brk.ocean > 0.0);
     }
 
@@ -623,7 +841,6 @@ mod tests {
     fn test_synergy_missing_categories() {
         let mut a = make_person(Some(8), Some(7), Some(9), Some(4), Some(5));
         let mut b = make_person(Some(8), Some(7), Some(9), Some(4), Some(5));
-        // Add rep scores so reputation is active
         a.rep_scores = RepScores {
             hardworker_lazy: Some(8),
             reliable_flaky: Some(7),
@@ -634,7 +851,6 @@ mod tests {
             reliable_flaky: Some(8),
             ..RepScores::default()
         };
-        // No motivations, biases, patterns — only ocean + rep active
         let brk = compute_synergy_score(&a, &b);
         assert!(brk.total > 0);
         assert!(brk.ocean > 0.0);
@@ -653,7 +869,7 @@ mod tests {
         );
     }
 
-    // --- compute_synergy_score tests ---
+    // --- compute_synergy_score end-to-end tests ---
 
     #[test]
     fn test_synergy_identical_persons() {
@@ -736,6 +952,73 @@ mod tests {
             brk.total < 40,
             "Opposite persons should score < 40, got {}",
             brk.total
+        );
+    }
+
+    #[test]
+    fn test_synergy_bias_modulation_affects_total() {
+        // Same persons, but one pair has shared Anchoring, other has no shared biases
+        let mut base_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut base_b = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        base_a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            reliable_flaky: Some(7),
+            ..RepScores::default()
+        };
+        base_b.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            reliable_flaky: Some(8),
+            ..RepScores::default()
+        };
+        base_a.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        base_b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 7,
+            notes: String::new(),
+        }];
+
+        // Version 1: shared Anchoring bias
+        let mut a1 = Person { ..base_a.clone() };
+        let mut b1 = Person { ..base_b.clone() };
+        a1.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b1.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        let brk1 = compute_synergy_score(&a1, &b1);
+
+        // Version 2: no shared biases (different types)
+        let mut a2 = Person { ..base_a.clone() };
+        let mut b2 = Person { ..base_b.clone() };
+        a2.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b2.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        let brk2 = compute_synergy_score(&a2, &b2);
+
+        // Shared allows modulations, which should produce different total
+        assert_ne!(
+            brk1.total, brk2.total,
+            "shared vs different biases should yield different scores"
+        );
+        assert!(
+            brk1.bias > brk2.bias,
+            "shared biases should give higher bias score"
         );
     }
 }
