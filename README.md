@@ -246,16 +246,31 @@ Rep_brut = moyenne des similarités sur les dimensions partagées   → [0.0, 1.
 
 #### 3. Motivation (23%)
 
-Seule la motivation principale (`top_motivation()`, intensité max) de chaque personne
-est utilisée.
+Toutes les paires de motivations sont combinées. Chaque motivation a un `type`
+(parmi 8 valeurs) et une `intensity` (1-10).
 
 ```
-w = min(intensité_A, intensité_B) / 10        → [0.1, 1.0]  (pondération)
-base = 0.6 si types différents, 0.3 si identiques
-Mot_brut = base + 0.4 × w                     → [0.34, 1.0]
+pour chaque paire (mot_A, mot_B) :
+    poids = intensity_A × intensity_B / 100    → [0.01, 1.0]
+    score = motivation_synergy(type_A, type_B)
+
+Mot_brut = 0.5 + moyenne_pondérée(score × poids) / somme(poids)   → clamp [0, 1]
 ```
 
-Si l'un des deux n'a pas de motivation : score = 0.5.
+La table `motivation_synergy(tA, tB)` (bonus = synergique, malus = conflictuel) :
+
+| tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping |
+|---|---|---|---|---|---|---|---|---|
+| **Power** | +0.2 | +0.3 | -0.2 | -0.1 | +0.2 | +0.2 | 0 | 0 |
+| **Achievement** | +0.3 | +0.2 | 0 | -0.2 | +0.2 | +0.3 | +0.3 | 0 |
+| **Affiliation** | -0.2 | 0 | +0.2 | +0.2 | -0.1 | -0.1 | 0 | +0.3 |
+| **Security** | -0.1 | -0.2 | +0.2 | +0.2 | -0.3 | 0 | 0 | +0.2 |
+| **Autonomy** | +0.2 | +0.2 | -0.1 | -0.3 | +0.2 | 0 | +0.2 | 0 |
+| **Recognition** | +0.2 | +0.3 | -0.1 | 0 | 0 | +0.2 | 0 | 0 |
+| **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 |
+| **Helping** | 0 | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 |
+
+(Si aucune paire : score = 0.5 neutre. Même type = +0.2, partage de moteur.)
 
 #### 4. Patterns (17%)
 
@@ -287,13 +302,22 @@ La table `trigger_synergy(tA, tB)` :
 
 #### 5. Biais (9%)
 
-Seul le biais principal (`top_bias()`, intensité max) de chaque personne est utilisé.
+Toutes les paires de biais sont combinées. Chaque biais a un `type` (parmi
+10 valeurs) et une `intensity` (1-10).
 
 ```
-bias_raw = 0.3 si types de biais différents, 0.0 si identiques ou absents
-w = min(intensité_A, intensité_B) / 10                 → [0.1, 1.0]
-Biais_brut = (0.5 + bias_raw × w).clamp(0, 1)         → [0.5, 0.8]
+pour chaque paire (bias_A, bias_B) :
+    poids = intensity_A × intensity_B / 100    → [0.01, 1.0]
+    score = 0.2 si types différents, -0.2 si identiques
+
+Biais_brut = 0.5 + moyenne_pondérée(score × poids) / somme(poids)   → clamp [0, 1]
 ```
+
+- Types **différents** → bonus +0.2 (biais différents se compensent)
+- Même **type** → malus -0.2 (même distorsion amplifiée)
+- Pas de paire → score = 0.5 neutre
+
+Plage effective : ~[0.3, 0.7].
 
 #### Agrégation finale
 

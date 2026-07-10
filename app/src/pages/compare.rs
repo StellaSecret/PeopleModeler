@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehavioralPattern, BehaviorTrigger, BiasType, Person, RepDim, RepScores};
+use peoplemodeler_core::models::{BehavioralPattern, BehaviorTrigger, BiasType, MotivationType, Person, RepDim, RepScores};
 
 use crate::Route;
 use crate::db;
@@ -255,12 +255,55 @@ fn rep_scores_synergy(a: &RepScores, b: &RepScores) -> f64 {
     if count == 0 { 0.5 } else { sum / count as f64 }
 }
 
-fn bias_synergy(a_type: Option<&BiasType>, b_type: Option<&BiasType>) -> f64 {
-    match (a_type, b_type) {
-        (Some(a), Some(b)) if a != b => 0.3,
-        (Some(_), Some(_)) => 0.0,
+fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
+    if a == b { return 0.2; }
+    use MotivationType::*;
+    match (a, b) {
+        // Agency cluster
+        (Power, Achievement) | (Achievement, Power) => 0.3,
+        (Power, Autonomy) | (Autonomy, Power) => 0.2,
+        (Achievement, Autonomy) | (Autonomy, Achievement) => 0.2,
+        // Communion cluster
+        (Affiliation, Helping) | (Helping, Affiliation) => 0.3,
+        // Growth
+        (Achievement, Learning) | (Learning, Achievement) => 0.3,
+        (Autonomy, Learning) | (Learning, Autonomy) => 0.2,
+        (Learning, Helping) | (Helping, Learning) => 0.2,
+        // Ego
+        (Power, Recognition) | (Recognition, Power) => 0.2,
+        (Achievement, Recognition) | (Recognition, Achievement) => 0.3,
+        // Communion + Security
+        (Affiliation, Security) | (Security, Affiliation) => 0.2,
+        (Helping, Security) | (Security, Helping) => 0.2,
+        // Conflict pairs
+        (Power, Affiliation) | (Affiliation, Power) => -0.2,
+        (Power, Security) | (Security, Power) => -0.1,
+        (Achievement, Security) | (Security, Achievement) => -0.2,
+        (Autonomy, Affiliation) | (Affiliation, Autonomy) => -0.1,
+        (Autonomy, Security) | (Security, Autonomy) => -0.3,
+        (Recognition, Affiliation) | (Affiliation, Recognition) => -0.1,
         _ => 0.0,
     }
+}
+
+fn bias_pair_synergy(a: BiasType, b: BiasType) -> f64 {
+    if a == b { -0.2 } else { 0.2 }
+}
+
+fn all_pair_weighted_avg<T, F>(items_a: &[T], items_b: &[T], get_intensity: F, pair_score: fn(&T, &T) -> f64) -> f64
+where
+    F: Fn(&T) -> u8,
+{
+    let mut sum = 0.0;
+    let mut total_w = 0.0;
+    for a in items_a {
+        for b in items_b {
+            let w = (get_intensity(a) as f64 * get_intensity(b) as f64) / 100.0;
+            sum += pair_score(a, b) * w;
+            total_w += w;
+        }
+    }
+    if total_w == 0.0 { 0.5 } else { (0.5 + sum / total_w).clamp(0.0, 1.0) }
 }
 
 fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
@@ -345,36 +388,27 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     let ocean = (oc + ea + n) / 3.0;
 
-    // Motivation: weighted by min intensity / 10, different types get bonus
-    let mot_raw = match (a.top_motivation(), b.top_motivation()) {
-        (Some(m1), Some(m2)) => {
-            let w = (m1.intensity.min(m2.intensity) as f64) / 10.0;
-            let base = if m1.r#type != m2.r#type { 0.6 } else { 0.3 };
-            base + 0.4 * w
-        }
-        _ => 0.5,
-    };
+    // Motivation: all-pair weighted synergy
+    let motivation = all_pair_weighted_avg(
+        &a.motivations,
+        &b.motivations,
+        |m| m.intensity,
+        |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
+    );
 
     // Reputation: distance-based synergy, average of shared dimensions
     let reputation = rep_scores_synergy(&a.rep_scores, &b.rep_scores);
 
-    // Patterns: all-pair weighted synergy (no more top-1)
+    // Patterns: all-pair weighted synergy
     let patterns = pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns);
 
-    // Bias: different types = bonus
-    let bias_raw = {
-        let ba = a.top_bias();
-        let bb = b.top_bias();
-        let r = bias_synergy(ba.map(|b| &b.r#type), bb.map(|b| &b.r#type));
-        let w = match (ba, bb) {
-            (Some(b1), Some(b2)) => (b1.intensity.min(b2.intensity) as f64) / 10.0,
-            _ => 1.0,
-        };
-        r * w
-    };
-    let bias = (0.5 + bias_raw).clamp(0.0, 1.0);
-
-    let motivation = mot_raw;
+    // Bias: all-pair weighted synergy
+    let bias = all_pair_weighted_avg(
+        &a.biases,
+        &b.biases,
+        |b| b.intensity,
+        |ba, bb| bias_pair_synergy(ba.r#type, bb.r#type),
+    );
     let raw = ocean * 0.20 + reputation * 0.31 + motivation * 0.23 + patterns * 0.17 + bias * 0.09;
     let score = ((raw * 100.0).round() as u8).max(25).min(98);
 
