@@ -343,6 +343,16 @@ fieldset.ocean-inputs legend{
 .ocean-slider .ocean-hint .hint-low{color:var(--text-muted)}
 .ocean-slider .ocean-hint .hint-sep{opacity:0.3}
 .ocean-slider .ocean-hint .hint-high{color:var(--text-muted)}
+.ocean-header{display:flex;justify-content:space-between;align-items:center;width:100%;gap:0.5rem}
+.ocean-label{font-size:.82rem;color:var(--text-muted);font-weight:600;font-family:var(--font-display);flex:1}
+.dim-toggle{display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.78rem;color:var(--text-muted);font-family:var(--font-mono)}
+.dim-toggle input[type="checkbox"]{width:.9rem;height:.9rem;cursor:pointer;accent-color:var(--cyan)}
+.rep-slider-bar{display:flex;align-items:center;gap:.5rem;width:100%;margin:.25rem 0}
+.rep-pole-b,.rep-pole-a{font-size:.7rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap;min-width:fit-content}
+.rep-pole-b{text-align:left}
+.rep-pole-a{text-align:right}
+.rep-dim-value{width:100%;font-size:.78rem;color:var(--text-muted);margin-top:.1rem}
+.rep-dim-value strong{color:var(--cyan);font-family:var(--font-display)}
 
 /* ── FORM ROW ── */
 .form-row{display:flex;gap:0.5rem;margin-bottom:0.75rem;align-items:center}
@@ -596,6 +606,7 @@ fieldset.ocean-inputs legend{
 .rel-person-row:hover{background:var(--bg)}
 .rel-person-row input[type="radio"],.rel-person-row input[type="checkbox"]{width:1rem;height:1rem;cursor:pointer;accent-color:var(--cyan)}
 .rel-person-row .rel-avatar{font-size:1.1rem;line-height:1}
+.rel-person-row .person-name{font-size:.85rem;font-weight:600;color:var(--text);flex:1}
 
 /* Log entry header with delete button */
 .log-entry-header{display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
