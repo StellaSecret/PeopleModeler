@@ -239,7 +239,14 @@ jobs:
           GRADLE_DIR=$(find target/dx/peoplemodeler-app/release/android -name "gradlew" -exec dirname {} \; 2>/dev/null | head -1)
           if [ -n "$GRADLE_DIR" ]; then
             echo "Running bundleRelease in: $GRADLE_DIR"
-            cd "$GRADLE_DIR" && chmod +x gradlew && ./gradlew bundleRelease
+            cd "$GRADLE_DIR"
+            VCODE=$((100 + ${{ github.run_number }}))
+            BG=$(find . -name "build.gradle*" -path "*/app/*" 2>/dev/null | head -1)
+            if [ -n "$BG" ]; then
+              echo "Injecting versionCode=$VCODE into $BG"
+              sed -i "s/versionCode = [0-9]*/versionCode = $VCODE/" "$BG"
+            fi
+            chmod +x gradlew && ./gradlew bundleRelease
           else
             echo "WARNING: gradlew not found under target/dx/peoplemodeler-app/release/android"
             find target/dx -name "gradlew" 2>/dev/null || true
@@ -272,6 +279,32 @@ jobs:
             --key-pass "pass:$KP" --ks-key-alias "$ALIAS" \
             --out "$SIGNED" "$ALIGNED"
           echo "Signed: $SIGNED"
+      - name: Sign AAB (required by Google Play)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          AAB=$(find target/dx -name "*.aab" 2>/dev/null | head -1)
+          if [ -z "$AAB" ]; then
+            echo "No AAB found — skipping"
+            exit 0
+          fi
+          KEYSTORE="$HOME/.android/debug.keystore"
+          if [ ! -f "$KEYSTORE" ]; then
+            echo "ERROR: debug.keystore not found"
+            exit 1
+          fi
+          SP="${KEYSTORE_PASSWORD:-android}"
+          KP="${KEY_PASSWORD:-android}"
+          ALIAS="${KEY_ALIAS:-androiddebugkey}"
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* 2>/dev/null | sort -V | tail -1)
+          "${BUILD_TOOLS}/apksigner" sign \
+            --ks "$KEYSTORE" --ks-pass "pass:$SP" \
+            --key-pass "pass:$KP" --ks-key-alias "$ALIAS" \
+            --min-sdk-version 21 \
+            "$AAB"
+          echo "Signed AAB: $AAB"
       - name: Collect APK and AAB
         run: |
           mkdir -p dist
@@ -291,6 +324,17 @@ jobs:
           if [ -z "$APK" ] && [ -z "$AAB" ]; then
             echo "WARNING: No APK or AAB found. Listing target/dx tree..."
             find target/dx -name "*.apk" -o -name "*.aab" 2>/dev/null || true
+          fi
+      - name: Package native debug symbols
+        run: |
+          mkdir -p dist/symbols/arm64-v8a
+          SO="target/aarch64-linux-android/release/libpeoplemodeler_app.so"
+          if [ -f "$SO" ]; then
+            cp "$SO" dist/symbols/arm64-v8a/
+            cd dist && zip -r symbols.zip symbols/ && rm -rf symbols/
+            echo "Created symbols.zip ($(stat -c%s symbols.zip) bytes)"
+          else
+            echo "WARNING: $SO not found — skipping debug symbols"
           fi
       - name: Upload APK Artifact
         if: github.event_name != 'pull_request'
