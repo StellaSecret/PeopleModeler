@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehaviorTrigger, BiasType, Person, RepDim, RepScores};
+use peoplemodeler_core::models::{BehavioralPattern, BehaviorTrigger, BiasType, Person, RepDim, RepScores};
 
 use crate::Route;
 use crate::db;
@@ -263,31 +263,38 @@ fn bias_synergy(a_type: Option<&BiasType>, b_type: Option<&BiasType>) -> f64 {
     }
 }
 
-fn pattern_synergy(
-    a_trigger: Option<&BehaviorTrigger>,
-    b_trigger: Option<&BehaviorTrigger>,
-) -> f64 {
-    match (a_trigger, b_trigger) {
-        (Some(a), Some(b)) => match (a, b) {
-            (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => 0.3,
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Change)
-            | (BehaviorTrigger::Change, BehaviorTrigger::Feedback) => 0.3,
-            (BehaviorTrigger::Success, BehaviorTrigger::Success) => 0.3,
-            (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => -0.3,
-            (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => -0.2,
-            (BehaviorTrigger::Stress, BehaviorTrigger::Conflict)
-            | (BehaviorTrigger::Conflict, BehaviorTrigger::Stress) => -0.3,
-            (BehaviorTrigger::Change, BehaviorTrigger::Stress)
-            | (BehaviorTrigger::Stress, BehaviorTrigger::Change) => -0.2,
-            (BehaviorTrigger::Conflict, BehaviorTrigger::Uncertainty)
-            | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) => -0.2,
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition)
-            | (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) => 0.2,
-            _ => 0.0,
-        },
+fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
+    match (a, b) {
+        (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
+        (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => 0.3,
+        (BehaviorTrigger::Feedback, BehaviorTrigger::Change)
+        | (BehaviorTrigger::Change, BehaviorTrigger::Feedback) => 0.3,
+        (BehaviorTrigger::Success, BehaviorTrigger::Success) => 0.3,
+        (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => -0.3,
+        (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => -0.2,
+        (BehaviorTrigger::Stress, BehaviorTrigger::Conflict)
+        | (BehaviorTrigger::Conflict, BehaviorTrigger::Stress) => -0.3,
+        (BehaviorTrigger::Change, BehaviorTrigger::Stress)
+        | (BehaviorTrigger::Stress, BehaviorTrigger::Change) => -0.2,
+        (BehaviorTrigger::Conflict, BehaviorTrigger::Uncertainty)
+        | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) => -0.2,
+        (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition)
+        | (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) => 0.2,
         _ => 0.0,
     }
+}
+
+fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f64 {
+    let mut sum = 0.0;
+    let mut total_w = 0.0;
+    for a in pa {
+        for b in pb {
+            let w = (a.confidence as f64 * b.confidence as f64) / 100.0;
+            sum += trigger_synergy(a.trigger, b.trigger) * w;
+            total_w += w;
+        }
+    }
+    if total_w == 0.0 { 0.5 } else { (sum / total_w + 0.5).clamp(0.0, 1.0) }
 }
 
 struct SynergyBreakdown {
@@ -351,18 +358,8 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     // Reputation: distance-based synergy, average of shared dimensions
     let reputation = rep_scores_synergy(&a.rep_scores, &b.rep_scores);
 
-    // Patterns: weighted by min confidence / 10
-    let pat_raw = {
-        let pa = a.behavioral_patterns.iter().max_by_key(|p| p.confidence);
-        let pb = b.behavioral_patterns.iter().max_by_key(|p| p.confidence);
-        let r = pattern_synergy(pa.map(|p| &p.trigger), pb.map(|p| &p.trigger));
-        let w = match (pa, pb) {
-            (Some(p1), Some(p2)) => (p1.confidence.min(p2.confidence) as f64) / 10.0,
-            _ => 1.0,
-        };
-        r * w
-    };
-    let patterns = (pat_raw + 0.5).clamp(0.0, 1.0);
+    // Patterns: all-pair weighted synergy (no more top-1)
+    let patterns = pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns);
 
     // Bias: different types = bonus
     let bias_raw = {
@@ -378,7 +375,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let bias = (0.5 + bias_raw).clamp(0.0, 1.0);
 
     let motivation = mot_raw;
-    let raw = ocean * 0.30 + reputation * 0.30 + motivation * 0.20 + patterns * 0.12 + bias * 0.08;
+    let raw = ocean * 0.30 + reputation * 0.27 + motivation * 0.20 + patterns * 0.15 + bias * 0.08;
     let score = ((raw * 100.0).round() as u8).max(25).min(98);
 
     SynergyBreakdown { total: score, ocean, reputation, motivation, patterns, bias }

@@ -121,6 +121,7 @@ fn en(key: &'static str) -> &'static str {
         "insights_link" => "📊 Insights",
         "ocean_title" => "OCEAN Scores",
         "confidence_label" => "Confidence",
+        "pattern_hint" => "How sure I am this pattern exists (not intensity)",
 
         // Person edit form
         "form_new_title" => "New Person",
@@ -522,6 +523,7 @@ fn fr(key: &'static str) -> &'static str {
         "insights_link" => "📊 Analyses",
         "ocean_title" => "Scores OCEAN",
         "confidence_label" => "Confiance",
+        "pattern_hint" => "Certitude que ce pattern existe (pas son intensité)",
 
         "form_new_title" => "Nouvelle personne",
         "form_edit_title" => "Modifier la personne",

@@ -203,14 +203,15 @@ Person
 ### Score de synergie (comparaison 2 personnes)
 
 ```
-Synergy = OCEAN×30% + Réputation×30% + Motivation×20% + Patterns×12% + Biais×8%
+Synergy = OCEAN×30% + Réputation×27% + Motivation×20% + Patterns×15% + Biais×8%
 ```
 
 - **OCEAN**: complémentarité O-C, E-A, similarité N (distance ≤3)
 - **Réputation**: moyenne des similarités sur les dimensions partagées
   `1.0 - |a - b| / 10` par dimension, moyenne des dimensions renseignées
 - **Motivation**: bonus si types différents, pondéré par intensité min
-- **Patterns**: complémentarité des triggers, pondéré par confiance
+- **Patterns**: moyenne pondérée de toutes les paires trigger×trigger,
+  poids = `conf_a × conf_b / 100`, puis décalage +0.5 → plage [0.2, 0.8]
 - **Biais**: bonus si types différents
 - Plafond \[25, 98\] — jamais 0% ou 100%
 
