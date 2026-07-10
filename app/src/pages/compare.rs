@@ -319,7 +319,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     {
         0.7
     } else {
-        0.4
+        0.15
     };
 
     let ea = if (oa.extraversion >= 7 && ob.agreeableness >= 7)
@@ -331,7 +331,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     {
         0.7
     } else {
-        0.4
+        0.15
     };
 
     let nd = oa.neuroticism.abs_diff(ob.neuroticism);
@@ -340,7 +340,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     } else if nd <= 4 {
         0.5
     } else {
-        0.3
+        0.1
     };
 
     let ocean = (oc + ea + n) / 3.0;
@@ -375,7 +375,7 @@ fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let bias = (0.5 + bias_raw).clamp(0.0, 1.0);
 
     let motivation = mot_raw;
-    let raw = ocean * 0.30 + reputation * 0.27 + motivation * 0.20 + patterns * 0.15 + bias * 0.08;
+    let raw = ocean * 0.20 + reputation * 0.31 + motivation * 0.23 + patterns * 0.17 + bias * 0.09;
     let score = ((raw * 100.0).round() as u8).max(25).min(98);
 
     SynergyBreakdown { total: score, ocean, reputation, motivation, patterns, bias }

@@ -203,10 +203,10 @@ Person
 ### Score de synergie (comparaison 2 personnes)
 
 ```
-Synergy = OCEAN×30% + Réputation×27% + Motivation×20% + Patterns×15% + Biais×8%
+Synergy = OCEAN×20% + Réputation×31% + Motivation×23% + Patterns×17% + Biais×9%
 ```
 
-- **OCEAN**: complémentarité O-C, E-A, similarité N (distance ≤3)
+- **OCEAN**: complémentarité O-C, E-A, similarité N (distance ≤3), floor 0.15/0.15/0.1
 - **Réputation**: moyenne des similarités sur les dimensions partagées
   `1.0 - |a - b| / 10` par dimension, moyenne des dimensions renseignées
 - **Motivation**: bonus si types différents, pondéré par intensité min
