@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehavioralPattern, BehaviorTrigger, BiasType, MotivationType, Person, RepDim};
+use peoplemodeler_core::models::{BehaviorTrigger, Person};
+
+use peoplemodeler_core::synergy::compute_synergy_score;
 
 use crate::Route;
 use crate::db;
@@ -244,196 +246,6 @@ fn CompatRing(score: u8) -> Element {
     }
 }
 
-fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
-    if a == b { return 0.2; }
-    use MotivationType::*;
-    match (a, b) {
-        // Agency cluster
-        (Power, Achievement) | (Achievement, Power) => 0.3,
-        (Power, Autonomy) | (Autonomy, Power) => 0.2,
-        (Achievement, Autonomy) | (Autonomy, Achievement) => 0.2,
-        // Communion cluster
-        (Affiliation, Helping) | (Helping, Affiliation) => 0.3,
-        // Growth
-        (Achievement, Learning) | (Learning, Achievement) => 0.3,
-        (Autonomy, Learning) | (Learning, Autonomy) => 0.2,
-        (Learning, Helping) | (Helping, Learning) => 0.2,
-        // Ego
-        (Power, Recognition) | (Recognition, Power) => 0.2,
-        (Achievement, Recognition) | (Recognition, Achievement) => 0.3,
-        // Communion + Security
-        (Affiliation, Security) | (Security, Affiliation) => 0.2,
-        (Helping, Security) | (Security, Helping) => 0.2,
-        // Conflict pairs
-        (Power, Affiliation) | (Affiliation, Power) => -0.2,
-        (Power, Security) | (Security, Power) => -0.1,
-        (Achievement, Security) | (Security, Achievement) => -0.2,
-        (Autonomy, Affiliation) | (Affiliation, Autonomy) => -0.1,
-        (Autonomy, Security) | (Security, Autonomy) => -0.3,
-        (Recognition, Affiliation) | (Affiliation, Recognition) => -0.1,
-        _ => 0.0,
-    }
-}
-
-fn bias_pair_synergy(a: BiasType, b: BiasType) -> f64 {
-    if a == b { -0.2 } else { 0.2 }
-}
-
-fn all_pair_weighted_avg<T, F>(items_a: &[T], items_b: &[T], get_intensity: F, pair_score: fn(&T, &T) -> f64) -> f64
-where
-    F: Fn(&T) -> u8,
-{
-    let mut sum = 0.0;
-    let mut total_w = 0.0;
-    for a in items_a {
-        for b in items_b {
-            let w = (get_intensity(a) as f64 * get_intensity(b) as f64) / 100.0;
-            sum += pair_score(a, b) * w;
-            total_w += w;
-        }
-    }
-    if total_w == 0.0 { 0.5 } else { (0.5 + sum / total_w).clamp(0.0, 1.0) }
-}
-
-fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
-    match (a, b) {
-        (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
-        (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => 0.3,
-        (BehaviorTrigger::Feedback, BehaviorTrigger::Change)
-        | (BehaviorTrigger::Change, BehaviorTrigger::Feedback) => 0.3,
-        (BehaviorTrigger::Success, BehaviorTrigger::Success) => 0.3,
-        (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => -0.3,
-        (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => -0.2,
-        (BehaviorTrigger::Stress, BehaviorTrigger::Conflict)
-        | (BehaviorTrigger::Conflict, BehaviorTrigger::Stress) => -0.3,
-        (BehaviorTrigger::Change, BehaviorTrigger::Stress)
-        | (BehaviorTrigger::Stress, BehaviorTrigger::Change) => -0.2,
-        (BehaviorTrigger::Conflict, BehaviorTrigger::Uncertainty)
-        | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) => -0.2,
-        (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition)
-        | (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) => 0.2,
-        _ => 0.0,
-    }
-}
-
-fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f64 {
-    let mut sum = 0.0;
-    let mut total_w = 0.0;
-    for a in pa {
-        for b in pb {
-            let w = (a.confidence as f64 * b.confidence as f64) / 100.0;
-            sum += trigger_synergy(a.trigger, b.trigger) * w;
-            total_w += w;
-        }
-    }
-    if total_w == 0.0 { 0.5 } else { (sum / total_w + 0.5).clamp(0.0, 1.0) }
-}
-
-struct SynergyBreakdown {
-    pub total: u8,
-    pub ocean: f64,
-    pub reputation: f64,
-    pub motivation: f64,
-    pub patterns: f64,
-    pub bias: f64,
-}
-
-fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
-    let oa = &a.ocean;
-    let ob = &b.ocean;
-
-    let sim = |x: Option<u8>, y: Option<u8>| match (x, y) {
-        (Some(a), Some(b)) => 1.0 - (a.abs_diff(b) as f64) / 10.0,
-        _ => 0.5,
-    };
-
-    let oc = (sim(oa.openness, ob.openness) + sim(oa.conscientiousness, ob.conscientiousness)) / 2.0;
-    let ea = (sim(oa.extraversion, ob.extraversion) + sim(oa.agreeableness, ob.agreeableness)) / 2.0;
-    let n = sim(oa.neuroticism, ob.neuroticism);
-
-    let oc_bonus = match (oa.openness, ob.conscientiousness) {
-        (Some(o), Some(c)) if o >= 7 && c >= 7 => 0.15,
-        _ => match (ob.openness, oa.conscientiousness) {
-            (Some(o), Some(c)) if o >= 7 && c >= 7 => 0.15,
-            _ => 0.0,
-        },
-    };
-    let ea_bonus = match (oa.extraversion, ob.agreeableness) {
-        (Some(e), Some(a)) if e >= 7 && a >= 7 => 0.15,
-        _ => match (ob.extraversion, oa.agreeableness) {
-            (Some(e), Some(a)) if e >= 7 && a >= 7 => 0.15,
-            _ => 0.0,
-        },
-    };
-
-    let ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
-
-    // Reputation: distance per shared dimension
-    let mut rep_sum = 0.0;
-    let mut rep_count = 0;
-    for dim in RepDim::ALL {
-        if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {
-            let dist = if va >= vb { va - vb } else { vb - va };
-            rep_sum += 1.0 - dist as f64 / 10.0;
-            rep_count += 1;
-        }
-    }
-    let (reputation, rep_active) = if rep_count == 0 {
-        (0.0, false)
-    } else {
-        (rep_sum / rep_count as f64, true)
-    };
-
-    // Motivation: all-pair weighted synergy
-    let mot_active = !a.motivations.is_empty() && !b.motivations.is_empty();
-    let motivation = if mot_active {
-        all_pair_weighted_avg(
-            &a.motivations, &b.motivations,
-            |m| m.intensity,
-            |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
-        )
-    } else { 0.0 };
-
-    // Patterns: all-pair weighted synergy
-    let pat_active = !a.behavioral_patterns.is_empty() && !b.behavioral_patterns.is_empty();
-    let patterns = if pat_active {
-        pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns)
-    } else { 0.0 };
-
-    // Bias: all-pair weighted synergy
-    let bias_active = !a.biases.is_empty() && !b.biases.is_empty();
-    let bias = if bias_active {
-        all_pair_weighted_avg(
-            &a.biases, &b.biases,
-            |b| b.intensity,
-            |ba, bb| bias_pair_synergy(ba.r#type, bb.r#type),
-        )
-    } else { 0.0 };
-
-    // Base weights when all categories have data
-    const W_OCEAN: f64 = 0.19;
-    const W_REP: f64 = 0.29;
-    const W_MOT: f64 = 0.21;
-    const W_PAT: f64 = 0.16;
-    const W_BIAS: f64 = 0.15;
-
-    // Sum only active categories, normalize by total active weight
-    let mut raw = 0.0;
-    let mut total_w = 0.0;
-
-    raw += ocean * W_OCEAN; total_w += W_OCEAN;
-    if rep_active { raw += reputation * W_REP; total_w += W_REP; }
-    if mot_active { raw += motivation * W_MOT; total_w += W_MOT; }
-    if pat_active { raw += patterns * W_PAT; total_w += W_PAT; }
-    if bias_active { raw += bias * W_BIAS; total_w += W_BIAS; }
-
-    let score = if total_w > 0.0 {
-        (raw / total_w * 100.0).round() as u8
-    } else { 0 };
-
-    SynergyBreakdown { total: score, ocean, reputation, motivation, patterns, bias }
-}
-
 fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<String>, Vec<String>) {
     let oa = &a.ocean;
     let ob = &b.ocean;
@@ -554,6 +366,7 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
 
     // Reputation synergy (distance-based, per shared dimension)
     {
+        use peoplemodeler_core::models::RepDim;
         let cl = core_lang(lang);
         for dim in RepDim::ALL {
             if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {

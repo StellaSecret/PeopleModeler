@@ -3,6 +3,7 @@ pub mod insights;
 pub mod models;
 pub mod ocean;
 pub mod predictions;
+pub mod synergy;
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
@@ -101,6 +102,20 @@ mod tests {
         assert_eq!(p.name, back.name);
         assert_eq!(p.motivations.len(), back.motivations.len());
         assert_eq!(p.biases.len(), back.biases.len());
+        // tags are Tag type
+        assert_eq!(back.tags.len(), 3);
+        assert_eq!(back.tags[0].name, "Business");
+        assert!(back.tags[0].color.is_none());
+        // ocean fields are Option<u8>
+        assert_eq!(back.ocean.openness, Some(8));
+        assert_eq!(back.ocean.conscientiousness, Some(6));
+        assert_eq!(back.ocean.extraversion, Some(9));
+        assert_eq!(back.ocean.agreeableness, Some(4));
+        assert_eq!(back.ocean.neuroticism, Some(5));
+        // has_any() on default RepScores returns false
+        assert!(!RepScores::default().has_any());
+        // demo_person uses RepScores::default() so also false
+        assert!(!p.rep_scores.has_any());
     }
 
     #[test]
