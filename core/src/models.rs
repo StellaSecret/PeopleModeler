@@ -451,6 +451,7 @@ pub struct Person {
     pub role: String,
     pub context: String,
     pub avatar_emoji: String,
+    #[serde(default)]
     pub tags: Vec<Tag>,
     pub notes: String,
     pub motivations: Vec<Motivation>,
