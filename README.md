@@ -232,6 +232,31 @@ OCEAN_brut = (min(OC + oc_bonus, 1) + min(EA + ea_bonus, 1) + N) / 3
 - `sim` remplace les anciens paliers (0.15/0.7/1.0) par une valeur continue
 - `bonus` récompense la complémentarité O-C et E-A sans remplacer la distance
 
+**Pénalités danger OCEAN** — combinaisons de traits connues pour générer des
+frictions, **au sein d'une même personne** et **entre les deux** :
+
+```
+pénalité OCEAN = Σ(ci-dessous)
+
+Intra-personne (chaque personne) :
+  N ≥ 7 et A ≤ 4   → volatilité émotionnelle            +0.10
+  N ≥ 7 et C ≤ 4   → impulsivité                        +0.05
+  N ≥ 7 et O ≤ 4   → rigidité anxieuse                  +0.05
+
+Inter-personnes (les deux) :
+  Tous deux N ≥ 7   → contagion émotionnelle              +0.10
+  Tous deux A ≤ 4   → antagonisme mutuel                   +0.15
+  Tous deux C ≤ 4   → manque de fiabilité réciproque       +0.10
+  Tous deux O ≤ 4   → rigidité partagée                    +0.05
+```
+
+OCEAN final après modulation et pénalité :
+
+```
+OCEAN_penalisé = max(OCEAN_brut - pénalité_OCEAN, 0)
+OCEAN_final = min(OCEAN_penalisé × (1 + modulations_biais_OCEAN), 1)
+```
+
 #### 2. Réputation (29%)
 
 Pour chaque dimension (8 bipolaires) où A et B ont une valeur :
@@ -243,6 +268,25 @@ Rep_brut = moyenne des similarités sur les dimensions partagées
 
 - Si **aucune** dimension commune : catégorie inactive, poids redistribué
 
+**Pénalités danger Réputation** — mêmes pôles extrêmes chez les deux :
+
+```
+pénalité_Rep = Σ(ci-dessous)
+
+Tous deux Autoritaire ≥ 8  → lutte de pouvoir            +0.10
+Tous deux Direct ≥ 8       → brutalité, pas de diplomatie +0.10
+Tous deux Réactif ≥ 8      → escalade mutuelle            +0.10
+Tous deux Arrogant ≥ 8     → ni l'un ni l'autre ne cède   +0.10
+Tous deux Paresseux ≤ 3    → passivité mutuelle           +0.05
+```
+
+Réputation finale après modulation et pénalité :
+
+```
+Rep_penalisé = max(Rep_brut - pénalité_Rep, 0)
+Rep_final = min(Rep_penalisé × (1 + modulations_biais_Rep), 1)
+```
+
 #### 3. Motivation (21%)
 
 Toutes les paires pondérées par `intensity_A × intensity_B / 100` :
@@ -253,14 +297,19 @@ Mot_brut = 0.5 + moyenne_pondérée(mot_synergy(type_A, type_B))   → clamp [0,
 
 Table `motivation_synergy(tA, tB)` :
 
+🤝 Même type : selon la motivation — Power × Power = **−0.2** (compétition),
+Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **0.0**
+(indépendance neutre), Security × Security = **0.0** (statu quo). Les autres
+(Achievement, Affiliation, Learning, Helping) restent à **+0.2** (alignement).
+
 | tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping |
 |---|---|---|---|---|---|---|---|---|
-| **Power** | +0.2 | +0.3 | -0.2 | -0.1 | +0.2 | +0.2 | 0 | 0 |
-| **Achievement** | +0.3 | +0.2 | 0 | -0.2 | +0.2 | +0.3 | +0.3 | 0 |
-| **Affiliation** | -0.2 | 0 | +0.2 | +0.2 | -0.1 | -0.1 | 0 | +0.3 |
-| **Security** | -0.1 | -0.2 | +0.2 | +0.2 | -0.3 | 0 | 0 | +0.2 |
-| **Autonomy** | +0.2 | +0.2 | -0.1 | -0.3 | +0.2 | 0 | +0.2 | 0 |
-| **Recognition** | +0.2 | +0.3 | -0.1 | 0 | 0 | +0.2 | 0 | 0 |
+| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0 | 0 |
+| **Achievement** | +0.3 | +0.2 | 0 | −0.2 | +0.2 | +0.3 | +0.3 | 0 |
+| **Affiliation** | −0.2 | 0 | +0.2 | +0.2 | −0.1 | −0.1 | 0 | +0.3 |
+| **Security** | −0.1 | −0.2 | +0.2 | **0.0** | −0.3 | 0 | 0 | +0.2 |
+| **Autonomy** | +0.2 | +0.2 | −0.1 | −0.3 | **0.0** | 0 | +0.2 | 0 |
+| **Recognition** | +0.2 | +0.3 | −0.1 | 0 | 0 | **−0.1** | 0 | 0 |
 | **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 |
 | **Helping** | 0 | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 |
 
@@ -324,17 +373,35 @@ biais_score = shared_types / max(len(A_types), len(B_types))
 - Plus les biais partagés sont intenses, plus la modulation est forte
 - Remplace l'ancien système `bias_pair_synergy` (même=-0.2, différent=+0.2)
 
+#### 6. Facteur historique (traque les angles morts)
+
+Si les deux personnes ont ≥ 3 prédictions résolues, leur **précision moyenne**
+(< 5/10) indique une auto-évaluation peu fiable :
+
+```
+pénalité_historique =
+  0.05 si les deux ont avg < 5
+  0.03 si l'une des deux a avg < 5
+  0.00 sinon
+```
+
 #### Agrégation finale (poids dynamiques)
 
 ```
 raw = Σ(score_cat × poids_cat)  pour chaque catégorie active
 total_w = Σ(poids_cat)
-score = round(raw / total_w × 100)   → [0, 100] (plus de plafond)
+
+danger_total = pénalité_OCEAN × 0.19 + pénalité_Rep × 0.29 + pénalité_historique
+score = round(raw / total_w × 100) − round(danger_total × 100)
+       → clamp [0, 100]
 ```
 
 Quand une catégorie manque de données (ex: aucun pattern, aucune dimension
 de réputation commune) → elle est exclue et son poids est réparti
 proportionnellement sur les catégories restantes.
+
+Le champ `danger` du `SynergyBreakdown` expose `danger_total` pour
+transparence (affichage futur).
 
 ---
 

@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use crate::models::{BehaviorTrigger, BehavioralPattern, BiasType, MotivationType, Person, RepDim};
+use crate::models::{
+    BehaviorTrigger, BehavioralPattern, BiasType, MotivationType, Person, Prediction, RepDim,
+};
 
 pub struct SynergyBreakdown {
     pub total: u8,
@@ -9,6 +11,7 @@ pub struct SynergyBreakdown {
     pub motivation: f64,
     pub patterns: f64,
     pub bias: f64,
+    pub danger: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -68,6 +71,126 @@ fn bias_modifier(ty: BiasType) -> Option<Modulation> {
             coefficient: 0.08,
         }),
     }
+}
+
+fn avg_prediction_accuracy(predictions: &[Prediction]) -> Option<f64> {
+    let resolved: Vec<_> = predictions
+        .iter()
+        .filter(|p| p.resolved && p.accuracy.is_some())
+        .collect();
+    if resolved.len() < 3 {
+        return None;
+    }
+    let sum: f64 = resolved.iter().map(|p| p.accuracy.unwrap() as f64).sum();
+    Some(sum / resolved.len() as f64)
+}
+
+fn ocean_danger_penalty(oa: &crate::models::OceanScores, ob: &crate::models::OceanScores) -> f64 {
+    let mut p = 0.0;
+
+    // Within-person: volatile (N >= 7 and A <= 4)
+    if oa.neuroticism.map_or(false, |n| n >= 7) && oa.agreeableness.map_or(false, |a| a <= 4) {
+        p += 0.10;
+    }
+    if ob.neuroticism.map_or(false, |n| n >= 7) && ob.agreeableness.map_or(false, |a| a <= 4) {
+        p += 0.10;
+    }
+
+    // Within-person: impulsive (N >= 7 and C <= 4)
+    if oa.neuroticism.map_or(false, |n| n >= 7) && oa.conscientiousness.map_or(false, |c| c <= 4) {
+        p += 0.05;
+    }
+    if ob.neuroticism.map_or(false, |n| n >= 7) && ob.conscientiousness.map_or(false, |c| c <= 4) {
+        p += 0.05;
+    }
+
+    // Within-person: rigid anxious (N >= 7 and O <= 4)
+    if oa.neuroticism.map_or(false, |n| n >= 7) && oa.openness.map_or(false, |o| o <= 4) {
+        p += 0.05;
+    }
+    if ob.neuroticism.map_or(false, |n| n >= 7) && ob.openness.map_or(false, |o| o <= 4) {
+        p += 0.05;
+    }
+
+    // Cross-person: emotional contagion (both N >= 7)
+    if oa.neuroticism.map_or(false, |n| n >= 7) && ob.neuroticism.map_or(false, |n| n >= 7) {
+        p += 0.10;
+    }
+
+    // Cross-person: antagonism (both A <= 4)
+    if oa.agreeableness.map_or(false, |a| a <= 4) && ob.agreeableness.map_or(false, |a| a <= 4) {
+        p += 0.15;
+    }
+
+    // Cross-person: mutual unreliability (both C <= 4)
+    if oa.conscientiousness.map_or(false, |c| c <= 4)
+        && ob.conscientiousness.map_or(false, |c| c <= 4)
+    {
+        p += 0.10;
+    }
+
+    // Cross-person: mutual rigidity (both O <= 4)
+    if oa.openness.map_or(false, |o| o <= 4) && ob.openness.map_or(false, |o| o <= 4) {
+        p += 0.05;
+    }
+
+    p
+}
+
+fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::RepScores) -> f64 {
+    let mut p = 0.0;
+
+    // Both authoritative >= 8 → power struggle
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::AuthoritativeSubmissive),
+        rep_b.score(RepDim::AuthoritativeSubmissive),
+    ) {
+        if aa >= 8 && ab >= 8 {
+            p += 0.10;
+        }
+    }
+
+    // Both blunt >= 8 → brutal honesty, no diplomacy
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::DiplomaticBlunt),
+        rep_b.score(RepDim::DiplomaticBlunt),
+    ) {
+        if aa >= 8 && ab >= 8 {
+            p += 0.10;
+        }
+    }
+
+    // Both reactive >= 8 → mutual escalation
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::CalmReactive),
+        rep_b.score(RepDim::CalmReactive),
+    ) {
+        if aa >= 8 && ab >= 8 {
+            p += 0.10;
+        }
+    }
+
+    // Both arrogant >= 8 → neither concedes
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::HumbleArrogant),
+        rep_b.score(RepDim::HumbleArrogant),
+    ) {
+        if aa >= 8 && ab >= 8 {
+            p += 0.10;
+        }
+    }
+
+    // Both lazy <= 3 → mutual passivity
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::HardworkerLazy),
+        rep_b.score(RepDim::HardworkerLazy),
+    ) {
+        if aa <= 3 && ab <= 3 {
+            p += 0.05;
+        }
+    }
+
+    p
 }
 
 pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
@@ -141,7 +264,6 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     // --- Bias: shared-type modulation system ---
 
-    // Count unique shared bias types
     let a_types: HashSet<BiasType> = a.biases.iter().map(|b| b.r#type).collect();
     let b_types: HashSet<BiasType> = b.biases.iter().map(|b| b.r#type).collect();
     let shared_count = a_types.intersection(&b_types).count();
@@ -152,7 +274,6 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         0.5
     };
 
-    // Accumulate bias modulations weighted by intensity pairs
     let mut ocean_mod = 0.0;
     let mut rep_mod = 0.0;
     let mut mot_mod = 0.0;
@@ -175,11 +296,33 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         }
     }
 
-    // Apply modulations
-    let ocean = (raw_ocean * (1.0 + ocean_mod)).clamp(0.0, 1.0);
-    let reputation = (raw_rep * (1.0 + rep_mod)).clamp(0.0, 1.0);
+    // --- Danger penalties ---
+
+    let ocean_penalty = ocean_danger_penalty(oa, ob);
+    let rep_penalty = if rep_active {
+        rep_danger_penalty(&a.rep_scores, &b.rep_scores)
+    } else {
+        0.0
+    };
+
+    // --- History factor ---
+
+    let a_accuracy = avg_prediction_accuracy(&a.predictions);
+    let b_accuracy = avg_prediction_accuracy(&b.predictions);
+    let history_penalty = match (a_accuracy, b_accuracy) {
+        (Some(pa), Some(pb)) if pa < 5.0 && pb < 5.0 => 0.05,
+        (Some(pa), Some(_)) if pa < 5.0 => 0.03,
+        (Some(_), Some(pb)) if pb < 5.0 => 0.03,
+        _ => 0.0,
+    };
+
+    // Apply penalties + modulation
+    let ocean = ((raw_ocean - ocean_penalty).max(0.0) * (1.0 + ocean_mod)).clamp(0.0, 1.0);
+    let reputation = ((raw_rep - rep_penalty).max(0.0) * (1.0 + rep_mod)).clamp(0.0, 1.0);
     let motivation = (raw_mot * (1.0 + mot_mod)).clamp(0.0, 1.0);
     let patterns = (raw_pat * (1.0 + pat_mod)).clamp(0.0, 1.0);
+
+    let total_danger = ocean_penalty * 0.19 + rep_penalty * 0.29 + history_penalty;
 
     // Dynamic weight redistribution
     const W_OCEAN: f64 = 0.19;
@@ -209,7 +352,8 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     total_w += W_BIAS;
 
     let score = if total_w > 0.0 {
-        (raw / total_w * 100.0).round() as u8
+        let adjusted = (raw / total_w * 100.0).round() as f64 - (total_danger * 100.0).round();
+        (adjusted.max(0.0) as u8).min(100)
     } else {
         0
     };
@@ -221,32 +365,34 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         motivation,
         patterns,
         bias: bias_score,
+        danger: total_danger,
     }
 }
 
 pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
     if a == b {
-        return 0.2;
+        use MotivationType::*;
+        return match a {
+            Power => -0.2,
+            Recognition => -0.1,
+            Autonomy => 0.0,
+            Security => 0.0,
+            _ => 0.2,
+        };
     }
     use MotivationType::*;
     match (a, b) {
-        // Agency cluster
         (Power, Achievement) | (Achievement, Power) => 0.3,
         (Power, Autonomy) | (Autonomy, Power) => 0.2,
         (Achievement, Autonomy) | (Autonomy, Achievement) => 0.2,
-        // Communion cluster
         (Affiliation, Helping) | (Helping, Affiliation) => 0.3,
-        // Growth
         (Achievement, Learning) | (Learning, Achievement) => 0.3,
         (Autonomy, Learning) | (Learning, Autonomy) => 0.2,
         (Learning, Helping) | (Helping, Learning) => 0.2,
-        // Ego
         (Power, Recognition) | (Recognition, Power) => 0.2,
         (Achievement, Recognition) | (Recognition, Achievement) => 0.3,
-        // Communion + Security
         (Affiliation, Security) | (Security, Affiliation) => 0.2,
         (Helping, Security) | (Security, Helping) => 0.2,
-        // Conflict pairs
         (Power, Affiliation) | (Affiliation, Power) => -0.2,
         (Power, Security) | (Security, Power) => -0.1,
         (Achievement, Security) | (Security, Achievement) => -0.2,
@@ -324,8 +470,6 @@ pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f6
 mod tests {
     use super::*;
     use crate::models::*;
-
-    // --- test helpers ---
 
     struct TestItem {
         intensity: u8,
@@ -485,12 +629,42 @@ mod tests {
     // --- motivation_synergy tests ---
 
     #[test]
-    fn test_motivation_same_type() {
-        assert!(
-            (motivation_synergy(MotivationType::Power, MotivationType::Power) - 0.2).abs() < 1e-9
-        );
+    fn test_motivation_same_type_learning_positive() {
         assert!(
             (motivation_synergy(MotivationType::Learning, MotivationType::Learning) - 0.2).abs()
+                < 1e-9
+        );
+    }
+
+    #[test]
+    fn test_motivation_same_type_power_negative() {
+        assert!(
+            (motivation_synergy(MotivationType::Power, MotivationType::Power) - (-0.2)).abs()
+                < 1e-9
+        );
+    }
+
+    #[test]
+    fn test_motivation_same_type_recognition_negative() {
+        assert!(
+            (motivation_synergy(MotivationType::Recognition, MotivationType::Recognition) - (-0.1))
+                .abs()
+                < 1e-9
+        );
+    }
+
+    #[test]
+    fn test_motivation_same_type_autonomy_neutral() {
+        assert!(
+            (motivation_synergy(MotivationType::Autonomy, MotivationType::Autonomy) - 0.0).abs()
+                < 1e-9
+        );
+    }
+
+    #[test]
+    fn test_motivation_same_type_security_neutral() {
+        assert!(
+            (motivation_synergy(MotivationType::Security, MotivationType::Security) - 0.0).abs()
                 < 1e-9
         );
     }
@@ -805,6 +979,156 @@ mod tests {
         assert!((result - 0.8).abs() < 0.001);
     }
 
+    // --- OCEAN danger penalty tests ---
+
+    #[test]
+    fn test_ocean_penalty_volatile_combo() {
+        // Both N >= 7 and A <= 4 within each person
+        let a = make_person(Some(5), Some(5), Some(5), Some(2), Some(9));
+        let b = make_person(Some(5), Some(5), Some(5), Some(3), Some(8));
+        let p = ocean_danger_penalty(&a.ocean, &b.ocean);
+        // a: N=9>=7, A=2<=4 → volatile. b: N=8>=7, A=3<=4 → volatile. both N≥7 → contagion.
+        // each volatile 0.10 + mutual contagion 0.10 + antagonism 0.15 = 0.45
+        assert!((p - 0.45).abs() < 0.001, "volatile penalty: {}", p);
+    }
+
+    #[test]
+    fn test_ocean_penalty_no_danger() {
+        let a = make_person(Some(7), Some(7), Some(5), Some(6), Some(5));
+        let b = make_person(Some(6), Some(8), Some(4), Some(7), Some(3));
+        let p = ocean_danger_penalty(&a.ocean, &b.ocean);
+        assert!((p - 0.0).abs() < 0.001, "no danger should be 0: {}", p);
+    }
+
+    #[test]
+    fn test_ocean_penalty_both_low_a() {
+        let a = make_person(Some(5), Some(5), Some(5), Some(2), Some(4));
+        let b = make_person(Some(5), Some(5), Some(5), Some(3), Some(4));
+        let p = ocean_danger_penalty(&a.ocean, &b.ocean);
+        // both A <= 4 → antagonism 0.15
+        assert!((p - 0.15).abs() < 0.001, "both low A penalty: {}", p);
+    }
+
+    #[test]
+    fn test_ocean_penalty_contagion_antagonism() {
+        let a = make_person(Some(5), Some(5), Some(5), Some(2), Some(8));
+        let b = make_person(Some(5), Some(5), Some(5), Some(3), Some(9));
+        let p = ocean_danger_penalty(&a.ocean, &b.ocean);
+        // both N>=7 → 0.10, both A<=4 → 0.15, each volatile → 0.10+0.10
+        assert!((p - 0.45).abs() < 0.001, "combined penalty: {}", p);
+    }
+
+    // --- rep danger penalty tests ---
+
+    #[test]
+    fn test_rep_penalty_both_authoritative() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            authoritative_submissive: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            authoritative_submissive: Some(8),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!(
+            (p - 0.10).abs() < 0.001,
+            "both authoritative penalty: {}",
+            p
+        );
+    }
+
+    #[test]
+    fn test_rep_penalty_both_blunt() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            diplomatic_blunt: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            diplomatic_blunt: Some(8),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!((p - 0.10).abs() < 0.001, "both blunt penalty: {}", p);
+    }
+
+    #[test]
+    fn test_rep_penalty_both_lazy() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(2),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(1),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!((p - 0.05).abs() < 0.001, "both lazy penalty: {}", p);
+    }
+
+    #[test]
+    fn test_rep_penalty_no_shared_dims() {
+        let a = RepScores::default();
+        let b = RepScores::default();
+        let p = rep_danger_penalty(&a, &b);
+        assert!((p - 0.0).abs() < 0.001, "no shared dims penalty: {}", p);
+    }
+
+    // --- history factor tests ---
+
+    #[test]
+    fn test_avg_prediction_accuracy_insufficient_data() {
+        let predictions = vec![];
+        assert!(avg_prediction_accuracy(&predictions).is_none());
+    }
+
+    #[test]
+    fn test_avg_prediction_accuracy_sufficient() {
+        let predictions = vec![
+            Prediction {
+                id: "p1".into(),
+                person_id: "x".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: Some("ok".into()),
+                accuracy: Some(7),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p2".into(),
+                person_id: "x".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: Some("ok".into()),
+                accuracy: Some(5),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p3".into(),
+                person_id: "x".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: Some("ok".into()),
+                accuracy: Some(9),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+        ];
+        let acc = avg_prediction_accuracy(&predictions).unwrap();
+        assert!((acc - 7.0).abs() < 0.001, "avg accuracy: {}", acc);
+    }
+
     // --- OCEAN complementarity tests ---
 
     #[test]
@@ -957,7 +1281,6 @@ mod tests {
 
     #[test]
     fn test_synergy_bias_modulation_affects_total() {
-        // Same persons, but one pair has shared Anchoring, other has no shared biases
         let mut base_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
         let mut base_b = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
         base_a.rep_scores = RepScores {
@@ -981,7 +1304,6 @@ mod tests {
             notes: String::new(),
         }];
 
-        // Version 1: shared Anchoring bias
         let mut a1 = Person { ..base_a.clone() };
         let mut b1 = Person { ..base_b.clone() };
         a1.biases = vec![Bias {
@@ -996,7 +1318,6 @@ mod tests {
         }];
         let brk1 = compute_synergy_score(&a1, &b1);
 
-        // Version 2: no shared biases (different types)
         let mut a2 = Person { ..base_a.clone() };
         let mut b2 = Person { ..base_b.clone() };
         a2.biases = vec![Bias {
@@ -1011,7 +1332,6 @@ mod tests {
         }];
         let brk2 = compute_synergy_score(&a2, &b2);
 
-        // Shared allows modulations, which should produce different total
         assert_ne!(
             brk1.total, brk2.total,
             "shared vs different biases should yield different scores"
@@ -1019,6 +1339,67 @@ mod tests {
         assert!(
             brk1.bias > brk2.bias,
             "shared biases should give higher bias score"
+        );
+    }
+
+    // --- Danger penalty end-to-end tests ---
+
+    #[test]
+    fn test_danger_from_volatile_combo_lowers_total() {
+        let a = make_person(Some(9), Some(9), Some(9), Some(3), Some(8));
+        let b = make_person(Some(1), Some(1), Some(1), Some(2), Some(7));
+        // a: N=8≥7, A=3≤4 → volatile. b: N=7≥7, A=2≤4 → volatile. both N≥7→contagion. both A≤4→antagonism.
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            brk.danger > 0.0,
+            "volatile combo should produce danger: {}",
+            brk.danger
+        );
+    }
+
+    #[test]
+    fn test_danger_from_rep_power_struggle() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            authoritative_submissive: Some(9),
+            diplomatic_blunt: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            authoritative_submissive: Some(8),
+            diplomatic_blunt: Some(8),
+            ..RepScores::default()
+        };
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            brk.total < 75,
+            "power struggle should lower total: {}",
+            brk.total
+        );
+    }
+
+    #[test]
+    fn test_danger_field_present_in_breakdown() {
+        let a = make_person(Some(8), Some(7), Some(6), Some(2), Some(8));
+        let b = make_person(Some(7), Some(6), Some(5), Some(3), Some(9));
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            brk.danger > 0.0,
+            "volatile combo should produce danger: {}",
+            brk.danger
+        );
+    }
+
+    #[test]
+    fn test_no_danger_for_harmonious_pair() {
+        let a = make_person(Some(8), Some(8), Some(6), Some(7), Some(3));
+        let b = make_person(Some(7), Some(7), Some(5), Some(8), Some(2));
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            brk.danger < 0.001,
+            "harmonious pair should have no danger: {}",
+            brk.danger
         );
     }
 }
