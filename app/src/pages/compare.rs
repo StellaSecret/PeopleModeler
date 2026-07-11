@@ -617,11 +617,12 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     ) {
         (Some(pa), Some(pb)) => {
             let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
+            let intensity_bonus = if pa.intensity.max(pb.intensity) >= 8 { " ⚠️" } else { "" };
             if t_syn < -0.1 {
                 str.push(if lang == Lang::Fr {
-                    "Risque de déclenchement mutuel — leurs réactions au stress s'amplifient".into()
+                    format!("Risque de déclenchement mutuel{} — leurs réactions au stress s'amplifient", intensity_bonus)
                 } else {
-                    "Risk of mutual triggering — their stress responses amplify each other".into()
+                    format!("Risk of mutual triggering{} — their stress responses amplify each other", intensity_bonus)
                 });
             } else if t_syn > 0.1 {
                 str.push(if lang == Lang::Fr {

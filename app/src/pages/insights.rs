@@ -94,7 +94,16 @@ fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: L
     } else {
         String::new()
     };
-    format!("When {}{} is {}:\n\n{}", p.name, role_info, tl.to_lowercase(), base)
+    let intensity_tag = p.behavioral_patterns
+        .iter()
+        .find(|bp| bp.trigger == *trigger)
+        .map(|bp| {
+            if bp.intensity >= 8 { " ⚠️ Strong" }
+            else if bp.intensity <= 3 { " 🟢 Mild" }
+            else { "" }
+        })
+        .unwrap_or("");
+    format!("When {}{} is{}:\n\n{}", p.name, role_info, format!("{}{}", tl.to_lowercase(), intensity_tag), base)
 }
 
 fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {

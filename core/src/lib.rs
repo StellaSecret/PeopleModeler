@@ -323,11 +323,13 @@ mod tests {
                     trigger: BehaviorTrigger::Change,
                     predicted_behavior: "Embraces new processes".into(),
                     confidence: 8,
+                    intensity: 5,
                 },
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Feedback,
                     predicted_behavior: "Seeks constructive criticism".into(),
                     confidence: 6,
+                    intensity: 5,
                 },
             ],
             ocean: OceanScores::default(),

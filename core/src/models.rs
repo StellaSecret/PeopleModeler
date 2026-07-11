@@ -342,6 +342,8 @@ pub struct BehavioralPattern {
     pub predicted_behavior: String,
     #[serde(deserialize_with = "clamp_u8_1_10")]
     pub confidence: u8,
+    #[serde(default = "default_intensity")]
+    pub intensity: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -470,6 +472,10 @@ pub struct Person {
 }
 
 fn default_confidence() -> u8 {
+    5
+}
+
+fn default_intensity() -> u8 {
     5
 }
 

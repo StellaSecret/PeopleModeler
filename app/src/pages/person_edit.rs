@@ -541,6 +541,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(String::new);
     let mut sel_conf = use_signal(|| 5u8);
+    let mut sel_intensity = use_signal(|| 5u8);
 
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
     let outcome_pl = crate::i18n::tr("pred_outcome_placeholder", lang);
@@ -581,9 +582,14 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                     oninput: move |e| { sel_conf.set(e.value().parse().unwrap_or(5)); }
                 }
                 span { "{sel_conf}" }
+                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
+                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); },
+                    aria_label: "Intensity"
+                }
+                span { "⚡{sel_intensity}" }
                 small { " {pattern_hint}" }
                 button { class: "btn", aria_label: "Add pattern", onclick: move |_| {
-                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), confidence: sel_conf() });
+                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), confidence: sel_conf(), intensity: sel_intensity() });
                     sel_behavior.set(String::new());
                 }, "{add_btn}" }
             }
@@ -592,7 +598,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 div { class: "list-item",
                     strong { "{trigger_label(bp.trigger)}" }
                     span { " {bp.predicted_behavior}" }
-                    span { " ({bp.confidence}/10)" }
+                    span { " ({bp.confidence}/10 ⚡{bp.intensity})" }
                     button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); }, "✕" }
                 }
             }

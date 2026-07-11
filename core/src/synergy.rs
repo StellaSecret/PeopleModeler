@@ -1005,11 +1005,13 @@ mod tests {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: "embraces change".into(),
             confidence: 8,
+            intensity: 5,
         }];
         let b = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: "welcomes change".into(),
             confidence: 6,
+            intensity: 5,
         }];
         let result = pattern_synergy(&a, &b);
         assert!((result - 0.8).abs() < 0.001);
@@ -1476,17 +1478,20 @@ mod tests {
                 trigger: BehaviorTrigger::Conflict,
                 predicted_behavior: "argues".into(),
                 confidence: 8,
+                intensity: 5,
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Stress,
                 predicted_behavior: "withdraws".into(),
                 confidence: 7,
+                intensity: 5,
             },
         ];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Threatened,
             predicted_behavior: "defensive".into(),
             confidence: 6,
+            intensity: 5,
         }];
         let brk = compute_synergy_score(&a, &b);
         assert!(
@@ -1504,11 +1509,13 @@ mod tests {
             trigger: BehaviorTrigger::Conflict,
             predicted_behavior: "argues".into(),
             confidence: 8,
+            intensity: 5,
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: "adapts".into(),
             confidence: 7,
+            intensity: 5,
         }];
         let brk = compute_synergy_score(&a, &b);
         assert!(
