@@ -1,8 +1,30 @@
+use serde::de;
 use serde::{Deserialize, Deserializer, Serialize};
 
 pub fn clamp_u8_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     let v = u8::deserialize(d)?.clamp(1, 10);
     Ok(v)
+}
+
+pub fn deserialize_behavior_response<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<BehaviorResponse, D::Error> {
+    struct Brv;
+    impl<'de> de::Visitor<'de> for Brv {
+        type Value = BehaviorResponse;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("a behavior response variant")
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<BehaviorResponse, E> {
+            if v.is_empty() {
+                return Ok(BehaviorResponse::SeeksSupport);
+            }
+            // forward to serde's enum visitor
+            BehaviorResponse::deserialize(de::value::StrDeserializer::<E>::new(v))
+                .or(Ok(BehaviorResponse::SeeksSupport))
+        }
+    }
+    d.deserialize_str(Brv)
 }
 
 pub fn clamp_u8_opt_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u8>, D::Error> {
@@ -431,6 +453,7 @@ impl BehaviorResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BehavioralPattern {
     pub trigger: BehaviorTrigger,
+    #[serde(deserialize_with = "deserialize_behavior_response")]
     pub predicted_behavior: BehaviorResponse,
     #[serde(deserialize_with = "clamp_u8_1_10")]
     pub confidence: u8,

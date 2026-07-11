@@ -368,4 +368,40 @@ mod tests {
         assert!(!pred.resolved);
         assert!(pred.actual_outcome.is_none());
     }
+
+    #[test]
+    fn test_backup_empty_behavior_response() {
+        let json = r#"{
+            "version": 1,
+            "exported_at": 0,
+            "persons": [{
+                "id": "empty-br",
+                "name": "Empty Br",
+                "role": "",
+                "context": "",
+                "avatar_emoji": "🧑",
+                "tags": [],
+                "notes": "",
+                "motivations": [],
+                "biases": [],
+                "rep_scores": {},
+                "behavioral_patterns": [
+                    {"trigger": "Stress", "predicted_behavior": "", "confidence": 5}
+                ],
+                "ocean": {},
+                "log": [],
+                "predictions": [],
+                "confidence": 5,
+                "created_at": 0,
+                "updated_at": 0
+            }],
+            "predictions": []
+        }"#;
+        let data: BackupData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.persons.len(), 1);
+        assert_eq!(
+            data.persons[0].behavioral_patterns[0].predicted_behavior,
+            peoplemodeler_core::models::BehaviorResponse::SeeksSupport,
+        );
+    }
 }
