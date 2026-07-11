@@ -16,6 +16,12 @@ use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
 
+pub(crate) struct InsightOutput {
+    pub top: String,
+    pub secondary: Vec<String>,
+    pub has_secondary: bool,
+}
+
 #[component]
 pub fn Insights() -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -60,30 +66,8 @@ pub(crate) fn trigger_label(t: &BehaviorTrigger, lang: Lang) -> &'static str {
     }
 }
 
-pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang) -> String {
-    let top_mot = p.top_motivation();
-    let top_bias = p.top_bias();
-
-    let mut lines = Vec::new();
-    let tl = trigger_label(trigger, lang);
-    let pd = crate::i18n::tr("insights_primary_driver", lang);
-    let kb = crate::i18n::tr("insights_key_bias", lang);
-    let rec = crate::i18n::tr("insights_recommendations", lang);
-    lines.push(crate::i18n::tr_fmt(
-        "insights_context_analysis",
-        lang,
-        &[("trigger", tl), ("name", &p.name)],
-    ));
-    lines.push(String::new());
-
-    if let Some(m) = top_mot {
-        lines.push(format!("{}: {:?} ({}/10)", pd, m.r#type, m.intensity));
-    }
-    if let Some(b) = top_bias {
-        lines.push(format!("{}: {:?} ({}/10)", kb, b.r#type, b.intensity));
-    }
-
-    let strategy = match trigger {
+pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang) -> InsightOutput {
+    let all_recs = match trigger {
         BehaviorTrigger::Stress => stress_strategy(p, lang),
         BehaviorTrigger::Conflict => conflict_strategy(p, lang),
         BehaviorTrigger::Success => success_strategy(p, lang),
@@ -93,13 +77,24 @@ pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang
         BehaviorTrigger::Change => change_strategy(p, lang),
         BehaviorTrigger::Feedback => feedback_strategy(p, lang),
     };
-    lines.push(String::new());
-    lines.push(rec.into());
-    for s in strategy {
-        lines.push(format!("• {}", s));
-    }
 
-    lines.join("\n")
+    let top = build_top_rec(p, trigger, &all_recs, lang);
+    let has_secondary = all_recs.len() > 1;
+    InsightOutput { top, secondary: all_recs, has_secondary }
+}
+
+fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: Lang) -> String {
+    let tl = trigger_label(trigger, lang);
+    let base = recs.first().map_or(String::new(), |s| s.clone());
+    let role_info = if !p.role.is_empty() || !p.context.is_empty() {
+        let mut parts = vec![];
+        if !p.role.is_empty() { parts.push(p.role.as_str()); }
+        if !p.context.is_empty() { parts.push(p.context.as_str()); }
+        format!(" ({})", parts.join(", "))
+    } else {
+        String::new()
+    };
+    format!("When {}{} is {}:\n\n{}", p.name, role_info, tl.to_lowercase(), base)
 }
 
 fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {

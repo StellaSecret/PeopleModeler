@@ -81,7 +81,7 @@ pub fn PersonDetail(id: String) -> Element {
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
-            let insight_text = crate::pages::insights::generate_insight(person, &trigger(), lang());
+            let insight_output = crate::pages::insights::generate_insight(person, &trigger(), lang());
 
             let cl = core_lang(lang());
             let rep_items: Vec<_> = RepDim::ALL
@@ -317,7 +317,27 @@ pub fn PersonDetail(id: String) -> Element {
                                 }
                             }
                             div { class: "insight-content",
-                                pre { "{insight_text}" }
+                                div { class: "top-rec",
+                                    span { class: "rec-icon", "💡" }
+                                    div { class: "rec-text",
+                                        for line in insight_output.top.lines() {
+                                            if line.is_empty() { br {} }
+                                            else { "{line}" br {} }
+                                        }
+                                    }
+                                }
+                                if insight_output.has_secondary {
+                                    details { class: "more-recs",
+                                        summary {
+                                            span { "More recommendations (" "{insight_output.secondary.len() - 1}" ")" }
+                                        }
+                                        ul {
+                                            for s in &insight_output.secondary[1..] {
+                                                li { "{s}" }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         if !person.behavioral_patterns.is_empty() {

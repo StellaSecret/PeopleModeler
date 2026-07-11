@@ -28,7 +28,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
         (Some(a), Some(b)) => {
             let brk = compute_synergy_score(&a, &b);
             let score = brk.total;
-            let (synergies, frictions, strategies) = compare_analysis(&a, &b, lang());
+            let (synergies, frictions, (top_strategy, all_strategies)) = compare_analysis(&a, &b, lang());
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
             let compare_synergy = crate::i18n::tr("compare_synergy", lang());
@@ -46,6 +46,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let friction_title = crate::i18n::tr("compare_friction", lang());
             let strategy_title = crate::i18n::tr("compare_strategy", lang());
             let ethics = crate::i18n::tr("compare_ethics", lang());
+            let has_extra_strategies = all_strategies.len() > 1;
 
             rsx! {
                 div { class: "page",
@@ -148,9 +149,20 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                             }
                             div { class: "analysis-card strategy",
                                 h3 { "{strategy_title}" }
-                                ul {
-                                    for s in &strategies {
-                                        li { "{s}" }
+                                div { class: "top-rec",
+                                    span { class: "rec-icon", "💡" }
+                                    div { class: "rec-text", "{top_strategy}" }
+                                }
+                                if has_extra_strategies {
+                                    details { class: "more-recs",
+                                        summary {
+                                            span { "More (" "{all_strategies.len() - 1}" ")" }
+                                        }
+                                        ul {
+                                            for s in &all_strategies[1..] {
+                                                li { "{s}" }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -246,7 +258,7 @@ fn CompatRing(score: u8) -> Element {
     }
 }
 
-fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<String>, Vec<String>) {
+fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<String>, (String, Vec<String>)) {
     let oa = &a.ocean;
     let ob = &b.ocean;
     let cl = core_lang(lang);
@@ -569,6 +581,59 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         });
     }
 
+    // --- OCEAN-gap strategies ---
+    if let (Some(ea), Some(eb)) = (oa.extraversion, ob.extraversion) {
+        if ea.abs_diff(eb) >= 3 {
+            str.push(if lang == Lang::Fr {
+                format!("Rythme social très différent — {na} préfère plus d'échanges, {nb} plus de calme")
+            } else {
+                format!("Very different social pace — {na} prefers more interaction, {nb} more quiet time")
+            });
+        }
+    }
+    if let (Some(aa), Some(ab)) = (oa.agreeableness, ob.agreeableness) {
+        if aa.abs_diff(ab) >= 3 {
+            str.push(if lang == Lang::Fr {
+                "Styles de conflit différents — l'un cherche l'harmonie, l'autre la franchise".into()
+            } else {
+                "Different conflict styles — one seeks harmony, the other directness".into()
+            });
+        }
+    }
+    if let (Some(ca), Some(cb)) = (oa.conscientiousness, ob.conscientiousness) {
+        if ca.abs_diff(cb) >= 3 {
+            str.push(if lang == Lang::Fr {
+                "Niveaux d'organisation différents — adapter le niveau de détail et de structure".into()
+            } else {
+                "Different organization levels — adjust detail and structure expectations".into()
+            });
+        }
+    }
+
+    // --- Trigger-pair clash strategies ---
+    match (
+        a.behavioral_patterns.iter().max_by_key(|p| p.confidence),
+        b.behavioral_patterns.iter().max_by_key(|p| p.confidence),
+    ) {
+        (Some(pa), Some(pb)) => {
+            let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
+            if t_syn < -0.1 {
+                str.push(if lang == Lang::Fr {
+                    "Risque de déclenchement mutuel — leurs réactions au stress s'amplifient".into()
+                } else {
+                    "Risk of mutual triggering — their stress responses amplify each other".into()
+                });
+            } else if t_syn > 0.1 {
+                str.push(if lang == Lang::Fr {
+                    "Complémentarité comportementale — leurs réactions s'équilibrent naturellement".into()
+                } else {
+                    "Natural behavioral complementarity — their responses balance each other".into()
+                });
+            }
+        }
+        _ => {}
+    }
+
     if syn.is_empty() {
         syn.push(if lang == Lang::Fr {
             "Aucune synergie évidente détectée".into()
@@ -583,13 +648,19 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
             "No major friction points identified".into()
         });
     }
-    if str.is_empty() {
+
+    // Pick #1 strategy (motivation-based > OCEAN-gap > conflict > C-structure > fallback)
+    let top = if str.is_empty() {
         str.push(if lang == Lang::Fr {
             "Communiquer ouvertement et observer les réactions".into()
         } else {
             "Communicate openly and observe reactions".into()
         });
-    }
+        str[0].clone()
+    } else {
+        // First is always the strongest signal (strategies added in priority order)
+        str[0].clone()
+    };
 
-    (syn, fri, str)
+    (syn, fri, (top, str))
 }
