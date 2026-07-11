@@ -540,7 +540,6 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let ctx_feedback = crate::i18n::tr("ctx_feedback", lang);
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
-    let mut sel_conf = use_signal(|| 5u8);
     let mut sel_intensity = use_signal(|| 5u8);
 
     use peoplemodeler_core::i18n::Lang as CoreLang;
@@ -583,10 +582,6 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                         option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
                     }
                 }
-                input { r#type: "range", min: "1", max: "10", value: "{sel_conf}",
-                    oninput: move |e| { sel_conf.set(e.value().parse().unwrap_or(5)); }
-                }
-                span { "{sel_conf}" }
                 input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
                     oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); },
                     aria_label: "Intensity"
@@ -594,7 +589,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 span { "⚡{sel_intensity}" }
                 small { " {pattern_hint}" }
                 button { class: "btn", aria_label: "Add pattern", onclick: move |_| {
-                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), confidence: sel_conf(), intensity: sel_intensity() });
+                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() });
                     sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
                 }, "{add_btn}" }
             }
@@ -603,7 +598,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 div { class: "list-item",
                     strong { "{trigger_label(bp.trigger)}" }
                     span { " {bp.predicted_behavior.label(cl)}" }
-                    span { " ({bp.confidence}/10 ⚡{bp.intensity})" }
+                    span { " (⚡{bp.intensity}/10)" }
                     button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); }, "✕" }
                 }
             }

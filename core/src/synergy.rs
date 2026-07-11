@@ -490,7 +490,7 @@ pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f6
     let mut total_w = 0.0;
     for a in pa {
         for b in pb {
-            let w = (a.confidence as f64 * b.confidence as f64) / 100.0;
+            let w = (a.intensity as f64 * b.intensity as f64) / 100.0;
             sum += trigger_synergy(a.trigger, b.trigger) * w;
             total_w += w;
         }
@@ -1004,13 +1004,11 @@ mod tests {
         let a = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: BehaviorResponse::EmbracesChange,
-            confidence: 8,
             intensity: 5,
         }];
         let b = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: BehaviorResponse::EmbracesChange,
-            confidence: 6,
             intensity: 5,
         }];
         let result = pattern_synergy(&a, &b);
@@ -1477,20 +1475,17 @@ mod tests {
             BehavioralPattern {
                 trigger: BehaviorTrigger::Conflict,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                confidence: 8,
                 intensity: 5,
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Stress,
                 predicted_behavior: BehaviorResponse::Withdraws,
-                confidence: 7,
                 intensity: 5,
             },
         ];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Threatened,
             predicted_behavior: BehaviorResponse::DeflectsBlame,
-            confidence: 6,
             intensity: 5,
         }];
         let brk = compute_synergy_score(&a, &b);
@@ -1508,13 +1503,11 @@ mod tests {
         a.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Conflict,
             predicted_behavior: BehaviorResponse::BecomesDefensive,
-            confidence: 8,
             intensity: 5,
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: BehaviorResponse::EmbracesChange,
-            confidence: 7,
             intensity: 5,
         }];
         let brk = compute_synergy_score(&a, &b);

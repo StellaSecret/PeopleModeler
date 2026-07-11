@@ -322,13 +322,11 @@ mod tests {
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Change,
                     predicted_behavior: BehaviorResponse::EmbracesChange,
-                    confidence: 8,
                     intensity: 5,
                 },
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Feedback,
                     predicted_behavior: BehaviorResponse::AsksForDetails,
-                    confidence: 6,
                     intensity: 5,
                 },
             ],

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoNewPerson, clearStorage } from './helpers';
+import { gotoNewPerson, clearStorage, addPattern } from './helpers';
 
 test.describe('Person Page — Dioxus', () => {
   let personId: string;
@@ -31,5 +31,15 @@ test.describe('Person Page — Dioxus', () => {
 
   test('delete button exists', async ({ page }) => {
     await expect(page.locator('button:has-text("Delete")')).toBeVisible();
+  });
+
+  test('add pattern then verify on detail page', async ({ page }) => {
+    await page.goto(`/PeopleModeler/person/${personId}/edit`);
+    await page.waitForTimeout(200);
+    await addPattern(page, 'Stress', 'becomes_quiet', 7);
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await expect(page.locator('.pattern-item')).toContainText('⚡7/10');
+    await expect(page.locator('.pattern-item')).toContainText(/stress/i);
   });
 });

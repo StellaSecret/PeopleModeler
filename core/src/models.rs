@@ -455,8 +455,6 @@ pub struct BehavioralPattern {
     pub trigger: BehaviorTrigger,
     #[serde(deserialize_with = "deserialize_behavior_response")]
     pub predicted_behavior: BehaviorResponse,
-    #[serde(deserialize_with = "clamp_u8_1_10")]
-    pub confidence: u8,
     #[serde(default = "default_intensity")]
     pub intensity: u8,
 }

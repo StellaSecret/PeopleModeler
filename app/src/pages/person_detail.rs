@@ -50,7 +50,6 @@ pub fn PersonDetail(id: String) -> Element {
             let no_rep = crate::i18n::tr("no_reputation", lang());
             let pat_title = crate::i18n::tr("patterns_title", lang());
             let conf_label = crate::i18n::tr("confidence_label", lang());
-            let pattern_hint = crate::i18n::tr("pattern_hint", lang());
             let compare_btn = crate::i18n::tr("compare_btn", lang());
             let no_pat = crate::i18n::tr("no_patterns", lang());
             let log_title = crate::i18n::tr("log_title", lang());
@@ -200,12 +199,11 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                         div { class: "section",
                             h2 { "{pat_title}" }
-                        for bp in &person.behavioral_patterns {
+                            for bp in &person.behavioral_patterns {
                             div { class: "pattern-item",
                                 strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
                                 p { "{bp.predicted_behavior.label(cl)}" }
-                                span { "{conf_label}: {bp.confidence}/10" }
-                                small { " {pattern_hint}" }
+                                small { "⚡{bp.intensity}/10" }
                             }
                         }
                             if person.behavioral_patterns.is_empty() { p { "{no_pat}" } }

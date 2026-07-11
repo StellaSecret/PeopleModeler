@@ -462,8 +462,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
 
     // --- Behavioral Patterns ---
     match (
-        a.behavioral_patterns.iter().max_by_key(|p| p.confidence),
-        b.behavioral_patterns.iter().max_by_key(|p| p.confidence),
+        a.behavioral_patterns.iter().max_by_key(|p| p.intensity),
+        b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
     ) {
         (Some(pa), Some(pb)) => match (&pa.trigger, &pb.trigger) {
             (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
@@ -612,8 +612,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
 
     // --- Trigger-pair clash strategies ---
     match (
-        a.behavioral_patterns.iter().max_by_key(|p| p.confidence),
-        b.behavioral_patterns.iter().max_by_key(|p| p.confidence),
+        a.behavioral_patterns.iter().max_by_key(|p| p.intensity),
+        b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
     ) {
         (Some(pa), Some(pb)) => {
             let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);

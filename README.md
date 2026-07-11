@@ -186,7 +186,7 @@ Person
 ├── id, name, role, context, avatarEmoji
 ├── motivations[]        # type (enum), intensity (1-10), notes
 ├── biases[]             # type (enum), intensity (1-10), evidence
-├── behavioralPatterns[] # trigger, predictedBehavior, confidence
+├── behavioralPatterns[] # trigger, predictedBehavior (enum 24 variants), intensity (⚡/10)
 ├── ocean                # O, C, E, A, N (1-10 each)
 ├── rep_scores           # 8 dimensions Option<u8> (0-10), bipolar:
 │                        #   Hardworker↔Lazy, Authoritative↔Submissive
