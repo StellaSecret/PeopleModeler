@@ -7,7 +7,7 @@ const KEY_SESSION_KEY: &str = "pm_enc_key";
 
 fn load_or_create_key() -> [u8; 32] {
     use gloo_storage::Storage;
-    let key_hex: Option<String> = gloo_storage::SessionStorage::get(KEY_SESSION_KEY).ok();
+    let key_hex: Option<String> = gloo_storage::LocalStorage::get(KEY_SESSION_KEY).ok();
     if let Some(h) = key_hex {
         if h.len() == 64 {
             if let Some(raw) = hex_decode(&h) {
@@ -19,7 +19,7 @@ fn load_or_create_key() -> [u8; 32] {
     }
     let mut key = [0u8; 32];
     getrandom::getrandom(&mut key).expect("os rng");
-    let _ = gloo_storage::SessionStorage::set(KEY_SESSION_KEY, hex_encode(&key));
+    let _ = gloo_storage::LocalStorage::set(KEY_SESSION_KEY, hex_encode(&key));
     key
 }
 
