@@ -1,20 +1,12 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function gotoNewPerson(page: Page) {
-  await page.goto('/PeopleModeler/person/new');
-  await page.getByText('Blank (start from scratch)').click();
-}
+import { test, expect } from '@playwright/test';
+import { gotoNewPerson, clearStorage } from './helpers';
 
 test.describe('Person Page — Dioxus', () => {
   let personId: string;
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/PeopleModeler/');
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
-    await page.waitForTimeout(500);
+    await clearStorage(page);
 
-    // Create a person to work with
     await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Alexandre');
     await page.locator('label:has-text("Role") + input').fill('Manager');

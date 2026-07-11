@@ -1,18 +1,9 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function gotoNewPerson(page: Page) {
-  await page.goto('/PeopleModeler/person/new');
-  await page.getByText('Blank (start from scratch)').click();
-}
+import { test, expect } from '@playwright/test';
+import { gotoNewPerson, clearStorage } from './helpers';
 
 test.describe('UI Features', () => {
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/PeopleModeler/');
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
-    await page.waitForTimeout(500);
-  });
+  test.beforeEach(({ page }) => clearStorage(page));
 
   // ── Empty state ────────────────────────────────────────
 

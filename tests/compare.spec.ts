@@ -1,28 +1,11 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function gotoNewPerson(page: Page) {
-  await page.goto('/PeopleModeler/person/new');
-  await page.getByText('Blank (start from scratch)').click();
-}
+import { test, expect } from '@playwright/test';
+import { clearStorage, createPerson } from './helpers';
 
 test.describe('Compare Persons Page', () => {
   let id1: string;
   let id2: string;
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/PeopleModeler/');
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
-    await page.waitForTimeout(500);
-  });
-
-  async function createPerson(page: Page, name: string) {
-    await gotoNewPerson(page);
-    await page.locator('label:has-text("Name") + input').fill(name);
-    await page.click('button:has-text("Save")');
-    await page.waitForURL(/\/person\//);
-    return page.url().split('/').pop()!;
-  }
+  test.beforeEach(({ page }) => clearStorage(page));
 
   test('compare page shows both persons and analysis', async ({ page }) => {
     id1 = await createPerson(page, 'Alice');

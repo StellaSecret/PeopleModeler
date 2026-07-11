@@ -1,9 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function gotoNewPerson(page: Page) {
-  await page.goto('/PeopleModeler/person/new');
-  await page.getByText('Blank (start from scratch)').click();
-}
+import { test, expect } from '@playwright/test';
 
 test.describe('SPA Navigation', () => {
   test('landing page loads with nav bar', async ({ page }) => {

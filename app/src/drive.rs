@@ -183,3 +183,189 @@ pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usiz
     let text = String::from_utf8(bytes.to_vec()).map_err(|e| format!("utf8: {e}"))?;
     restore_from_json(&text)
 }
+
+fn mock_backup_json() -> &'static str {
+    r#"{
+  "version": 1,
+  "exported_at": 1700000000000,
+  "persons": [
+    {
+      "id": "mock-001",
+      "name": "Alice",
+      "role": "Engineer",
+      "context": "test",
+      "avatar_emoji": "🧑",
+      "tags": [{"name": "alice-tag"}],
+      "notes": "",
+      "motivations": [
+        {"type": "Achievement", "intensity": 8, "notes": "wins"}
+      ],
+      "biases": [
+        {"type": "Confirmation", "intensity": 7, "evidence": ""}
+      ],
+      "rep_scores": {
+        "hardworker_lazy": 8,
+        "honest_deceitful": 6,
+        "authoritative_submissive": null,
+        "reliable_flaky": null,
+        "humble_arrogant": null,
+        "calm_reactive": null,
+        "diplomatic_blunt": null,
+        "generous_selfish": null
+      },
+      "behavioral_patterns": [
+        {"trigger": "Stress", "predicted_behavior": "pauses", "confidence": 5}
+      ],
+      "ocean": {
+        "openness": 5,
+        "conscientiousness": 6,
+        "extraversion": 7,
+        "agreeableness": 8,
+        "neuroticism": 3
+      },
+      "log": [],
+      "predictions": [],
+      "confidence": 5,
+      "created_at": 0,
+      "updated_at": 0
+    },
+    {
+      "id": "mock-002",
+      "name": "Bob",
+      "role": "",
+      "context": "",
+      "avatar_emoji": "🧑",
+      "tags": [
+        {"name": "bob-tag-a"},
+        {"name": "bob-tag-b"}
+      ],
+      "notes": "",
+      "motivations": [],
+      "biases": [],
+      "rep_scores": {
+        "hardworker_lazy": null,
+        "authoritative_submissive": null,
+        "honest_deceitful": null,
+        "reliable_flaky": null,
+        "humble_arrogant": null,
+        "calm_reactive": null,
+        "diplomatic_blunt": null,
+        "generous_selfish": null
+      },
+      "behavioral_patterns": [],
+      "ocean": {
+        "openness": null,
+        "conscientiousness": null,
+        "extraversion": null,
+        "agreeableness": null,
+        "neuroticism": null
+      },
+      "log": [],
+      "predictions": [],
+      "confidence": 5,
+      "created_at": 0,
+      "updated_at": 0
+    }
+  ],
+  "predictions": [
+    {
+      "id": "pred-mock",
+      "person_id": "mock-001",
+      "context": "sprint review",
+      "predicted_outcome": "will ship",
+      "actual_outcome": null,
+      "accuracy": null,
+      "created_at": 100,
+      "resolved_at": null,
+      "resolved": false
+    }
+  ]
+}"#
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::models::{
+        OceanScores, Person, RepScores, Tag,
+    };
+
+    #[test]
+    fn test_backup_serde_roundtrip() {
+        let now = chrono::Utc::now().timestamp_millis();
+        let original = BackupData {
+            version: 1,
+            exported_at: now,
+            persons: vec![Person {
+                id: "rt-001".into(),
+                name: "Roundtrip Tester".into(),
+                role: "QA".into(),
+                context: "test".into(),
+                avatar_emoji: "🧑".into(),
+                tags: vec![
+                    Tag { name: "auto".into(), color: None },
+                    Tag { name: "ci".into(), color: Some("#ff0".into()) },
+                ],
+                notes: String::new(),
+                motivations: vec![],
+                biases: vec![],
+                rep_scores: RepScores::default(),
+                behavioral_patterns: vec![],
+                ocean: OceanScores::default(),
+                predictions: vec![],
+                confidence: 5,
+                log: vec![],
+                created_at: now,
+                updated_at: now,
+            }],
+            predictions: vec![],
+        };
+
+        let json = serde_json::to_string_pretty(&original).unwrap();
+        let restored: BackupData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.version, 1);
+        assert_eq!(restored.exported_at, now);
+        assert_eq!(restored.persons.len(), 1);
+        assert_eq!(restored.persons[0].name, "Roundtrip Tester");
+        assert_eq!(restored.persons[0].tags.len(), 2);
+        assert_eq!(restored.persons[0].tags[1].color.as_deref(), Some("#ff0"));
+    }
+
+    #[test]
+    fn test_backup_mock_json_parsing() {
+        let raw = mock_backup_json();
+        let data: BackupData = serde_json::from_str(raw).unwrap();
+
+        assert_eq!(data.version, 1);
+        assert_eq!(data.persons.len(), 2);
+        assert_eq!(data.predictions.len(), 1);
+
+        let alice = data.persons.iter().find(|p| p.name == "Alice").unwrap();
+        assert_eq!(alice.tags.len(), 1);
+        assert_eq!(alice.tags[0].name, "alice-tag");
+        assert!(alice.tags[0].color.is_none());
+        assert_eq!(alice.ocean.openness, Some(5));
+        assert_eq!(alice.ocean.neuroticism, Some(3));
+        assert_eq!(alice.rep_scores.hardworker_lazy, Some(8));
+        assert_eq!(alice.rep_scores.honest_deceitful, Some(6));
+        assert!(alice.rep_scores.authoritative_submissive.is_none());
+        assert_eq!(alice.biases.len(), 1);
+        assert_eq!(alice.motivations.len(), 1);
+        assert_eq!(alice.behavioral_patterns.len(), 1);
+
+        let bob = data.persons.iter().find(|p| p.name == "Bob").unwrap();
+        assert_eq!(bob.tags.len(), 2);
+        assert_eq!(bob.tags[0].name, "bob-tag-a");
+        assert_eq!(bob.tags[1].name, "bob-tag-b");
+        assert!(bob.biases.is_empty());
+        assert!(bob.motivations.is_empty());
+        assert!(bob.behavioral_patterns.is_empty());
+        assert!(bob.ocean.openness.is_none());
+
+        let pred = &data.predictions[0];
+        assert_eq!(pred.person_id, "mock-001");
+        assert!(!pred.resolved);
+        assert!(pred.actual_outcome.is_none());
+    }
+}
