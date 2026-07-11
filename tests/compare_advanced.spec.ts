@@ -87,11 +87,11 @@ test.describe('Compare — Advanced Synergy', () => {
 
   test('all-negative patterns pair renders analysis', async ({ page }) => {
     const id1 = await createPersonWithPatterns(page, 'Pessimist', [
-      { trigger: 'Conflict', outcome: 'Argues', confidence: 8 },
-      { trigger: 'Stress', outcome: 'Withdraws', confidence: 7 },
+      { trigger: 'Conflict', outcome: 'becomes_defensive', confidence: 8 },
+      { trigger: 'Stress', outcome: 'withdraws', confidence: 7 },
     ]);
     const id2 = await createPersonWithPatterns(page, 'Defensive', [
-      { trigger: 'Threatened', outcome: 'Shuts down', confidence: 6 },
+      { trigger: 'Threatened', outcome: 'deflects_blame', confidence: 6 },
     ]);
 
     await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);
@@ -104,10 +104,10 @@ test.describe('Compare — Advanced Synergy', () => {
 
   test('mixed pattern pair renders analysis', async ({ page }) => {
     const id1 = await createPersonWithPatterns(page, 'Optimist', [
-      { trigger: 'Change', outcome: 'Adapts', confidence: 9 },
+      { trigger: 'Change', outcome: 'embraces_change', confidence: 9 },
     ]);
     const id2 = await createPersonWithPatterns(page, 'Anxious', [
-      { trigger: 'Stress', outcome: 'Frets', confidence: 7 },
+      { trigger: 'Stress', outcome: 'becomes_quiet', confidence: 7 },
     ]);
 
     await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);

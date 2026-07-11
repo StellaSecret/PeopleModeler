@@ -1,4 +1,4 @@
-use crate::models::{BiasType, MotivationType, RepDim};
+use crate::models::{BehaviorResponse, BiasType, MotivationType, RepDim};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -238,6 +238,65 @@ impl RepDim {
             label_a,
             label_b,
             desc,
+        }
+    }
+}
+
+impl BehaviorResponse {
+    pub fn label(self, lang: Lang) -> &'static str {
+        match lang {
+            Lang::En => match self {
+                Self::SeeksSupport => "Seeks support",
+                Self::BecomesQuiet => "Becomes quiet",
+                Self::Withdraws => "Withdraws",
+                Self::CommunicatesOpenly => "Communicates openly",
+                Self::SeeksCompromise => "Seeks compromise",
+                Self::BecomesDefensive => "Becomes defensive",
+                Self::SharesCredit => "Shares credit",
+                Self::SetsNewGoals => "Sets new goals",
+                Self::BecomesOverconfident => "Becomes overconfident",
+                Self::AsksQuestions => "Asks questions",
+                Self::SeeksData => "Seeks data",
+                Self::OverPlans => "Over-plans",
+                Self::AppreciatesPraise => "Appreciates praise",
+                Self::SharesAchievement => "Shares achievement",
+                Self::SeeksMore => "Seeks more validation",
+                Self::StandsGround => "Stands ground",
+                Self::SeeksAllies => "Seeks allies",
+                Self::DeflectsBlame => "Deflects blame",
+                Self::EmbracesChange => "Embraces change",
+                Self::PlansAhead => "Plans ahead",
+                Self::ResistsChange => "Resists change",
+                Self::AsksForDetails => "Asks for details",
+                Self::Reflects => "Reflects thoughtfully",
+                Self::RejectsFeedback => "Rejects feedback",
+            },
+            Lang::Fr => match self {
+                Self::SeeksSupport => "Cherche du soutien",
+                Self::BecomesQuiet => "Devient silencieux",
+                Self::Withdraws => "Se retire",
+                Self::CommunicatesOpenly => "Communique ouvertement",
+                Self::SeeksCompromise => "Cherche un compromis",
+                Self::BecomesDefensive => "Devient défensif",
+                Self::SharesCredit => "Partage le crédit",
+                Self::SetsNewGoals => "Se fixe de nouveaux objectifs",
+                Self::BecomesOverconfident => "Devient trop confiant",
+                Self::AsksQuestions => "Pose des questions",
+                Self::SeeksData => "Cherche des données",
+                Self::OverPlans => "Planifie trop",
+                Self::AppreciatesPraise => "Apprécie les éloges",
+                Self::SharesAchievement => "Partage ses réussites",
+                Self::SeeksMore => "Cherche plus de validation",
+                Self::StandsGround => "Tient bon",
+                Self::SeeksAllies => "Cherche des alliés",
+                Self::DeflectsBlame => "Détourne le blâme",
+                Self::EmbracesChange => "Accepte le changement",
+                Self::PlansAhead => "Planifie à l'avance",
+                Self::ResistsChange => "Résiste au changement",
+                Self::AsksForDetails => "Demande des détails",
+                Self::Reflects => "Réfléchit avec soin",
+                Self::RejectsFeedback => "Rejette le feedback",
+            },
         }
     }
 }

@@ -336,10 +336,102 @@ pub struct Bias {
     pub evidence: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BehaviorResponse {
+    SeeksSupport,
+    BecomesQuiet,
+    Withdraws,
+    CommunicatesOpenly,
+    SeeksCompromise,
+    BecomesDefensive,
+    SharesCredit,
+    SetsNewGoals,
+    BecomesOverconfident,
+    AsksQuestions,
+    SeeksData,
+    OverPlans,
+    AppreciatesPraise,
+    SharesAchievement,
+    SeeksMore,
+    StandsGround,
+    SeeksAllies,
+    DeflectsBlame,
+    EmbracesChange,
+    PlansAhead,
+    ResistsChange,
+    AsksForDetails,
+    Reflects,
+    RejectsFeedback,
+}
+
+impl BehaviorResponse {
+    pub fn serde_name(self) -> &'static str {
+        match self {
+            Self::SeeksSupport => "seeks_support",
+            Self::BecomesQuiet => "becomes_quiet",
+            Self::Withdraws => "withdraws",
+            Self::CommunicatesOpenly => "communicates_openly",
+            Self::SeeksCompromise => "seeks_compromise",
+            Self::BecomesDefensive => "becomes_defensive",
+            Self::SharesCredit => "shares_credit",
+            Self::SetsNewGoals => "sets_new_goals",
+            Self::BecomesOverconfident => "becomes_overconfident",
+            Self::AsksQuestions => "asks_questions",
+            Self::SeeksData => "seeks_data",
+            Self::OverPlans => "over_plans",
+            Self::AppreciatesPraise => "appreciates_praise",
+            Self::SharesAchievement => "shares_achievement",
+            Self::SeeksMore => "seeks_more",
+            Self::StandsGround => "stands_ground",
+            Self::SeeksAllies => "seeks_allies",
+            Self::DeflectsBlame => "deflects_blame",
+            Self::EmbracesChange => "embraces_change",
+            Self::PlansAhead => "plans_ahead",
+            Self::ResistsChange => "resists_change",
+            Self::AsksForDetails => "asks_for_details",
+            Self::Reflects => "reflects",
+            Self::RejectsFeedback => "rejects_feedback",
+        }
+    }
+    pub fn options_for(t: BehaviorTrigger) -> &'static [Self] {
+        match t {
+            BehaviorTrigger::Stress => &[Self::SeeksSupport, Self::BecomesQuiet, Self::Withdraws],
+            BehaviorTrigger::Conflict => &[
+                Self::CommunicatesOpenly,
+                Self::SeeksCompromise,
+                Self::BecomesDefensive,
+            ],
+            BehaviorTrigger::Success => &[
+                Self::SharesCredit,
+                Self::SetsNewGoals,
+                Self::BecomesOverconfident,
+            ],
+            BehaviorTrigger::Uncertainty => {
+                &[Self::AsksQuestions, Self::SeeksData, Self::OverPlans]
+            }
+            BehaviorTrigger::Recognition => &[
+                Self::AppreciatesPraise,
+                Self::SharesAchievement,
+                Self::SeeksMore,
+            ],
+            BehaviorTrigger::Threatened => {
+                &[Self::StandsGround, Self::SeeksAllies, Self::DeflectsBlame]
+            }
+            BehaviorTrigger::Change => {
+                &[Self::EmbracesChange, Self::PlansAhead, Self::ResistsChange]
+            }
+            BehaviorTrigger::Feedback => {
+                &[Self::AsksForDetails, Self::Reflects, Self::RejectsFeedback]
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BehavioralPattern {
     pub trigger: BehaviorTrigger,
-    pub predicted_behavior: String,
+    pub predicted_behavior: BehaviorResponse,
     #[serde(deserialize_with = "clamp_u8_1_10")]
     pub confidence: u8,
     #[serde(default = "default_intensity")]

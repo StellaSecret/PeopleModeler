@@ -1003,13 +1003,13 @@ mod tests {
     fn test_pattern_synergy_single() {
         let a = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
-            predicted_behavior: "embraces change".into(),
+            predicted_behavior: BehaviorResponse::EmbracesChange,
             confidence: 8,
             intensity: 5,
         }];
         let b = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
-            predicted_behavior: "welcomes change".into(),
+            predicted_behavior: BehaviorResponse::EmbracesChange,
             confidence: 6,
             intensity: 5,
         }];
@@ -1476,20 +1476,20 @@ mod tests {
         a.behavioral_patterns = vec![
             BehavioralPattern {
                 trigger: BehaviorTrigger::Conflict,
-                predicted_behavior: "argues".into(),
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
                 confidence: 8,
                 intensity: 5,
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Stress,
-                predicted_behavior: "withdraws".into(),
+                predicted_behavior: BehaviorResponse::Withdraws,
                 confidence: 7,
                 intensity: 5,
             },
         ];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Threatened,
-            predicted_behavior: "defensive".into(),
+            predicted_behavior: BehaviorResponse::DeflectsBlame,
             confidence: 6,
             intensity: 5,
         }];
@@ -1507,13 +1507,13 @@ mod tests {
         let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         a.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Conflict,
-            predicted_behavior: "argues".into(),
+            predicted_behavior: BehaviorResponse::BecomesDefensive,
             confidence: 8,
             intensity: 5,
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
-            predicted_behavior: "adapts".into(),
+            predicted_behavior: BehaviorResponse::EmbracesChange,
             confidence: 7,
             intensity: 5,
         }];

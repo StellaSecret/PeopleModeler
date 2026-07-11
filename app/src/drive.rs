@@ -214,7 +214,7 @@ fn mock_backup_json() -> &'static str {
         "generous_selfish": null
       },
       "behavioral_patterns": [
-        {"trigger": "Stress", "predicted_behavior": "pauses", "confidence": 5}
+        {"trigger": "Stress", "predicted_behavior": "becomes_quiet", "confidence": 5}
       ],
       "ocean": {
         "openness": 5,

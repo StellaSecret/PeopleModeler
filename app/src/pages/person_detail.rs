@@ -200,14 +200,14 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                         div { class: "section",
                             h2 { "{pat_title}" }
-                            for bp in &person.behavioral_patterns {
-                                div { class: "pattern-item",
-                                    strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
-                                    p { "{bp.predicted_behavior}" }
-                                    span { "{conf_label}: {bp.confidence}/10" }
-                                    small { " {pattern_hint}" }
-                                }
+                        for bp in &person.behavioral_patterns {
+                            div { class: "pattern-item",
+                                strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
+                                p { "{bp.predicted_behavior.label(cl)}" }
+                                span { "{conf_label}: {bp.confidence}/10" }
+                                small { " {pattern_hint}" }
                             }
+                        }
                             if person.behavioral_patterns.is_empty() { p { "{no_pat}" } }
                         }
                     }
@@ -346,7 +346,7 @@ pub fn PersonDetail(id: String) -> Element {
                                 for bp in &person.behavioral_patterns {
                                     div { class: "pattern-item",
                                         strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
-                                        p { "{bp.predicted_behavior}" }
+                                        p { "{bp.predicted_behavior.label(cl)}" }
                                     }
                                 }
                             }

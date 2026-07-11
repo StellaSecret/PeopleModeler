@@ -321,13 +321,13 @@ mod tests {
             behavioral_patterns: vec![
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Change,
-                    predicted_behavior: "Embraces new processes".into(),
+                    predicted_behavior: BehaviorResponse::EmbracesChange,
                     confidence: 8,
                     intensity: 5,
                 },
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Feedback,
-                    predicted_behavior: "Seeks constructive criticism".into(),
+                    predicted_behavior: BehaviorResponse::AsksForDetails,
                     confidence: 6,
                     intensity: 5,
                 },

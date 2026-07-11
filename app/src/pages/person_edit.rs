@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
-    AVATAR_EMOJIS, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType,
-    OceanScores, Person, RepDim, RepScores, Tag,
+    AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
+    Motivation, MotivationType, OceanScores, Person, RepDim, RepScores, Tag,
 };
 
 use crate::Route;
@@ -539,12 +539,14 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let ctx_change = crate::i18n::tr("ctx_change", lang);
     let ctx_feedback = crate::i18n::tr("ctx_feedback", lang);
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
-    let mut sel_behavior = use_signal(String::new);
+    let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
     let mut sel_conf = use_signal(|| 5u8);
     let mut sel_intensity = use_signal(|| 5u8);
 
+    use peoplemodeler_core::i18n::Lang as CoreLang;
+    let cl = if lang == crate::i18n::Lang::Fr { CoreLang::Fr } else { CoreLang::En };
+
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
-    let outcome_pl = crate::i18n::tr("pred_outcome_placeholder", lang);
     let add_btn = crate::i18n::tr("add_btn", lang);
     let pattern_hint = crate::i18n::tr("pattern_hint", lang);
     let trigger_label = |t: BehaviorTrigger| -> &'static str {
@@ -565,7 +567,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
             legend { "{edit_patterns}" }
             div { class: "add-row",
                 select { value: "{sel_trigger}",
-                    onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); },
+                    onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]); },
                     option { value: "Stress", "{ctx_stress}" }
                     option { value: "Conflict", "{ctx_conflict}" }
                     option { value: "Success", "{ctx_success}" }
@@ -575,8 +577,11 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                     option { value: "Change", "{ctx_change}" }
                     option { value: "Feedback", "{ctx_feedback}" }
                 }
-                input { placeholder: "{outcome_pl}", value: "{sel_behavior}",
-                    oninput: move |e| { sel_behavior.set(e.value()); }
+                select { value: "{sel_behavior().serde_name()}",
+                    onchange: move |e| { let _ = parse_response(&e.value()).map(|v| sel_behavior.set(v)); },
+                    for opt in BehaviorResponse::options_for(sel_trigger()) {
+                        option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
+                    }
                 }
                 input { r#type: "range", min: "1", max: "10", value: "{sel_conf}",
                     oninput: move |e| { sel_conf.set(e.value().parse().unwrap_or(5)); }
@@ -590,14 +595,14 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 small { " {pattern_hint}" }
                 button { class: "btn", aria_label: "Add pattern", onclick: move |_| {
                     patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), confidence: sel_conf(), intensity: sel_intensity() });
-                    sel_behavior.set(String::new());
+                    sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
                 }, "{add_btn}" }
             }
             div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
                     strong { "{trigger_label(bp.trigger)}" }
-                    span { " {bp.predicted_behavior}" }
+                    span { " {bp.predicted_behavior.label(cl)}" }
                     span { " ({bp.confidence}/10 ⚡{bp.intensity})" }
                     button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); }, "✕" }
                 }
@@ -720,4 +725,8 @@ fn parse_trigger(s: &str) -> BehaviorTrigger {
         "Feedback" => BehaviorTrigger::Feedback,
         _ => BehaviorTrigger::Stress,
     }
+}
+
+fn parse_response(s: &str) -> Option<BehaviorResponse> {
+    serde_json::from_str(&format!("\"{}\"", s)).ok()
 }
