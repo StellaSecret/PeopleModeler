@@ -156,31 +156,34 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
     }
 
     // Both blunt >= 8 → brutal honesty, no diplomacy
+    // score: 10 = Diplomatic (pole A), 0 = Blunt (pole B)
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::DiplomaticBlunt),
         rep_b.score(RepDim::DiplomaticBlunt),
     ) {
-        if aa >= 8 && ab >= 8 {
+        if aa <= 3 && ab <= 3 {
             p += 0.10;
         }
     }
 
     // Both reactive >= 8 → mutual escalation
+    // score: 10 = Calm (pole A), 0 = Reactive (pole B)
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::CalmReactive),
         rep_b.score(RepDim::CalmReactive),
     ) {
-        if aa >= 8 && ab >= 8 {
+        if aa <= 3 && ab <= 3 {
             p += 0.10;
         }
     }
 
     // Both arrogant >= 8 → neither concedes
+    // score: 10 = Humble (pole A), 0 = Arrogant (pole B)
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::HumbleArrogant),
         rep_b.score(RepDim::HumbleArrogant),
     ) {
-        if aa >= 8 && ab >= 8 {
+        if aa <= 3 && ab <= 3 {
             p += 0.10;
         }
     }
@@ -1205,11 +1208,11 @@ mod tests {
         let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         a.rep_scores = RepScores {
-            diplomatic_blunt: Some(9),
+            diplomatic_blunt: Some(2),
             ..RepScores::default()
         };
         b.rep_scores = RepScores {
-            diplomatic_blunt: Some(8),
+            diplomatic_blunt: Some(1),
             ..RepScores::default()
         };
         let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
@@ -1238,6 +1241,38 @@ mod tests {
         let b = RepScores::default();
         let p = rep_danger_penalty(&a, &b);
         assert!((p - 0.0).abs() < 0.001, "no shared dims penalty: {}", p);
+    }
+
+    #[test]
+    fn test_rep_penalty_both_reactive() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            calm_reactive: Some(2),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            calm_reactive: Some(1),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!((p - 0.10).abs() < 0.001, "both reactive penalty: {}", p);
+    }
+
+    #[test]
+    fn test_rep_penalty_both_arrogant() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            humble_arrogant: Some(1),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            humble_arrogant: Some(2),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!((p - 0.10).abs() < 0.001, "both arrogant penalty: {}", p);
     }
 
     // --- history factor tests ---
@@ -1526,12 +1561,12 @@ mod tests {
         let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         a.rep_scores = RepScores {
             authoritative_submissive: Some(9),
-            diplomatic_blunt: Some(9),
+            diplomatic_blunt: Some(2),
             ..RepScores::default()
         };
         b.rep_scores = RepScores {
             authoritative_submissive: Some(8),
-            diplomatic_blunt: Some(8),
+            diplomatic_blunt: Some(1),
             ..RepScores::default()
         };
         let brk = compute_synergy_score(&a, &b);

@@ -283,13 +283,16 @@ Les dimensions ont des poids différents selon leur impact relationnel :
 
 **Pénalités danger Réputation** — mêmes pôles extrêmes chez les deux :
 
+Les scores de réputation sont bipolaires : `0 = pôle négatif`, `10 = pôle positif`.
+Les seuils ci-dessous utilisent la valeur du score directement.
+
 ```
 pénalité_Rep = Σ(ci-dessous)
 
 Tous deux Autoritaire ≥ 8  → lutte de pouvoir            +0.10
-Tous deux Direct ≥ 8       → brutalité, pas de diplomatie +0.10
-Tous deux Réactif ≥ 8      → escalade mutuelle            +0.10
-Tous deux Arrogant ≥ 8     → ni l'un ni l'autre ne cède   +0.10
+Tous deux Direct ≤ 3       → brutalité, pas de diplomatie +0.10
+Tous deux Réactif ≤ 3      → escalade mutuelle            +0.10
+Tous deux Arrogant ≤ 3     → ni l'un ni l'autre ne cède   +0.10
 Tous deux Paresseux ≤ 3    → passivité mutuelle           +0.05
 ```
 
