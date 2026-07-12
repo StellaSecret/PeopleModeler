@@ -33,7 +33,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let (synergies, frictions, (top_strategy, all_strategies)) = compare_analysis(&a, &b, lang());
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
-            let compare_synergy = crate::i18n::tr("compare_synergy", lang());
+            let compare_asymmetric = crate::i18n::tr("compare_asymmetric", lang());
             let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
             let cat_ocean = crate::i18n::tr("compare_cat_ocean", lang());
             let cat_rep = crate::i18n::tr("compare_cat_reputation", lang());
@@ -103,27 +103,18 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                         div { class: "vs-divider",
                             div { class: "vs-text", "{compare_vs}" }
                             div { class: "compatibility-score",
-                                CompatRing { score }
-                                div { class: "compat-label", "{score}%", br {} "{compare_synergy}" }
-                                div { class: "asymmetric-scores",
-                                    span { class: "asym-score",
-                                        "{brk.a_score}%", br {}
-                                        span { class: "asym-name", "{na}" }
+                                div { class: "scale-ruler-hero",
+                                    div { class: "scale-band-hero {scale_bands[active_band].3}",
+                                        "{crate::i18n::tr(scale_bands[active_band].0, lang())}"
                                     }
-                                    span { class: "asym-score",
-                                        "{brk.b_score}%", br {}
-                                        span { class: "asym-name", "{nb}" }
+                                    div { class: "scale-score",
+                                        "{score}%"
+                                        div { class: "scale-range",
+                                            "{scale_bands[active_band].1}–{scale_bands[active_band].2}%"
+                                        }
                                     }
                                 }
                                 div { class: "scale-ruler",
-                                    div { class: "scale-ruler-header",
-                                        span { class: "scale-band-name",
-                                            "{crate::i18n::tr(scale_bands[active_band].0, lang())}"
-                                        }
-                                        span { class: "scale-band-range",
-                                            "{scale_bands[active_band].1}-{scale_bands[active_band].2}%"
-                                        }
-                                    }
                                     div { class: "scale-bar",
                                         {scale_bands.iter().enumerate().map(|(i, (_, lo, hi, color))| {
                                             let pct = (hi - lo + 1) as f64 / 101.0 * 100.0;
@@ -133,14 +124,27 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                         div { class: "scale-dot", style: "left: {score}%" }
                                     }
                                     div { class: "scale-labels",
-                                        {scale_bands.iter().enumerate().map(|(i, (key, _, _, _))| {
+                                        {scale_bands.iter().enumerate().map(|(i, (key, lo, hi, _))| {
+                                            let pct = (hi - lo + 1) as f64 / 101.0 * 100.0;
                                             let label = crate::i18n::tr(key, lang());
-                                            if i == active_band {
-                                                rsx! { span { class: "scale-lbl active", "{label}" } }
-                                            } else {
-                                                rsx! { span { class: "scale-lbl", "{label}" } }
+                                            let cls = if i == active_band { "scale-lbl-wrap active" } else { "scale-lbl-wrap" };
+                                            rsx! {
+                                                div { class: "{cls}", width: "{pct:.0}%",
+                                                    span { class: "scale-lbl", "{label}" }
+                                                }
                                             }
                                         })}
+                                    }
+                                }
+                                p { class: "asymmetric-title", "{compare_asymmetric}" }
+                                div { class: "asymmetric-scores",
+                                    span { class: "asym-row",
+                                        span { class: "asym-direction", "{na} ← {nb}" }
+                                        span { class: "asym-value", "{brk.a_score}%" }
+                                    }
+                                    span { class: "asym-row",
+                                        span { class: "asym-direction", "{nb} ← {na}" }
+                                        span { class: "asym-value", "{brk.b_score}%" }
                                     }
                                 }
                             }
@@ -292,30 +296,6 @@ fn MiniBars(scores: [Option<u8>; 5]) -> Element {
                     span { "{vals[i]}" }
                 }
             }
-        }
-    }
-}
-
-#[component]
-fn CompatRing(score: u8) -> Element {
-    let r: f64 = 34.0;
-    let circ = 2.0 * std::f64::consts::PI * r;
-    let offset = circ * (1.0 - score as f64 / 100.0);
-    let score_str = format!("{}", score);
-    rsx! {
-        svg { view_box: "0 0 80 80", width: "80", height: "80",
-            circle { cx: "40", cy: "40", r: "{r}", fill: "none",
-                stroke: "var(--border)", stroke_width: "8" }
-            circle { cx: "40", cy: "40", r: "{r}", fill: "none",
-                stroke: "var(--green)", stroke_width: "8",
-                stroke_dasharray: "{circ}",
-                stroke_dashoffset: "{offset}",
-                stroke_linecap: "round",
-                transform: "rotate(-90 40 40)" }
-            text { x: "40", y: "40", text_anchor: "middle",
-                dominant_baseline: "central",
-                font_size: "18", font_weight: "700",
-                fill: "var(--text)", "{score_str}%" }
         }
     }
 }

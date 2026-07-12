@@ -504,16 +504,15 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     a_raw += a_bias * W_BIAS;
     b_raw += b_bias * W_BIAS;
 
-    let a_score = if total_w > 0.0 {
-        ((a_raw / total_w * 100.0).round() as u8).min(100)
-    } else {
-        0
-    };
-    let b_score = if total_w > 0.0 {
-        ((b_raw / total_w * 100.0).round() as u8).min(100)
-    } else {
-        0
-    };
+    // Normalize asymmetric scores as a split of the mutual total.
+    // a_raw/b_raw determine the split ratio; their average is scaled
+    // to the mutual score so a_score + b_score ≈ 2 × total.
+    // This prevents both scores exceeding total simultaneously.
+    let avg_raw = (a_raw + b_raw) / 2.0;
+    let a_ratio = if avg_raw > 0.0 { a_raw / avg_raw } else { 1.0 };
+    let b_ratio = if avg_raw > 0.0 { b_raw / avg_raw } else { 1.0 };
+    let a_score = ((score as f64 * a_ratio).round() as u8).min(100);
+    let b_score = ((score as f64 * b_ratio).round() as u8).min(100);
 
     SynergyBreakdown {
         total: score,
