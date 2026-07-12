@@ -452,6 +452,7 @@ fn en(key: &'static str) -> &'static str {
         "compare_cat_motivation" => "Motivation",
         "compare_cat_patterns" => "Patterns",
         "compare_cat_bias" => "Bias",
+        "person_self_score" => "Profile Score",
         "compare_asymmetric" => "Mutual benefit",
         "compare_ethics" => {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
@@ -881,6 +882,7 @@ fn fr(key: &'static str) -> &'static str {
         "compare_cat_motivation" => "Motivation",
         "compare_cat_patterns" => "Patterns",
         "compare_cat_bias" => "Biais",
+        "person_self_score" => "Score de profil",
         "compare_asymmetric" => "Bénéfice mutuel",
         "compare_ethics" => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."

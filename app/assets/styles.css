@@ -251,6 +251,24 @@ body{
 .person-header p{color:var(--text-muted);font-size:0.82rem;position:relative}
 .person-header .tags{justify-content:center;position:relative}
 .person-header .confidence-badge{display:flex;justify-content:center;margin-top:0.5rem;font-size:0.78rem;color:var(--text-muted)}
+.person-header .profile-score{display:flex;flex-direction:column;align-items:center;gap:0.05rem;margin-top:0.4rem;margin-bottom:0.1rem}
+.person-header .profile-score .ps-band{font-size:1.1rem;font-weight:800;font-family:var(--font-display);letter-spacing:0.06em;text-transform:uppercase;line-height:1.2}
+.person-header .profile-score .ps-band.ps-tension{color:#c62828}
+.person-header .profile-score .ps-band.ps-friction{color:#ef6c00}
+.person-header .profile-score .ps-band.ps-moderate{color:#b8860b}
+.person-header .profile-score .ps-band.ps-good{color:#388e3c}
+.person-header .profile-score .ps-band.ps-strong{color:#2e7d32}
+.person-header .profile-score .ps-score{font-size:2rem;font-weight:800;font-family:var(--font-display);color:var(--text);line-height:1}
+.person-header .profile-score .ps-range{font-size:0.55rem;color:var(--text-muted);font-family:var(--font-mono);text-align:center;margin-top:0.05rem}
+.profile-score .ps-bar-wrap{display:flex;justify-content:center;width:100%;margin-top:0.1rem}
+.profile-score .ps-bar{position:relative;width:80%;height:6px;border-radius:99px;overflow:hidden;display:flex;background:var(--surface)}
+.profile-score .ps-bar .ps-seg{flex:1}
+.profile-score .ps-bar .ps-seg:nth-child(1){background:#c62828}
+.profile-score .ps-bar .ps-seg:nth-child(2){background:#ef6c00}
+.profile-score .ps-bar .ps-seg:nth-child(3){background:#f9a825}
+.profile-score .ps-bar .ps-seg:nth-child(4){background:#66bb6a}
+.profile-score .ps-bar .ps-seg:nth-child(5){background:#2e7d32}
+.profile-score .ps-bar .ps-dot{position:absolute;top:-4px;width:14px;height:14px;border-radius:50%;background:var(--text);transform:translateX(-50%);box-shadow:0 0 4px rgba(0,0,0,0.5);border:2px solid var(--bg)}
 .context{font-style:italic;color:var(--text-muted)!important;margin-top:0.35rem;font-size:0.82rem}
 .token-ok{color:var(--cyan);font-size:0.82rem;font-family:var(--font-mono)}
 

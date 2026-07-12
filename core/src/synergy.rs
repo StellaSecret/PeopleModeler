@@ -19,6 +19,15 @@ pub struct SynergyBreakdown {
     pub danger_details: String,
 }
 
+pub struct PersonProfile {
+    pub total: u8,
+    pub motivation: f64,
+    pub patterns: f64,
+    pub ocean: f64,
+    pub reputation: f64,
+    pub bias: f64,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum BiasTarget {
     Ocean,
@@ -88,6 +97,29 @@ fn avg_prediction_accuracy(predictions: &[Prediction]) -> Option<f64> {
     }
     let sum: f64 = resolved.iter().map(|p| p.accuracy.unwrap() as f64).sum();
     Some(sum / resolved.len() as f64)
+}
+
+const DIM_WEIGHTS: [(RepDim, f64); 8] = [
+    (RepDim::HonestDeceitful, 0.20),
+    (RepDim::ReliableFlaky, 0.15),
+    (RepDim::AuthoritativeSubmissive, 0.15),
+    (RepDim::HumbleArrogant, 0.15),
+    (RepDim::HardworkerLazy, 0.10),
+    (RepDim::CalmReactive, 0.10),
+    (RepDim::DiplomaticBlunt, 0.10),
+    (RepDim::GenerousSelfish, 0.05),
+];
+
+pub fn base_rep_quality(p: &Person) -> f64 {
+    let mut sum = 0.0;
+    let mut n = 0.0;
+    for &(dim, weight) in &DIM_WEIGHTS {
+        if let Some(v) = p.rep_scores.score(dim) {
+            sum += (v as f64 / 10.0) * weight;
+            n += weight;
+        }
+    }
+    if n == 0.0 { 0.5 } else { sum / n }
 }
 
 fn ocean_danger_penalty(oa: &crate::models::OceanScores, ob: &crate::models::OceanScores) -> f64 {
@@ -264,16 +296,6 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let raw_ocean = ((oc + oc_bonus).min(1.0) + (ea + ea_bonus).min(1.0) + n) / 3.0;
 
     // Reputation: weighted distance per shared dimension
-    const DIM_WEIGHTS: [(RepDim, f64); 8] = [
-        (RepDim::HonestDeceitful, 0.20),
-        (RepDim::ReliableFlaky, 0.15),
-        (RepDim::AuthoritativeSubmissive, 0.15),
-        (RepDim::HumbleArrogant, 0.15),
-        (RepDim::HardworkerLazy, 0.10),
-        (RepDim::CalmReactive, 0.10),
-        (RepDim::DiplomaticBlunt, 0.10),
-        (RepDim::GenerousSelfish, 0.05),
-    ];
     let mut rep_sum = 0.0;
     let mut total_active_w = 0.0;
     for &(dim, weight) in &DIM_WEIGHTS {
@@ -411,19 +433,8 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     //   Motivation / Patterns: shared synergy        → symmetric (same for both)
     // Total = (a_score + b_score) / 2
 
-    let base_rep = |p: &Person| -> f64 {
-        let mut sum = 0.0;
-        let mut n = 0.0;
-        for &(dim, weight) in &DIM_WEIGHTS {
-            if let Some(v) = p.rep_scores.score(dim) {
-                sum += (v as f64 / 10.0) * weight;
-                n += weight;
-            }
-        }
-        if n == 0.0 { 0.5 } else { sum / n }
-    };
-    let a_base_rep = base_rep(a);
-    let b_base_rep = base_rep(b);
+    let a_base_rep = base_rep_quality(a);
+    let b_base_rep = base_rep_quality(b);
     let a_bias_quality = 1.0 - (a.biases.len() as f64 / 10.0);
     let b_bias_quality = 1.0 - (b.biases.len() as f64 / 10.0);
 
@@ -505,10 +516,18 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let mutual = mutual.saturating_sub(danger_penalty);
 
     let mut details = Vec::new();
-    if ocean_penalty > 0.0 { details.push("OCEAN volatility"); }
-    if rep_penalty > 0.0 { details.push("Rep power struggle"); }
-    if pat_danger_penalty > 0.0 { details.push("Only negative patterns"); }
-    if history_penalty > 0.0 { details.push("Low prediction accuracy"); }
+    if ocean_penalty > 0.0 {
+        details.push("OCEAN volatility");
+    }
+    if rep_penalty > 0.0 {
+        details.push("Rep power struggle");
+    }
+    if pat_danger_penalty > 0.0 {
+        details.push("Only negative patterns");
+    }
+    if history_penalty > 0.0 {
+        details.push("Low prediction accuracy");
+    }
     let danger_details = if details.is_empty() {
         String::new()
     } else {
@@ -527,6 +546,94 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         danger: total_danger,
         bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
         danger_details,
+    }
+}
+
+pub fn compute_person_profile(person: &Person) -> PersonProfile {
+    let mot_active = !person.motivations.is_empty();
+    let pat_active = !person.behavioral_patterns.is_empty();
+
+    let raw_mot = if mot_active {
+        all_pair_weighted_avg(
+            &person.motivations,
+            &person.motivations,
+            |m| m.intensity,
+            |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
+        )
+    } else {
+        0.5
+    };
+
+    let raw_pat = if pat_active {
+        pattern_synergy(&person.behavioral_patterns, &person.behavioral_patterns)
+    } else {
+        0.5
+    };
+
+    let a_s = person.ocean.agreeableness.map_or(0.5, |v| v as f64 / 10.0);
+    let n_s = person
+        .ocean
+        .neuroticism
+        .map_or(0.5, |v| (10.0 - v as f64) / 10.0);
+    let mut ocean_penalty = 0.0;
+    if person.ocean.neuroticism.map_or(false, |n| n >= 7)
+        && person.ocean.agreeableness.map_or(false, |a| a <= 4)
+    {
+        ocean_penalty += 0.10;
+    }
+    if person.ocean.neuroticism.map_or(false, |n| n >= 7)
+        && person.ocean.conscientiousness.map_or(false, |c| c <= 4)
+    {
+        ocean_penalty += 0.05;
+    }
+    if person.ocean.neuroticism.map_or(false, |n| n >= 7)
+        && person.ocean.openness.map_or(false, |o| o <= 4)
+    {
+        ocean_penalty += 0.05;
+    }
+
+    let raw_ocean = (a_s + n_s) / 2.0;
+    let ocean = (raw_ocean - ocean_penalty).max(0.0);
+
+    let rep = base_rep_quality(person);
+
+    let bias = 1.0 - (person.biases.len() as f64 / 10.0).min(1.0);
+
+    const W_MOT: f64 = 0.21;
+    const W_PAT: f64 = 0.16;
+    const W_OCEAN: f64 = 0.19;
+    const W_REP: f64 = 0.29;
+    const W_BIAS: f64 = 0.15;
+    let mut total_w = 0.0;
+    let mut raw = 0.0;
+    if mot_active {
+        raw += raw_mot * W_MOT;
+        total_w += W_MOT;
+    }
+    if pat_active {
+        raw += raw_pat * W_PAT;
+        total_w += W_PAT;
+    }
+    raw += ocean * W_OCEAN;
+    total_w += W_OCEAN;
+    raw += rep * W_REP;
+    total_w += W_REP;
+    raw += bias * W_BIAS;
+    total_w += W_BIAS;
+
+    let total = if total_w > 0.0 {
+        ((raw / total_w * 100.0).round() as u8).min(100)
+    } else {
+        50
+    };
+
+    PersonProfile {
+        total,
+        motivation: raw_mot,
+        patterns: raw_pat,
+        ocean,
+        reputation: rep,
+        bias,
     }
 }
 
@@ -1792,7 +1899,8 @@ mod tests {
         assert!(
             brk.b_score > brk.a_score,
             "B should benefit more from high-rep A: {} vs {}",
-            brk.a_score, brk.b_score
+            brk.a_score,
+            brk.b_score
         );
     }
 
@@ -1835,7 +1943,8 @@ mod tests {
         assert!(
             brk.b_score > brk.a_score,
             "B should benefit more from low-bias A: {} vs {}",
-            brk.a_score, brk.b_score
+            brk.a_score,
+            brk.b_score
         );
     }
 
@@ -1851,7 +1960,9 @@ mod tests {
         assert!(
             diff <= 3.0,
             "total should be close to (a+b)/2: {} vs expected {} (diff {})",
-            brk.total, expected, diff
+            brk.total,
+            expected,
+            diff
         );
     }
 
@@ -1876,7 +1987,112 @@ mod tests {
         assert!(
             brk.a_score > brk.b_score,
             "low-E person should benefit more from high-E partner: {} vs {}",
-            brk.a_score, brk.b_score
+            brk.a_score,
+            brk.b_score
+        );
+    }
+
+    // --- Person profile (self-score) tests ---
+
+    #[test]
+    fn test_self_score_baseline() {
+        let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let pf = compute_person_profile(&p);
+        // Empty motivations/patterns → 0.5 each. Neutral OCEAN, rep, bias.
+        assert!(
+            pf.total > 30 && pf.total < 70,
+            "baseline self-score: {}",
+            pf.total
+        );
+        assert!(
+            (pf.motivation - 0.5).abs() < 0.001,
+            "baseline mot: {}",
+            pf.motivation
+        );
+        assert!(
+            (pf.patterns - 0.5).abs() < 0.001,
+            "baseline pat: {}",
+            pf.patterns
+        );
+    }
+
+    #[test]
+    fn test_self_score_highly_agreeable_stable() {
+        // High A (9), low N (2) → ocean near 1.0, no penalty
+        let p = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
+        let pf = compute_person_profile(&p);
+        assert!(pf.ocean > 0.80, "high A + low N ocean: {}", pf.ocean);
+        assert!(pf.total > 40, "should be decent: {}", pf.total);
+    }
+
+    #[test]
+    fn test_self_score_volatile_penalty() {
+        // N >= 7 and A <= 4 → volatile penalty 0.10
+        let p = make_person(Some(5), Some(5), Some(5), Some(3), Some(8));
+        let pf = compute_person_profile(&p);
+        assert!(pf.ocean < 0.70, "volatile halved ocean: {}", pf.ocean);
+    }
+
+    #[test]
+    fn test_self_score_many_biases_penalty() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.biases = vec![
+            Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 7,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 6,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Availability,
+                intensity: 5,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::SunkCost,
+                intensity: 4,
+                evidence: String::new(),
+            },
+        ];
+        let pf = compute_person_profile(&p);
+        assert!(pf.bias < 0.7, "4 biases reduce bias score: {}", pf.bias);
+    }
+
+    #[test]
+    fn test_self_score_good_rep_boosts() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(9),
+            reliable_flaky: Some(9),
+            hardworker_lazy: Some(8),
+            ..RepScores::default()
+        };
+        let pf = compute_person_profile(&p);
+        assert!(pf.reputation > 0.70, "good rep: {}", pf.reputation);
+        assert!(pf.total > 50, "good rep boosts total: {}", pf.total);
+    }
+
+    #[test]
+    fn test_self_score_negative_patterns_lower() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::BecomesDefensive,
+            intensity: 8,
+        }];
+        let pf = compute_person_profile(&p);
+        // Single Conflict pattern → self-pair synergy = -0.3
+        // all_pair_weighted_avg adds 0.5, so result = 0.5 + (-0.3*1.0)/1.0 = 0.2
+        // But wait: w = 8*8/100 = 0.64, sum = -0.3*0.64 = -0.192
+        // result = (0.5 + (-0.192/0.64)).clamp = (0.5 + -0.3).clamp = 0.2
+        assert!(
+            (pf.patterns - 0.2).abs() < 0.001,
+            "single conflict pattern: {}",
+            pf.patterns
         );
     }
 }

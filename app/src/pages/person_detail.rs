@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction, RepDim};
+use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
 use crate::db;
@@ -83,6 +84,13 @@ pub fn PersonDetail(id: String) -> Element {
             let insight_output = crate::pages::insights::generate_insight(person, &trigger(), lang());
 
             let cl = core_lang(lang());
+            let profile_score = compute_person_profile(person);
+            let self_score_label = crate::i18n::tr("person_self_score", lang());
+            let bands = synergy_bands();
+            let active_band = bands.iter().position(|&(lo, hi)| profile_score.total >= lo && profile_score.total <= hi).unwrap_or(2);
+            let band_keys = ["scale_tension", "scale_friction", "scale_moderate", "scale_good", "scale_strong"];
+            let band_cls = ["ps-tension", "ps-friction", "ps-moderate", "ps-good", "ps-strong"];
+            let band_label = crate::i18n::tr(band_keys[active_band], lang());
             let rep_items: Vec<_> = RepDim::ALL
                 .iter()
                 .filter_map(|d| {
@@ -164,6 +172,19 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                         div { class: "confidence-badge",
                             span { "{conf_label}: {person.confidence}/10" }
+                        }
+                        div { class: "profile-score",
+                            div { class: "ps-band {band_cls[active_band]}", "{band_label}" }
+                            div { class: "ps-score", "{profile_score.total}" }
+                            div { class: "ps-range", "{self_score_label} /100" }
+                            div { class: "ps-bar-wrap",
+                                div { class: "ps-bar",
+                                    for _ in 0..5 {
+                                        div { class: "ps-seg" }
+                                    }
+                                    div { class: "ps-dot", style: "left: {profile_score.total}%" }
+                                }
+                            }
                         }
                     }
 
