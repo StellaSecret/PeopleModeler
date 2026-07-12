@@ -28,6 +28,8 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
         (Some(a), Some(b)) => {
             let brk = compute_synergy_score(&a, &b);
             let score = brk.total;
+            let na = a.name.clone();
+            let nb = b.name.clone();
             let (synergies, frictions, (top_strategy, all_strategies)) = compare_analysis(&a, &b, lang());
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
@@ -88,6 +90,16 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                             div { class: "compatibility-score",
                                 CompatRing { score }
                                 div { class: "compat-label", "{score}%", br {} "{compare_synergy}" }
+                                div { class: "asymmetric-scores",
+                                    span { class: "asym-score",
+                                        "{brk.a_score}%", br {}
+                                        span { class: "asym-name", "{na}" }
+                                    }
+                                    span { class: "asym-score",
+                                        "{brk.b_score}%", br {}
+                                        span { class: "asym-name", "{nb}" }
+                                    }
+                                }
                             }
                             div { class: "breakdown-section",
                                 h4 { "{compare_breakdown}" }

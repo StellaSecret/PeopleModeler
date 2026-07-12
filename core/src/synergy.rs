@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
 use crate::models::{
-    BehaviorTrigger, BehavioralPattern, BiasType, MotivationType, Person, Prediction, RepDim,
+    BehaviorTrigger, BehavioralPattern, BiasType, MotivationType, OceanScores, Person, Prediction,
+    RepDim,
 };
 
 pub struct SynergyBreakdown {
     pub total: u8,
+    pub a_score: u8,
+    pub b_score: u8,
     pub ocean: f64,
     pub reputation: f64,
     pub motivation: f64,
@@ -393,8 +396,99 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         0
     };
 
+    // --- Asymmetric individual perspectives ---
+
+    let base_ocean_ease = |o: &OceanScores| -> f64 {
+        let mut sum = 0.0;
+        let mut n = 0.0;
+        if let Some(v) = o.openness {
+            sum += v as f64 / 10.0;
+            n += 1.0;
+        }
+        if let Some(v) = o.conscientiousness {
+            sum += v as f64 / 10.0;
+            n += 1.0;
+        }
+        if let Some(v) = o.extraversion {
+            sum += v as f64 / 10.0;
+            n += 1.0;
+        }
+        if let Some(v) = o.agreeableness {
+            sum += v as f64 / 10.0;
+            n += 1.0;
+        }
+        if let Some(v) = o.neuroticism {
+            sum += (10.0 - v as f64) / 10.0;
+            n += 1.0;
+        }
+        if n == 0.0 { 0.5 } else { sum / n }
+    };
+
+    let base_rep = |p: &Person| -> f64 {
+        let mut sum = 0.0;
+        let mut n = 0.0;
+        for &(dim, weight) in &DIM_WEIGHTS {
+            if let Some(v) = p.rep_scores.score(dim) {
+                sum += (v as f64 / 10.0) * weight;
+                n += weight;
+            }
+        }
+        if n == 0.0 { 0.5 } else { sum / n }
+    };
+
+    let a_base_ease = base_ocean_ease(oa);
+    let b_base_ease = base_ocean_ease(ob);
+    let a_base_rep = base_rep(a);
+    let b_base_rep = base_rep(b);
+    let a_bias_quality = 1.0 - (a.biases.len() as f64 / 10.0);
+    let b_bias_quality = 1.0 - (b.biases.len() as f64 / 10.0);
+
+    const ASYM_SIM: f64 = 0.65;
+    const ASYM_BASE: f64 = 0.35;
+
+    // A's benefit = what A gets from B (B's base quality matters)
+    let a_ocean = ocean * ASYM_SIM + b_base_ease * ASYM_BASE;
+    let a_rep = reputation * ASYM_SIM + b_base_rep * ASYM_BASE;
+    let a_bias = bias_score * ASYM_SIM + b_bias_quality * ASYM_BASE;
+    // B's benefit = what B gets from A (A's base quality matters)
+    let b_ocean = ocean * ASYM_SIM + a_base_ease * ASYM_BASE;
+    let b_rep = reputation * ASYM_SIM + a_base_rep * ASYM_BASE;
+    let b_bias = bias_score * ASYM_SIM + a_bias_quality * ASYM_BASE;
+
+    let mut a_raw = 0.0;
+    let mut b_raw = 0.0;
+    a_raw += a_ocean * W_OCEAN;
+    b_raw += b_ocean * W_OCEAN;
+    if rep_active {
+        a_raw += a_rep * W_REP;
+        b_raw += b_rep * W_REP;
+    }
+    if mot_active {
+        a_raw += motivation * W_MOT;
+        b_raw += motivation * W_MOT;
+    }
+    if pat_active {
+        a_raw += patterns * W_PAT;
+        b_raw += patterns * W_PAT;
+    }
+    a_raw += a_bias * W_BIAS;
+    b_raw += b_bias * W_BIAS;
+
+    let a_score = if total_w > 0.0 {
+        ((a_raw / total_w * 100.0).round() as u8).min(100)
+    } else {
+        0
+    };
+    let b_score = if total_w > 0.0 {
+        ((b_raw / total_w * 100.0).round() as u8).min(100)
+    } else {
+        0
+    };
+
     SynergyBreakdown {
         total: score,
+        a_score,
+        b_score,
         ocean,
         reputation,
         motivation,

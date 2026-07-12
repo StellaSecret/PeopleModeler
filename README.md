@@ -440,6 +440,30 @@ Quand une catégorie manque de données (ex: aucun pattern, aucune dimension
 de réputation commune) → elle est exclue et son poids est réparti
 proportionnellement sur les catégories restantes.
 
+#### Score asymétrique (bénéfice individuel)
+
+En plus du score de paire symétrique `total`, chaque personne reçoit son propre
+score de bénéfice (`a_score` / `b_score`) reflétant ce qu'elle *reçoit* de
+l'autre :
+
+- **A→B** (ce que A reçoit) : pondère les qualités de B (OCEAN facile, bonne réputation, peu de biais)
+- **B→A** (ce que B reçoit) : pondère les qualités de A
+
+```
+catégorie_asymétrique = 0.65 × similarité_paire + 0.35 × qualité_base(autre)
+
+qualité_base_OCEAN(P) = moyenne de (O/10, C/10, E/10, A/10, (10-N)/10)
+qualité_base_Rep(P)   = moyenne pondérée des scores de réputation / 10
+qualité_base_Biais(P) = 1 - (nombre de biais / 10)
+```
+
+Motivations et Patterns restent symétriques (synergie mutuelle). Le score
+asymétrique utilise les mêmes poids de catégories et les mêmes pénalités /
+modulations que le score symétrique, seuls les scores OCEAN / Réputation /
+Biais diffèrent.
+
+L'interface affiche les trois scores : `{A}% – {paire}% – {B}%`.
+
 ---
 
 ## 📄 Licence
