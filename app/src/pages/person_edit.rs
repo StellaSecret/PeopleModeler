@@ -547,7 +547,6 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
 
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
     let add_btn = crate::i18n::tr("add_btn", lang);
-    let pattern_hint = crate::i18n::tr("pattern_hint", lang);
     let trigger_label = |t: BehaviorTrigger| -> &'static str {
         match t {
             BehaviorTrigger::Stress => ctx_stress,
@@ -587,7 +586,6 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                     aria_label: "Intensity"
                 }
                 span { "⚡{sel_intensity}" }
-                small { " {pattern_hint}" }
                 button { class: "btn", aria_label: "Add pattern", onclick: move |_| {
                     patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() });
                     sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
