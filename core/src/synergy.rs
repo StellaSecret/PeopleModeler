@@ -197,14 +197,44 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
     p
 }
 
+/// Similarity score between two OCEAN trait values (1-10 scale).
+/// Formula: `1 - |a-b|/10`, clamped to [0.0, 1.0].
+/// Returns 0.5 when either value is missing.
+pub fn sim(a: Option<u8>, b: Option<u8>) -> f64 {
+    match (a, b) {
+        (Some(a), Some(b)) => 1.0 - (a.abs_diff(b) as f64) / 10.0,
+        _ => 0.5,
+    }
+}
+
+/// Scale band thresholds derived from the [`sim`] formula.
+///
+/// `score = sim * 100 = (1 - |a-b|/10) * 100`.
+/// Trait-diff boundaries `[3, 5, 7, 8.5]` map to score thresholds:
+/// - Strong:   ≥70  (diff ≤3)
+/// - Good:     ≥50  (diff ≤5)
+/// - Moderate: ≥30  (diff ≤7)
+/// - Friction: ≥15  (diff ≤8.5)
+/// - Tension:  0-14 (diff >8.5)
+pub fn synergy_bands() -> [(u8, u8); 5] {
+    // Trait-diff boundaries mapped through sim formula → score thresholds
+    const DIFF_BOUNDS: [f64; 4] = [3.0, 5.0, 7.0, 8.5];
+    let mut thresh = [0u8; 4];
+    for (i, &d) in DIFF_BOUNDS.iter().enumerate() {
+        thresh[i] = ((1.0 - d / 10.0) * 100.0).round() as u8;
+    }
+    [
+        (0, thresh[3] - 1),         // Tension
+        (thresh[3], thresh[2] - 1), // Friction
+        (thresh[2], thresh[1] - 1), // Moderate
+        (thresh[1], thresh[0] - 1), // Good
+        (thresh[0], 100),           // Strong
+    ]
+}
+
 pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let oa = &a.ocean;
     let ob = &b.ocean;
-
-    let sim = |x: Option<u8>, y: Option<u8>| match (x, y) {
-        (Some(a), Some(b)) => 1.0 - (a.abs_diff(b) as f64) / 10.0,
-        _ => 0.5,
-    };
 
     let oc =
         (sim(oa.openness, ob.openness) + sim(oa.conscientiousness, ob.conscientiousness)) / 2.0;

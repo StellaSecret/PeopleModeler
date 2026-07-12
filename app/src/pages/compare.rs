@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person};
 
-use peoplemodeler_core::synergy::compute_synergy_score;
+use peoplemodeler_core::synergy::{compute_synergy_score, synergy_bands};
 
 use crate::Route;
 use crate::db;
@@ -49,6 +49,21 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let strategy_title = crate::i18n::tr("compare_strategy", lang());
             let ethics = crate::i18n::tr("compare_ethics", lang());
             let has_extra_strategies = all_strategies.len() > 1;
+
+            // Scale ruler — thresholds dynamically derived from sim formula
+            let band_ranges = synergy_bands();
+            let band_meta: [(&str, &str); 5] = [
+                ("scale_tension", "scale-tension"),
+                ("scale_friction", "scale-friction"),
+                ("scale_moderate", "scale-moderate"),
+                ("scale_good", "scale-good"),
+                ("scale_strong", "scale-strong"),
+            ];
+            let scale_bands: [(&str, u8, u8, &str); 5] = std::array::from_fn(|i| {
+                let (lo, hi) = band_ranges[i];
+                (band_meta[i].0, lo, hi, band_meta[i].1)
+            });
+            let active_band = scale_bands.iter().position(|(_, lo, hi, _)| score >= *lo && score <= *hi).unwrap_or(2);
 
             rsx! {
                 div { class: "page",
@@ -98,6 +113,34 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     span { class: "asym-score",
                                         "{brk.b_score}%", br {}
                                         span { class: "asym-name", "{nb}" }
+                                    }
+                                }
+                                div { class: "scale-ruler",
+                                    div { class: "scale-ruler-header",
+                                        span { class: "scale-band-name",
+                                            "{crate::i18n::tr(scale_bands[active_band].0, lang())}"
+                                        }
+                                        span { class: "scale-band-range",
+                                            "{scale_bands[active_band].1}-{scale_bands[active_band].2}%"
+                                        }
+                                    }
+                                    div { class: "scale-bar",
+                                        {scale_bands.iter().enumerate().map(|(i, (_, lo, hi, color))| {
+                                            let pct = (hi - lo + 1) as f64 / 101.0 * 100.0;
+                                            let cls = if i == active_band { "scale-band active" } else { "scale-band" };
+                                            rsx! { div { class: "{cls} {color}", width: "{pct:.0}%" } }
+                                        })}
+                                        div { class: "scale-dot", style: "left: {score}%" }
+                                    }
+                                    div { class: "scale-labels",
+                                        {scale_bands.iter().enumerate().map(|(i, (key, _, _, _))| {
+                                            let label = crate::i18n::tr(key, lang());
+                                            if i == active_band {
+                                                rsx! { span { class: "scale-lbl active", "{label}" } }
+                                            } else {
+                                                rsx! { span { class: "scale-lbl", "{label}" } }
+                                            }
+                                        })}
                                     }
                                 }
                             }
@@ -166,7 +209,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     span { class: "rec-icon", "💡" }
                                     div { class: "rec-text", "{top_strategy}" }
                                 }
-                                if has_extra_strategies {
+                                 if has_extra_strategies {
                                     details { class: "more-recs",
                                         summary {
                                             span { "More (" "{all_strategies.len() - 1}" ")" }

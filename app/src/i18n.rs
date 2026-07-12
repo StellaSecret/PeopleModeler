@@ -456,6 +456,13 @@ fn en(key: &'static str) -> &'static str {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
         }
 
+        // Scale bands
+        "scale_strong" => "Strong",
+        "scale_good" => "Good",
+        "scale_moderate" => "Moderate",
+        "scale_friction" => "Friction",
+        "scale_tension" => "Tension",
+
         // Relationships
         "rel_title" => "Relationships",
         "rel_add" => "＋ Add Relationship",
@@ -875,7 +882,14 @@ fn fr(key: &'static str) -> &'static str {
         "compare_cat_bias" => "Biais",
         "compare_ethics" => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
-        }
+        },
+
+        // Scale bands
+        "scale_strong" => "Fort",
+        "scale_good" => "Bon",
+        "scale_moderate" => "Moyen",
+        "scale_friction" => "Friction",
+        "scale_tension" => "Tension",
 
         // Relationships
         "rel_title" => "Relations",
