@@ -16,6 +16,7 @@ pub struct SynergyBreakdown {
     pub bias: f64,
     pub danger: f64,
     pub bias_mod_active: bool,
+    pub danger_details: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -393,66 +394,19 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         + pat_danger_penalty * W_PAT
         + history_penalty;
 
-    // Dynamic weight redistribution
+    // Dynamic weight redistribution (shared by mutual total & asymmetric)
     const W_OCEAN: f64 = 0.19;
     const W_REP: f64 = 0.29;
     const W_MOT: f64 = 0.21;
     const W_PAT: f64 = 0.16;
     const W_BIAS: f64 = 0.15;
 
-    let mut raw = 0.0;
-    let mut total_w = 0.0;
-
-    raw += ocean * W_OCEAN;
-    total_w += W_OCEAN;
-    if rep_active {
-        raw += reputation * W_REP;
-        total_w += W_REP;
-    }
-    if mot_active {
-        raw += motivation * W_MOT;
-        total_w += W_MOT;
-    }
-    if pat_active {
-        raw += patterns * W_PAT;
-        total_w += W_PAT;
-    }
-    raw += bias_score * W_BIAS;
-    total_w += W_BIAS;
-
-    let score = if total_w > 0.0 {
-        ((raw / total_w * 100.0).round() as u8).min(100)
-    } else {
-        0
-    };
-
     // --- Asymmetric individual perspectives ---
-
-    let base_ocean_ease = |o: &OceanScores| -> f64 {
-        let mut sum = 0.0;
-        let mut n = 0.0;
-        if let Some(v) = o.openness {
-            sum += v as f64 / 10.0;
-            n += 1.0;
-        }
-        if let Some(v) = o.conscientiousness {
-            sum += v as f64 / 10.0;
-            n += 1.0;
-        }
-        if let Some(v) = o.extraversion {
-            sum += v as f64 / 10.0;
-            n += 1.0;
-        }
-        if let Some(v) = o.agreeableness {
-            sum += v as f64 / 10.0;
-            n += 1.0;
-        }
-        if let Some(v) = o.neuroticism {
-            sum += (10.0 - v as f64) / 10.0;
-            n += 1.0;
-        }
-        if n == 0.0 { 0.5 } else { sum / n }
-    };
+    // A's benefit = Σ(A's valuation_i × B's quality_i) via composition of
+    //   OCEAN: similarity-weighted partner quality  → asymmetric
+    //   Reputation / Bias: partner's raw quality     → asymmetric when levels differ
+    //   Motivation / Patterns: shared synergy        → symmetric (same for both)
+    // Total = (a_score + b_score) / 2
 
     let base_rep = |p: &Person| -> f64 {
         let mut sum = 0.0;
@@ -465,57 +419,101 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         }
         if n == 0.0 { 0.5 } else { sum / n }
     };
-
-    let a_base_ease = base_ocean_ease(oa);
-    let b_base_ease = base_ocean_ease(ob);
     let a_base_rep = base_rep(a);
     let b_base_rep = base_rep(b);
     let a_bias_quality = 1.0 - (a.biases.len() as f64 / 10.0);
     let b_bias_quality = 1.0 - (b.biases.len() as f64 / 10.0);
 
-    const ASYM_SIM: f64 = 0.65;
-    const ASYM_BASE: f64 = 0.35;
+    // OCEAN vector for each person (trait value / 10, stability = 1 - N/10)
+    let ovec = |o: &OceanScores| -> [f64; 5] {
+        [
+            o.openness.map_or(0.5, |v| v as f64 / 10.0),
+            o.conscientiousness.map_or(0.5, |v| v as f64 / 10.0),
+            o.extraversion.map_or(0.5, |v| v as f64 / 10.0),
+            o.agreeableness.map_or(0.5, |v| v as f64 / 10.0),
+            o.neuroticism.map_or(0.5, |v| (10.0 - v as f64) / 10.0),
+        ]
+    };
+    let av = ovec(oa);
+    let bv = ovec(ob);
 
-    // A's benefit = what A gets from B (B's base quality matters)
-    let a_ocean = ocean * ASYM_SIM + b_base_ease * ASYM_BASE;
-    let a_rep = reputation * ASYM_SIM + b_base_rep * ASYM_BASE;
-    let a_bias = bias_score * ASYM_SIM + b_bias_quality * ASYM_BASE;
-    // B's benefit = what B gets from A (A's base quality matters)
-    let b_ocean = ocean * ASYM_SIM + a_base_ease * ASYM_BASE;
-    let b_rep = reputation * ASYM_SIM + a_base_rep * ASYM_BASE;
-    let b_bias = bias_score * ASYM_SIM + a_bias_quality * ASYM_BASE;
+    // Similarity-weighted partner quality: a_ocean_i = B_quality_i × sim(A_i, B_i).
+    // Asymmetric because B_quality_i × sim ≠ A_quality_i × sim when A_i ≠ B_i.
+    // This preserves genuine OCEAN asymmetry without inflating scores when
+    // partners have very different trait levels (unlike pure complementarity).
+    let asym_ocean = |v: &[f64; 5], t: &[f64; 5]| -> f64 {
+        ((1.0 - (v[0] - t[0]).abs()) * t[0]
+            + (1.0 - (v[1] - t[1]).abs()) * t[1]
+            + (1.0 - (v[2] - t[2]).abs()) * t[2]
+            + (1.0 - (v[3] - t[3]).abs()) * t[3]
+            + (1.0 - (v[4] - t[4]).abs()) * t[4])
+            / 5.0
+    };
+
+    // A's perspective: B's traits × similarity(A traits, B traits)
+    let a_ocean = asym_ocean(&av, &bv);
+    // B's perspective: A's traits × similarity(B traits, A traits)
+    let b_ocean = asym_ocean(&bv, &av);
 
     let mut a_raw = 0.0;
     let mut b_raw = 0.0;
+    let mut asym_w = 0.0;
     a_raw += a_ocean * W_OCEAN;
     b_raw += b_ocean * W_OCEAN;
+    asym_w += W_OCEAN;
     if rep_active {
-        a_raw += a_rep * W_REP;
-        b_raw += b_rep * W_REP;
+        a_raw += b_base_rep * W_REP;
+        b_raw += a_base_rep * W_REP;
+        asym_w += W_REP;
     }
     if mot_active {
         a_raw += motivation * W_MOT;
         b_raw += motivation * W_MOT;
+        asym_w += W_MOT;
     }
     if pat_active {
         a_raw += patterns * W_PAT;
         b_raw += patterns * W_PAT;
+        asym_w += W_PAT;
     }
-    a_raw += a_bias * W_BIAS;
-    b_raw += b_bias * W_BIAS;
+    a_raw += b_bias_quality * W_BIAS;
+    b_raw += a_bias_quality * W_BIAS;
+    asym_w += W_BIAS;
 
-    // Normalize asymmetric scores as a split of the mutual total.
-    // a_raw/b_raw determine the split ratio; their average is scaled
-    // to the mutual score so a_score + b_score ≈ 2 × total.
-    // This prevents both scores exceeding total simultaneously.
-    let avg_raw = (a_raw + b_raw) / 2.0;
-    let a_ratio = if avg_raw > 0.0 { a_raw / avg_raw } else { 1.0 };
-    let b_ratio = if avg_raw > 0.0 { b_raw / avg_raw } else { 1.0 };
-    let a_score = ((score as f64 * a_ratio).round() as u8).min(100);
-    let b_score = ((score as f64 * b_ratio).round() as u8).min(100);
+    let a_score = if asym_w > 0.0 {
+        ((a_raw / asym_w * 100.0).round() as u8).min(100)
+    } else {
+        0
+    };
+    let b_score = if asym_w > 0.0 {
+        ((b_raw / asym_w * 100.0).round() as u8).min(100)
+    } else {
+        0
+    };
+
+    // Apply danger penalties: total_danger = Σ(penalty_i × W_i) was the direct
+    // reduction to `raw` in the old formula. Score-point reduction = total_danger / asym_w * 100.
+    let danger_penalty = if asym_w > 0.0 {
+        (total_danger / asym_w * 100.0).round() as u8
+    } else {
+        0
+    };
+    let mutual = ((a_score as f64 + b_score as f64) / 2.0).round() as u8;
+    let mutual = mutual.saturating_sub(danger_penalty);
+
+    let mut details = Vec::new();
+    if ocean_penalty > 0.0 { details.push("OCEAN volatility"); }
+    if rep_penalty > 0.0 { details.push("Rep power struggle"); }
+    if pat_danger_penalty > 0.0 { details.push("Only negative patterns"); }
+    if history_penalty > 0.0 { details.push("Low prediction accuracy"); }
+    let danger_details = if details.is_empty() {
+        String::new()
+    } else {
+        details.join(", ")
+    };
 
     SynergyBreakdown {
-        total: score,
+        total: mutual,
         a_score,
         b_score,
         ocean,
@@ -525,6 +523,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         bias: bias_score,
         danger: total_danger,
         bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
+        danger_details,
     }
 }
 
@@ -1402,8 +1401,8 @@ mod tests {
         let b = p;
         let brk = compute_synergy_score(&a, &b);
         assert!(
-            brk.total > 75,
-            "Identical persons should score > 75, got {}",
+            brk.total > 55,
+            "Identical persons should score > 55, got {}",
             brk.total
         );
     }
@@ -1493,13 +1492,16 @@ mod tests {
         }];
         let brk2 = compute_synergy_score(&a2, &b2);
 
-        assert_ne!(
+        // Total = average of asymmetric scores; shared vs different biases
+        // don't affect individual bias counts, so total is unchanged.
+        assert_eq!(
             brk1.total, brk2.total,
-            "shared vs different biases should yield different scores"
+            "shared vs different biases yield same total (modulation is in breakdown)"
         );
+        // The mutual bias breakdown differs because shared types boost bias_score.
         assert!(
             brk1.bias > brk2.bias,
-            "shared biases should give higher bias score"
+            "shared biases should give higher bias breakdown score"
         );
     }
 
@@ -1688,5 +1690,158 @@ mod tests {
         // The total should reflect category-level penalties (embedded in ocean/rep)
         // but not an extra subtraction. Exact value depends on weights — just verify it runs.
         assert!(brk.total >= 0, "total should be >= 0: {}", brk.total);
+    }
+
+    // --- Asymmetric score property tests ---
+
+    #[test]
+    fn test_asymmetric_ocean_divergence() {
+        // Same rep/bias, different OCEAN → a_score ≠ b_score
+        let mut a = make_person(Some(8), Some(5), Some(8), Some(5), Some(2));
+        let mut b = make_person(Some(3), Some(5), Some(3), Some(5), Some(8));
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            reliable_flaky: Some(7),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            reliable_flaky: Some(7),
+            ..RepScores::default()
+        };
+        let brk = compute_synergy_score(&a, &b);
+        assert_ne!(
+            brk.a_score, brk.b_score,
+            "different OCEAN should give asymmetric scores: {} vs {}",
+            brk.a_score, brk.b_score
+        );
+    }
+
+    #[test]
+    fn test_asymmetric_identical_persons_equal() {
+        // Fully identical → a_score == b_score
+        let a = make_person(Some(8), Some(6), Some(9), Some(4), Some(5));
+        let b = make_person(Some(8), Some(6), Some(9), Some(4), Some(5));
+        let brk = compute_synergy_score(&a, &b);
+        assert_eq!(
+            brk.a_score, brk.b_score,
+            "identical persons should have equal asymmetric scores: {} vs {}",
+            brk.a_score, brk.b_score
+        );
+    }
+
+    #[test]
+    fn test_asymmetric_rep_difference() {
+        // Same OCEAN + bias, different rep → scores diverge
+        let mut a = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        let mut b = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            reliable_flaky: Some(9),
+            honest_deceitful: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            reliable_flaky: Some(3),
+            honest_deceitful: Some(3),
+            ..RepScores::default()
+        };
+        let brk = compute_synergy_score(&a, &b);
+        assert_ne!(
+            brk.a_score, brk.b_score,
+            "different rep should give asymmetric scores: {} vs {}",
+            brk.a_score, brk.b_score
+        );
+        // A has better rep → B benefits more from A (b_score > a_score)
+        assert!(
+            brk.b_score > brk.a_score,
+            "B should benefit more from high-rep A: {} vs {}",
+            brk.a_score, brk.b_score
+        );
+    }
+
+    #[test]
+    fn test_asymmetric_bias_difference() {
+        // Same OCEAN + rep, different bias count → scores diverge
+        let mut a = make_person(Some(6), Some(6), Some(6), Some(6), Some(4));
+        let mut b = make_person(Some(6), Some(6), Some(6), Some(6), Some(4));
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(6),
+            reliable_flaky: Some(6),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(6),
+            reliable_flaky: Some(6),
+            ..RepScores::default()
+        };
+        // A has 0 biases, B has 4 biases
+        a.biases = vec![];
+        for ty in &[
+            BiasType::Anchoring,
+            BiasType::Confirmation,
+            BiasType::Availability,
+            BiasType::SunkCost,
+        ] {
+            b.biases.push(Bias {
+                r#type: *ty,
+                intensity: 7,
+                evidence: String::new(),
+            });
+        }
+        let brk = compute_synergy_score(&a, &b);
+        assert_ne!(
+            brk.a_score, brk.b_score,
+            "different bias counts should give asymmetric scores: {} vs {}",
+            brk.a_score, brk.b_score
+        );
+        // A has fewer biases → B benefits more from A
+        assert!(
+            brk.b_score > brk.a_score,
+            "B should benefit more from low-bias A: {} vs {}",
+            brk.a_score, brk.b_score
+        );
+    }
+
+    #[test]
+    fn test_total_derived_from_asymmetric() {
+        // total ≈ (a + b) / 2 minus danger penalty
+        let a = make_person(Some(7), Some(6), Some(8), Some(5), Some(4));
+        let b = make_person(Some(5), Some(7), Some(6), Some(6), Some(5));
+        let brk = compute_synergy_score(&a, &b);
+        let expected = (brk.a_score as f64 + brk.b_score as f64) / 2.0;
+        let diff = (expected - brk.total as f64).abs();
+        // Allow up to 3 point divergence from rounding + danger penalty
+        assert!(
+            diff <= 3.0,
+            "total should be close to (a+b)/2: {} vs expected {} (diff {})",
+            brk.total, expected, diff
+        );
+    }
+
+    #[test]
+    fn test_asymmetric_ocean_direction() {
+        // Low-E person benefits more from high-E partner than vice versa
+        // (similarity-weighted: B quality × sim, so high-quality partner gives more)
+        let mut a = make_person(Some(5), Some(5), Some(2), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(9), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(5),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(5),
+            ..RepScores::default()
+        };
+        let brk = compute_synergy_score(&a, &b);
+        // a (low-E) gets b (high-E)'s high quality × low sim → moderate
+        // b (high-E) gets a (low-E)'s low quality × low sim → low
+        // So a_score > b_score for OCEAN-diminished case
+        assert!(
+            brk.a_score > brk.b_score,
+            "low-E person should benefit more from high-E partner: {} vs {}",
+            brk.a_score, brk.b_score
+        );
     }
 }

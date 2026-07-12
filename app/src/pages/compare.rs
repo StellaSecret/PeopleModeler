@@ -114,7 +114,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                         }
                                     }
                                 }
-                                div { class: "scale-ruler",
+                                 if brk.danger > 0.0 {
+                                    div { class: "danger-warning", "⚠ {brk.danger_details}" }
+                                 }
+                                 div { class: "scale-ruler",
                                     div { class: "scale-bar",
                                         {scale_bands.iter().enumerate().map(|(i, (_, lo, hi, color))| {
                                             let pct = (hi - lo + 1) as f64 / 101.0 * 100.0;

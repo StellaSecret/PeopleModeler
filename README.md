@@ -419,50 +419,69 @@ pénalité_historique =
 
 #### Agrégation finale (poids dynamiques)
 
-```
-raw = Σ(score_cat × poids_cat)  pour chaque catégorie active
-total_w = Σ(poids_cat)
+Le score de base (catégories compatibilité) et les scores asymétriques utilisent
+les mêmes poids fixes redistribués dynamiquement :
 
-score = round(raw / total_w × 100)  → clamp [0, 100]
+```
+poids_OCEAN   = 0.19
+poids_Rep     = 0.29
+poids_Mot     = 0.21
+poids_Patterns = 0.16
+poids_Biais   = 0.15
 ```
 
-Les pénalités danger sont déjà appliquées au niveau de chaque catégorie
-(OCEAN, Réputation, Patterns) avant l'agrégation. Le champ `danger` du
-`SynergyBreakdown` expose la somme pondérée des pénalités pour transparence
-(sans double soustraction) :
+Quand une catégorie manque de données → elle est exclue et son poids est réparti
+proportionnellement sur les catégories restantes.
+
+#### Score asymétrique (bénéfice individuel)
+
+Chaque personne reçoit son propre score (`a_score` / `b_score`) reflétant ce
+qu'elle *bénéficie* de l'autre, calculé par catégorie :
+
+- **OCEAN** : qualité du partenaire pondérée par similarité. Pour chaque trait,
+  la contribution est `B_qualité × sim(A, B)` où
+  `sim(A, B) = 1 - |A/10 - B/10|`. Asymétrique car `B × sim ≠ A × sim`
+  quand les niveaux de traits diffèrent. Résultat : moyenne des 5 traits.
+
+- **Réputation** : la qualité brute de l'autre
+  (`qualité_base_Rep(P) = moyenne pondérée des scores / 10`).
+
+- **Biais** : l'absence de biais chez l'autre
+  (`qualité_base_Biais(P) = 1 - nb_biais / 10`).
+
+- **Motivation / Patterns** : synergie mutuelle (identique pour les deux).
+
+```
+poids actif = Σ(poids_cat) pour chaque catégorie active
+a_raw = score_OCEAN_a × 0.19 + qual_Rep_B × 0.29 + synergie_Mot × 0.21
+      + synergie_Patterns × 0.16 + qual_Biais_B × 0.15
+b_raw = score_OCEAN_b × 0.19 + qual_Rep_A × 0.29 + synergie_Mot × 0.21
+      + synergie_Patterns × 0.16 + qual_Biais_A × 0.15
+
+a_score = round(a_raw / poids_actif × 100) → clamp [0, 100]
+b_score = round(b_raw / poids_actif × 100) → clamp [0, 100]
+```
+
+Le **score total** est la moyenne des deux, réduite des pénalités danger :
+
+```
+total = round((a_score + b_score) / 2) - danger_pts
+danger_pts = round(danger / poids_actif × 100)
+```
+
+`danger` est la somme pondérée des pénalités OCEAN, Réputation, Patterns,
+historique (inchangée) :
 
 ```
 danger = pénalité_OCEAN × 0.19 + pénalité_Rep × 0.29
        + pénalité_Patterns × 0.16 + pénalité_historique
 ```
 
-Quand une catégorie manque de données (ex: aucun pattern, aucune dimension
-de réputation commune) → elle est exclue et son poids est réparti
-proportionnellement sur les catégories restantes.
+Le champ `danger` du `SynergyBreakdown` expose cette valeur pour transparence
+(sans double soustraction).
 
-#### Score asymétrique (bénéfice individuel)
-
-En plus du score de paire symétrique `total`, chaque personne reçoit son propre
-score de bénéfice (`a_score` / `b_score`) reflétant ce qu'elle *reçoit* de
-l'autre :
-
-- **A→B** (ce que A reçoit) : pondère les qualités de B (OCEAN facile, bonne réputation, peu de biais)
-- **B→A** (ce que B reçoit) : pondère les qualités de A
-
-```
-catégorie_asymétrique = 0.65 × similarité_paire + 0.35 × qualité_base(autre)
-
-qualité_base_OCEAN(P) = moyenne de (O/10, C/10, E/10, A/10, (10-N)/10)
-qualité_base_Rep(P)   = moyenne pondérée des scores de réputation / 10
-qualité_base_Biais(P) = 1 - (nombre de biais / 10)
-```
-
-Motivations et Patterns restent symétriques (synergie mutuelle). Le score
-asymétrique utilise les mêmes poids de catégories et les mêmes pénalités /
-modulations que le score symétrique, seuls les scores OCEAN / Réputation /
-Biais diffèrent.
-
-L'interface affiche les trois scores : `{A}% – {paire}% – {B}%`.
+L'interface affiche les trois scores : `{A}% – {total}% – {B}%` avec des
+flèches directionnelles indiquant qui bénéficie le plus.
 
 ---
 
