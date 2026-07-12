@@ -95,6 +95,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     cat_ocean, cat_rep, cat_mot, cat_pat, cat_bias,
                                     s_ocean: brk.ocean, s_rep: brk.reputation,
                                     s_mot: brk.motivation, s_pat: brk.patterns, s_bias: brk.bias,
+                                    bias_mod_active: brk.bias_mod_active,
                                 }
                             }
                         }
@@ -190,25 +191,31 @@ fn PersonCard(person: Person) -> Element {
 fn BreakdownBars(
     cat_ocean: String, cat_rep: String, cat_mot: String, cat_pat: String, cat_bias: String,
     s_ocean: f64, s_rep: f64, s_mot: f64, s_pat: f64, s_bias: f64,
+    bias_mod_active: bool,
 ) -> Element {
     let cats = [
-        (&cat_ocean, s_ocean),
-        (&cat_rep, s_rep),
-        (&cat_mot, s_mot),
-        (&cat_pat, s_pat),
-        (&cat_bias, s_bias),
+        (&cat_ocean, s_ocean, false),
+        (&cat_rep, s_rep, false),
+        (&cat_mot, s_mot, false),
+        (&cat_pat, s_pat, false),
+        (&cat_bias, s_bias, bias_mod_active),
     ];
-    let pcts: Vec<u8> = cats.iter().map(|(_, v)| (*v * 100.0) as u8).collect();
+    let pcts: Vec<u8> = cats.iter().map(|(_, v, _)| (*v * 100.0) as u8).collect();
 
     rsx! {
         div { class: "breakdown-bars",
-            for (i, (label, _)) in cats.iter().enumerate() {
+            for (i, (label, _, mod_flag)) in cats.iter().enumerate() {
                 div { class: "bb-row",
                     span { class: "bb-label", "{label}" }
                     div { class: "bb-bar",
                         div { class: "bb-fill", width: "{pcts[i]}%" }
                     }
-                    span { class: "bb-pct", "{pcts[i]}%" }
+                    span { class: "bb-pct",
+                        "{pcts[i]}%"
+                        if *mod_flag && pcts[i] == 0 {
+                            " ⚡"
+                        }
+                    }
                 }
             }
         }

@@ -12,6 +12,7 @@ pub struct SynergyBreakdown {
     pub patterns: f64,
     pub bias: f64,
     pub danger: f64,
+    pub bias_mod_active: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -400,6 +401,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
         patterns,
         bias: bias_score,
         danger: total_danger,
+        bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
     }
 }
 
