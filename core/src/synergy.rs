@@ -2095,4 +2095,27 @@ mod tests {
             pf.patterns
         );
     }
+
+    #[test]
+    fn test_self_score_band_integration() {
+        // Verify synergy_bands logic used by person_detail page's band-key resolution
+        let bands = synergy_bands();
+        let band_for = |score: u8| -> usize {
+            bands.iter().position(|&(lo, hi)| score >= lo && score <= hi).unwrap_or(2)
+        };
+        let band_keys = ["scale_tension", "scale_friction", "scale_moderate", "scale_good", "scale_strong"];
+
+        // Minimum score → tension
+        assert_eq!(band_for(0), 0);
+        assert_eq!(band_keys[band_for(0)], "scale_tension");
+        // Maximum score → strong
+        assert_eq!(band_for(100), 4);
+        assert_eq!(band_keys[band_for(100)], "scale_strong");
+
+        // Baseline self-score (neutral person, no motiv/patterns) → moderate
+        let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let pf = compute_person_profile(&p);
+        let idx = band_for(pf.total);
+        assert!(idx >= 1 && idx <= 3, "baseline band should be moderate-ish, got {} ({})", idx, band_keys[idx]);
+    }
 }

@@ -91,6 +91,13 @@ pub fn PersonDetail(id: String) -> Element {
             let band_keys = ["scale_tension", "scale_friction", "scale_moderate", "scale_good", "scale_strong"];
             let band_cls = ["ps-tension", "ps-friction", "ps-moderate", "ps-good", "ps-strong"];
             let band_label = crate::i18n::tr(band_keys[active_band], lang());
+            let ps_breakdown: Vec<(&'static str, u8)> = vec![
+                (crate::i18n::tr("compare_cat_ocean", lang()), (profile_score.ocean * 100.0).round() as u8),
+                (crate::i18n::tr("compare_cat_reputation", lang()), (profile_score.reputation * 100.0).round() as u8),
+                (crate::i18n::tr("compare_cat_motivation", lang()), (profile_score.motivation * 100.0).round() as u8),
+                (crate::i18n::tr("compare_cat_patterns", lang()), (profile_score.patterns * 100.0).round() as u8),
+                (crate::i18n::tr("compare_cat_bias", lang()), (profile_score.bias * 100.0).round() as u8),
+            ];
             let rep_items: Vec<_> = RepDim::ALL
                 .iter()
                 .filter_map(|d| {
@@ -183,6 +190,17 @@ pub fn PersonDetail(id: String) -> Element {
                                         div { class: "ps-seg" }
                                     }
                                     div { class: "ps-dot", style: "left: {profile_score.total}%" }
+                                }
+                            }
+                        }
+                        div { class: "ps-breakdown",
+                            for (label, val) in &ps_breakdown {
+                                div { class: "ps-bd-row",
+                                    span { class: "ps-bd-label", "{label}" }
+                                    span { class: "ps-bd-bar-wrap",
+                                        span { class: "ps-bd-bar", style: "width: {val}%" }
+                                    }
+                                    span { class: "ps-bd-val", "{val}/100" }
                                 }
                             }
                         }
