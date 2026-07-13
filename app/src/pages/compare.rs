@@ -351,35 +351,52 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         });
     }
 
-    // Motivation non-conflict
+    // Motivation synergy (uses core synergy value, not just equality)
     match (a.top_motivation(), b.top_motivation()) {
-        (Some(m1), Some(m2)) if m1.r#type != m2.r#type => {
-            syn.push(if lang == Lang::Fr {
-                format!(
-                    "Motivations non-concurrentes — {} et {} ne se marchent pas sur les pieds",
-                    m1.r#type.i18n(cl).label,
-                    m2.r#type.i18n(cl).label,
-                )
-            } else {
-                format!(
-                    "Non-competing motivations — {} and {} don't step on each other",
-                    m1.r#type.i18n(cl).label,
-                    m2.r#type.i18n(cl).label,
-                )
-            });
-        }
-        (Some(m1), Some(_)) => {
-            syn.push(if lang == Lang::Fr {
-                format!(
-                    "Motivation {} partagée — même langage, mêmes priorités",
-                    m1.r#type.i18n(cl).label
-                )
-            } else {
-                format!(
-                    "Shared {} motivation — same language, same priorities",
-                    m1.r#type.i18n(cl).label
-                )
-            });
+        (Some(m1), Some(m2)) => {
+            let msyn = peoplemodeler_core::synergy::motivation_synergy(m1.r#type, m2.r#type);
+            if msyn > 0.0 {
+                syn.push(if lang == Lang::Fr {
+                    format!(
+                        "Motivations complémentaires — {} et {} se renforcent mutuellement",
+                        m1.r#type.i18n(cl).label,
+                        m2.r#type.i18n(cl).label,
+                    )
+                } else {
+                    format!(
+                        "Complementary motivations — {} and {} reinforce each other",
+                        m1.r#type.i18n(cl).label,
+                        m2.r#type.i18n(cl).label,
+                    )
+                });
+            } else if msyn < 0.0 {
+                fri.push(if lang == Lang::Fr {
+                    format!(
+                        "Motivations concurrentes — {} et {} peuvent créer des tensions",
+                        m1.r#type.i18n(cl).label,
+                        m2.r#type.i18n(cl).label,
+                    )
+                } else {
+                    format!(
+                        "Competing motivations — {} and {} may create tension",
+                        m1.r#type.i18n(cl).label,
+                        m2.r#type.i18n(cl).label,
+                    )
+                });
+            }
+            if m1.r#type == m2.r#type {
+                syn.push(if lang == Lang::Fr {
+                    format!(
+                        "Motivation {} partagée — même langage, mêmes priorités",
+                        m1.r#type.i18n(cl).label
+                    )
+                } else {
+                    format!(
+                        "Shared {} motivation — same language, same priorities",
+                        m1.r#type.i18n(cl).label
+                    )
+                });
+            }
         }
         _ => {}
     }
