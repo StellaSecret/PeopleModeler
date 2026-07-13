@@ -629,10 +629,11 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // --- OCEAN-gap strategies ---
     if let (Some(ea), Some(eb)) = (oa.extraversion, ob.extraversion) {
         if ea.abs_diff(eb) >= 3 {
+            let (more, quieter) = if ea >= eb { (&na, &nb) } else { (&nb, &na) };
             str.push(if lang == Lang::Fr {
-                format!("Rythme social très différent — {na} préfère plus d'échanges, {nb} plus de calme")
+                format!("Rythme social très différent — {more} préfère plus d'échanges, {quieter} plus de calme")
             } else {
-                format!("Very different social pace — {na} prefers more interaction, {nb} more quiet time")
+                format!("Very different social pace — {more} prefers more interaction, {quieter} more quiet time")
             });
         }
     }
