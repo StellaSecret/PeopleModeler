@@ -70,6 +70,26 @@ pub fn tr(key: &'static str, lang: Lang) -> &'static str {
     }
 }
 
+pub fn tr_danger_details(details: &str, lang: Lang) -> String {
+    if details.is_empty() {
+        return String::new();
+    }
+    fn key(s: &str) -> &'static str {
+        match s {
+            "OCEAN volatility" => "OCEAN volatility",
+            "Rep power struggle" => "Power struggle (Reputation)",
+            "Only negative patterns" => "Only negative patterns",
+            "Low prediction accuracy" => "Low prediction accuracy",
+            _ => "Unknown",
+        }
+    }
+    details
+        .split(", ")
+        .map(|d| tr(key(d), lang))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 pub fn tr_fmt(key: &'static str, lang: Lang, args: &[(&str, &str)]) -> String {
     let mut s = tr(key, lang).to_string();
     for (k, v) in args {
@@ -453,6 +473,10 @@ fn en(key: &'static str) -> &'static str {
         "compare_cat_patterns" => "Patterns",
         "compare_cat_bias" => "Bias",
         "person_self_score" => "Profile Score",
+        "OCEAN volatility" => "OCEAN volatility",
+        "Rep power struggle" => "Rep power struggle",
+        "Only negative patterns" => "Only negative patterns",
+        "Low prediction accuracy" => "Low prediction accuracy",
         "compare_asymmetric" => "Mutual benefit",
         "compare_ethics" => {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
@@ -883,6 +907,10 @@ fn fr(key: &'static str) -> &'static str {
         "compare_cat_patterns" => "Patterns",
         "compare_cat_bias" => "Biais",
         "person_self_score" => "Score de profil",
+        "OCEAN volatility" => "Volatilité OCEAN",
+        "Rep power struggle" => "Lutte de pouvoir (réputation)",
+        "Only negative patterns" => "Patterns négatifs uniquement",
+        "Low prediction accuracy" => "Faible précision prédictive",
         "compare_asymmetric" => "Bénéfice mutuel",
         "compare_ethics" => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."

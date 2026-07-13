@@ -115,8 +115,8 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     }
                                 }
                                  if brk.danger > 0.0 {
-                                    div { class: "danger-warning", "⚠ {brk.danger_details}" }
-                                 }
+                                     div { class: "danger-warning", "⚠ {crate::i18n::tr_danger_details(&brk.danger_details, lang())}" }
+                                  }
                                  div { class: "scale-ruler",
                                     div { class: "scale-bar",
                                         {scale_bands.iter().enumerate().map(|(i, (_, lo, hi, color))| {
