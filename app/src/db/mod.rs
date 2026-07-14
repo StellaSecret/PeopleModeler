@@ -151,28 +151,82 @@ fn load_decrypted<T: serde::de::DeserializeOwned>(key: &str) -> Vec<T> {
 }
 
 #[cfg(target_arch = "wasm32")]
+static PERSONS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Person>>>> = OnceLock::new();
+#[cfg(target_arch = "wasm32")]
+static PREDICTIONS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Prediction>>>> = OnceLock::new();
+#[cfg(target_arch = "wasm32")]
+static RELATIONSHIPS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Relationship>>>> = OnceLock::new();
+
+#[cfg(target_arch = "wasm32")]
+fn with_persons_cache<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Option<Vec<Person>>) -> R,
+{
+    let lock = PERSONS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+    let mut guard = lock.lock().unwrap();
+    f(&mut guard)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn with_preds_cache<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Option<Vec<Prediction>>) -> R,
+{
+    let lock = PREDICTIONS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+    let mut guard = lock.lock().unwrap();
+    f(&mut guard)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn with_rels_cache<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Option<Vec<Relationship>>) -> R,
+{
+    let lock = RELATIONSHIPS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+    let mut guard = lock.lock().unwrap();
+    f(&mut guard)
+}
+
+#[cfg(target_arch = "wasm32")]
 struct WebStorage;
 
 #[cfg(target_arch = "wasm32")]
 impl StorageBackend for WebStorage {
     fn load_all_persons(&self) -> Vec<Person> {
-        load_decrypted("pm_persons")
+        with_persons_cache(|cache| {
+            if let Some(ref cached) = *cache {
+                return cached.clone();
+            }
+            let data = load_decrypted("pm_persons");
+            *cache = Some(data.clone());
+            data
+        })
     }
     fn load_person(&self, id: &str) -> Option<Person> {
+        // Uses cached load_all_persons to avoid re-decrypting entire dataset
         self.load_all_persons().into_iter().find(|p| p.id == id)
     }
     fn save_person(&self, person: &Person) {
         let mut all: Vec<Person> = self.load_all_persons();
         upsert(&mut all, person);
         store_encrypted("pm_persons", &all);
+        with_persons_cache(|cache| *cache = Some(all));
     }
     fn delete_person(&self, id: &str) {
         let mut all: Vec<Person> = self.load_all_persons();
         all.retain(|p| p.id != id);
         store_encrypted("pm_persons", &all);
+        with_persons_cache(|cache| *cache = Some(all));
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
-        load_decrypted("pm_predictions")
+        with_preds_cache(|cache| {
+            if let Some(ref cached) = *cache {
+                return cached.clone();
+            }
+            let data = load_decrypted("pm_predictions");
+            *cache = Some(data.clone());
+            data
+        })
     }
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction> {
         self.load_all_predictions()
@@ -184,24 +238,35 @@ impl StorageBackend for WebStorage {
         let mut all: Vec<Prediction> = self.load_all_predictions();
         upsert(&mut all, prediction);
         store_encrypted("pm_predictions", &all);
+        with_preds_cache(|cache| *cache = Some(all));
     }
     fn delete_prediction(&self, id: &str) {
         let mut all: Vec<Prediction> = self.load_all_predictions();
         all.retain(|p| p.id != id);
         store_encrypted("pm_predictions", &all);
+        with_preds_cache(|cache| *cache = Some(all));
     }
     fn load_all_relationships(&self) -> Vec<Relationship> {
-        load_decrypted("pm_relationships")
+        with_rels_cache(|cache| {
+            if let Some(ref cached) = *cache {
+                return cached.clone();
+            }
+            let data = load_decrypted("pm_relationships");
+            *cache = Some(data.clone());
+            data
+        })
     }
     fn save_relationship(&self, relationship: &Relationship) {
         let mut all: Vec<Relationship> = self.load_all_relationships();
         upsert(&mut all, relationship);
         store_encrypted("pm_relationships", &all);
+        with_rels_cache(|cache| *cache = Some(all));
     }
     fn delete_relationship(&self, id: &str) {
         let mut all: Vec<Relationship> = self.load_all_relationships();
         all.retain(|r| r.id != id);
         store_encrypted("pm_relationships", &all);
+        with_rels_cache(|cache| *cache = Some(all));
     }
 }
 
@@ -357,8 +422,8 @@ impl StorageBackend for SqliteStorage {
 mod tests {
     use super::*;
     use peoplemodeler_core::models::{
-        BehaviorResponse, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
-        Person, Prediction, RelationType, Relationship, RepScores, Tag,
+        BehaviorResponse, BehavioralPattern, BehaviorTrigger, Bias, BiasType, Motivation, MotivationType,
+        OceanScores, Person, Prediction, RelationType, Relationship, RepScores, Tag,
     };
 
     fn test_db() -> SqliteStorage {
@@ -648,5 +713,99 @@ mod tests {
         db.delete_prediction("no-one");
         db.delete_relationship("no-one");
         // Should not panic
+    }
+
+    #[test]
+    fn test_save_load_json_equivalent() {
+        let db = test_db();
+        let original = Person {
+            id: "json-eq".into(),
+            name: "JSON Compare".into(),
+            role: "Tester".into(),
+            context: "testing".into(),
+            avatar_emoji: "🧪".into(),
+            tags: vec![Tag { name: "verify".into(), color: None }],
+            notes: "json roundtrip".into(),
+            motivations: vec![Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 8,
+                notes: "test".into(),
+            }],
+            biases: vec![Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 5,
+                evidence: "checked".into(),
+            }],
+            rep_scores: RepScores {
+                hardworker_lazy: Some(7),
+                honest_deceitful: Some(6),
+                authoritative_submissive: Some(5),
+                reliable_flaky: None,
+                humble_arrogant: None,
+                calm_reactive: None,
+                diplomatic_blunt: None,
+                generous_selfish: None,
+            },
+            behavioral_patterns: vec![BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::EmbracesChange,
+                intensity: 6,
+            }],
+            ocean: OceanScores {
+                openness: Some(9),
+                conscientiousness: Some(8),
+                extraversion: Some(7),
+                agreeableness: Some(6),
+                neuroticism: Some(5),
+            },
+            predictions: vec![],
+            confidence: 6,
+            log: vec![],
+            created_at: 10,
+            updated_at: 20,
+        };
+        db.save_person(&original);
+        let loaded = db.load_person("json-eq").unwrap();
+        let orig_json = serde_json::to_value(&original).unwrap();
+        let loaded_json = serde_json::to_value(&loaded).unwrap();
+        assert_eq!(orig_json, loaded_json);
+    }
+
+    #[test]
+    fn test_save_all_persons_json_match() {
+        let db = test_db();
+        db.save_person(&sample_person("a1"));
+        db.save_person(&sample_person("b1"));
+        let all = db.load_all_persons();
+        let a1 = db.load_person("a1").unwrap();
+        let b1 = db.load_person("b1").unwrap();
+        assert!(all.iter().any(|p| serde_json::to_value(p).unwrap() == serde_json::to_value(&a1).unwrap()));
+        assert!(all.iter().any(|p| serde_json::to_value(p).unwrap() == serde_json::to_value(&b1).unwrap()));
+    }
+
+    #[test]
+    fn test_prediction_roundtrip_json() {
+        let db = test_db();
+        let p = sample_prediction("p1");
+        db.save_prediction(&p);
+        let loaded = db.load_all_predictions();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(
+            serde_json::to_value(&p).unwrap(),
+            serde_json::to_value(&loaded[0]).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_relationship_roundtrip_json() {
+        let db = test_db();
+        let r = sample_relationship();
+        db.save_relationship(&r);
+        let loaded = db.load_all_relationships();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(
+            serde_json::to_value(&r).unwrap(),
+            serde_json::to_value(&loaded[0]).unwrap()
+        );
     }
 }

@@ -360,7 +360,11 @@ mod tests {
     #[test]
     fn test_generate_insight_bad_json_graceful() {
         let result = generate_insight("decision", "not json");
-        assert!(result.contains("Invalid"), "should return error msg, got: {}", result);
+        assert!(
+            result.contains("Invalid"),
+            "should return error msg, got: {}",
+            result
+        );
     }
 
     // --- suggest_prediction ---
@@ -375,7 +379,11 @@ mod tests {
     #[test]
     fn test_suggest_prediction_bad_json_graceful() {
         let result = suggest_prediction("bad json", "context");
-        assert!(result.contains("Invalid"), "should return error msg, got: {}", result);
+        assert!(
+            result.contains("Invalid"),
+            "should return error msg, got: {}",
+            result
+        );
     }
 
     // --- calc_accuracy ---
@@ -438,6 +446,10 @@ mod tests {
     #[test]
     fn test_resolve_prediction_bad_json_graceful() {
         let result = resolve_prediction("bad json", "ok", 5);
-        assert!(result.contains("Invalid"), "should return error msg, got: {}", result);
+        assert!(
+            result.contains("Invalid"),
+            "should return error msg, got: {}",
+            result
+        );
     }
 }
