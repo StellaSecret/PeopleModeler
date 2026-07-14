@@ -468,7 +468,7 @@ fieldset.ocean-inputs legend{
 
 /* ── LIST ITEM ── */
 .list-item{
-  display:flex;align-items:center;gap:0.5rem;
+  display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;
   padding:0.5rem 0.75rem;background:var(--bg);
   border-radius:var(--radius);margin-bottom:0.25rem;font-size:0.78rem
 }

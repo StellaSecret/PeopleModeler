@@ -538,12 +538,14 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
     let mut sel_intensity = use_signal(|| 5u8);
+    let mut edit_idx = use_signal(|| None::<usize>);
 
     use peoplemodeler_core::i18n::Lang as CoreLang;
     let cl = if lang == crate::i18n::Lang::Fr { CoreLang::Fr } else { CoreLang::En };
 
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
     let add_btn = crate::i18n::tr("add_btn", lang);
+    let update_btn = crate::i18n::tr("edit_update_btn", lang);
     let trigger_label = |t: BehaviorTrigger| -> &'static str {
         match t {
             BehaviorTrigger::Stress => ctx_stress,
@@ -583,14 +585,31 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                     aria_label: "Intensity"
                 }
                 span { "⚡{sel_intensity}" }
-                button { class: "btn", aria_label: "Add pattern", onclick: move |_| {
-                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() });
+                button { class: "btn", aria_label: if edit_idx().is_some() { "Update pattern" } else { "Add pattern" }, onclick: move |_| {
+                    if let Some(idx) = edit_idx() {
+                        let mut items = patterns.write();
+                        if idx < items.len() {
+                            items[idx] = BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() };
+                        }
+                        edit_idx.set(None);
+                    } else {
+                        patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() });
+                    }
                     sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
-                }, "{add_btn}" }
+                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
             div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
+                    button { class: "btn btn-small", aria_label: "Edit pattern", onclick: {
+                        let bp = bp.clone();
+                        move |_| {
+                            sel_trigger.set(bp.trigger);
+                            sel_behavior.set(bp.predicted_behavior);
+                            sel_intensity.set(bp.intensity);
+                            edit_idx.set(Some(i));
+                        }
+                    }, "✏" }
                     strong { "{trigger_label(bp.trigger)}" }
                     span { " {bp.predicted_behavior.label(cl)}" }
                     span { " (⚡{bp.intensity}/10)" }
