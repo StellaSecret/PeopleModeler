@@ -13,7 +13,10 @@ pub fn analyze_ocean(json: &str) -> String {
 
 #[wasm_bindgen]
 pub fn generate_insight(ctx: &str, person_json: &str) -> String {
-    let p: Person = serde_json::from_str(person_json).unwrap();
+    let p: Person = match serde_json::from_str(person_json) {
+        Ok(p) => p,
+        Err(_) => return "Invalid person data".into(),
+    };
     let context = match ctx {
         "decision" => InsightContext::Decision,
         "team" => InsightContext::Team,
@@ -28,7 +31,10 @@ pub fn generate_insight(ctx: &str, person_json: &str) -> String {
 
 #[wasm_bindgen]
 pub fn suggest_prediction(person_json: &str, context: &str) -> String {
-    let p: Person = serde_json::from_str(person_json).unwrap();
+    let p: Person = match serde_json::from_str(person_json) {
+        Ok(p) => p,
+        Err(_) => return "Invalid person data".into(),
+    };
     crate::predictions::suggest_outcome(&p, context)
 }
 
@@ -111,9 +117,15 @@ pub fn create_prediction(person_id: &str, context: &str, predicted_outcome: &str
 
 #[wasm_bindgen]
 pub fn resolve_prediction(prediction_json: &str, actual_outcome: &str, accuracy: u8) -> String {
-    let mut p: Prediction = serde_json::from_str(prediction_json).unwrap();
+    let mut p: Prediction = match serde_json::from_str(prediction_json) {
+        Ok(p) => p,
+        Err(_) => return "Invalid prediction data".into(),
+    };
     predictions::resolve_prediction(&mut p, actual_outcome, accuracy);
-    serde_json::to_string(&p).unwrap()
+    match serde_json::to_string(&p) {
+        Ok(s) => s,
+        Err(_) => "Invalid prediction data".into(),
+    }
 }
 
 #[wasm_bindgen]
@@ -346,9 +358,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err`")]
-    fn test_generate_insight_bad_json_panics() {
-        generate_insight("decision", "not json");
+    fn test_generate_insight_bad_json_graceful() {
+        let result = generate_insight("decision", "not json");
+        assert!(result.contains("Invalid"), "should return error msg, got: {}", result);
     }
 
     // --- suggest_prediction ---
@@ -361,9 +373,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err`")]
-    fn test_suggest_prediction_bad_json_panics() {
-        suggest_prediction("bad json", "context");
+    fn test_suggest_prediction_bad_json_graceful() {
+        let result = suggest_prediction("bad json", "context");
+        assert!(result.contains("Invalid"), "should return error msg, got: {}", result);
     }
 
     // --- calc_accuracy ---
@@ -424,8 +436,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err`")]
-    fn test_resolve_prediction_bad_json_panics() {
-        resolve_prediction("bad json", "ok", 5);
+    fn test_resolve_prediction_bad_json_graceful() {
+        let result = resolve_prediction("bad json", "ok", 5);
+        assert!(result.contains("Invalid"), "should return error msg, got: {}", result);
     }
 }
