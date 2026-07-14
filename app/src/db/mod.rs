@@ -53,6 +53,12 @@ pub fn save_person(person: &Person) {
 pub(crate) fn save_person_quiet(person: &Person) {
     db().save_person(person);
 }
+pub(crate) fn save_prediction_quiet(prediction: &Prediction) {
+    db().save_prediction(prediction);
+}
+pub(crate) fn save_relationship_quiet(relationship: &Relationship) {
+    db().save_relationship(relationship);
+}
 pub fn delete_person(id: &str) {
     undo::push_snapshot();
     db().delete_person(id);
