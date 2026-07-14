@@ -11,6 +11,7 @@ static DB: OnceLock<Box<dyn StorageBackend + Send + Sync>> = OnceLock::new();
 pub fn init() {
     #[cfg(target_arch = "wasm32")]
     {
+        migrate_from_bulk();
         DB.set(Box::new(WebStorage)).ok();
     }
     #[cfg(not(target_arch = "wasm32"))]
@@ -122,7 +123,16 @@ where
 use gloo_storage::Storage;
 
 #[cfg(target_arch = "wasm32")]
-fn store_encrypted<T: serde::Serialize>(key: &str, val: &T) {
+fn person_key(id: &str) -> String { format!("person_{id}") }
+
+#[cfg(target_arch = "wasm32")]
+fn prediction_key(id: &str) -> String { format!("pred_{id}") }
+
+#[cfg(target_arch = "wasm32")]
+fn relationship_key(id: &str) -> String { format!("rel_{id}") }
+
+#[cfg(target_arch = "wasm32")]
+fn store_individual<T: serde::Serialize>(key: &str, val: &T) {
     use base64::Engine;
     let json = serde_json::to_string(val).expect("serialize");
     let enc = crate::crypto::encrypt(json.as_bytes());
@@ -131,23 +141,101 @@ fn store_encrypted<T: serde::Serialize>(key: &str, val: &T) {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn load_decrypted<T: serde::de::DeserializeOwned>(key: &str) -> Vec<T> {
+fn load_individual<T: serde::de::DeserializeOwned>(key: &str) -> Option<T> {
     use base64::Engine;
-    let b64: Option<String> = gloo_storage::LocalStorage::get(key).ok();
-    let Some(b64) = b64 else { return Vec::new() };
-    if b64.is_empty() {
-        return Vec::new();
+    let Ok(b64) = gloo_storage::LocalStorage::get::<String>(key) else { return None };
+    if b64.is_empty() { return None; }
+    let enc = base64::engine::general_purpose::STANDARD.decode(&b64).ok()?;
+    let dec = crate::crypto::decrypt(&enc)?;
+    let json = String::from_utf8(dec).ok()?;
+    serde_json::from_str(&json).ok()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn load_all_individual<T: serde::de::DeserializeOwned>(prefix: &str) -> Vec<(String, T)> {
+    let Some(window) = web_sys::window() else { return vec![] };
+    let Ok(Some(storage)) = window.local_storage() else { return vec![] };
+    let Ok(len) = storage.length() else { return vec![] };
+    let mut results = Vec::new();
+    for i in 0..len {
+        if let Ok(Some(k)) = storage.key(i) {
+            if k.starts_with(prefix) {
+                if let Some(v) = load_individual::<T>(&k) {
+                    results.push((k, v));
+                }
+            }
+        }
     }
-    let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(&b64) else {
-        return Vec::new();
-    };
-    let Some(dec) = crate::crypto::decrypt(&enc) else {
-        return Vec::new();
-    };
-    let Ok(json) = String::from_utf8(dec) else {
-        return Vec::new();
-    };
-    serde_json::from_str(&json).unwrap_or_default()
+    results
+}
+
+#[cfg(target_arch = "wasm32")]
+fn remove_individual(key: &str) {
+    gloo_storage::LocalStorage::delete(key);
+}
+
+/// Migrate from old bulk-encrypted format to individual-key storage.
+/// Called once during init().
+#[cfg(target_arch = "wasm32")]
+fn migrate_from_bulk() {
+    use base64::Engine;
+
+    // Persons
+    let old_b64: Option<String> = gloo_storage::LocalStorage::get("pm_persons").ok();
+    if let Some(ref b64) = old_b64 {
+        if !b64.is_empty() {
+            if let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(b64) {
+                if let Some(dec) = crate::crypto::decrypt(&enc) {
+                    if let Ok(json) = String::from_utf8(dec) {
+                        if let Ok(persons) = serde_json::from_str::<Vec<Person>>(&json) {
+                            for p in &persons {
+                                store_individual(&person_key(&p.id), p);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        gloo_storage::LocalStorage::delete("pm_persons");
+    }
+
+    // Predictions
+    let old_b64: Option<String> = gloo_storage::LocalStorage::get("pm_predictions").ok();
+    if let Some(ref b64) = old_b64 {
+        if !b64.is_empty() {
+            if let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(b64) {
+                if let Some(dec) = crate::crypto::decrypt(&enc) {
+                    if let Ok(json) = String::from_utf8(dec) {
+                        if let Ok(preds) = serde_json::from_str::<Vec<Prediction>>(&json) {
+                            for p in &preds {
+                                store_individual(&prediction_key(&p.id), p);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        gloo_storage::LocalStorage::delete("pm_predictions");
+    }
+
+    // Relationships
+    let old_b64: Option<String> = gloo_storage::LocalStorage::get("pm_relationships").ok();
+    if let Some(ref b64) = old_b64 {
+        if !b64.is_empty() {
+            if let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(b64) {
+                if let Some(dec) = crate::crypto::decrypt(&enc) {
+                    if let Ok(json) = String::from_utf8(dec) {
+                        if let Ok(rels) = serde_json::from_str::<Vec<Relationship>>(&json) {
+                            for r in &rels {
+                                store_individual(&relationship_key(&r.id), r);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        gloo_storage::LocalStorage::delete("pm_relationships");
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -197,35 +285,48 @@ impl StorageBackend for WebStorage {
             if let Some(ref cached) = *cache {
                 return cached.clone();
             }
-            let data = load_decrypted("pm_persons");
-            *cache = Some(data.clone());
-            data
+            let items = load_all_individual::<Person>("person_");
+            let persons: Vec<Person> = items.into_iter().map(|(_, p)| p).collect();
+            *cache = Some(persons.clone());
+            persons
         })
     }
     fn load_person(&self, id: &str) -> Option<Person> {
-        // Uses cached load_all_persons to avoid re-decrypting entire dataset
-        self.load_all_persons().into_iter().find(|p| p.id == id)
+        // Try cache first
+        let cached = with_persons_cache(|cache| cache.clone());
+        if let Some(ref persons) = cached {
+            if let Some(p) = persons.iter().find(|p| p.id == id) {
+                return Some(p.clone());
+            }
+        }
+        // Direct single-key lookup
+        load_individual(&person_key(id))
     }
     fn save_person(&self, person: &Person) {
-        let mut all: Vec<Person> = self.load_all_persons();
-        upsert(&mut all, person);
-        store_encrypted("pm_persons", &all);
-        with_persons_cache(|cache| *cache = Some(all));
+        store_individual(&person_key(&person.id), person);
+        with_persons_cache(|cache| {
+            let mut all = cache.clone().unwrap_or_default();
+            upsert(&mut all, person);
+            *cache = Some(all);
+        });
     }
     fn delete_person(&self, id: &str) {
-        let mut all: Vec<Person> = self.load_all_persons();
-        all.retain(|p| p.id != id);
-        store_encrypted("pm_persons", &all);
-        with_persons_cache(|cache| *cache = Some(all));
+        remove_individual(&person_key(id));
+        with_persons_cache(|cache| {
+            if let Some(ref mut all) = *cache {
+                all.retain(|p| p.id != id);
+            }
+        });
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
         with_preds_cache(|cache| {
             if let Some(ref cached) = *cache {
                 return cached.clone();
             }
-            let data = load_decrypted("pm_predictions");
-            *cache = Some(data.clone());
-            data
+            let items = load_all_individual::<Prediction>("pred_");
+            let preds: Vec<Prediction> = items.into_iter().map(|(_, p)| p).collect();
+            *cache = Some(preds.clone());
+            preds
         })
     }
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction> {
@@ -235,38 +336,47 @@ impl StorageBackend for WebStorage {
             .collect()
     }
     fn save_prediction(&self, prediction: &Prediction) {
-        let mut all: Vec<Prediction> = self.load_all_predictions();
-        upsert(&mut all, prediction);
-        store_encrypted("pm_predictions", &all);
-        with_preds_cache(|cache| *cache = Some(all));
+        store_individual(&prediction_key(&prediction.id), prediction);
+        with_preds_cache(|cache| {
+            let mut all = cache.clone().unwrap_or_default();
+            upsert(&mut all, prediction);
+            *cache = Some(all);
+        });
     }
     fn delete_prediction(&self, id: &str) {
-        let mut all: Vec<Prediction> = self.load_all_predictions();
-        all.retain(|p| p.id != id);
-        store_encrypted("pm_predictions", &all);
-        with_preds_cache(|cache| *cache = Some(all));
+        remove_individual(&prediction_key(id));
+        with_preds_cache(|cache| {
+            if let Some(ref mut all) = *cache {
+                all.retain(|p| p.id != id);
+            }
+        });
     }
     fn load_all_relationships(&self) -> Vec<Relationship> {
         with_rels_cache(|cache| {
             if let Some(ref cached) = *cache {
                 return cached.clone();
             }
-            let data = load_decrypted("pm_relationships");
-            *cache = Some(data.clone());
-            data
+            let items = load_all_individual::<Relationship>("rel_");
+            let rels: Vec<Relationship> = items.into_iter().map(|(_, r)| r).collect();
+            *cache = Some(rels.clone());
+            rels
         })
     }
     fn save_relationship(&self, relationship: &Relationship) {
-        let mut all: Vec<Relationship> = self.load_all_relationships();
-        upsert(&mut all, relationship);
-        store_encrypted("pm_relationships", &all);
-        with_rels_cache(|cache| *cache = Some(all));
+        store_individual(&relationship_key(&relationship.id), relationship);
+        with_rels_cache(|cache| {
+            let mut all = cache.clone().unwrap_or_default();
+            upsert(&mut all, relationship);
+            *cache = Some(all);
+        });
     }
     fn delete_relationship(&self, id: &str) {
-        let mut all: Vec<Relationship> = self.load_all_relationships();
-        all.retain(|r| r.id != id);
-        store_encrypted("pm_relationships", &all);
-        with_rels_cache(|cache| *cache = Some(all));
+        remove_individual(&relationship_key(id));
+        with_rels_cache(|cache| {
+            if let Some(ref mut all) = *cache {
+                all.retain(|r| r.id != id);
+            }
+        });
     }
 }
 
