@@ -249,33 +249,41 @@ pub fn SyncPage() -> Element {
 
     let has_token = !token().is_empty();
 
-    // On Android: wait for JNI push instead of polling
+    // On Android: poll for token written by JNI callback
     #[cfg(target_os = "android")]
     {
+        use std::sync::atomic::Ordering;
+        use std::time::Duration;
+
+        // Check for newly saved token on every render
+        if token().is_empty() && crate::android_auth::TOKEN_SAVED.load(Ordering::Acquire) {
+            if let Some(new_t) = auth::get_token() {
+                if !new_t.is_empty() {
+                    token.set(new_t);
+                }
+            }
+        }
+
+        // Spawn async polling task to detect token-save and set signal
         let mut t = token.clone();
-        use_future(move || async move {
-            // Already have token? Done.
-            if let Some(new_t) = auth::get_token() {
-                if !new_t.is_empty() {
-                    t.set(new_t);
-                    return;
+        use_hook(move || {
+            dioxus::prelude::spawn(async move {
+                loop {
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    if crate::android_auth::TOKEN_SAVED.load(Ordering::Acquire) {
+                        if t().is_empty() {
+                            if let Some(new_t) = auth::get_token() {
+                                if !new_t.is_empty() {
+                                    t.set(new_t);
+                                    break;
+                                }
+                            }
+                        } else {
+                            break;
+                        }
+                    }
                 }
-            }
-            // Register oneshot, re-check token in case JNI callback already fired
-            let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-            crate::android_auth::set_token_callback(tx);
-            if let Some(new_t) = auth::get_token() {
-                if !new_t.is_empty() {
-                    t.set(new_t);
-                    return;
-                }
-            }
-            let _ = rx.await;
-            if let Some(new_t) = auth::get_token() {
-                if !new_t.is_empty() {
-                    t.set(new_t);
-                }
-            }
+            });
         });
     }
 
@@ -342,6 +350,11 @@ pub fn SyncPage() -> Element {
                                     t.set(new_token.to_string());
                                 }));
                             }
+                            #[cfg(target_os = "android")]
+                            {
+                                crate::android_auth::TOKEN_SAVED.store(false, std::sync::atomic::Ordering::Release);
+                            }
+                            auth::set_token("");
                             auth::start_oauth(cid, "https://stellasecret.github.io/PeopleModeler/spa.html");
                         }, "{sign_in}" }
 

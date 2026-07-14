@@ -29,7 +29,7 @@ object GoogleDriveHelper {
         activity = act
         launcher = signInLauncher
         Log.d(TAG, "init: calling nativeInit")
-        nativeInit()
+        nativeInit(act.filesDir.absolutePath)
         Log.d(TAG, "init: building GoogleSignInOptions")
         val options =
             GoogleSignInOptions
@@ -41,7 +41,7 @@ object GoogleDriveHelper {
         Log.d(TAG, "init: client created, ready for sign-in")
     }
 
-    private external fun nativeInit()
+    private external fun nativeInit(filesDir: String)
 
     @JvmStatic
     fun startSignIn() {

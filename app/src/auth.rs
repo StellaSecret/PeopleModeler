@@ -144,7 +144,6 @@ pub fn get_token() -> Option<String> {
     }
 }
 
-#[cfg(not(target_os = "android"))]
 pub fn set_token(token: &str) {
     #[cfg(target_arch = "wasm32")]
     {
@@ -180,6 +179,13 @@ pub fn clear_token() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn token_path() -> Option<std::path::PathBuf> {
+    #[cfg(target_os = "android")]
+    {
+        let dir = crate::android_auth::get_files_dir()?;
+        return Some(dir.join(".pm_drive_token"));
+    }
+
+    #[cfg(not(target_os = "android"))]
     std::env::current_dir()
         .ok()
         .map(|p| p.join(".pm_drive_token"))

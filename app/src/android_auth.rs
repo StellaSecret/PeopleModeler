@@ -1,13 +1,24 @@
-use std::sync::{Mutex, OnceLock};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 
 static JVM: OnceLock<jni::JavaVM> = OnceLock::new();
-static TOKEN_RDY: OnceLock<Mutex<Option<tokio::sync::oneshot::Sender<()>>>> = OnceLock::new();
+static FILES_DIR: OnceLock<PathBuf> = OnceLock::new();
 
-/// Called from Kotlin `GoogleDriveHelper.nativeInit()` to store JVM reference.
+/// Set to true by the JNI callback when the token file is written.
+pub(crate) static TOKEN_SAVED: AtomicBool = AtomicBool::new(false);
+
+/// Returns the app's internal files directory, used for token storage.
+pub(crate) fn get_files_dir() -> Option<&'static std::path::Path> {
+    FILES_DIR.get().map(|p| p.as_path())
+}
+
+/// Called from Kotlin `GoogleDriveHelper.nativeInit()` to store JVM reference and files dir.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_stellasecret_peoplemodeler_GoogleDriveHelper_nativeInit(
-    env: jni::JNIEnv,
+    mut env: jni::JNIEnv,
     _class: jni::objects::JClass,
+    files_dir: jni::objects::JString,
 ) {
     if let Ok(jvm) = env.get_java_vm() {
         JVM.set(jvm).ok();
@@ -15,31 +26,24 @@ pub extern "system" fn Java_com_stellasecret_peoplemodeler_GoogleDriveHelper_nat
     } else {
         eprintln!("[android_auth] FAILED to get JVM from env");
     }
+    if let Ok(path) = env.get_string(&files_dir) {
+        let path_str: String = path.into();
+        FILES_DIR.set(PathBuf::from(path_str.clone())).ok();
+        eprintln!("[android_auth] filesDir: {path_str}");
+    } else {
+        eprintln!("[android_auth] FAILED to get filesDir string");
+    }
 }
 
 /// Called from Kotlin `GoogleDriveHelper.nativeOnTokenSaved()` after token file written.
+/// Sets a global flag so the UI can pick up the change.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_stellasecret_peoplemodeler_GoogleDriveHelper_nativeOnTokenSaved(
     _env: jni::JNIEnv,
     _class: jni::objects::JClass,
 ) {
     eprintln!("[android_auth] token saved callback received");
-    if let Some(lock) = TOKEN_RDY.get() {
-        if let Ok(mut guard) = lock.lock() {
-            if let Some(tx) = guard.take() {
-                let _ = tx.send(());
-            }
-        }
-    }
-}
-
-/// Register a oneshot sender to be notified when token is saved.
-/// Only one sender at a time; previous is dropped.
-pub fn set_token_callback(tx: tokio::sync::oneshot::Sender<()>) {
-    let lock = TOKEN_RDY.get_or_init(|| Mutex::new(None));
-    if let Ok(mut guard) = lock.lock() {
-        *guard = Some(tx);
-    }
+    TOKEN_SAVED.store(true, Ordering::Release);
 }
 
 /// Called from `auth::start_oauth()` to trigger native Google Sign-In.
