@@ -91,7 +91,7 @@ body{
 
 /* ── LAYOUT ── */
 .content{flex:1;padding:1.5rem;padding-bottom:5rem}
-.page{position:relative;min-height:calc(100vh - 60px)}
+.page{position:relative;min-height:calc(100vh - 60px);overflow-x:hidden}
 
 /* ── TOOLBAR ── */
 .toolbar{display:flex;gap:0.75rem;margin-bottom:1.5rem;align-items:center}
@@ -290,7 +290,8 @@ body{
 .section h3{font-size:0.95em;margin-bottom:0.5rem;color:var(--text)}
 fieldset.section{
   border:1px solid var(--border);border-radius:var(--radius-lg);
-  padding:1.25rem;margin-top:1.25rem;background:var(--surface)
+  padding:1.25rem;margin-top:1.25rem;background:var(--surface);
+  overflow:hidden
 }
 fieldset.section legend{
   color:var(--text-muted);font-size:0.78rem;
@@ -434,7 +435,7 @@ fieldset.ocean-inputs legend{
 /* ── ADD ROW (edit panels) ── */
 .add-row{display:flex;gap:0.4rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap}
 .add-row select{
-  flex:1 1 auto;min-width:0;
+  flex:1 1 0;width:1px;min-width:80px;max-width:46%;
   padding:0.4rem 0.6rem;border:1px solid var(--border);
   border-radius:var(--radius);background:var(--bg);color:var(--text);
   font-size:0.72rem;font-family:var(--font-body);outline:none
