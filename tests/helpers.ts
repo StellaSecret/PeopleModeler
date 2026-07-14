@@ -3,7 +3,7 @@ import { type Page } from '@playwright/test';
 export async function dismissTutorial(page: Page) {
   const skip = page.locator('.tut-modal .btn-ghost');
   try {
-    await skip.waitFor({ state: 'visible', timeout: 8000 });
+    await skip.waitFor({ state: 'visible', timeout: 500 });
     await skip.click();
     await page.waitForTimeout(300);
   } catch {

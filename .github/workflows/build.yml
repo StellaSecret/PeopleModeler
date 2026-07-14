@@ -54,9 +54,9 @@ jobs:
       - name: Check WASM build
         run: cargo check --target wasm32-unknown-unknown -p peoplemodeler-app
 
-  # ── WEB (WASM) BUILD + E2E TESTS ─────────────────────
-  web-build-and-test:
-    name: Build WASM + Playwright Tests
+  # ── WEB (WASM) BUILD ──────────────────────────────────
+  web-build:
+    name: Build WASM
     needs: [rust-core]
     runs-on: ubuntu-latest
     container:
@@ -80,24 +80,47 @@ jobs:
         env:
           HUSKY: 0
         run: npm ci
-      - name: Run e2e tests
-        env:
-          HOME: /root
-          DOCKER_CONFIG: /tmp/.docker
-        run: npx playwright test --reporter=list,html
-      - name: Upload report
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
       - name: Upload WASM build
         uses: actions/upload-artifact@v7
         with:
           name: wasm-public
           path: target/dx/peoplemodeler-app/release/web/public/
-          retention-days: 7
+          retention-days: 1
+
+  # ── PLAYWRIGHT E2E TESTS (SHARDED) ────────────────────
+  playwright-tests:
+    name: Playwright Tests (shard ${{ matrix.shard }}/2)
+    needs: [web-build]
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download WASM build
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-public
+          path: target/dx/peoplemodeler-app/release/web/public/
+      - name: Install npm deps
+        env:
+          HUSKY: 0
+        run: npm ci
+      - name: Run e2e tests (shard ${{ matrix.shard }}/2)
+        env:
+          HOME: /root
+          DOCKER_CONFIG: /tmp/.docker
+        run: npx playwright test --reporter=list,html --shard=${{ matrix.shard }}/2
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 30
 
   # ── ANDROID BUILD (Dioxus Mobile) ────────────────────
   build-android:
@@ -348,7 +371,7 @@ jobs:
   deploy-web:
     name: Deploy to GitHub Pages
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [web-build-and-test]
+    needs: [playwright-tests]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
