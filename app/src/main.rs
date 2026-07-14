@@ -29,6 +29,7 @@ mod templates;
 mod theme;
 mod toast;
 mod undo;
+mod tutorial;
 
 #[derive(Clone, Debug, PartialEq, Routable)]
 enum Route {
@@ -101,6 +102,14 @@ fn App() -> Element {
     use_context_provider(|| theme);
     use_context_provider(|| tag_filter);
     let _toast = toast::provide_toast();
+    let tutorial_status = use_signal(|| {
+        if crate::tutorial::is_done() {
+            tutorial::TutorialStatus::Done
+        } else {
+            tutorial::TutorialStatus::InProgress(0)
+        }
+    });
+    use_context_provider(|| tutorial_status);
     // Ctrl+Z undo handler (one-time setup)
     #[cfg(target_arch = "wasm32")]
     {
@@ -188,6 +197,11 @@ fn NavLayout() -> Element {
     };
     auto_clear_toast(toast);
     let can_undo = crate::undo::can_undo();
+    let mut tutorial_status = use_context::<Signal<crate::tutorial::TutorialStatus>>();
+    let replay_tutorial = move |_| {
+        crate::tutorial::clear_mark();
+        tutorial_status.set(crate::tutorial::TutorialStatus::InProgress(0));
+    };
     rsx! {
         div { class: "app", "data-theme": theme().as_str(),
             header { class: "top-bar",
@@ -210,6 +224,7 @@ fn NavLayout() -> Element {
                             }
                         }, "↩" }
                     }
+                    button { class: "tut-replay-btn", aria_label: "Tutorial", onclick: replay_tutorial, "?" }
                     button { class: "theme-toggle", aria_label: "Toggle theme", onclick: toggle_theme,
                         { theme().label() }
                     }
@@ -226,6 +241,7 @@ fn NavLayout() -> Element {
                     div { class: "toast", key: "{msg}", "{msg}" }
                 }
             }
+            crate::tutorial::TutorialModal { status: tutorial_status }
         }
     }
 }

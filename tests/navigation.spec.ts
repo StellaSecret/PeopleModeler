@@ -1,4 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { dismissTutorial } from './helpers';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/PeopleModeler/');
+  await dismissTutorial(page);
+});
 
 test.describe('SPA Navigation', () => {
   test('landing page loads with nav bar', async ({ page }) => {

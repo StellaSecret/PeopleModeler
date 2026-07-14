@@ -1,15 +1,32 @@
 import { type Page } from '@playwright/test';
 
+export async function dismissTutorial(page: Page) {
+  const skip = page.locator('.tut-modal .btn-ghost');
+  try {
+    await skip.waitFor({ state: 'visible', timeout: 8000 });
+    await skip.click();
+    await page.waitForTimeout(300);
+  } catch {
+    // tutorial already dismissed or never shown
+  }
+}
+
 export async function gotoNewPerson(page: Page) {
   await page.goto('/PeopleModeler/person/new');
+  await page.waitForTimeout(1000);
+  await dismissTutorial(page);
   await page.getByText('Blank (start from scratch)').click();
 }
 
 export async function clearStorage(page: Page) {
   await page.goto('/PeopleModeler/');
-  await page.evaluate(() => localStorage.clear());
+  await dismissTutorial(page);
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('pm_tutorial_done', '1');
+  });
   await page.reload();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
 }
 
 export async function createPerson(page: Page, name: string): Promise<string> {
