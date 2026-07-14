@@ -179,9 +179,7 @@ fn load_all_individual<T: serde::de::DeserializeOwned>(prefix: &str) -> Vec<(Str
 
 #[cfg(target_arch = "wasm32")]
 fn remove_individual(key: &str) {
-    if let Err(e) = gloo_storage::LocalStorage::delete(key) {
-        web_sys::console::error_1(&format!("WASM delete error [{key}]: {e}").into());
-    }
+    gloo_storage::LocalStorage::delete(key);
 }
 
 /// Migrate from old bulk-encrypted format to individual-key storage.
