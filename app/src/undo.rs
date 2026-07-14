@@ -34,7 +34,7 @@ pub fn undo() -> bool {
     };
     let Some(snap) = snap else { return false };
     for p in &snap.persons {
-        db::save_person(p);
+        db::save_person_quiet(p);
     }
     true
 }
