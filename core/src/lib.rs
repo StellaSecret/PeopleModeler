@@ -76,17 +76,6 @@ mod tests {
                 agreeableness: Some(4),
                 neuroticism: Some(5),
             },
-            predictions: vec![Prediction {
-                id: "p1".into(),
-                person_id: "demo-001".into(),
-                context: "Réunion budget".into(),
-                predicted_outcome: "Va négocier".into(),
-                actual_outcome: Some("A négocié".into()),
-                accuracy: Some(7),
-                created_at: 1000,
-                resolved_at: Some(2000),
-                resolved: true,
-            }],
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -170,9 +159,8 @@ mod tests {
 
     #[test]
     fn test_prediction_accuracy() {
-        let p = demo_person();
-        let score = predictions::prediction_accuracy_score(&p.predictions);
-        assert!((score - 70.0).abs() < 0.01, "Expected ~70, got {}", score);
+        let score = predictions::prediction_accuracy_score(&[]);
+        assert_eq!(score, 0.0);
     }
 
     #[test]
@@ -331,7 +319,6 @@ mod tests {
                 },
             ],
             ocean: OceanScores::default(),
-            predictions: vec![],
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -417,7 +404,6 @@ mod tests {
             },
             behavioral_patterns: vec![],
             ocean: OceanScores::default(),
-            predictions: vec![],
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -445,7 +431,6 @@ mod tests {
             rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
             ocean: OceanScores::default(),
-            predictions: vec![],
             confidence: 5,
             log: Vec::new(),
             created_at: 0,

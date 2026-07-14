@@ -399,8 +399,8 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     // --- History factor ---
 
-    let a_accuracy = avg_prediction_accuracy(&a.predictions);
-    let b_accuracy = avg_prediction_accuracy(&b.predictions);
+    let a_accuracy = avg_prediction_accuracy(&[]);
+    let b_accuracy = avg_prediction_accuracy(&[]);
     let history_penalty = match (a_accuracy, b_accuracy) {
         (Some(pa), Some(pb)) if pa < 5.0 && pb < 5.0 => 0.05,
         (Some(pa), Some(_)) if pa < 5.0 => 0.03,
@@ -771,7 +771,6 @@ mod tests {
                 agreeableness,
                 neuroticism,
             },
-            predictions: vec![],
             confidence: 5,
             log: Vec::new(),
             created_at: 0,

@@ -312,7 +312,6 @@ mod tests {
                 rep_scores: RepScores::default(),
                 behavioral_patterns: vec![],
                 ocean: OceanScores::default(),
-                predictions: vec![],
                 confidence: 5,
                 log: vec![],
                 created_at: now,

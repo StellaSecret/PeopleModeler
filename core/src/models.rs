@@ -577,7 +577,6 @@ pub struct Person {
     pub ocean: OceanScores,
     #[serde(default)]
     pub log: Vec<InteractionEntry>,
-    pub predictions: Vec<Prediction>,
     #[serde(default = "default_confidence", deserialize_with = "clamp_u8_1_10")]
     pub confidence: u8,
     pub created_at: i64,
