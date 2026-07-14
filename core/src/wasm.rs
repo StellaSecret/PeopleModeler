@@ -138,3 +138,294 @@ pub fn bias_desc(id: &str, lang: &str) -> String {
     };
     bt.i18n(lang).desc.into()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::*;
+
+    fn demo_person_json() -> String {
+        r#"{
+            "id": "wasm-test",
+            "name": "Wasm Test",
+            "role": "Tester",
+            "context": "test",
+            "avatar_emoji": "🧑",
+            "tags": [],
+            "notes": "",
+            "motivations": [
+                {"type": "Power", "intensity": 8, "notes": "driven"}
+            ],
+            "biases": [
+                {"type": "Anchoring", "intensity": 7, "evidence": "sticky"}
+            ],
+            "rep_scores": {},
+            "behavioral_patterns": [
+                {"trigger": "Change", "predicted_behavior": "embraces_change", "intensity": 5}
+            ],
+            "ocean": {
+                "openness": 7,
+                "conscientiousness": 6,
+                "extraversion": 8,
+                "agreeableness": 5,
+                "neuroticism": 4
+            },
+            "log": [],
+            "predictions": [],
+            "confidence": 5,
+            "created_at": 0,
+            "updated_at": 0
+        }"#
+        .into()
+    }
+
+    // --- mot_label ---
+
+    #[test]
+    fn test_mot_label_all_types() {
+        for (id, expected_fr) in &[
+            ("POWER", "Pouvoir"),
+            ("ACHIEVEMENT", "Accomplissement"),
+            ("AFFILIATION", "Appartenance"),
+            ("SECURITY", "Sécurité"),
+            ("AUTONOMY", "Autonomie"),
+            ("RECOGNITION", "Reconnaissance"),
+            ("LEARNING", "Apprentissage"),
+            ("HELPING", "Aider les autres"),
+        ] {
+            assert_eq!(mot_label(id, "fr"), *expected_fr, "FR label for {}", id);
+            assert!(!mot_label(id, "en").is_empty(), "EN label for {}", id);
+        }
+    }
+
+    #[test]
+    fn test_mot_label_invalid() {
+        assert_eq!(mot_label("UNKNOWN", "fr"), "?");
+        assert_eq!(mot_label("", "en"), "?");
+    }
+
+    // --- mot_desc ---
+
+    #[test]
+    fn test_mot_desc_all_types() {
+        for id in &[
+            "POWER",
+            "ACHIEVEMENT",
+            "AFFILIATION",
+            "SECURITY",
+            "AUTONOMY",
+            "RECOGNITION",
+            "LEARNING",
+            "HELPING",
+        ] {
+            let fr = mot_desc(id, "fr");
+            let en = mot_desc(id, "en");
+            assert!(!fr.is_empty(), "FR desc for {}", id);
+            assert!(!en.is_empty(), "EN desc for {}", id);
+        }
+    }
+
+    #[test]
+    fn test_mot_desc_invalid() {
+        assert_eq!(mot_desc("UNKNOWN", "fr"), "");
+        assert_eq!(mot_desc("", "en"), "");
+    }
+
+    // --- bias_label ---
+
+    #[test]
+    fn test_bias_label_all_types() {
+        for id in &[
+            "CONFIRMATION",
+            "ANCHORING",
+            "AVAILABILITY",
+            "SUNK_COST",
+            "DUNNING_KRUGER",
+            "LOSS_AVERSION",
+            "SOCIAL_PROOF",
+            "AUTHORITY",
+            "RECENCY",
+            "IN_GROUP",
+        ] {
+            assert!(!bias_label(id, "fr").is_empty(), "FR label for {}", id);
+            assert!(!bias_label(id, "en").is_empty(), "EN label for {}", id);
+        }
+    }
+
+    #[test]
+    fn test_bias_label_invalid() {
+        assert_eq!(bias_label("UNKNOWN", "fr"), "?");
+    }
+
+    // --- bias_desc ---
+
+    #[test]
+    fn test_bias_desc_all_types() {
+        for id in &[
+            "CONFIRMATION",
+            "ANCHORING",
+            "AVAILABILITY",
+            "SUNK_COST",
+            "DUNNING_KRUGER",
+            "LOSS_AVERSION",
+            "SOCIAL_PROOF",
+            "AUTHORITY",
+            "RECENCY",
+            "IN_GROUP",
+        ] {
+            let fr = bias_desc(id, "fr");
+            let en = bias_desc(id, "en");
+            assert!(!fr.is_empty(), "FR desc for {}", id);
+            assert!(!en.is_empty(), "EN desc for {}", id);
+        }
+    }
+
+    #[test]
+    fn test_bias_desc_invalid() {
+        assert_eq!(bias_desc("UNKNOWN", "fr"), "");
+    }
+
+    // --- analyze_ocean ---
+
+    #[test]
+    fn test_analyze_ocean_valid() {
+        let json = r#"{"openness":8,"conscientiousness":7,"extraversion":6,"agreeableness":5,"neuroticism":4}"#;
+        let result = analyze_ocean(json);
+        assert!(!result.is_empty(), "analyze_ocean returned empty");
+        assert!(
+            result.contains("ouvert") || result.contains("open"),
+            "result: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_analyze_ocean_partial() {
+        let json = r#"{"openness":8,"conscientiousness":null,"extraversion":null,"agreeableness":null,"neuroticism":null}"#;
+        let result = analyze_ocean(json);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_analyze_ocean_bad_json_defaults() {
+        // analyze_ocean uses unwrap_or_default so it doesn't panic
+        let result = analyze_ocean("not valid json");
+        assert!(
+            !result.is_empty(),
+            "bad json should return default interpretation"
+        );
+    }
+
+    // --- generate_insight ---
+
+    #[test]
+    fn test_generate_insight_valid() {
+        let json = demo_person_json();
+        for ctx in &[
+            "decision",
+            "team",
+            "stress",
+            "communication",
+            "leadership",
+            "growth",
+        ] {
+            let result = generate_insight(ctx, &json);
+            assert!(!result.is_empty(), "insight for context {} is empty", ctx);
+            assert!(
+                result.contains("Wasm Test"),
+                "insight should contain person name"
+            );
+        }
+    }
+
+    #[test]
+    fn test_generate_insight_unknown_context() {
+        let json = demo_person_json();
+        let result = generate_insight("unknown", &json);
+        assert_eq!(result, "Contexte inconnu");
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err`")]
+    fn test_generate_insight_bad_json_panics() {
+        generate_insight("decision", "not json");
+    }
+
+    // --- suggest_prediction ---
+
+    #[test]
+    fn test_suggest_prediction_valid() {
+        let json = demo_person_json();
+        let result = suggest_prediction(&json, "meeting");
+        assert!(!result.is_empty(), "prediction should not be empty");
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err`")]
+    fn test_suggest_prediction_bad_json_panics() {
+        suggest_prediction("bad json", "context");
+    }
+
+    // --- calc_accuracy ---
+
+    #[test]
+    fn test_calc_accuracy_empty() {
+        let result = calc_accuracy("[]");
+        assert!((result - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_calc_accuracy_valid() {
+        let json = r#"[
+            {"id":"p1","person_id":"x","context":"","predicted_outcome":"","actual_outcome":"ok","accuracy":8,"created_at":0,"resolved_at":1,"resolved":true},
+            {"id":"p2","person_id":"x","context":"","predicted_outcome":"","actual_outcome":"ok","accuracy":6,"created_at":0,"resolved_at":1,"resolved":true},
+            {"id":"p3","person_id":"x","context":"","predicted_outcome":"","actual_outcome":"ok","accuracy":7,"created_at":0,"resolved_at":1,"resolved":true}
+        ]"#;
+        let result = calc_accuracy(json);
+        assert!(
+            (result - 70.0).abs() < 0.01,
+            "expected ~70.0, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_calc_accuracy_bad_json_defaults() {
+        let result = calc_accuracy("bad json");
+        assert!((result - 0.0).abs() < 0.001);
+    }
+
+    // --- create_prediction ---
+
+    #[test]
+    fn test_create_prediction_basic() {
+        let json = create_prediction("person-1", "review", "will pass");
+        let pred: Prediction = serde_json::from_str(&json).unwrap();
+        assert_eq!(pred.person_id, "person-1");
+        assert_eq!(pred.context, "review");
+        assert_eq!(pred.predicted_outcome, "will pass");
+        assert!(!pred.resolved);
+        assert!(pred.actual_outcome.is_none());
+    }
+
+    // --- resolve_prediction ---
+
+    #[test]
+    fn test_resolve_prediction_roundtrip() {
+        let created = create_prediction("p1", "test", "outcome A");
+        let resolved = resolve_prediction(&created, "outcome A actually happened", 9);
+        let pred: Prediction = serde_json::from_str(&resolved).unwrap();
+        assert!(pred.resolved);
+        assert_eq!(
+            pred.actual_outcome.as_deref(),
+            Some("outcome A actually happened")
+        );
+        assert_eq!(pred.accuracy, Some(9));
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err`")]
+    fn test_resolve_prediction_bad_json_panics() {
+        resolve_prediction("bad json", "ok", 5);
+    }
+}

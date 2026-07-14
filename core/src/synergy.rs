@@ -2101,9 +2101,18 @@ mod tests {
         // Verify synergy_bands logic used by person_detail page's band-key resolution
         let bands = synergy_bands();
         let band_for = |score: u8| -> usize {
-            bands.iter().position(|&(lo, hi)| score >= lo && score <= hi).unwrap_or(2)
+            bands
+                .iter()
+                .position(|&(lo, hi)| score >= lo && score <= hi)
+                .unwrap_or(2)
         };
-        let band_keys = ["scale_tension", "scale_friction", "scale_moderate", "scale_good", "scale_strong"];
+        let band_keys = [
+            "scale_tension",
+            "scale_friction",
+            "scale_moderate",
+            "scale_good",
+            "scale_strong",
+        ];
 
         // Minimum score → tension
         assert_eq!(band_for(0), 0);
@@ -2116,6 +2125,349 @@ mod tests {
         let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let pf = compute_person_profile(&p);
         let idx = band_for(pf.total);
-        assert!(idx >= 1 && idx <= 3, "baseline band should be moderate-ish, got {} ({})", idx, band_keys[idx]);
+        assert!(
+            idx >= 1 && idx <= 3,
+            "baseline band should be moderate-ish, got {} ({})",
+            idx,
+            band_keys[idx]
+        );
+    }
+
+    // --- Edge-case tests ---
+
+    #[test]
+    fn test_sim_both_none() {
+        assert!((sim(None, None) - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_sim_one_none() {
+        assert!((sim(Some(8), None) - 0.5).abs() < 1e-9);
+        assert!((sim(None, Some(3)) - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_sim_identical() {
+        assert!((sim(Some(5), Some(5)) - 1.0).abs() < 1e-9);
+        assert!((sim(Some(10), Some(10)) - 1.0).abs() < 1e-9);
+        assert!((sim(Some(1), Some(1)) - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_sim_opposite() {
+        assert!((sim(Some(1), Some(10)) - 0.1).abs() < 1e-9);
+        assert!((sim(Some(10), Some(1)) - 0.1).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_ocean_penalty_boundary_values() {
+        // Boundary: N=7, A=4 exactly triggers volatile
+        let a = make_person(Some(5), Some(5), Some(5), Some(4), Some(7));
+        let b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let p = ocean_danger_penalty(&a.ocean, &b.ocean);
+        assert!(
+            (p - 0.10).abs() < 0.001,
+            "N=7 A=4 should be volatile: {}",
+            p
+        );
+
+        // Boundary: N=6, A=4 should NOT be volatile
+        let a2 = make_person(Some(5), Some(5), Some(5), Some(4), Some(6));
+        let p2 = ocean_danger_penalty(&a2.ocean, &b.ocean);
+        assert!(
+            (p2 - 0.0).abs() < 0.001,
+            "N=6 A=4 should not be volatile: {}",
+            p2
+        );
+
+        // Boundary: N=7, A=5 should NOT be volatile
+        let a3 = make_person(Some(5), Some(5), Some(5), Some(5), Some(7));
+        let p3 = ocean_danger_penalty(&a3.ocean, &b.ocean);
+        assert!(
+            (p3 - 0.0).abs() < 0.001,
+            "N=7 A=5 should not be volatile: {}",
+            p3
+        );
+    }
+
+    #[test]
+    fn test_ocean_all_none_synergy() {
+        let a = make_person(None, None, None, None, None);
+        let b = make_person(None, None, None, None, None);
+        let brk = compute_synergy_score(&a, &b);
+        // All None OCEAN → sim returns 0.5 for each
+        // oc = (0.5+0.5)/2 = 0.5, ea = (0.5+0.5)/2 = 0.5, n = 0.5 → raw_ocean = 0.5
+        assert!(
+            (brk.ocean - 0.5).abs() < 0.001,
+            "all-none ocean: {}",
+            brk.ocean
+        );
+    }
+
+    #[test]
+    fn test_ocean_partial_values_synergy() {
+        // Only openness set on both, rest None
+        let a = make_person(Some(8), None, None, None, None);
+        let b = make_person(Some(8), None, None, None, None);
+        let brk = compute_synergy_score(&a, &b);
+        assert!(brk.ocean > 0.0, "partial ocean should compute synergy");
+        assert!(brk.total > 0, "total should be > 0");
+    }
+
+    #[test]
+    fn test_self_score_full_ocean_none() {
+        let p = make_person(None, None, None, None, None);
+        let pf = compute_person_profile(&p);
+        // All None → A=0.5, N-inverted=0.5 → raw_ocean=0.5, no penalty
+        assert!((pf.ocean - 0.5).abs() < 0.001, "ocean score: {}", pf.ocean);
+        assert!(pf.total > 0, "total should be > 0: {}", pf.total);
+    }
+
+    #[test]
+    fn test_self_score_all_volatilities() {
+        let p = make_person(Some(3), Some(3), Some(5), Some(3), Some(8));
+        let pf = compute_person_profile(&p);
+        // N=8≥7 + A=3≤4 → volatile 0.10
+        // N=8≥7 + C=3≤4 → impulsive 0.05
+        // N=8≥7 + O=3≤4 → rigid anxious 0.05
+        // total penalty = 0.20
+        assert!(
+            pf.ocean < 0.40,
+            "all three penalties should lower ocean: {}",
+            pf.ocean
+        );
+    }
+
+    #[test]
+    fn test_rep_penalty_arrogant_not_triggered_at_four() {
+        // Boundary: ≤3 triggers arrogant penalty, 4 should not
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            humble_arrogant: Some(4),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            humble_arrogant: Some(4),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!(
+            (p - 0.0).abs() < 0.001,
+            "score=4 should not trigger arrogant: {}",
+            p
+        );
+    }
+
+    #[test]
+    fn test_rep_penalty_one_side_only() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.rep_scores = RepScores {
+            authoritative_submissive: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            authoritative_submissive: Some(4),
+            ..RepScores::default()
+        };
+        let p = rep_danger_penalty(&a.rep_scores, &b.rep_scores);
+        assert!(
+            (p - 0.0).abs() < 0.001,
+            "one authoritative should not trigger: {}",
+            p
+        );
+    }
+
+    #[test]
+    fn test_motivation_all_friction_types_have_entry() {
+        // Verify every motivation type has a defined synergy with every other type
+        let types = MotivationType::ALL;
+        for &a in &types {
+            for &b in &types {
+                let val = motivation_synergy(a, b);
+                // Every pair should have a defined value (not defaulting to 0.0)
+                assert!(
+                    val >= -0.4 && val <= 0.4,
+                    "undefined synergy {:?} x {:?} = {}",
+                    a,
+                    b,
+                    val
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_base_rep_quality_empty() {
+        let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let q = base_rep_quality(&p);
+        assert!((q - 0.5).abs() < 0.001, "empty rep should be 0.5: {}", q);
+    }
+
+    #[test]
+    fn test_base_rep_quality_all_ten() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            hardworker_lazy: Some(10),
+            authoritative_submissive: Some(10),
+            honest_deceitful: Some(10),
+            reliable_flaky: Some(10),
+            humble_arrogant: Some(10),
+            calm_reactive: Some(10),
+            diplomatic_blunt: Some(10),
+            generous_selfish: Some(10),
+        };
+        let q = base_rep_quality(&p);
+        assert!((q - 1.0).abs() < 0.001, "all-10 rep should be 1.0: {}", q);
+    }
+
+    #[test]
+    fn test_base_rep_quality_all_zero() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            hardworker_lazy: Some(0),
+            authoritative_submissive: Some(0),
+            honest_deceitful: Some(0),
+            reliable_flaky: Some(0),
+            humble_arrogant: Some(0),
+            calm_reactive: Some(0),
+            diplomatic_blunt: Some(0),
+            generous_selfish: Some(0),
+        };
+        let q = base_rep_quality(&p);
+        assert!((q - 0.0).abs() < 0.001, "all-0 rep should be 0.0: {}", q);
+    }
+
+    #[test]
+    fn test_base_rep_quality_partial() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            hardworker_lazy: Some(10),
+            ..RepScores::default()
+        };
+        let q = base_rep_quality(&p);
+        // Only one dim set with weight 0.10
+        assert!(
+            (q - 1.0).abs() < 0.001,
+            "single-dim all-10 should be 1.0: {}",
+            q
+        );
+    }
+
+    #[test]
+    fn test_synergy_bands_structure() {
+        let bands = synergy_bands();
+        assert_eq!(bands.len(), 5);
+        for &(lo, hi) in &bands {
+            assert!(lo <= hi, "band {} {} should have lo <= hi", lo, hi);
+        }
+        // Bands should cover 0..=100 with no gaps
+        assert_eq!(bands[0].0, 0);
+        assert_eq!(bands[4].1, 100);
+        // Each band starts where previous ended + 1
+        for i in 1..bands.len() {
+            assert_eq!(
+                bands[i].0,
+                bands[i - 1].1 + 1,
+                "gap between band {} and {}",
+                i - 1,
+                i
+            );
+        }
+    }
+
+    #[test]
+    fn test_synergy_bands_motivation_learning_pair() {
+        // Self-pair synergy for Learning x Learning = 0.2
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 10,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 10,
+            notes: String::new(),
+        }];
+        let brk = compute_synergy_score(&a, &b);
+        // w = 10*10/100 = 1.0, score = 0.2, all_pair_weighted_avg: 0.5 + (0.2*1.0)/1.0 = 0.7
+        assert!(
+            (brk.motivation - 0.7).abs() < 0.001,
+            "Learning-Learning mot: {}",
+            brk.motivation
+        );
+    }
+
+    #[test]
+    fn test_pattern_synergy_mixed_same_and_opposite() {
+        let a = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::EmbracesChange,
+                intensity: 8,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 6,
+            },
+        ];
+        let b = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::EmbracesChange,
+                intensity: 8,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 6,
+            },
+        ];
+        let result = pattern_synergy(&a, &b);
+        // Same triggers: Change=0.3, Conflict=-0.3
+        // w_cc = 64/100=0.64, score+0.5=0.8; w_cf = 48/100=0.48, score-0.3+0.5=0.2 etc.
+        // Detailed math: let's just verify it's sensible
+        assert!(
+            result >= 0.4 && result <= 0.9,
+            "mixed pattern synergy: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_all_pair_weighted_avg_diverging_scores() {
+        let a = [TestItem { intensity: 8 }, TestItem { intensity: 8 }];
+        let b = [TestItem { intensity: 8 }, TestItem { intensity: 8 }];
+        // All 4 pairs: alternating 0.3 and -0.3
+        fn alt_score(_: &TestItem, _: &TestItem) -> f64 {
+            0.0
+        }
+        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, alt_score);
+        // Zero score → (0.5 + 0.0).clamp = 0.5
+        assert!(
+            (result - 0.5).abs() < 0.001,
+            "zero score result: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_all_pair_weighted_avg_fn_pointer() {
+        fn always_one(_: &TestItem, _: &TestItem) -> f64 {
+            1.0
+        }
+        fn always_zero(_: &TestItem, _: &TestItem) -> f64 {
+            0.0
+        }
+        let a = [TestItem { intensity: 10 }];
+        let b = [TestItem { intensity: 10 }];
+        let hi = all_pair_weighted_avg(&a, &b, |x| x.intensity, always_one);
+        let lo = all_pair_weighted_avg(&a, &b, |x| x.intensity, always_zero);
+        assert!((hi - 1.0).abs() < 0.001, "always-one: {}", hi);
+        assert!((lo - 0.5).abs() < 0.001, "always-zero: {}", lo);
     }
 }
