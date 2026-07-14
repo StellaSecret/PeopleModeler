@@ -143,7 +143,9 @@ fn store_individual<T: serde::Serialize>(key: &str, val: &T) {
     let json = serde_json::to_string(val).expect("serialize");
     let enc = crate::crypto::encrypt(json.as_bytes());
     let b64 = base64::engine::general_purpose::STANDARD.encode(&enc);
-    let _ = gloo_storage::LocalStorage::set(key, &b64);
+    if let Err(e) = gloo_storage::LocalStorage::set(key, &b64) {
+        web_sys::console::error_1(&format!("WASM store error [{key}]: {e}").into());
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -177,7 +179,9 @@ fn load_all_individual<T: serde::de::DeserializeOwned>(prefix: &str) -> Vec<(Str
 
 #[cfg(target_arch = "wasm32")]
 fn remove_individual(key: &str) {
-    gloo_storage::LocalStorage::delete(key);
+    if let Err(e) = gloo_storage::LocalStorage::delete(key) {
+        web_sys::console::error_1(&format!("WASM delete error [{key}]: {e}").into());
+    }
 }
 
 /// Migrate from old bulk-encrypted format to individual-key storage.
@@ -449,15 +453,19 @@ impl StorageBackend for SqliteStorage {
         let Ok(data) = serde_json::to_string(person) else {
             return;
         };
-        let _ = conn.execute(
+        if let Err(e) = conn.execute(
             "INSERT OR REPLACE INTO persons (id, data) VALUES (?1, ?2)",
             [&person.id, &data],
-        );
+        ) { eprintln!("DB write error [save_person {}]: {e}", person.id); }
     }
     fn delete_person(&self, id: &str) {
         let Ok(conn) = self.conn.lock() else { return };
-        let _ = conn.execute("DELETE FROM persons WHERE id = ?1", [id]);
-        let _ = conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id]);
+        if let Err(e) = conn.execute("DELETE FROM persons WHERE id = ?1", [id]) {
+            eprintln!("DB write error [delete_person {id}]: {e}");
+        }
+        if let Err(e) = conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id]) {
+            eprintln!("DB write error [delete_person predictions {id}]: {e}");
+        }
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
         let Ok(conn) = self.conn.lock() else {
@@ -494,14 +502,16 @@ impl StorageBackend for SqliteStorage {
         let Ok(data) = serde_json::to_string(prediction) else {
             return;
         };
-        let _ = conn.execute(
+        if let Err(e) = conn.execute(
             "INSERT OR REPLACE INTO predictions (id, person_id, data) VALUES (?1, ?2, ?3)",
             [&prediction.id, &prediction.person_id, &data],
-        );
+        ) { eprintln!("DB write error [save_prediction {}]: {e}", prediction.id); }
     }
     fn delete_prediction(&self, id: &str) {
         let Ok(conn) = self.conn.lock() else { return };
-        let _ = conn.execute("DELETE FROM predictions WHERE id = ?1", [id]);
+        if let Err(e) = conn.execute("DELETE FROM predictions WHERE id = ?1", [id]) {
+            eprintln!("DB write error [delete_prediction {id}]: {e}");
+        }
     }
     fn load_all_relationships(&self) -> Vec<Relationship> {
         let Ok(conn) = self.conn.lock() else {
@@ -523,14 +533,16 @@ impl StorageBackend for SqliteStorage {
         let Ok(data) = serde_json::to_string(relationship) else {
             return;
         };
-        let _ = conn.execute(
+        if let Err(e) = conn.execute(
             "INSERT OR REPLACE INTO relationships (id, data) VALUES (?1, ?2)",
             [&relationship.id, &data],
-        );
+        ) { eprintln!("DB write error [save_relationship {}]: {e}", relationship.id); }
     }
     fn delete_relationship(&self, id: &str) {
         let Ok(conn) = self.conn.lock() else { return };
-        let _ = conn.execute("DELETE FROM relationships WHERE id = ?1", [id]);
+        if let Err(e) = conn.execute("DELETE FROM relationships WHERE id = ?1", [id]) {
+            eprintln!("DB write error [delete_relationship {id}]: {e}");
+        }
     }
 }
 
