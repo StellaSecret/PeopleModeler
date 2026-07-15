@@ -305,10 +305,13 @@ Rep_final = min(Rep_penalisé × (1 + modulations_biais_Rep), 1)
 
 #### 3. Motivation (21%)
 
-Toutes les paires pondérées par `intensity_A × intensity_B / 100` :
+Paires pondérées par `intensity_A × intensity_B / 100`. Les paires neutres
+(synergy = 0.0) sont ignorées pour éviter le biais de dilution. La moyenne
+résultante est re-mappée de `[−0.3, +0.3]` vers `[0, 1]` :
 
 ```
-Mot_brut = 0.5 + moyenne_pondérée(mot_synergy(type_A, type_B))   → clamp [0, 1]
+avg = moyenne_pondérée(mot_synergy(type_A, type_B), poids, skip_neutral)
+Mot_brut = (avg + 0.3) / 0.6   → clamp [0, 1]
 ```
 
 Table `motivation_synergy(tA, tB)` :
@@ -334,10 +337,12 @@ Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **
 
 #### 4. Patterns (16%)
 
-Toutes les paires pondérées par `conf_A × conf_B / 100` :
+Paires pondérées par `conf_A × conf_B / 100`. Les paires neutres
+(synergy = 0.0) sont ignorées (même logique que motivations).
 
 ```
-Patterns_brut = 0.5 + moyenne_pondérée(trigger_synergy(tA, tB))   → clamp [0, 1]
+avg = moyenne_pondérée(trigger_synergy(tA, tB), poids, skip_neutral)
+Patterns_brut = (avg + 0.3) / 0.6   → clamp [0, 1]
 ```
 
 Table `trigger_synergy(tA, tB)` :
