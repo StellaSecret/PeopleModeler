@@ -103,7 +103,7 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                                     .and_then(|r| r.as_string());
                                 if let Some(json) = result {
                                     match drive::restore_from_json(&json) {
-                                        Ok(n) => s3.set(format!("{} {n} persons", crate::i18n::tr("sync_restored", lang))),
+                                        Ok(n) => s3.set(format!("{} {} persons, {} relationships", crate::i18n::tr("sync_restored", lang), n.persons, n.relationships)),
                                         Err(e) => s3.set(format!("❌ {e}")),
                                     }
                                 }
@@ -144,7 +144,7 @@ fn android_import_button(lang: Lang, status: Signal<String>) -> Element {
                     let content = rx.await.unwrap_or_default();
                     if !content.is_empty() {
                         match crate::drive::restore_from_json(&content) {
-                            Ok(n) => s.set(format!("{} {n} persons", restore_ok)),
+                            Ok(n) => s.set(format!("{} {} persons, {} relationships", restore_ok, n.persons, n.relationships)),
                             Err(e) => s.set(format!("❌ {e}")),
                         }
                     }
@@ -390,7 +390,7 @@ pub fn SyncPage() -> Element {
                             spawn_async(async move {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_restore(&t, pp_ref).await {
-                                    Ok(n) => s.set(format!("{} {n} persons from Drive", crate::i18n::tr("sync_restored", ll))),
+                                    Ok(n) => s.set(format!("{} {} persons, {} relationships from Drive", crate::i18n::tr("sync_restored", ll), n.persons, n.relationships)),
                                     Err(e) => s.set(format!("❌ {e}")),
                                 }
                             });

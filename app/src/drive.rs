@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use peoplemodeler_core::models::{Person, Prediction};
+use peoplemodeler_core::models::{Person, Prediction, Relationship};
 
 use crate::db;
 
@@ -10,29 +10,42 @@ struct BackupData {
     exported_at: i64,
     persons: Vec<Person>,
     predictions: Vec<Prediction>,
+    #[serde(default)]
+    relationships: Vec<Relationship>,
 }
 
 pub fn build_backup() -> String {
     let data = BackupData {
-        version: 1,
+        version: 2,
         exported_at: chrono::Utc::now().timestamp_millis(),
         persons: db::all_persons(),
         predictions: db::all_predictions(),
+        relationships: db::all_relationships(),
     };
     serde_json::to_string_pretty(&data).expect("BackupData serialization failed")
 }
 
-pub fn restore_from_json(json: &str) -> Result<usize, String> {
+pub struct RestoreCount {
+    pub persons: usize,
+    pub relationships: usize,
+}
+
+pub fn restore_from_json(json: &str) -> Result<RestoreCount, String> {
     let data: BackupData =
         serde_json::from_str(json).map_err(|e| format!("Invalid backup: {e}"))?;
-    let count = data.persons.len();
     for p in &data.persons {
         db::save_person(p);
     }
     for p in &data.predictions {
         db::save_prediction(p);
     }
-    Ok(count)
+    for r in &data.relationships {
+        db::save_relationship(r);
+    }
+    Ok(RestoreCount {
+        persons: data.persons.len(),
+        relationships: data.relationships.len(),
+    })
 }
 
 #[cfg_attr(target_os = "android", allow(dead_code))]
@@ -129,7 +142,7 @@ pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<Strin
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
-pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usize, String> {
+pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<RestoreCount, String> {
     let client = reqwest::Client::new();
     let query =
         "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
@@ -319,6 +332,7 @@ mod tests {
                 updated_at: now,
             }],
             predictions: vec![],
+            relationships: vec![],
         };
 
         let json = serde_json::to_string_pretty(&original).unwrap();
