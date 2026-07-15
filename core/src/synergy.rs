@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::models::{
-    BehaviorTrigger, BehavioralPattern, BiasType, MotivationType, OceanScores, Person, Prediction,
-    RepDim,
+    BehaviorTrigger, BehavioralPattern, BiasType, Motivation, MotivationType, OceanScores, Person,
+    Prediction, RepDim,
 };
 
 pub struct SynergyBreakdown {
@@ -314,12 +314,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     // Motivation: all-pair weighted synergy
     let mot_active = !a.motivations.is_empty() && !b.motivations.is_empty();
     let raw_mot = if mot_active {
-        all_pair_weighted_avg(
-            &a.motivations,
-            &b.motivations,
-            |m| m.intensity,
-            |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
-        )
+        motivation_synergy_score(&a.motivations, &b.motivations)
     } else {
         0.0
     };
@@ -554,12 +549,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let pat_active = !person.behavioral_patterns.is_empty();
 
     let raw_mot = if mot_active {
-        all_pair_weighted_avg(
-            &person.motivations,
-            &person.motivations,
-            |m| m.intensity,
-            |ma, mb| motivation_synergy(ma.r#type, mb.r#type),
-        )
+        motivation_synergy_score(&person.motivations, &person.motivations)
     } else {
         0.5
     };
@@ -670,6 +660,27 @@ pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
         (Autonomy, Security) | (Security, Autonomy) => -0.3,
         (Recognition, Affiliation) | (Affiliation, Recognition) => -0.1,
         _ => 0.0,
+    }
+}
+
+pub fn motivation_synergy_score(ma: &[Motivation], mb: &[Motivation]) -> f64 {
+    let mut sum = 0.0;
+    let mut total_w = 0.0;
+    for a in ma {
+        for b in mb {
+            let syn = motivation_synergy(a.r#type, b.r#type);
+            if syn == 0.0 {
+                continue;
+            }
+            let w = (a.intensity as f64 * b.intensity as f64) / 100.0;
+            sum += syn * w;
+            total_w += w;
+        }
+    }
+    if total_w == 0.0 {
+        0.5
+    } else {
+        ((sum / total_w + 0.3) / 0.6).clamp(0.0, 1.0)
     }
 }
 
@@ -2395,9 +2406,10 @@ mod tests {
             notes: String::new(),
         }];
         let brk = compute_synergy_score(&a, &b);
-        // w = 10*10/100 = 1.0, score = 0.2, all_pair_weighted_avg: 0.5 + (0.2*1.0)/1.0 = 0.7
+        // w = 10*10/100 = 1.0, syn = 0.2 (non-neutral), avg = 0.2
+        // scaled = (0.2 + 0.3) / 0.6 = 0.8333
         assert!(
-            (brk.motivation - 0.7).abs() < 0.001,
+            (brk.motivation - 0.8333).abs() < 0.001,
             "Learning-Learning mot: {}",
             brk.motivation
         );
