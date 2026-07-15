@@ -687,9 +687,16 @@ fieldset.ocean-inputs legend{
 .timeline-entry p{color:var(--text);margin:0;font-size:0.88rem}
 
 /* Relationship graph */
-.rel-graph-wrapper{display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.5rem 0}
+.rel-graph-wrapper{display:flex;flex-direction:column;gap:0.5rem;padding:0.5rem 0}
+.rel-graph-header{display:flex;align-items:center}
+.rel-graph-title{font-size:0.95rem;font-weight:700;color:var(--text)}
 .rel-graph-controls{align-self:stretch;display:flex;justify-content:flex-end}
 .rel-toggle-btn{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius);padding:0.25rem 0.65rem;font-size:0.78rem;cursor:pointer;transition:color .15s,border-color .15s}
 .rel-toggle-btn:hover{color:var(--text);border-color:var(--cyan)}
-.rel-graph{width:100%;max-width:400px;height:auto;aspect-ratio:1}
+.rel-cards{display:flex;flex-direction:column;gap:0.5rem}
+.rel-type-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem}
+.rel-type-title{font-size:0.8rem;font-weight:700;margin:0 0 0.35rem}
+.rel-people{display:flex;flex-wrap:wrap;gap:0.3rem 0.6rem}
+.rel-person{cursor:pointer;font-size:0.88rem;color:var(--text);padding:0.1rem 0.25rem;border-radius:4px;transition:background .12s}
+.rel-person:hover{background:var(--surface2)}
 .rel-list{width:100%}

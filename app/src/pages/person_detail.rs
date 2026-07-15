@@ -582,6 +582,38 @@ fn OceanChart(person: Person) -> Element {
 
 use peoplemodeler_core::models::Relationship;
 
+fn group_relationships(
+    rels: Vec<Relationship>,
+    person_id: &str,
+) -> Vec<(String, Vec<(String, bool)>)> {
+    let edges: Vec<(String, bool, String)> = rels
+        .into_iter()
+        .map(|rel| {
+            let is_outgoing = rel.source_id == person_id;
+            let other_id = if is_outgoing {
+                rel.target_id
+            } else {
+                rel.source_id
+            };
+            (other_id, is_outgoing, rel.r#type.to_string())
+        })
+        .collect();
+    let mut groups: Vec<(String, Vec<(String, bool)>)> = Vec::new();
+    for (other_id, is_outgoing, rel_type) in edges {
+        if let Some(pos) = groups.iter().position(|(t, _)| *t == rel_type) {
+            groups[pos].1.push((other_id, is_outgoing));
+        } else {
+            groups.push((rel_type, vec![(other_id, is_outgoing)]));
+        }
+    }
+    groups
+}
+
+const TYPE_COLORS: [&str; 8] = [
+    "var(--cyan)", "var(--orange)", "var(--green)", "var(--pink)",
+    "var(--purple)", "var(--gold)", "var(--teal)", "var(--blue)",
+];
+
 #[component]
 fn RelationshipGraph(
     person_id: String,
@@ -590,164 +622,65 @@ fn RelationshipGraph(
     toggle_list: Signal<bool>,
 ) -> Element {
     let nav = use_navigator();
-    let n = rels.len();
-    if n == 0 {
+    if rels.is_empty() {
         return VNode::empty();
     }
-    let cx = 200.0;
-    let cy = 200.0;
-    let radius = 120.0;
-    let center_r = 28.0;
-    let outer_r = 18.0;
+    let type_groups = group_relationships(rels, &person_id);
 
-    // Build edge data with owned strings
-    let edges: Vec<(String, bool, String)> = rels.into_iter().map(|rel| {
-        let is_outgoing = rel.source_id == person_id;
-        let other_id = if is_outgoing {
-            rel.target_id
-        } else {
-            rel.source_id
-        };
-        (other_id, is_outgoing, rel.r#type.to_string())
-    }).collect();
-    let edge_positions: Vec<_> = edges.iter().enumerate().map(|(idx, (_, is_outgoing, _))| {
-        let angle = if n == 1 { -std::f64::consts::PI / 2.0 }
-            else { idx as f64 * 2.0 * std::f64::consts::PI / n as f64 - std::f64::consts::PI / 2.0 };
-        let x = cx + radius * angle.cos();
-        let y = cy + radius * angle.sin();
-        let sx = cx + center_r * angle.cos();
-        let sy = cy + center_r * angle.sin();
-        let ex = x - outer_r * angle.cos();
-        let ey = y - outer_r * angle.sin();
-        let mid_x = cx + (radius * 0.45) * angle.cos();
-        let mid_y = cy + (radius * 0.45) * angle.sin();
-        let marker_url = if *is_outgoing { "url(#arrow-out)".to_string() } else { "url(#arrow-in)".to_string() };
-        (sx, sy, ex, ey, mid_x, mid_y, x, y, marker_url)
-    }).collect();
-    let node_data: Vec<_> = edges.iter().enumerate().map(|(idx, (other_id, is_outgoing, _))| {
-        let angle = if n == 1 { -std::f64::consts::PI / 2.0 }
-            else { idx as f64 * 2.0 * std::f64::consts::PI / n as f64 - std::f64::consts::PI / 2.0 };
-        let x = cx + radius * angle.cos();
-        let y = cy + radius * angle.sin();
-        (other_id.clone(), *is_outgoing, x, y)
-    }).collect();
+    let mut cards: Vec<VNode> = Vec::new();
+    for (t_idx, (rel_type, people)) in type_groups.iter().enumerate() {
+        let color = TYPE_COLORS[t_idx % TYPE_COLORS.len()];
+        let mut person_spans: Vec<VNode> = Vec::new();
+        for (other_id, _) in people {
+            let click_id = other_id.clone();
+            let other = db::person(other_id);
+            let span = if let Some(ref o) = other {
+                rsx! {
+                    span {
+                        key: "{other_id}",
+                        class: "rel-person",
+                        onclick: move |_| {
+                            let _ = nav.push(Route::PersonDetail { id: click_id.clone() });
+                        },
+                        "{o.avatar_emoji} {o.name}"
+                    }
+                }.unwrap()
+            } else {
+                rsx! {
+                    span {
+                        key: "{other_id}",
+                        class: "rel-person",
+                        "{other_id}"
+                    }
+                }.unwrap()
+            };
+            person_spans.push(span);
+        }
+        cards.push(rsx! {
+            div {
+                key: "{rel_type}",
+                class: "rel-type-card",
+                style: "border-color: {color}",
+                h3 { class: "rel-type-title", style: "color: {color}", "{rel_type}" }
+                div { class: "rel-people", {person_spans.into_iter()} }
+            }
+        }.unwrap());
+    }
 
     rsx! {
         div { class: "rel-graph-wrapper",
-            h2 { "{person.avatar_emoji} {person.name}" }
+            div { class: "rel-graph-header",
+                span { class: "rel-graph-title", "{person.avatar_emoji} {person.name}" }
+            }
             div { class: "rel-graph-controls",
                 button {
                     class: "rel-toggle-btn",
-                    onclick: move |_| {
-                        let cur = toggle_list();
-                        toggle_list.set(!cur);
-                    },
-                    if toggle_list() { "Radial" } else { "List" }
+                    onclick: move |_| { let cur = toggle_list(); toggle_list.set(!cur); },
+                    if toggle_list() { "Cards" } else { "List" }
                 }
             }
             if !toggle_list() {
-                svg {
-                    view_box: "0 0 400 400",
-                    class: "rel-graph",
-                    defs {
-                        marker {
-                            id: "arrow-out",
-                            view_box: "0 0 10 10",
-                            ref_x: "8", ref_y: "5",
-                            marker_width: "8", marker_height: "8",
-                            orient: "auto",
-                            path { d: "M 0 0 L 10 5 L 0 10 z", fill: "var(--cyan)" }
-                        }
-                        marker {
-                            id: "arrow-in",
-                            view_box: "0 0 10 10",
-                            ref_x: "2", ref_y: "5",
-                            marker_width: "8", marker_height: "8",
-                            orient: "auto",
-                            path { d: "M 10 0 L 0 5 L 10 10 z", fill: "var(--orange)" }
-                        }
-                    }
-                    // Center node
-                    circle {
-                        cx: "{cx}", cy: "{cy}",
-                        r: "{center_r}",
-                        fill: "var(--surface)",
-                        stroke: "var(--cyan)",
-                        stroke_width: "2",
-                    }
-                    text {
-                        x: "{cx}", y: "{cy}",
-                        text_anchor: "middle",
-                        dominant_baseline: "central",
-                        font_size: "22",
-                        "{person.avatar_emoji}"
-                    }
-                    // Edges
-                    for (i, (sx, sy, ex, ey, mid_x, mid_y, _, _, marker_url)) in edge_positions.iter().enumerate() {
-                        {
-                            let other_id = &node_data[i].0;
-                            let rel_type = &edges[i].2;
-                            rsx! {
-                                g { key: "{other_id}",
-                                    line {
-                                        x1: "{sx:.1}", y1: "{sy:.1}",
-                                        x2: "{ex:.1}", y2: "{ey:.1}",
-                                        stroke: "var(--border)",
-                                        stroke_width: "2",
-                                        marker_end: "{marker_url}",
-                                    }
-                                    text {
-                                        x: "{mid_x:.1}", y: "{mid_y:.1}",
-                                        text_anchor: "middle",
-                                        dominant_baseline: "central",
-                                        font_size: "9",
-                                        fill: "var(--text-muted)",
-                                        "{rel_type}"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // Outer nodes (separate pass so edges render underneath)
-                    for (other_id, is_outgoing, x, y) in &node_data {
-                        {
-                            let click_id = other_id.clone();
-                            let other = db::person(other_id);
-                            if let Some(ref o) = other {
-                                rsx! {
-                                    g { key: "{other_id}-node",
-                                        onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: click_id.clone() }); },
-                                        style: "cursor: pointer",
-                                        circle {
-                                            cx: "{x:.1}", cy: "{y:.1}",
-                                            r: "{outer_r}",
-                                            fill: "var(--surface)",
-                                            stroke: if *is_outgoing { "var(--cyan)" } else { "var(--orange)" },
-                                            stroke_width: "2",
-                                        }
-                                        text {
-                                            x: "{x:.1}", y: "{y:.1}",
-                                            text_anchor: "middle",
-                                            dominant_baseline: "central",
-                                            font_size: "16",
-                                            "{o.avatar_emoji}"
-                                        }
-                                        text {
-                                            x: "{x:.1}",
-                                            y: "{y + outer_r + 14.0:.1}",
-                                            text_anchor: "middle",
-                                            font_size: "10",
-                                            fill: "var(--text)",
-                                            "{o.name}"
-                                        }
-                                    }
-                                }
-                            } else {
-                                VNode::empty()
-                            }
-                        }
-                    }
-                }
+                div { class: "rel-cards", {cards.into_iter()} }
             }
         }
     }
@@ -831,5 +764,92 @@ fn RelationshipSection(
             div { class: "section" }
             Link { to: Route::Relationships {}, class: "btn", "{rel_title}" }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::models::RelationType;
+
+    fn rel(source: &str, target: &str, r#type: RelationType) -> Relationship {
+        Relationship {
+            id: String::new(),
+            source_id: source.to_string(),
+            target_id: target.to_string(),
+            r#type,
+            notes: String::new(),
+            created_at: 0,
+        }
+    }
+
+    #[test]
+    fn group_empty_rels() {
+        let g = group_relationships(vec![], "alice");
+        assert!(g.is_empty());
+    }
+
+    #[test]
+    fn group_single_rel() {
+        let g = group_relationships(
+            vec![rel("alice", "bob", RelationType::WorksWith)],
+            "alice",
+        );
+        assert_eq!(g.len(), 1);
+        assert_eq!(g[0].0, "WorksWith");
+        assert_eq!(g[0].1, vec![("bob".to_string(), true)]);
+    }
+
+    #[test]
+    fn group_same_type_merged() {
+        let g = group_relationships(
+            vec![
+                rel("alice", "bob", RelationType::Friends),
+                rel("alice", "carol", RelationType::Friends),
+            ],
+            "alice",
+        );
+        assert_eq!(g.len(), 1);
+        assert_eq!(g[0].0, "Friends");
+        assert_eq!(g[0].1.len(), 2);
+    }
+
+    #[test]
+    fn group_different_types_separate() {
+        let g = group_relationships(
+            vec![
+                rel("alice", "bob", RelationType::WorksWith),
+                rel("alice", "carol", RelationType::Friends),
+            ],
+            "alice",
+        );
+        assert_eq!(g.len(), 2);
+        assert_eq!(g[0].0, "WorksWith");
+        assert_eq!(g[1].0, "Friends");
+    }
+
+    #[test]
+    fn group_incoming_rel() {
+        let g = group_relationships(
+            vec![rel("bob", "alice", RelationType::Manages)],
+            "alice",
+        );
+        assert_eq!(g.len(), 1);
+        assert!(!g[0].1[0].1); // incoming
+    }
+
+    #[test]
+    fn group_preserves_type_order() {
+        let g = group_relationships(
+            vec![
+                rel("alice", "bob", RelationType::Family),
+                rel("alice", "carol", RelationType::WorksWith),
+                rel("alice", "dave", RelationType::Partner),
+            ],
+            "alice",
+        );
+        assert_eq!(g[0].0, "Family");
+        assert_eq!(g[1].0, "WorksWith");
+        assert_eq!(g[2].0, "Partner");
     }
 }
