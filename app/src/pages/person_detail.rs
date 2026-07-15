@@ -451,7 +451,7 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Relationships {
-                        RelationshipSection { person_id: id.clone(), rels: person_rels.clone(), rel_person_rel, rel_none, rel_title }
+                        RelationshipSection { person: person.clone(), person_id: id.clone(), rels: person_rels.clone(), rel_person_rel, rel_none, rel_title }
                     }
 
                     Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "Edit person", "✏" }
@@ -583,53 +583,249 @@ fn OceanChart(person: Person) -> Element {
 use peoplemodeler_core::models::Relationship;
 
 #[component]
+fn RelationshipGraph(
+    person_id: String,
+    person: Person,
+    rels: Vec<Relationship>,
+    toggle_list: Signal<bool>,
+) -> Element {
+    let nav = use_navigator();
+    let n = rels.len();
+    if n == 0 {
+        return VNode::empty();
+    }
+    let cx = 200.0;
+    let cy = 200.0;
+    let radius = 120.0;
+    let center_r = 28.0;
+    let outer_r = 18.0;
+
+    // Build edge data with owned strings
+    let edges: Vec<(String, bool, String)> = rels.into_iter().map(|rel| {
+        let is_outgoing = rel.source_id == person_id;
+        let other_id = if is_outgoing {
+            rel.target_id
+        } else {
+            rel.source_id
+        };
+        (other_id, is_outgoing, rel.r#type.to_string())
+    }).collect();
+    let edge_positions: Vec<_> = edges.iter().enumerate().map(|(idx, (_, is_outgoing, _))| {
+        let angle = if n == 1 { -std::f64::consts::PI / 2.0 }
+            else { idx as f64 * 2.0 * std::f64::consts::PI / n as f64 - std::f64::consts::PI / 2.0 };
+        let x = cx + radius * angle.cos();
+        let y = cy + radius * angle.sin();
+        let sx = cx + center_r * angle.cos();
+        let sy = cy + center_r * angle.sin();
+        let ex = x - outer_r * angle.cos();
+        let ey = y - outer_r * angle.sin();
+        let mid_x = cx + (radius * 0.45) * angle.cos();
+        let mid_y = cy + (radius * 0.45) * angle.sin();
+        let marker_url = if *is_outgoing { "url(#arrow-out)".to_string() } else { "url(#arrow-in)".to_string() };
+        (sx, sy, ex, ey, mid_x, mid_y, x, y, marker_url)
+    }).collect();
+    let node_data: Vec<_> = edges.iter().enumerate().map(|(idx, (other_id, is_outgoing, _))| {
+        let angle = if n == 1 { -std::f64::consts::PI / 2.0 }
+            else { idx as f64 * 2.0 * std::f64::consts::PI / n as f64 - std::f64::consts::PI / 2.0 };
+        let x = cx + radius * angle.cos();
+        let y = cy + radius * angle.sin();
+        (other_id.clone(), *is_outgoing, x, y)
+    }).collect();
+
+    rsx! {
+        div { class: "rel-graph-wrapper",
+            h2 { "{person.avatar_emoji} {person.name}" }
+            div { class: "rel-graph-controls",
+                button {
+                    class: "rel-toggle-btn",
+                    onclick: move |_| {
+                        let cur = toggle_list();
+                        toggle_list.set(!cur);
+                    },
+                    if toggle_list() { "Radial" } else { "List" }
+                }
+            }
+            if !toggle_list() {
+                svg {
+                    view_box: "0 0 400 400",
+                    class: "rel-graph",
+                    defs {
+                        marker {
+                            id: "arrow-out",
+                            view_box: "0 0 10 10",
+                            ref_x: "8", ref_y: "5",
+                            marker_width: "8", marker_height: "8",
+                            orient: "auto",
+                            path { d: "M 0 0 L 10 5 L 0 10 z", fill: "var(--cyan)" }
+                        }
+                        marker {
+                            id: "arrow-in",
+                            view_box: "0 0 10 10",
+                            ref_x: "2", ref_y: "5",
+                            marker_width: "8", marker_height: "8",
+                            orient: "auto",
+                            path { d: "M 10 0 L 0 5 L 10 10 z", fill: "var(--orange)" }
+                        }
+                    }
+                    // Center node
+                    circle {
+                        cx: "{cx}", cy: "{cy}",
+                        r: "{center_r}",
+                        fill: "var(--surface)",
+                        stroke: "var(--cyan)",
+                        stroke_width: "2",
+                    }
+                    text {
+                        x: "{cx}", y: "{cy}",
+                        text_anchor: "middle",
+                        dominant_baseline: "central",
+                        font_size: "22",
+                        "{person.avatar_emoji}"
+                    }
+                    // Edges
+                    for (i, (sx, sy, ex, ey, mid_x, mid_y, _, _, marker_url)) in edge_positions.iter().enumerate() {
+                        {
+                            let other_id = &node_data[i].0;
+                            let rel_type = &edges[i].2;
+                            rsx! {
+                                g { key: "{other_id}",
+                                    line {
+                                        x1: "{sx:.1}", y1: "{sy:.1}",
+                                        x2: "{ex:.1}", y2: "{ey:.1}",
+                                        stroke: "var(--border)",
+                                        stroke_width: "2",
+                                        marker_end: "{marker_url}",
+                                    }
+                                    text {
+                                        x: "{mid_x:.1}", y: "{mid_y:.1}",
+                                        text_anchor: "middle",
+                                        dominant_baseline: "central",
+                                        font_size: "9",
+                                        fill: "var(--text-muted)",
+                                        "{rel_type}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Outer nodes (separate pass so edges render underneath)
+                    for (other_id, is_outgoing, x, y) in &node_data {
+                        {
+                            let click_id = other_id.clone();
+                            let other = db::person(other_id);
+                            if let Some(ref o) = other {
+                                rsx! {
+                                    g { key: "{other_id}-node",
+                                        onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: click_id.clone() }); },
+                                        style: "cursor: pointer",
+                                        circle {
+                                            cx: "{x:.1}", cy: "{y:.1}",
+                                            r: "{outer_r}",
+                                            fill: "var(--surface)",
+                                            stroke: if *is_outgoing { "var(--cyan)" } else { "var(--orange)" },
+                                            stroke_width: "2",
+                                        }
+                                        text {
+                                            x: "{x:.1}", y: "{y:.1}",
+                                            text_anchor: "middle",
+                                            dominant_baseline: "central",
+                                            font_size: "16",
+                                            "{o.avatar_emoji}"
+                                        }
+                                        text {
+                                            x: "{x:.1}",
+                                            y: "{y + outer_r + 14.0:.1}",
+                                            text_anchor: "middle",
+                                            font_size: "10",
+                                            fill: "var(--text)",
+                                            "{o.name}"
+                                        }
+                                    }
+                                }
+                            } else {
+                                VNode::empty()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn RelListView(
+    rels: Vec<Relationship>,
+    person_id: String,
+) -> Element {
+    let nav = use_navigator();
+    if rels.is_empty() {
+        return VNode::empty();
+    }
+    rsx! {
+        div { class: "rel-list",
+            for rel in rels {
+                {
+                    let other_id = if rel.source_id == person_id {
+                        rel.target_id.clone()
+                    } else {
+                        rel.source_id.clone()
+                    };
+                    let other = db::person(&other_id);
+                    let dir = if rel.source_id == person_id {
+                        "→"
+                    } else {
+                        "←"
+                    };
+                    let link_id = other_id.clone();
+                    rsx! {
+                        div { class: "relationship-item",
+                            if let Some(ref o) = other {
+                                span {
+                                    class: "person-link",
+                                    onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: link_id.clone() }); },
+                                    "{o.avatar_emoji} {o.name}"
+                                }
+                            } else {
+                                span { "{other_id}" }
+                            }
+                            span { " {dir} " }
+                            span { class: "tag", "{rel.r#type}" }
+                            if !rel.notes.is_empty() {
+                                p { class: "note", "{rel.notes}" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
 fn RelationshipSection(
+    person: Person,
     person_id: String,
     rels: Vec<Relationship>,
     rel_person_rel: String,
     rel_none: String,
     rel_title: String,
 ) -> Element {
-    let nav = use_navigator();
+    let show_list = use_signal(|| false);
     rsx! {
         div { class: "section",
-            h2 { "{rel_person_rel}" }
             if rels.is_empty() {
+                h2 { "{rel_person_rel}" }
                 p { "{rel_none}" }
             } else {
-                for rel in rels {
-                    {
-                        let other_id = if rel.source_id == person_id {
-                            rel.target_id.clone()
-                        } else {
-                            rel.source_id.clone()
-                        };
-                        let other = db::person(&other_id);
-                        let dir = if rel.source_id == person_id {
-                            "→"
-                        } else {
-                            "←"
-                        };
-                        let link_id = other_id.clone();
-                        rsx! {
-                            div { class: "relationship-item",
-                                if let Some(ref o) = other {
-                                    span {
-                                        class: "person-link",
-                                        onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: link_id.clone() }); },
-                                        "{o.avatar_emoji} {o.name}"
-                                    }
-                                } else {
-                                    span { "{other_id}" }
-                                }
-                                span { " {dir} " }
-                                span { class: "tag", "{rel.r#type}" }
-                                if !rel.notes.is_empty() {
-                                    p { class: "note", "{rel.notes}" }
-                                }
-                            }
-                        }
-                    }
+                RelationshipGraph {
+                    person_id: person_id.clone(),
+                    person,
+                    rels: rels.clone(),
+                    toggle_list: show_list,
+                }
+                if show_list() {
+                    RelListView { rels, person_id }
                 }
             }
             div { class: "section" }
