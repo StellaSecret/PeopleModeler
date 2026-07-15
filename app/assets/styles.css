@@ -572,6 +572,7 @@ fieldset.ocean-inputs legend{
 .asym-row{display:flex;justify-content:center;align-items:center;gap:0.5rem}
 .asym-direction{font-size:0.65rem;color:var(--text-muted);font-family:var(--font-mono)}
 .asym-value{font-size:0.85rem;font-weight:700;font-family:var(--font-display);color:var(--text)}
+.asym-benefit{font-size:0.6rem;color:var(--green);font-family:var(--font-mono);white-space:nowrap}
 .breakdown-section{width:100%;margin-top:.25rem}
 .breakdown-section h4{font-size:.68rem;color:var(--text-muted);margin-bottom:.35rem;text-align:center}
 .breakdown-bars{display:flex;flex-direction:column;gap:.3rem}

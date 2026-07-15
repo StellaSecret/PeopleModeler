@@ -476,6 +476,8 @@ fn en(key: &'static str) -> &'static str {
         "Only negative patterns" => "Only negative patterns",
         "Low prediction accuracy" => "Low prediction accuracy",
         "compare_asymmetric" => "Mutual benefit",
+        "compare_benefit_more" => "benefits more",
+        "compare_balanced" => "Balanced",
         "compare_ethics" => {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
         }
@@ -933,6 +935,8 @@ fn fr(key: &'static str) -> &'static str {
         "Only negative patterns" => "Patterns négatifs uniquement",
         "Low prediction accuracy" => "Faible précision prédictive",
         "compare_asymmetric" => "Bénéfice mutuel",
+        "compare_benefit_more" => "bénéficie plus",
+        "compare_balanced" => "Équilibré",
         "compare_ethics" => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
         },

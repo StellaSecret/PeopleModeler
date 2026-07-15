@@ -34,6 +34,17 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
             let compare_asymmetric = crate::i18n::tr("compare_asymmetric", lang());
+            let compare_benefit_more = crate::i18n::tr("compare_benefit_more", lang());
+            let compare_balanced = crate::i18n::tr("compare_balanced", lang());
+            let a_score = brk.a_score;
+            let b_score = brk.b_score;
+            let (a_benefit_label, b_benefit_label) = if a_score > b_score {
+                (format!("(+{}% — {} {})", a_score - b_score, na, compare_benefit_more), String::new())
+            } else if b_score > a_score {
+                (String::new(), format!("(+{}% — {} {})", b_score - a_score, nb, compare_benefit_more))
+            } else {
+                (format!("({})", compare_balanced), format!("({})", compare_balanced))
+            };
             let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
             let cat_ocean = crate::i18n::tr("compare_cat_ocean", lang());
             let cat_rep = crate::i18n::tr("compare_cat_reputation", lang());
@@ -142,12 +153,18 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                 p { class: "asymmetric-title", "{compare_asymmetric}" }
                                 div { class: "asymmetric-scores",
                                     span { class: "asym-row",
-                                        span { class: "asym-direction", "{na} ← {nb}" }
-                                        span { class: "asym-value", "{brk.a_score}%" }
+                                        span { class: "asym-direction", "{na} → {nb}" }
+                                        span { class: "asym-value", "{a_score}%" }
+                                        if !a_benefit_label.is_empty() {
+                                            span { class: "asym-benefit", "{a_benefit_label}" }
+                                        }
                                     }
                                     span { class: "asym-row",
-                                        span { class: "asym-direction", "{nb} ← {na}" }
-                                        span { class: "asym-value", "{brk.b_score}%" }
+                                        span { class: "asym-direction", "{nb} → {na}" }
+                                        span { class: "asym-value", "{b_score}%" }
+                                        if !b_benefit_label.is_empty() {
+                                            span { class: "asym-benefit", "{b_benefit_label}" }
+                                        }
                                     }
                                 }
                             }

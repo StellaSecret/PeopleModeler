@@ -31,7 +31,7 @@ test.describe('Compare Persons Page', () => {
     await expect(page.locator('.scale-score')).toContainText('%');
     await expect(page.locator('.scale-band-hero')).toBeVisible();
     await expect(page.locator('.asymmetric-scores')).toBeVisible();
-    await expect(page.locator('.asym-direction').first()).toContainText('←');
+    await expect(page.locator('.asym-direction').first()).toContainText('→');
   });
 
   test('compare page shows analysis section with synergy, friction, strategy', async ({ page }) => {
