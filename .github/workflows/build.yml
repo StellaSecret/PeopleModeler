@@ -429,7 +429,7 @@ jobs:
   release:
     name: Create Release
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [build-android]
+    needs: [playwright-tests, build-android]
     runs-on: ubuntu-latest
     environment: release
     steps:
