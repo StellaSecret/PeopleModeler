@@ -29,6 +29,11 @@ enum Tab {
 pub fn PersonDetail(id: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let mut person_sig = use_signal(|| db::person(&id));
+    let mut prev_id = use_signal(|| id.clone());
+    if prev_id() != id {
+        person_sig.set(db::person(&id));
+        prev_id.set(id.clone());
+    }
     let mut tab = use_signal(|| Tab::Motivations);
     let mut toast_sig = use_context::<Signal<Option<String>>>();
     let not_found = crate::i18n::tr("person_not_found", lang());
@@ -71,13 +76,10 @@ pub fn PersonDetail(id: String) -> Element {
             let mut comparing = use_signal(|| false);
             let other_persons = use_signal(db::all_persons);
             let mut log_text = use_signal(String::new);
-            let person_rels = use_signal(|| {
-                let all = db::all_relationships();
-                let pid = id.clone();
-                all.into_iter()
-                    .filter(|r| r.source_id == pid || r.target_id == pid)
-                    .collect::<Vec<_>>()
-            });
+            let all_rels = db::all_relationships();
+            let person_rels = all_rels.into_iter()
+                .filter(|r| r.source_id == id || r.target_id == id)
+                .collect::<Vec<_>>();
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
@@ -449,7 +451,7 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Relationships {
-                        RelationshipSection { person_id: id.clone(), rels: person_rels(), rel_person_rel, rel_none, rel_title }
+                        RelationshipSection { person_id: id.clone(), rels: person_rels.clone(), rel_person_rel, rel_none, rel_title }
                     }
 
                     Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "Edit person", "✏" }
@@ -581,35 +583,6 @@ fn OceanChart(person: Person) -> Element {
 use peoplemodeler_core::models::Relationship;
 
 #[component]
-fn RelItem(rel: Relationship, person_id: String) -> Element {
-    let other_id = if rel.source_id == person_id {
-        rel.target_id.clone()
-    } else {
-        rel.source_id.clone()
-    };
-    let other = db::person(&other_id);
-    let dir = if rel.source_id == person_id {
-        "→"
-    } else {
-        "←"
-    };
-    rsx! {
-        div { class: "relationship-item",
-            if let Some(ref o) = other {
-                Link { to: Route::PersonDetail { id: other_id }, "{o.avatar_emoji} {o.name}" }
-            } else {
-                span { "{other_id}" }
-            }
-            span { " {dir} " }
-            span { class: "tag", "{rel.r#type}" }
-            if !rel.notes.is_empty() {
-                p { class: "note", "{rel.notes}" }
-            }
-        }
-    }
-}
-
-#[component]
 fn RelationshipSection(
     person_id: String,
     rels: Vec<Relationship>,
@@ -617,6 +590,7 @@ fn RelationshipSection(
     rel_none: String,
     rel_title: String,
 ) -> Element {
+    let nav = use_navigator();
     rsx! {
         div { class: "section",
             h2 { "{rel_person_rel}" }
@@ -624,7 +598,38 @@ fn RelationshipSection(
                 p { "{rel_none}" }
             } else {
                 for rel in rels {
-                    RelItem { rel, person_id: person_id.clone() }
+                    {
+                        let other_id = if rel.source_id == person_id {
+                            rel.target_id.clone()
+                        } else {
+                            rel.source_id.clone()
+                        };
+                        let other = db::person(&other_id);
+                        let dir = if rel.source_id == person_id {
+                            "→"
+                        } else {
+                            "←"
+                        };
+                        let link_id = other_id.clone();
+                        rsx! {
+                            div { class: "relationship-item",
+                                if let Some(ref o) = other {
+                                    span {
+                                        class: "person-link",
+                                        onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: link_id.clone() }); },
+                                        "{o.avatar_emoji} {o.name}"
+                                    }
+                                } else {
+                                    span { "{other_id}" }
+                                }
+                                span { " {dir} " }
+                                span { class: "tag", "{rel.r#type}" }
+                                if !rel.notes.is_empty() {
+                                    p { class: "note", "{rel.notes}" }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             div { class: "section" }
