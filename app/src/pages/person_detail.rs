@@ -69,7 +69,7 @@ pub fn PersonDetail(id: String) -> Element {
             let add_btn = crate::i18n::tr("pred_add_btn", lang());
 
             let mut comparing = use_signal(|| false);
-            let other_persons = use_signal(|| db::all_persons());
+            let other_persons = use_signal(db::all_persons);
             let mut log_text = use_signal(String::new);
             let person_rels = use_signal(|| {
                 let all = db::all_relationships();
@@ -169,7 +169,7 @@ pub fn PersonDetail(id: String) -> Element {
                                         class: "tag tag-clickable",
                                         onclick: {
                                         let t = tag.name.clone();
-                                        let mut tf = tag_filter.clone();
+                                        let mut tf = tag_filter;
                                         move |_| tf.set(Some(t.clone()))
                                         },
                                         "{tag}"
@@ -348,7 +348,7 @@ pub fn PersonDetail(id: String) -> Element {
                                 for t in crate::pages::insights::ALL_TRIGGERS {
                                     button {
                                         class: if *trigger.read() == t { "btn active" } else { "btn" },
-                                        onclick: { let t = t; move |_| trigger.set(t) },
+                                        onclick: move |_| trigger.set(t),
                                         { crate::pages::insights::trigger_label(&t, lang()) }
                                     }
                                 }

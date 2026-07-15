@@ -318,20 +318,20 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // --- Synergies ---
 
     // O-C complementarity
-    if oa.openness.zip(ob.conscientiousness).map_or(false, |(o, c)| o >= 7 && c >= 7) {
+    if oa.openness.zip(ob.conscientiousness).is_some_and(|(o, c)| o >= 7 && c >= 7) {
         syn.push(if lang == Lang::Fr {
             format!("{na} apporte la vision créative, {nb} assure l'exécution rigoureuse")
         } else {
             format!("{na} brings creative vision, {nb} ensures rigorous execution")
         });
-    } else if ob.openness.zip(oa.conscientiousness).map_or(false, |(o, c)| o >= 7 && c >= 7) {
+    } else if ob.openness.zip(oa.conscientiousness).is_some_and(|(o, c)| o >= 7 && c >= 7) {
         syn.push(if lang == Lang::Fr {
             format!("{nb} apporte la vision créative, {na} assure l'exécution rigoureuse")
         } else {
             format!("{nb} brings creative vision, {na} ensures rigorous execution")
         });
-    } else if oa.openness.zip(ob.openness).map_or(false, |(a, b)| a.abs_diff(b) <= 2)
-        && oa.conscientiousness.zip(ob.conscientiousness).map_or(false, |(a, b)| a.abs_diff(b) <= 2)
+    } else if oa.openness.zip(ob.openness).is_some_and(|(a, b)| a.abs_diff(b) <= 2)
+        && oa.conscientiousness.zip(ob.conscientiousness).is_some_and(|(a, b)| a.abs_diff(b) <= 2)
     {
         syn.push(if lang == Lang::Fr {
             "Profils OCEAN très proches — communication fluide et attentes alignées".into()
@@ -341,8 +341,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // E-A complementarity
-    if oa.extraversion.zip(ob.agreeableness).map_or(false, |(e, a)| e >= 7 && a >= 7)
-        || ob.extraversion.zip(oa.agreeableness).map_or(false, |(e, a)| e >= 7 && a >= 7)
+    if oa.extraversion.zip(ob.agreeableness).is_some_and(|(e, a)| e >= 7 && a >= 7)
+        || ob.extraversion.zip(oa.agreeableness).is_some_and(|(e, a)| e >= 7 && a >= 7)
     {
         syn.push(if lang == Lang::Fr {
             "Extraversion et agréabilité se compensent : l'un conduit, l'autre harmonise".into()
@@ -352,65 +352,62 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Motivation synergy (uses core synergy value, not just equality)
-    match (a.top_motivation(), b.top_motivation()) {
-        (Some(m1), Some(m2)) => {
-            let msyn = peoplemodeler_core::synergy::motivation_synergy(m1.r#type, m2.r#type);
-            if msyn > 0.0 {
-                syn.push(if lang == Lang::Fr {
-                    format!(
-                        "Motivations complémentaires — {} et {} se renforcent mutuellement",
-                        m1.r#type.i18n(cl).label,
-                        m2.r#type.i18n(cl).label,
-                    )
-                } else {
-                    format!(
-                        "Complementary motivations — {} and {} reinforce each other",
-                        m1.r#type.i18n(cl).label,
-                        m2.r#type.i18n(cl).label,
-                    )
-                });
-            } else if msyn < 0.0 {
-                fri.push(if lang == Lang::Fr {
-                    format!(
-                        "Motivations concurrentes — {} et {} peuvent créer des tensions",
-                        m1.r#type.i18n(cl).label,
-                        m2.r#type.i18n(cl).label,
-                    )
-                } else {
-                    format!(
-                        "Competing motivations — {} and {} may create tension",
-                        m1.r#type.i18n(cl).label,
-                        m2.r#type.i18n(cl).label,
-                    )
-                });
-            }
-            if m1.r#type == m2.r#type {
-                syn.push(if lang == Lang::Fr {
-                    format!(
-                        "Motivation {} partagée — même langage, mêmes priorités",
-                        m1.r#type.i18n(cl).label
-                    )
-                } else {
-                    format!(
-                        "Shared {} motivation — same language, same priorities",
-                        m1.r#type.i18n(cl).label
-                    )
-                });
-            }
+    if let (Some(m1), Some(m2)) = (a.top_motivation(), b.top_motivation()) {
+        let msyn = peoplemodeler_core::synergy::motivation_synergy(m1.r#type, m2.r#type);
+        if msyn > 0.0 {
+            syn.push(if lang == Lang::Fr {
+                format!(
+                    "Motivations complémentaires — {} et {} se renforcent mutuellement",
+                    m1.r#type.i18n(cl).label,
+                    m2.r#type.i18n(cl).label,
+                )
+            } else {
+                format!(
+                    "Complementary motivations — {} and {} reinforce each other",
+                    m1.r#type.i18n(cl).label,
+                    m2.r#type.i18n(cl).label,
+                )
+            });
+        } else if msyn < 0.0 {
+            fri.push(if lang == Lang::Fr {
+                format!(
+                    "Motivations concurrentes — {} et {} peuvent créer des tensions",
+                    m1.r#type.i18n(cl).label,
+                    m2.r#type.i18n(cl).label,
+                )
+            } else {
+                format!(
+                    "Competing motivations — {} and {} may create tension",
+                    m1.r#type.i18n(cl).label,
+                    m2.r#type.i18n(cl).label,
+                )
+            });
         }
-        _ => {}
+        if m1.r#type == m2.r#type {
+            syn.push(if lang == Lang::Fr {
+                format!(
+                    "Motivation {} partagée — même langage, mêmes priorités",
+                    m1.r#type.i18n(cl).label
+                )
+            } else {
+                format!(
+                    "Shared {} motivation — same language, same priorities",
+                    m1.r#type.i18n(cl).label
+                )
+            });
+        }
     }
 
     // --- Frictions ---
 
     // Agreeableness gap
-    if oa.agreeableness.map_or(false, |v| v >= 7) && ob.agreeableness.map_or(false, |v| v <= 4) {
+    if oa.agreeableness.is_some_and(|v| v >= 7) && ob.agreeableness.is_some_and(|v| v <= 4) {
         fri.push(if lang == Lang::Fr {
             format!("{nb} (faible A) peut sembler agressif pour {na} (haute A)")
         } else {
             format!("{nb} (low A) may seem aggressive to {na} (high A)")
         });
-    } else if ob.agreeableness.map_or(false, |v| v >= 7) && oa.agreeableness.map_or(false, |v| v <= 4) {
+    } else if ob.agreeableness.is_some_and(|v| v >= 7) && oa.agreeableness.is_some_and(|v| v <= 4) {
         fri.push(if lang == Lang::Fr {
             format!("{na} (faible A) peut sembler agressif pour {nb} (haute A)")
         } else {
@@ -419,23 +416,20 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Neuroticism gap
-    match (oa.neuroticism, ob.neuroticism) {
-        (Some(na_n), Some(nb_n)) => {
-            let nd = na_n.abs_diff(nb_n);
-            if nd >= 3 {
-                let (stable, reactive) = if na_n <= nb_n {
-                    (&na, &nb)
-                } else {
-                    (&nb, &na)
-                };
-                fri.push(if lang == Lang::Fr {
-                    format!("{reactive} plus réactif au stress que {stable} — risque d'incompréhension")
-                } else {
-                    format!("{reactive} more reactive to stress than {stable} — risk of misunderstanding")
-                });
-            }
+    if let (Some(na_n), Some(nb_n)) = (oa.neuroticism, ob.neuroticism) {
+        let nd = na_n.abs_diff(nb_n);
+        if nd >= 3 {
+            let (stable, reactive) = if na_n <= nb_n {
+                (&na, &nb)
+            } else {
+                (&nb, &na)
+            };
+            fri.push(if lang == Lang::Fr {
+                format!("{reactive} plus réactif au stress que {stable} — risque d'incompréhension")
+            } else {
+                format!("{reactive} more reactive to stress than {stable} — risk of misunderstanding")
+            });
         }
-        _ => {}
     }
 
     // Reputation synergy (distance-based, per shared dimension)
@@ -523,11 +517,11 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // --- Behavioral Patterns ---
-    match (
+    if let (Some(pa), Some(pb)) = (
         a.behavioral_patterns.iter().max_by_key(|p| p.intensity),
         b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
     ) {
-        (Some(pa), Some(pb)) => match (&pa.trigger, &pb.trigger) {
+        match (&pa.trigger, &pb.trigger) {
             (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
                 syn.push(if lang == Lang::Fr {
                     "Tous deux s'adaptent au changement — organisation fluide".into()
@@ -565,8 +559,7 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
                 });
             }
             _ => {}
-        },
-        _ => {}
+        }
     }
 
     // Extraversion gap friction
@@ -585,41 +578,38 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // --- Strategies ---
 
     // Based on top motivations
-    match (a.top_motivation(), b.top_motivation()) {
-        (Some(m1), Some(m2)) => {
-            if m1.r#type == peoplemodeler_core::models::MotivationType::Power
-                || m2.r#type == peoplemodeler_core::models::MotivationType::Power
-            {
-                str.push(if lang == Lang::Fr {
-                    "Donner des espaces d'initiative à la personne motivée par le pouvoir".into()
-                } else {
-                    "Give the power-driven person opportunities to take initiative".into()
-                });
-            }
-            if m1.r#type == peoplemodeler_core::models::MotivationType::Recognition
-                || m2.r#type == peoplemodeler_core::models::MotivationType::Recognition
-            {
-                str.push(if lang == Lang::Fr {
-                    "Reconnaître publiquement les contributions de chacun".into()
-                } else {
-                    "Publicly acknowledge each person's contributions".into()
-                });
-            }
-            if m1.r#type == peoplemodeler_core::models::MotivationType::Security
-                || m2.r#type == peoplemodeler_core::models::MotivationType::Security
-            {
-                str.push(if lang == Lang::Fr {
-                    "Fournir des cadres stables et des procédures claires".into()
-                } else {
-                    "Provide stable frameworks and clear procedures".into()
-                });
-            }
+    if let (Some(m1), Some(m2)) = (a.top_motivation(), b.top_motivation()) {
+        if m1.r#type == peoplemodeler_core::models::MotivationType::Power
+            || m2.r#type == peoplemodeler_core::models::MotivationType::Power
+        {
+            str.push(if lang == Lang::Fr {
+                "Donner des espaces d'initiative à la personne motivée par le pouvoir".into()
+            } else {
+                "Give the power-driven person opportunities to take initiative".into()
+            });
         }
-        _ => {}
+        if m1.r#type == peoplemodeler_core::models::MotivationType::Recognition
+            || m2.r#type == peoplemodeler_core::models::MotivationType::Recognition
+        {
+            str.push(if lang == Lang::Fr {
+                "Reconnaître publiquement les contributions de chacun".into()
+            } else {
+                "Publicly acknowledge each person's contributions".into()
+            });
+        }
+        if m1.r#type == peoplemodeler_core::models::MotivationType::Security
+            || m2.r#type == peoplemodeler_core::models::MotivationType::Security
+        {
+            str.push(if lang == Lang::Fr {
+                "Fournir des cadres stables et des procédures claires".into()
+            } else {
+                "Provide stable frameworks and clear procedures".into()
+            });
+        }
     }
 
     // Conscientiousness-based strategy
-    if oa.conscientiousness.map_or(false, |v| v >= 7) || ob.conscientiousness.map_or(false, |v| v >= 7) {
+    if oa.conscientiousness.is_some_and(|v| v >= 7) || ob.conscientiousness.is_some_and(|v| v >= 7) {
         str.push(if lang == Lang::Fr {
             "Présenter les informations de manière structurée avec des données tangibles".into()
         } else {
@@ -628,14 +618,14 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Conflict resolution
-    if oa.agreeableness.map_or(false, |v| v >= 7) && ob.agreeableness.map_or(false, |v| v >= 7) {
+    if oa.agreeableness.is_some_and(|v| v >= 7) && ob.agreeableness.is_some_and(|v| v >= 7) {
         str.push(if lang == Lang::Fr {
             "En cas de conflit, privilégier la médiation — les deux parties chercheront l'harmonie"
                 .into()
         } else {
             "In conflict, prioritize mediation — both parties will seek harmony".into()
         });
-    } else if oa.agreeableness.map_or(false, |v| v <= 4) && ob.agreeableness.map_or(false, |v| v <= 4) {
+    } else if oa.agreeableness.is_some_and(|v| v <= 4) && ob.agreeableness.is_some_and(|v| v <= 4) {
         str.push(if lang == Lang::Fr {
             "En cas de désaccord, aller droit au fait — les deux préfèrent la franchise".into()
         } else {
@@ -644,58 +634,49 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // --- OCEAN-gap strategies ---
-    if let (Some(ea), Some(eb)) = (oa.extraversion, ob.extraversion) {
-        if ea.abs_diff(eb) >= 3 {
-            let (more, quieter) = if ea >= eb { (&na, &nb) } else { (&nb, &na) };
-            str.push(if lang == Lang::Fr {
-                format!("Rythme social très différent — {more} préfère plus d'échanges, {quieter} plus de calme")
-            } else {
-                format!("Very different social pace — {more} prefers more interaction, {quieter} more quiet time")
-            });
-        }
+    if let (Some(ea), Some(eb)) = (oa.extraversion, ob.extraversion) && ea.abs_diff(eb) >= 3 {
+        let (more, quieter) = if ea >= eb { (&na, &nb) } else { (&nb, &na) };
+        str.push(if lang == Lang::Fr {
+            format!("Rythme social très différent — {more} préfère plus d'échanges, {quieter} plus de calme")
+        } else {
+            format!("Very different social pace — {more} prefers more interaction, {quieter} more quiet time")
+        });
     }
-    if let (Some(aa), Some(ab)) = (oa.agreeableness, ob.agreeableness) {
-        if aa.abs_diff(ab) >= 3 {
-            str.push(if lang == Lang::Fr {
-                "Styles de conflit différents — l'un cherche l'harmonie, l'autre la franchise".into()
-            } else {
-                "Different conflict styles — one seeks harmony, the other directness".into()
-            });
-        }
+    if let (Some(aa), Some(ab)) = (oa.agreeableness, ob.agreeableness) && aa.abs_diff(ab) >= 3 {
+        str.push(if lang == Lang::Fr {
+            "Styles de conflit différents — l'un cherche l'harmonie, l'autre la franchise".into()
+        } else {
+            "Different conflict styles — one seeks harmony, the other directness".into()
+        });
     }
-    if let (Some(ca), Some(cb)) = (oa.conscientiousness, ob.conscientiousness) {
-        if ca.abs_diff(cb) >= 3 {
-            str.push(if lang == Lang::Fr {
-                "Niveaux d'organisation différents — adapter le niveau de détail et de structure".into()
-            } else {
-                "Different organization levels — adjust detail and structure expectations".into()
-            });
-        }
+    if let (Some(ca), Some(cb)) = (oa.conscientiousness, ob.conscientiousness) && ca.abs_diff(cb) >= 3 {
+        str.push(if lang == Lang::Fr {
+            "Niveaux d'organisation différents — adapter le niveau de détail et de structure".into()
+        } else {
+            "Different organization levels — adjust detail and structure expectations".into()
+        });
     }
 
     // --- Trigger-pair clash strategies ---
-    match (
+    if let (Some(pa), Some(pb)) = (
         a.behavioral_patterns.iter().max_by_key(|p| p.intensity),
         b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
     ) {
-        (Some(pa), Some(pb)) => {
-            let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
-            let intensity_bonus = if pa.intensity.max(pb.intensity) >= 8 { " ⚠️" } else { "" };
-            if t_syn < -0.1 {
-                str.push(if lang == Lang::Fr {
-                    format!("Risque de déclenchement mutuel{} — leurs réactions au stress s'amplifient", intensity_bonus)
-                } else {
-                    format!("Risk of mutual triggering{} — their stress responses amplify each other", intensity_bonus)
-                });
-            } else if t_syn > 0.1 {
-                str.push(if lang == Lang::Fr {
-                    "Complémentarité comportementale — leurs réactions s'équilibrent naturellement".into()
-                } else {
-                    "Natural behavioral complementarity — their responses balance each other".into()
-                });
-            }
+        let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
+        let intensity_bonus = if pa.intensity.max(pb.intensity) >= 8 { " ⚠️" } else { "" };
+        if t_syn < -0.1 {
+            str.push(if lang == Lang::Fr {
+                format!("Risque de déclenchement mutuel{} — leurs réactions au stress s'amplifient", intensity_bonus)
+            } else {
+                format!("Risk of mutual triggering{} — their stress responses amplify each other", intensity_bonus)
+            });
+        } else if t_syn > 0.1 {
+            str.push(if lang == Lang::Fr {
+                "Complémentarité comportementale — leurs réactions s'équilibrent naturellement".into()
+            } else {
+                "Natural behavioral complementarity — their responses balance each other".into()
+            });
         }
-        _ => {}
     }
 
     if syn.is_empty() {

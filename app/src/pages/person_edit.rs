@@ -254,10 +254,10 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     }
                 }
 
-                MotEditPanel { motivations: motivations.clone(), lang: cl }
-                BiasEditPanel { biases: biases.clone(), lang: cl }
-                RepEditPanel { rep_scores: rep_scores.clone(), lang: cl }
-                PatternEditPanel { patterns: patterns.clone(), lang: lang() }
+                MotEditPanel { motivations, lang: cl }
+                BiasEditPanel { biases, lang: cl }
+                RepEditPanel { rep_scores, lang: cl }
+                PatternEditPanel { patterns, lang: lang() }
 
                 div { class: "form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }

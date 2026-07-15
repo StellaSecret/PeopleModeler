@@ -33,12 +33,11 @@ impl Theme {
         {
             if let Ok(t) = std::fs::read_to_string(
                 std::env::current_dir()
-                    .map_or_else(|_| ".".into(), |p| p)
+                    .unwrap_or_else(|_| ".".into())
                     .join(".pm_theme"),
-            ) {
-                if t.trim() == "light" {
-                    return Theme::Light;
-                }
+            ) && t.trim() == "light"
+            {
+                return Theme::Light;
             }
             Theme::Dark
         }
@@ -80,7 +79,7 @@ impl Theme {
         {
             let _ = std::fs::write(
                 std::env::current_dir()
-                    .map_or_else(|_| ".".into(), |p| p)
+                    .unwrap_or_else(|_| ".".into())
                     .join(".pm_theme"),
                 s,
             );

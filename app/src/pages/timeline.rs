@@ -8,7 +8,7 @@ use crate::pages::predictions::format_date;
 #[component]
 pub fn Timeline() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let persons = use_signal(|| db::all_persons());
+    let persons = use_signal(db::all_persons);
     let title = crate::i18n::tr("tl_title", lang());
     let empty = crate::i18n::tr("tl_empty", lang());
 
@@ -23,7 +23,7 @@ pub fn Timeline() -> Element {
                 .map(move |e| (pid.clone(), name.clone(), emoji.clone(), e))
         })
         .collect();
-    entries.sort_by(|a, b| b.3.timestamp.cmp(&a.3.timestamp));
+    entries.sort_by_key(|b| std::cmp::Reverse(b.3.timestamp));
 
     if entries.is_empty() {
         return rsx! {

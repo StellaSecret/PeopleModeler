@@ -134,7 +134,7 @@ impl RepDim {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct RepScores {
     #[serde(default)]
     pub hardworker_lazy: Option<u8>,
@@ -170,21 +170,6 @@ impl RepScores {
             RepDim::CalmReactive => self.calm_reactive,
             RepDim::DiplomaticBlunt => self.diplomatic_blunt,
             RepDim::GenerousSelfish => self.generous_selfish,
-        }
-    }
-}
-
-impl Default for RepScores {
-    fn default() -> Self {
-        Self {
-            hardworker_lazy: None,
-            authoritative_submissive: None,
-            honest_deceitful: None,
-            reliable_flaky: None,
-            humble_arrogant: None,
-            calm_reactive: None,
-            diplomatic_blunt: None,
-            generous_selfish: None,
         }
     }
 }
@@ -479,7 +464,7 @@ pub struct InteractionEntry {
     pub text: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct OceanScores {
     #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
     pub openness: Option<u8>,
@@ -491,18 +476,6 @@ pub struct OceanScores {
     pub agreeableness: Option<u8>,
     #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
     pub neuroticism: Option<u8>,
-}
-
-impl Default for OceanScores {
-    fn default() -> Self {
-        Self {
-            openness: None,
-            conscientiousness: None,
-            extraversion: None,
-            agreeableness: None,
-            neuroticism: None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

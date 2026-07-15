@@ -103,30 +103,30 @@ fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: L
             else { "" }
         })
         .unwrap_or("");
-    format!("When {}{} is{}:\n\n{}", p.name, role_info, format!("{}{}", tl.to_lowercase(), intensity_tag), base)
+    format!("When {}{} is{}{}:\n\n{}", p.name, role_info, tl.to_lowercase(), intensity_tag, base)
 }
 
 fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.neuroticism.map_or(false, |v| v >= 7) {
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_stress_high_n", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v >= 7) {
+    if p.ocean.extraversion.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_stress_high_e", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v <= 4) {
+    if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_stress_low_e", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v >= 7) {
+    if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_stress_high_c", lang).into());
     }
-    if p.ocean.agreeableness.map_or(false, |v| v <= 4) {
+    if p.ocean.agreeableness.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_stress_low_a", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v <= 4) {
+    if p.ocean.conscientiousness.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_stress_low_c", lang).into());
     }
-    if p.ocean.openness.map_or(false, |v| v >= 7) {
+    if p.ocean.openness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_stress_high_o", lang).into());
     }
     if let Some(m) = p.top_motivation() {
@@ -148,22 +148,22 @@ fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn conflict_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.agreeableness.map_or(false, |v| v <= 4) {
+    if p.ocean.agreeableness.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_conflict_low_a", lang).into());
     }
-    if p.ocean.agreeableness.map_or(false, |v| v >= 7) {
+    if p.ocean.agreeableness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_conflict_high_a", lang).into());
     }
-    if p.ocean.neuroticism.map_or(false, |v| v >= 7) {
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_conflict_high_n", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v >= 7) {
+    if p.ocean.extraversion.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_conflict_high_e", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v >= 7) {
+    if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_conflict_high_c", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v <= 4) {
+    if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_conflict_low_e", lang).into());
     }
     if s.is_empty() {
@@ -174,16 +174,16 @@ fn conflict_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn success_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.openness.map_or(false, |v| v >= 7) {
+    if p.ocean.openness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_success_high_o", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v >= 7) {
+    if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_success_high_c", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v <= 4) {
+    if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_success_low_e", lang).into());
     }
-    if p.ocean.agreeableness.map_or(false, |v| v >= 7) {
+    if p.ocean.agreeableness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_success_high_a", lang).into());
     }
     if let Some(m) = p.top_motivation() {
@@ -202,22 +202,22 @@ fn success_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn uncertainty_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.neuroticism.map_or(false, |v| v >= 7) {
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_uncertainty_high_n", lang).into());
     }
-    if p.ocean.neuroticism.map_or(false, |v| v <= 3) {
+    if p.ocean.neuroticism.is_some_and(|v| v <= 3) {
         s.push(crate::i18n::tr("strategy_uncertainty_low_n", lang).into());
     }
-    if p.ocean.openness.map_or(false, |v| v >= 7) {
+    if p.ocean.openness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_uncertainty_high_o", lang).into());
     }
-    if p.ocean.openness.map_or(false, |v| v <= 4) {
+    if p.ocean.openness.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_uncertainty_low_o", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v >= 7) {
+    if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_uncertainty_high_c", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v >= 7) {
+    if p.ocean.extraversion.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_uncertainty_high_e", lang).into());
     }
     if s.is_empty() {
@@ -228,19 +228,19 @@ fn uncertainty_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn recognition_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if let Some(m) = p.top_motivation() {
-        if m.r#type == peoplemodeler_core::models::MotivationType::Recognition {
-            match m.intensity {
-                8.. => s.push(crate::i18n::tr("strategy_recognition_high", lang).into()),
-                5.. => s.push(crate::i18n::tr("strategy_recognition_mid", lang).into()),
-                _ => s.push(crate::i18n::tr("strategy_recognition_low", lang).into()),
-            }
+    if let Some(m) = p.top_motivation()
+        && m.r#type == peoplemodeler_core::models::MotivationType::Recognition
+    {
+        match m.intensity {
+            8.. => s.push(crate::i18n::tr("strategy_recognition_high", lang).into()),
+            5.. => s.push(crate::i18n::tr("strategy_recognition_mid", lang).into()),
+            _ => s.push(crate::i18n::tr("strategy_recognition_low", lang).into()),
         }
     }
-    if p.ocean.extraversion.map_or(false, |v| v >= 7) {
+    if p.ocean.extraversion.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_recognition_high_e", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v <= 4) {
+    if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_recognition_low_e", lang).into());
     }
     if s.is_empty() {
@@ -251,19 +251,20 @@ fn recognition_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn threatened_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.agreeableness.map_or(false, |v| v <= 4) {
+    if p.ocean.agreeableness.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_threat_low_a", lang).into());
     }
-    if p.ocean.agreeableness.map_or(false, |v| v >= 7) {
+    if p.ocean.agreeableness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_threat_high_a", lang).into());
     }
-    if p.ocean.neuroticism.map_or(false, |v| v >= 7) {
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_threat_high_n", lang).into());
     }
-    if let Some(m) = p.top_motivation() {
-        if m.r#type == peoplemodeler_core::models::MotivationType::Power && m.intensity >= 7 {
-            s.push(crate::i18n::tr("strategy_threat_power", lang).into());
-        }
+    if let Some(m) = p.top_motivation()
+        && m.r#type == peoplemodeler_core::models::MotivationType::Power
+        && m.intensity >= 7
+    {
+        s.push(crate::i18n::tr("strategy_threat_power", lang).into());
     }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_threat_fallback", lang).into());
@@ -273,19 +274,19 @@ fn threatened_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn change_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.neuroticism.map_or(false, |v| v >= 7) {
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_change_high_n", lang).into());
     }
-    if p.ocean.neuroticism.map_or(false, |v| v <= 3) {
+    if p.ocean.neuroticism.is_some_and(|v| v <= 3) {
         s.push(crate::i18n::tr("strategy_change_low_n", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v >= 7) {
+    if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_change_high_c", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v <= 4) {
+    if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_change_low_e", lang).into());
     }
-    if p.ocean.openness.map_or(false, |v| v >= 7) {
+    if p.ocean.openness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_change_high_o", lang).into());
     }
     if s.is_empty() {
@@ -296,19 +297,19 @@ fn change_strategy(p: &Person, lang: Lang) -> Vec<String> {
 
 fn feedback_strategy(p: &Person, lang: Lang) -> Vec<String> {
     let mut s = Vec::new();
-    if p.ocean.neuroticism.map_or(false, |v| v >= 7) {
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_feedback_high_n", lang).into());
     }
-    if p.ocean.neuroticism.map_or(false, |v| v <= 3) {
+    if p.ocean.neuroticism.is_some_and(|v| v <= 3) {
         s.push(crate::i18n::tr("strategy_feedback_low_n", lang).into());
     }
-    if p.ocean.agreeableness.map_or(false, |v| v <= 4) {
+    if p.ocean.agreeableness.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_feedback_low_a", lang).into());
     }
-    if p.ocean.extraversion.map_or(false, |v| v <= 4) {
+    if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_feedback_low_e", lang).into());
     }
-    if p.ocean.conscientiousness.map_or(false, |v| v >= 7) {
+    if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_feedback_high_c", lang).into());
     }
     if s.is_empty() {

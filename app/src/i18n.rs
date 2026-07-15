@@ -28,10 +28,8 @@ impl Lang {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            if let Ok(l) = std::env::var("LANG") {
-                if l.starts_with("en") {
-                    return Lang::En;
-                }
+            if let Ok(l) = std::env::var("LANG") && l.starts_with("en") {
+                return Lang::En;
             }
             Lang::Fr
         }
@@ -55,7 +53,7 @@ impl Lang {
         {
             let _ = std::fs::write(
                 std::env::current_dir()
-                    .map_or_else(|_| ".".into(), |p| p)
+                    .unwrap_or_else(|_| ".".into())
                     .join(".pm_lang"),
                 s,
             );

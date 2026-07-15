@@ -8,7 +8,7 @@ use crate::i18n::Lang;
 #[component]
 pub fn Predictions() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let mut preds = use_signal(|| db::all_predictions());
+    let mut preds = use_signal(db::all_predictions);
     let title = crate::i18n::tr("pred_all_title", lang());
     rsx! {
         div { class: "page",
@@ -115,7 +115,7 @@ pub fn PredictionList(
     rsx! {
         div { class: "prediction-list",
             for pred in filtered {
-                PredictionCard { prediction: pred, onresolve: onresolve.clone(), ondelete: ondelete.clone() }
+                PredictionCard { prediction: pred, onresolve, ondelete }
             }
         }
     }

@@ -17,11 +17,11 @@ enum SortBy {
 #[component]
 pub fn PeopleList() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let mut persons = use_signal(|| db::all_persons());
+    let mut persons = use_signal(db::all_persons);
     let mut search = use_signal(String::new);
     let mut sort = use_signal(|| SortBy::Recent);
     let tag_filter = use_context::<Signal<Option<String>>>();
-    let mut tag_filter_w = tag_filter.clone();
+    let mut tag_filter_w = tag_filter;
     let tag_clear = crate::i18n::tr("tag_clear", lang());
     let filter_label = use_memo(move || {
         tag_filter().as_ref().map_or(String::new(), |tag| {
@@ -47,8 +47,8 @@ pub fn PeopleList() -> Element {
             });
         }
         match sort() {
-            SortBy::Name => items.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
-            SortBy::Recent => items.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+            SortBy::Name => items.sort_by_key(|a| a.name.to_lowercase()),
+            SortBy::Recent => items.sort_by_key(|x| std::cmp::Reverse(x.created_at)),
             SortBy::Ocean => items.sort_by(|a, b| {
                 let avg = |p: &Person| -> f64 {
                     let vals: Vec<u8> = [p.ocean.openness, p.ocean.conscientiousness, p.ocean.extraversion, p.ocean.agreeableness, p.ocean.neuroticism]
@@ -188,7 +188,7 @@ pub fn PeopleList() -> Element {
                                 is_selected: checked,
                                 on_toggle: {
                                     let pid = pid.clone();
-                                    let mut sel = selected_ids.clone();
+                                    let mut sel = selected_ids;
                                     move |_| {
                                         let mut s = sel.write();
                                         if s.contains(&pid) { s.remove(&pid); } else { s.insert(pid.clone()); }
@@ -256,7 +256,7 @@ fn PersonCard(person: Person, is_selected: bool, on_toggle: EventHandler<()>) ->
                                 class: "tag tag-clickable",
                                 onclick: {
                                     let t = tag.name.clone();
-                                    let mut tf = tag_filter.clone();
+                                    let mut tf = tag_filter;
                                     move |_| tf.set(Some(t.clone()))
                                 },
                                 "{tag}"

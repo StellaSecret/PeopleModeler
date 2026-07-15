@@ -8,8 +8,8 @@ use crate::Route;
 #[component]
 pub fn Relationships() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let mut rels = use_signal(|| db::all_relationships());
-    let persons = use_signal(|| db::all_persons());
+    let mut rels = use_signal(db::all_relationships);
+    let persons = use_signal(db::all_persons);
 
     let title = crate::i18n::tr("rel_title", lang());
     let add_label = crate::i18n::tr("rel_add", lang());
@@ -22,7 +22,7 @@ pub fn Relationships() -> Element {
     let mut adding = use_signal(|| false);
     let mut r#type = use_signal(|| RelationType::WorksWith);
     let mut notes = use_signal(String::new);
-    let mut checked = use_signal(|| std::collections::HashSet::<String>::new());
+    let mut checked = use_signal(std::collections::HashSet::<String>::new);
     let mut source_id = use_signal(String::new);
 
     let persons_list = persons();

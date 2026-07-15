@@ -126,48 +126,47 @@ fn ocean_danger_penalty(oa: &crate::models::OceanScores, ob: &crate::models::Oce
     let mut p = 0.0;
 
     // Within-person: volatile (N >= 7 and A <= 4)
-    if oa.neuroticism.map_or(false, |n| n >= 7) && oa.agreeableness.map_or(false, |a| a <= 4) {
+    if oa.neuroticism.is_some_and(|n| n >= 7) && oa.agreeableness.is_some_and(|a| a <= 4) {
         p += 0.10;
     }
-    if ob.neuroticism.map_or(false, |n| n >= 7) && ob.agreeableness.map_or(false, |a| a <= 4) {
+    if ob.neuroticism.is_some_and(|n| n >= 7) && ob.agreeableness.is_some_and(|a| a <= 4) {
         p += 0.10;
     }
 
     // Within-person: impulsive (N >= 7 and C <= 4)
-    if oa.neuroticism.map_or(false, |n| n >= 7) && oa.conscientiousness.map_or(false, |c| c <= 4) {
+    if oa.neuroticism.is_some_and(|n| n >= 7) && oa.conscientiousness.is_some_and(|c| c <= 4) {
         p += 0.05;
     }
-    if ob.neuroticism.map_or(false, |n| n >= 7) && ob.conscientiousness.map_or(false, |c| c <= 4) {
+    if ob.neuroticism.is_some_and(|n| n >= 7) && ob.conscientiousness.is_some_and(|c| c <= 4) {
         p += 0.05;
     }
 
     // Within-person: rigid anxious (N >= 7 and O <= 4)
-    if oa.neuroticism.map_or(false, |n| n >= 7) && oa.openness.map_or(false, |o| o <= 4) {
+    if oa.neuroticism.is_some_and(|n| n >= 7) && oa.openness.is_some_and(|o| o <= 4) {
         p += 0.05;
     }
-    if ob.neuroticism.map_or(false, |n| n >= 7) && ob.openness.map_or(false, |o| o <= 4) {
+    if ob.neuroticism.is_some_and(|n| n >= 7) && ob.openness.is_some_and(|o| o <= 4) {
         p += 0.05;
     }
 
     // Cross-person: emotional contagion (both N >= 7)
-    if oa.neuroticism.map_or(false, |n| n >= 7) && ob.neuroticism.map_or(false, |n| n >= 7) {
+    if oa.neuroticism.is_some_and(|n| n >= 7) && ob.neuroticism.is_some_and(|n| n >= 7) {
         p += 0.10;
     }
 
     // Cross-person: antagonism (both A <= 4)
-    if oa.agreeableness.map_or(false, |a| a <= 4) && ob.agreeableness.map_or(false, |a| a <= 4) {
+    if oa.agreeableness.is_some_and(|a| a <= 4) && ob.agreeableness.is_some_and(|a| a <= 4) {
         p += 0.15;
     }
 
     // Cross-person: mutual unreliability (both C <= 4)
-    if oa.conscientiousness.map_or(false, |c| c <= 4)
-        && ob.conscientiousness.map_or(false, |c| c <= 4)
+    if oa.conscientiousness.is_some_and(|c| c <= 4) && ob.conscientiousness.is_some_and(|c| c <= 4)
     {
         p += 0.10;
     }
 
     // Cross-person: mutual rigidity (both O <= 4)
-    if oa.openness.map_or(false, |o| o <= 4) && ob.openness.map_or(false, |o| o <= 4) {
+    if oa.openness.is_some_and(|o| o <= 4) && ob.openness.is_some_and(|o| o <= 4) {
         p += 0.05;
     }
 
@@ -181,10 +180,10 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::AuthoritativeSubmissive),
         rep_b.score(RepDim::AuthoritativeSubmissive),
-    ) {
-        if aa >= 8 && ab >= 8 {
-            p += 0.10;
-        }
+    ) && aa >= 8
+        && ab >= 8
+    {
+        p += 0.10;
     }
 
     // Both blunt >= 8 → brutal honesty, no diplomacy
@@ -192,10 +191,10 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::DiplomaticBlunt),
         rep_b.score(RepDim::DiplomaticBlunt),
-    ) {
-        if aa <= 3 && ab <= 3 {
-            p += 0.10;
-        }
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.10;
     }
 
     // Both reactive >= 8 → mutual escalation
@@ -203,10 +202,10 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::CalmReactive),
         rep_b.score(RepDim::CalmReactive),
-    ) {
-        if aa <= 3 && ab <= 3 {
-            p += 0.10;
-        }
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.10;
     }
 
     // Both arrogant >= 8 → neither concedes
@@ -214,20 +213,20 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::HumbleArrogant),
         rep_b.score(RepDim::HumbleArrogant),
-    ) {
-        if aa <= 3 && ab <= 3 {
-            p += 0.10;
-        }
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.10;
     }
 
     // Both lazy <= 3 → mutual passivity
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::HardworkerLazy),
         rep_b.score(RepDim::HardworkerLazy),
-    ) {
-        if aa <= 3 && ab <= 3 {
-            p += 0.05;
-        }
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.05;
     }
 
     p
@@ -300,7 +299,7 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
     let mut total_active_w = 0.0;
     for &(dim, weight) in &DIM_WEIGHTS {
         if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {
-            let dist = if va >= vb { va - vb } else { vb - va };
+            let dist = va.abs_diff(vb);
             rep_sum += (1.0 - dist as f64 / 10.0) * weight;
             total_active_w += weight;
         }
@@ -566,18 +565,18 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
         .neuroticism
         .map_or(0.5, |v| (10.0 - v as f64) / 10.0);
     let mut ocean_penalty = 0.0;
-    if person.ocean.neuroticism.map_or(false, |n| n >= 7)
-        && person.ocean.agreeableness.map_or(false, |a| a <= 4)
+    if person.ocean.neuroticism.is_some_and(|n| n >= 7)
+        && person.ocean.agreeableness.is_some_and(|a| a <= 4)
     {
         ocean_penalty += 0.10;
     }
-    if person.ocean.neuroticism.map_or(false, |n| n >= 7)
-        && person.ocean.conscientiousness.map_or(false, |c| c <= 4)
+    if person.ocean.neuroticism.is_some_and(|n| n >= 7)
+        && person.ocean.conscientiousness.is_some_and(|c| c <= 4)
     {
         ocean_penalty += 0.05;
     }
-    if person.ocean.neuroticism.map_or(false, |n| n >= 7)
-        && person.ocean.openness.map_or(false, |o| o <= 4)
+    if person.ocean.neuroticism.is_some_and(|n| n >= 7)
+        && person.ocean.openness.is_some_and(|o| o <= 4)
     {
         ocean_penalty += 0.05;
     }
@@ -1845,7 +1844,7 @@ mod tests {
         );
         // The total should reflect category-level penalties (embedded in ocean/rep)
         // but not an extra subtraction. Exact value depends on weights — just verify it runs.
-        assert!(brk.total >= 0, "total should be >= 0: {}", brk.total);
+        let _ = brk.total;
     }
 
     // --- Asymmetric score property tests ---
@@ -2139,7 +2138,7 @@ mod tests {
         let pf = compute_person_profile(&p);
         let idx = band_for(pf.total);
         assert!(
-            idx >= 1 && idx <= 3,
+            (1..=3).contains(&idx),
             "baseline band should be moderate-ish, got {} ({})",
             idx,
             band_keys[idx]
@@ -2301,7 +2300,7 @@ mod tests {
                 let val = motivation_synergy(a, b);
                 // Every pair should have a defined value (not defaulting to 0.0)
                 assert!(
-                    val >= -0.4 && val <= 0.4,
+                    (-0.4..=0.4).contains(&val),
                     "undefined synergy {:?} x {:?} = {}",
                     a,
                     b,
@@ -2446,7 +2445,7 @@ mod tests {
         // w_cc = 64/100=0.64, score+0.5=0.8; w_cf = 48/100=0.48, score-0.3+0.5=0.2 etc.
         // Detailed math: let's just verify it's sensible
         assert!(
-            result >= 0.4 && result <= 0.9,
+            (0.4..=0.9).contains(&result),
             "mixed pattern synergy: {}",
             result
         );

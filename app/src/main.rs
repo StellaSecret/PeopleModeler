@@ -95,8 +95,8 @@ fn App() -> Element {
         init_pwa();
     }
 
-    let lang = use_signal(|| Lang::detect());
-    let theme = use_signal(|| Theme::detect());
+    let lang = use_signal(Lang::detect);
+    let theme = use_signal(Theme::detect);
     let tag_filter: Signal<Option<String>> = use_signal(|| None);
     use_context_provider(|| lang);
     use_context_provider(|| theme);
@@ -218,7 +218,7 @@ fn NavLayout() -> Element {
                 div { class: "toggle-group",
                     if can_undo {
                         button { class: "undo-btn", aria_label: "Undo (Ctrl+Z)", onclick: move |_| {
-                            let mut t = toast.clone();
+                            let mut t = toast;
                             if crate::undo::undo() {
                                 t.set(Some("↩ Undo".into()));
                             }
@@ -249,7 +249,7 @@ fn NavLayout() -> Element {
 fn auto_clear_toast(toast: Signal<Option<String>>) {
     use_effect(move || {
         if toast().is_some() {
-            let mut t = toast.clone();
+            let mut t = toast;
             spawn(async move {
                 sleep_ms(2000).await;
                 t.set(None);

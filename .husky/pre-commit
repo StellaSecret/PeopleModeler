@@ -46,7 +46,12 @@ if [ -n "$RUST_STAGED" ]; then
         echo "   → Auto-format appliqué. Re-stagez les fichiers."
         exit 1
       fi
-      # cargo clippy --all-targets -- -D warnings 2>/dev/null || true
+      cargo clippy --all-targets -- -D warnings
+      CLIPPY_EXIT=$?
+      if [ $CLIPPY_EXIT -ne 0 ]; then
+        echo "❌ cargo clippy a échoué. Corrigez les erreurs ci-dessus."
+        exit $CLIPPY_EXIT
+      fi
     fi
   else
     echo "ℹ️  rustup non trouvé — vérification Rust ignorée"

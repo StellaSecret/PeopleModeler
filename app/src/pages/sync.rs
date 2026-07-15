@@ -241,7 +241,7 @@ fn spawn_async<F: std::future::Future<Output = ()> + 'static>(f: F) {
 #[component]
 pub fn SyncPage() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let mut status = use_signal(|| String::new());
+    let mut status = use_signal(String::new);
     let mut token = use_signal(|| auth::get_token().unwrap_or_default());
     let paste_buf = use_signal(String::new);
     let mut passphrase = use_signal(String::new);
@@ -370,7 +370,7 @@ pub fn SyncPage() -> Element {
                             let pp = passphrase();
                             let ll = lang();
                             status.set(crate::i18n::tr("sync_backing_up", ll).into());
-                            let mut s = status.clone();
+                            let mut s = status;
                             spawn_async(async move {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_backup(&t, pp_ref).await {
@@ -386,7 +386,7 @@ pub fn SyncPage() -> Element {
                             let pp = passphrase();
                             let ll = lang();
                             status.set(crate::i18n::tr("sync_restoring", ll).into());
-                            let mut s = status.clone();
+                            let mut s = status;
                             spawn_async(async move {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_restore(&t, pp_ref).await {

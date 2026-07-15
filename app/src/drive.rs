@@ -184,6 +184,7 @@ pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<usiz
     restore_from_json(&text)
 }
 
+#[allow(dead_code)]
 fn mock_backup_json() -> &'static str {
     r#"{
   "version": 1,
