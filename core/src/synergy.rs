@@ -724,15 +724,19 @@ pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f6
     let mut total_w = 0.0;
     for a in pa {
         for b in pb {
+            let syn = trigger_synergy(a.trigger, b.trigger);
+            if syn == 0.0 {
+                continue;
+            }
             let w = (a.intensity as f64 * b.intensity as f64) / 100.0;
-            sum += trigger_synergy(a.trigger, b.trigger) * w;
+            sum += syn * w;
             total_w += w;
         }
     }
     if total_w == 0.0 {
         0.5
     } else {
-        (sum / total_w + 0.5).clamp(0.0, 1.0)
+        ((sum / total_w + 0.3) / 0.6).clamp(0.0, 1.0)
     }
 }
 
@@ -1245,7 +1249,7 @@ mod tests {
             intensity: 5,
         }];
         let result = pattern_synergy(&a, &b);
-        assert!((result - 0.8).abs() < 0.001);
+        assert!((result - 1.0).abs() < 0.001, "got {}", result);
     }
 
     // --- OCEAN danger penalty tests ---
@@ -2085,11 +2089,10 @@ mod tests {
         }];
         let pf = compute_person_profile(&p);
         // Single Conflict pattern → self-pair synergy = -0.3
-        // all_pair_weighted_avg adds 0.5, so result = 0.5 + (-0.3*1.0)/1.0 = 0.2
-        // But wait: w = 8*8/100 = 0.64, sum = -0.3*0.64 = -0.192
-        // result = (0.5 + (-0.192/0.64)).clamp = (0.5 + -0.3).clamp = 0.2
+        // w = 8*8/100 = 0.64, sum = -0.3*0.64 = -0.192
+        // avg_synergy = -0.3 → scaled = (-0.3 + 0.3) / 0.6 = 0.0
         assert!(
-            (pf.patterns - 0.2).abs() < 0.001,
+            (pf.patterns - 0.0).abs() < 0.001,
             "single conflict pattern: {}",
             pf.patterns
         );
