@@ -580,13 +580,14 @@ fn OceanChart(person: Person) -> Element {
 
 use peoplemodeler_core::models::Relationship;
 
-fn render_rel_item(rel: &Relationship, person_id: &str) -> Element {
+#[component]
+fn RelItem(rel: Relationship, person_id: String) -> Element {
     let other_id = if rel.source_id == person_id {
-        &rel.target_id
+        rel.target_id.clone()
     } else {
-        &rel.source_id
+        rel.source_id.clone()
     };
-    let other = db::person(other_id);
+    let other = db::person(&other_id);
     let dir = if rel.source_id == person_id {
         "→"
     } else {
@@ -595,7 +596,7 @@ fn render_rel_item(rel: &Relationship, person_id: &str) -> Element {
     rsx! {
         div { class: "relationship-item",
             if let Some(ref o) = other {
-                Link { to: Route::PersonDetail { id: other_id.to_string() }, "{o.avatar_emoji} {o.name}" }
+                Link { to: Route::PersonDetail { id: other_id }, "{o.avatar_emoji} {o.name}" }
             } else {
                 span { "{other_id}" }
             }
@@ -623,7 +624,7 @@ fn RelationshipSection(
                 p { "{rel_none}" }
             } else {
                 for rel in rels {
-                    {render_rel_item(&rel, &person_id)}
+                    RelItem { rel, person_id: person_id.clone() }
                 }
             }
             div { class: "section" }
