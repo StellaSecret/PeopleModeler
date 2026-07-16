@@ -3,7 +3,6 @@ use peoplemodeler_core::models::{BehaviorTrigger, Person};
 
 use peoplemodeler_core::synergy::{compute_synergy_score, synergy_bands};
 
-use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
 
@@ -17,6 +16,7 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
 #[component]
 pub fn ComparePersons(id1: String, id2: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
+    let nav = use_navigator();
     let p1 = use_signal(|| db::person(&id1));
     let p2 = use_signal(|| db::person(&id2));
     let cl = core_lang(lang());
@@ -78,7 +78,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
             rsx! {
                 div { class: "page",
-                    Link { to: Route::PersonDetail { id: id1.clone() }, class: "btn", "{back_btn}" }
+                    button { class: "btn", onclick: move |_| nav.go_back(), "{back_btn}" }
                     h2 { "{compare_title}" }
                     p { class: "compare-sub", "{compare_sub}" }
 
