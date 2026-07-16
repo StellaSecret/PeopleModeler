@@ -216,13 +216,13 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     div { class: "tab-bar", role: "tablist",
-                        button { role: "tab", aria_label: "{mot_title}", class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }
-                        button { role: "tab", aria_label: "{bias_title}", class: if tab() == Tab::Biases { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Biases), "🧠 {bias_title}" }
-                        button { role: "tab", aria_label: "{ocean_title}", class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
-                        button { role: "tab", aria_label: "{pred_title}", class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
-                        button { role: "tab", aria_label: "{insights_title}", class: if tab() == Tab::Insights { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Insights), "✨ {insights_title}" }
-                        button { role: "tab", aria_label: "Log", class: if tab() == Tab::Log { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Log), "{log_title}" }
-                        button { role: "tab", aria_label: "Relationships", class: if tab() == Tab::Relationships { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Relationships), "{rel_person_rel}" }
+                        button { role: "tab", aria_label: "{mot_title}", aria_selected: tab() == Tab::Motivations, class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }
+                        button { role: "tab", aria_label: "{bias_title}", aria_selected: tab() == Tab::Biases, class: if tab() == Tab::Biases { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Biases), "🧠 {bias_title}" }
+                        button { role: "tab", aria_label: "{ocean_title}", aria_selected: tab() == Tab::Ocean, class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
+                        button { role: "tab", aria_label: "{pred_title}", aria_selected: tab() == Tab::Predictions, class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
+                        button { role: "tab", aria_label: "{insights_title}", aria_selected: tab() == Tab::Insights, class: if tab() == Tab::Insights { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Insights), "✨ {insights_title}" }
+                        button { role: "tab", aria_label: "{log_title}", aria_selected: tab() == Tab::Log, class: if tab() == Tab::Log { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Log), "{log_title}" }
+                        button { role: "tab", aria_label: "{rel_title}", aria_selected: tab() == Tab::Relationships, class: if tab() == Tab::Relationships { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Relationships), "{rel_person_rel}" }
                     }
 
                     if tab() == Tab::Motivations {

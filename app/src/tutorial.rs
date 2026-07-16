@@ -150,13 +150,23 @@ pub fn TutorialModal(
         s.set(TutorialStatus::InProgress(prev));
     };
 
-    let skip = move |_| {
+    let mut skip = move |_| {
         mark_done();
         s.set(TutorialStatus::Done);
     };
 
     rsx! {
-        div { class: "tut-overlay",
+        div {
+            class: "tut-overlay",
+            role: "dialog",
+            aria_label: "{title}",
+            aria_modal: "true",
+            tabindex: 0,
+            onkeydown: move |e| {
+                if e.key() == Key::Escape {
+                    skip(());
+                }
+            },
             div { class: "tut-modal",
                 div { class: "tut-header",
                     span { class: "tut-step-indicator",
@@ -169,7 +179,7 @@ pub fn TutorialModal(
                     if step_idx > 0 {
                         button { class: "btn", onclick: go_back, "{back_text}" }
                     }
-                    button { class: "btn btn-ghost", onclick: skip, "{skip_text}" }
+                    button { class: "btn btn-ghost", onclick: move |_| { mark_done(); s.set(TutorialStatus::Done); }, "{skip_text}" }
                     if is_last {
                         button { class: "btn btn-primary", onclick: go_next, "{finish_text}" }
                     } else {

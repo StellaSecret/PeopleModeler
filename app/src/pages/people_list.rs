@@ -92,7 +92,10 @@ pub fn PeopleList() -> Element {
                                 rsx! {
                                     tr {
                                         key: "{pid}",
+                                        tabindex: "0",
+                                        role: "button",
                                         onclick: { let p = pid.clone(); move |_| { let _ = nav.push(Route::PersonDetail { id: p.clone() }); } },
+                                        onkeydown: { let p = pid.clone(); move |e| { if e.key() == Key::Enter { let _ = nav.push(Route::PersonDetail { id: p.clone() }); } } },
                                         td { class: "pt-name-cell",
                                             span { class: "pt-avatar", "{avatar}" }
                                             span { "{name}" }
