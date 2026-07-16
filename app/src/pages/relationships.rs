@@ -33,6 +33,7 @@ struct NodePos {
     tx: f64,
     anchor: String,
     label: String,
+    matched: bool,
 }
 
 struct ChordArc {
@@ -107,20 +108,43 @@ pub fn Relationships() -> Element {
             let all_rels = rels();
             let all_persons = persons();
 
-            let matched_persons: Vec<(String, String, String)> = all_persons
-                .into_iter()
+            let matched: Vec<(String, String, String)> = all_persons
+                .iter()
                 .filter(|p| q.is_empty() || p.name.to_lowercase().contains(&q))
-                .map(|p| (p.id, p.name, p.avatar_emoji))
+                .map(|p| (p.id.clone(), p.name.clone(), p.avatar_emoji.clone()))
                 .collect();
 
-            let person_ids: HashSet<&str> = matched_persons.iter().map(|(id, _, _)| id.as_str()).collect();
+            let matched_ids: HashSet<&str> = matched.iter().map(|(id, _, _)| id.as_str()).collect();
+
+            let visible_rels: Vec<_> = all_rels
+                .iter()
+                .filter(|rel| {
+                    if !active.contains(&rel.r#type) { return false; }
+                    q.is_empty()
+                        || matched_ids.contains(rel.source_id.as_str())
+                        || matched_ids.contains(rel.target_id.as_str())
+                })
+                .collect();
+
+            let mut visible_ids: HashSet<&str> = matched_ids.clone();
+            for rel in &visible_rels {
+                visible_ids.insert(rel.source_id.as_str());
+                visible_ids.insert(rel.target_id.as_str());
+            }
+            if q.is_empty() {
+                for p in &all_persons {
+                    visible_ids.insert(p.id.as_str());
+                }
+            }
+
+            let visible_persons: Vec<_> = all_persons
+                .iter()
+                .filter(|p| visible_ids.contains(p.id.as_str()))
+                .map(|p| (p.id.clone(), p.name.clone(), p.avatar_emoji.clone()))
+                .collect();
 
             let mut pair_map: HashMap<(&str, &str), Vec<RelationType>> = HashMap::new();
-            for rel in &all_rels {
-                if !active.contains(&rel.r#type) { continue; }
-                if !person_ids.contains(rel.source_id.as_str()) || !person_ids.contains(rel.target_id.as_str()) {
-                    continue;
-                }
+            for rel in &visible_rels {
                 let key = if rel.source_id < rel.target_id {
                     (rel.source_id.as_str(), rel.target_id.as_str())
                 } else {
@@ -132,11 +156,11 @@ pub fn Relationships() -> Element {
                 }
             }
 
-            let n = matched_persons.len() as f64;
-            let n_usize = matched_persons.len();
+            let n = visible_persons.len() as f64;
+            let n_usize = visible_persons.len();
 
             let mut nodes: Vec<NodePos> = Vec::new();
-            for (i, (id, name, emoji)) in matched_persons.iter().enumerate() {
+            for (i, (id, name, emoji)) in visible_persons.iter().enumerate() {
                 let angle = 2.0 * std::f64::consts::PI * i as f64 / n - std::f64::consts::PI / 2.0;
                 let x = CX + CHORD_R * angle.cos();
                 let y = CY + CHORD_R * angle.sin();
@@ -149,6 +173,7 @@ pub fn Relationships() -> Element {
                     id: id.clone(),
                     x, y, tx, anchor,
                     label: format!("{} {}", emoji, name),
+                    matched: matched_ids.contains(id.as_str()),
                 });
             }
 
@@ -180,9 +205,12 @@ pub fn Relationships() -> Element {
                     let cdx = CX - mx;
                     let cdy = CY - my;
                     let cd = (cdx * cdx + cdy * cdy).sqrt();
-                    let curvature = cd * 0.28;
-                    let cpx = mx + cdx / cd * curvature;
-                    let cpy = my + cdy / cd * curvature;
+                    let (cpx, cpy) = if cd < 1.0 {
+                        ((sx + ex) / 2.0, (sy + ey) / 2.0)
+                    } else {
+                        let curvature = cd * 0.28;
+                        (mx + cdx / cd * curvature, my + cdy / cd * curvature)
+                    };
                     let path_d = format!("M {:.1},{:.1} Q {:.1},{:.1} {:.1},{:.1}", sx, sy, cpx, cpy, ex, ey);
                     let color = type_color(rt);
                     chords.push(ChordArc {
@@ -192,10 +220,10 @@ pub fn Relationships() -> Element {
                 }
             }
 
-            if n_usize < 2 {
-                rsx! { p { "{none}" } }
-            } else {
-                rsx! {
+            rsx! {
+                if n_usize == 0 {
+                    p { "{none}" }
+                } else {
                     svg {
                         view_box: "0 0 800 800",
                         class: "chord-diagram",
@@ -212,7 +240,7 @@ pub fn Relationships() -> Element {
                         for pos in &nodes {
                             g {
                                 key: "{pos.id}",
-                                class: "chord-node",
+                                class: if pos.matched { "chord-node matched" } else { "chord-node" },
                                 onmousedown: {
                                     let pid = pos.id.clone();
                                     move |_| { let _ = nav.push(Route::PersonDetail { id: pid.clone() }); }
