@@ -62,8 +62,45 @@ test.describe('People Modeler Dioxus App', () => {
     await page.waitForURL(/\/person\//);
     await page.locator('.logo').click();
     await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
-    await expect(page.locator('.person-card')).toHaveCount(1);
-    await expect(page.locator('.person-card')).toContainText('Ada Lovelace');
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(1);
+    await expect(page.locator('.people-table tbody tr')).toContainText('Ada Lovelace');
+  });
+
+  test('ranking table shows correct column headers', async ({ page }) => {
+    await gotoNewPerson(page);
+    await page.locator('label:has-text("Name") + input').fill('Test Person');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await page.locator('.logo').click();
+    await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
+    const headers = page.locator('.people-table th');
+    await expect(headers).toHaveCount(7);
+    await expect(headers.nth(0)).toContainText('Name');
+    await expect(headers.nth(1)).toContainText('Profile Score');
+    await expect(headers.nth(2)).toContainText('OCEAN');
+    await expect(headers.nth(3)).toContainText('Reputation');
+    await expect(headers.nth(4)).toContainText('Motivation');
+    await expect(headers.nth(5)).toContainText('Patterns');
+    await expect(headers.nth(6)).toContainText('Bias');
+  });
+
+  test('people table search filters by name', async ({ page }) => {
+    await gotoNewPerson(page);
+    await page.locator('label:has-text("Name") + input').fill('Alice');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+
+    await gotoNewPerson(page);
+    await page.locator('label:has-text("Name") + input').fill('Bob');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+
+    await page.locator('.logo').click();
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(2);
+
+    await page.fill('.search-input', 'Ali');
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(1);
+    await expect(page.locator('.people-table tbody tr')).toContainText('Alice');
   });
 
   // ── Person detail sections ────────────────────────────

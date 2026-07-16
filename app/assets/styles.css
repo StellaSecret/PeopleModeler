@@ -761,3 +761,21 @@ fieldset.ocean-inputs legend{
 
 .btn-icon{background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;width:1.8rem;height:1.8rem;display:inline-flex;align-items:center;justify-content:center;font-size:0.8rem;color:var(--text-muted);transition:all 0.12s;padding:0;line-height:1}
 .btn-icon:hover{color:var(--text);border-color:var(--text-muted);background:var(--surface2)}
+
+/* ── PEOPLE TABLE ── */
+.people-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.people-table th{text-align:left;padding:0.6rem 0.5rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
+.people-table td{padding:0.45rem 0.5rem;border-bottom:1px solid var(--border);vertical-align:middle}
+.people-table tbody tr{cursor:pointer;transition:background 0.12s}
+.people-table tbody tr:hover{background:var(--surface2)}
+.pt-name-cell{display:flex;align-items:center;gap:0.5rem}
+.pt-avatar{font-size:1.25rem;width:2rem;text-align:center;flex-shrink:0}
+.pt-score{font-weight:700;font-family:var(--font-mono);text-align:center}
+.pt-score.ps-tension{color:#c62828}
+.pt-score.ps-friction{color:#ef6c00}
+.pt-score.ps-moderate{color:#b8860b}
+.pt-score.ps-good{color:#388e3c}
+.pt-score.ps-strong{color:#2e7d32}
+.pt-sub{font-family:var(--font-mono);text-align:center;color:var(--text-muted);font-size:0.8rem}
+.pt-col-score{text-align:center}
+.pt-col-sub{text-align:center}

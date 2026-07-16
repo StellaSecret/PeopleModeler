@@ -88,14 +88,6 @@ pub fn tr_danger_details(details: &str, lang: Lang) -> String {
         .join(", ")
 }
 
-pub fn tr_fmt(key: &'static str, lang: Lang, args: &[(&str, &str)]) -> String {
-    let mut s = tr(key, lang).to_string();
-    for (k, v) in args {
-        let pattern = format!("{{{}}}", k);
-        s = s.replace(&pattern, v);
-    }
-    s
-}
 
 fn en(key: &'static str) -> &'static str {
     match key {
@@ -111,6 +103,7 @@ fn en(key: &'static str) -> &'static str {
         // People list
         "search_placeholder" => "Search people...",
         "no_people_yet" => "No people yet. Tap + to add someone.",
+        "pl_name" => "Name",
         "no_people_insights" => "No persons yet. Add someone to see insights.",
         "toast_saved" => "Saved",
         "toast_deleted" => "Deleted",
@@ -550,6 +543,7 @@ fn fr(key: &'static str) -> &'static str {
 
         "search_placeholder" => "Rechercher...",
         "no_people_yet" => "Aucune personne. Appuyez sur + pour ajouter.",
+        "pl_name" => "Nom",
         "no_people_insights" => "Aucune personne encore. Ajoutez quelqu'un pour voir les analyses.",
         "toast_saved" => "Enregistré",
         "toast_deleted" => "Supprimé",

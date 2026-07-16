@@ -20,7 +20,7 @@ test.describe('Backup and Restore', () => {
     await page.evaluate(() => localStorage.clear());
     await page.goto('/PeopleModeler/');
     await page.waitForTimeout(300);
-    await expect(page.locator('.person-card')).toHaveCount(0);
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(0);
 
     await page.evaluate((items: Record<string, string>) => {
       for (const [key, value] of Object.entries(items)) {
@@ -30,7 +30,7 @@ test.describe('Backup and Restore', () => {
 
     await page.goto('/PeopleModeler/');
     await page.waitForTimeout(300);
-    await expect(page.locator('.person-card')).toHaveCount(1);
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(1);
     await expect(page.getByText('Persist Alice')).toBeVisible();
   });
 });
@@ -45,7 +45,7 @@ test.describe('Undo', () => {
     await page.click('button:has-text("Delete")');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('.person-card')).toHaveCount(0);
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(0);
 
     await page.click('button[aria-label*="Undo"]');
     await page.waitForTimeout(300);
@@ -53,7 +53,7 @@ test.describe('Undo', () => {
     // Undo restores person in DB but PeopleList signal is stale; reload to force fresh read
     await page.goto('/PeopleModeler/');
     await page.waitForTimeout(300);
-    await expect(page.locator('.person-card')).toHaveCount(1);
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(1);
     await expect(page.getByText('Undo Bob')).toBeVisible();
   });
 
@@ -63,7 +63,7 @@ test.describe('Undo', () => {
     await page.click('button:has-text("Delete")');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('.person-card')).toHaveCount(0);
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(0);
 
     // Dispatch keydown directly so WASM document listener receives correct properties
     await page.evaluate(() => {
@@ -79,7 +79,7 @@ test.describe('Undo', () => {
 
     await page.goto('/PeopleModeler/');
     await page.waitForTimeout(300);
-    await expect(page.locator('.person-card')).toHaveCount(1);
+    await expect(page.locator('.people-table tbody tr')).toHaveCount(1);
     await expect(page.getByText('Undo Charlie')).toBeVisible();
   });
 });

@@ -1,127 +1,26 @@
-use std::collections::HashSet;
-
 use dioxus::prelude::*;
-use peoplemodeler_core::models::Person;
+use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum SortBy {
-    Name,
-    Recent,
-    Ocean,
-}
-
 #[component]
 pub fn PeopleList() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let mut persons = use_signal(db::all_persons);
+    let nav = use_navigator();
+    let persons = use_signal(db::all_persons);
     let mut search = use_signal(String::new);
-    let mut sort = use_signal(|| SortBy::Recent);
-    let tag_filter = use_context::<Signal<Option<String>>>();
-    let mut tag_filter_w = tag_filter;
-    let tag_clear = crate::i18n::tr("tag_clear", lang());
-    let filter_label = use_memo(move || {
-        tag_filter().as_ref().map_or(String::new(), |tag| {
-            crate::i18n::tr_fmt("tag_filter", lang(), &[("tag", tag)])
-        })
-    });
-    let mut selected_ids = use_signal(HashSet::<String>::new);
-    let mut merge_target = use_signal(|| None::<String>);
-
-    let filtered = use_memo(move || {
-        let q = search().to_lowercase();
-        let mut items: Vec<Person> = persons();
-        if let Some(ref tag) = tag_filter() {
-            items.retain(|p| p.tags.iter().any(|t| t.name == *tag));
-        }
-        if !q.is_empty() {
-            items.retain(|p| {
-                p.name.to_lowercase().contains(&q)
-                    || p.role.to_lowercase().contains(&q)
-                    || p.context.to_lowercase().contains(&q)
-                    || p.notes.to_lowercase().contains(&q)
-                    || p.tags.iter().any(|t| t.name.to_lowercase().contains(&q))
-            });
-        }
-        match sort() {
-            SortBy::Name => items.sort_by_key(|a| a.name.to_lowercase()),
-            SortBy::Recent => items.sort_by_key(|x| std::cmp::Reverse(x.created_at)),
-            SortBy::Ocean => items.sort_by(|a, b| {
-                let avg = |p: &Person| -> f64 {
-                    let vals: Vec<u8> = [p.ocean.openness, p.ocean.conscientiousness, p.ocean.extraversion, p.ocean.agreeableness, p.ocean.neuroticism]
-                        .iter().filter_map(|&v| v).collect();
-                    let sum: u8 = vals.iter().sum();
-                    let count = vals.len().max(1);
-                    sum as f64 / count as f64
-                };
-                avg(b)
-                    .partial_cmp(&avg(a))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            }),
-        }
-        items
-    });
-
-    let has_items = !filtered().is_empty();
-    let sel_len = selected_ids.read().len();
-
-    let mut delete_selected = move || {
-        let ids: Vec<String> = selected_ids.read().iter().cloned().collect();
-        if ids.is_empty() {
-            return;
-        }
-        for pid in &ids {
-            db::delete_person(pid);
-        }
-        selected_ids.set(HashSet::new());
-        persons.set(db::all_persons());
-    };
-
-    let mut merge_selected = move || {
-        let ids: Vec<String> = selected_ids.read().iter().cloned().collect();
-        if ids.len() < 2 {
-            return;
-        }
-        let keeper_id = ids[0].clone();
-        let keeper = db::person(&keeper_id);
-        let Some(mut keeper) = keeper else { return };
-        for pid in ids.iter().skip(1) {
-            let Some(other) = db::person(pid) else {
-                continue;
-            };
-            for t in other.tags {
-                if !keeper.tags.contains(&t) {
-                    keeper.tags.push(t);
-                }
-            }
-            if !keeper.notes.is_empty() && !other.notes.is_empty() {
-                keeper.notes.push_str("\n---\n");
-            }
-            keeper.notes.push_str(&other.notes);
-            keeper.motivations.extend(other.motivations);
-            keeper.biases.extend(other.biases);
-            keeper.behavioral_patterns.extend(other.behavioral_patterns);
-            keeper.log.extend(other.log);
-            keeper.confidence = keeper.confidence.max(other.confidence);
-            db::delete_person(&other.id);
-        }
-        keeper.updated_at = chrono::Utc::now().timestamp_millis();
-        db::save_person(&keeper);
-        selected_ids.set(HashSet::new());
-        persons.set(db::all_persons());
-        merge_target.set(Some(keeper_id));
-    };
 
     let search_placeholder = crate::i18n::tr("search_placeholder", lang());
     let no_people = crate::i18n::tr("no_people_yet", lang());
-    let select_all_label = if sel_len == filtered().len() {
-        "Deselect all"
-    } else {
-        "Select all"
-    };
+    let name_hdr = crate::i18n::tr("pl_name", lang());
+    let ps_hdr = crate::i18n::tr("person_self_score", lang());
+    let ocean_hdr = crate::i18n::tr("compare_cat_ocean", lang());
+    let rep_hdr = crate::i18n::tr("compare_cat_reputation", lang());
+    let mot_hdr = crate::i18n::tr("compare_cat_motivation", lang());
+    let pat_hdr = crate::i18n::tr("compare_cat_patterns", lang());
+    let bias_hdr = crate::i18n::tr("compare_cat_bias", lang());
 
     rsx! {
         div { class: "page",
@@ -133,138 +32,77 @@ pub fn PeopleList() -> Element {
                     value: "{search}",
                     oninput: move |e| search.set(e.value()),
                 }
-                select {
-                    class: "sort-select",
-                    aria_label: "Sort by",
-                    value: "{sort():?}",
-                    onchange: move |e| {
-                        sort.set(match e.value().as_str() {
-                            "Name" => SortBy::Name,
-                            "Ocean" => SortBy::Ocean,
-                            _ => SortBy::Recent,
-                        });
-                    },
-                    option { value: "Recent", {crate::i18n::tr("sort_recent", lang())} }
-                    option { value: "Name", {crate::i18n::tr("sort_name", lang())} }
-                    option { value: "Ocean", {crate::i18n::tr("sort_ocean", lang())} }
-                }
             }
-            if let Some(ref _tag) = tag_filter() {
-                div { class: "tag-filter-banner",
-                    span { "{filter_label()}" }
-                    button { class: "btn btn-small", onclick: move |_| tag_filter_w.set(None), "{tag_clear}" }
-                }
-            }
-            if sel_len > 0 {
-                div { class: "bulk-bar",
-                    span { "{sel_len} selected" }
-                    button { class: "btn btn-small btn-danger", onclick: move |_| delete_selected(), "Delete" }
-                    button { class: "btn btn-small", onclick: move |_| merge_selected(), "Merge" }
-                    button { class: "btn btn-small", onclick: move |_| {
-                        if sel_len == filtered().len() {
-                            selected_ids.set(HashSet::new());
-                        } else {
-                            selected_ids.set(filtered().iter().map(|p| p.id.clone()).collect());
-                        }
-                    }, "{select_all_label}" }
-                }
-            }
-            if let Some(pid) = merge_target() {
-                div { class: "bulk-bar",
-                    span { "✅ Merged. " }
-                    Link { to: Route::PersonDetail { id: pid }, "View result →" }
-                    button { class: "btn btn-small", onclick: move |_| merge_target.set(None), "✕" }
-                }
-            }
-            if has_items {
-                div { class: "person-list",
-                    {filtered().into_iter().map(|person| {
-                        let pid = person.id.clone();
-                        let checked = selected_ids.read().contains(&pid);
-                        rsx! {
-                            PersonCard {
-                                key: "{pid}",
-                                person,
-                                is_selected: checked,
-                                on_toggle: {
-                                    let pid = pid.clone();
-                                    let mut sel = selected_ids;
-                                    move |_| {
-                                        let mut s = sel.write();
-                                        if s.contains(&pid) { s.remove(&pid); } else { s.insert(pid.clone()); }
-                                    }
-                                },
-                            }
-                        }
-                    })}
+            {
+            let q = search().to_lowercase();
+            let all = persons();
+
+            let mut rows: Vec<_> = all
+                .into_iter()
+                .filter(|p| q.is_empty() || p.name.to_lowercase().contains(&q))
+                .map(|p| {
+                    let profile = compute_person_profile(&p);
+                    (p, profile)
+                })
+                .collect();
+            rows.sort_by_key(|(_, b)| std::cmp::Reverse(b.total));
+
+            if rows.is_empty() {
+                rsx! {
+                    div { class: "empty-state",
+                        span { class: "empty-icon", "🧩" }
+                        p { "{no_people}" }
+                    }
                 }
             } else {
-                div { class: "empty-state",
-                    span { class: "empty-icon", "🧩" }
-                    p { "{no_people}" }
-                }
-            }
-            Link { to: Route::PersonNew {}, class: "fab", aria_label: "Add new person", "＋" }
-        }
-    }
-}
+                let bands = synergy_bands();
+                let band_cls = ["ps-tension", "ps-friction", "ps-moderate", "ps-good", "ps-strong"];
 
-#[component]
-fn PersonCard(person: Person, is_selected: bool, on_toggle: EventHandler<()>) -> Element {
-    let o = &person.ocean;
-    let tag_filter = use_context::<Signal<Option<String>>>();
-    rsx! {
-        div { class: "person-card-wrapper",
-            div { class: "person-card-check",
-                input {
-                    r#type: "checkbox",
-                    aria_label: "Select {person.name}",
-                    checked: is_selected,
-                    onchange: move |_| on_toggle.call(()),
-                }
-            }
-            Link {
-                to: Route::PersonDetail { id: person.id.clone() },
-                class: "person-card",
-                div { class: "card-header",
-                    span { class: "avatar", "{person.avatar_emoji}" }
-                    div { class: "card-info",
-                        strong { "{person.name}" }
-                        small { "{person.role}" }
-                    }
-                }
-                {
-                    let os = o.openness.map_or("-".to_string(), |v| v.to_string());
-                    let cs = o.conscientiousness.map_or("-".to_string(), |v| v.to_string());
-                    let es = o.extraversion.map_or("-".to_string(), |v| v.to_string());
-                    let a_s = o.agreeableness.map_or("-".to_string(), |v| v.to_string());
-                    let ns = o.neuroticism.map_or("-".to_string(), |v| v.to_string());
-                    rsx! {
-                        div { class: "ocean-mini",
-                            span { "O:{os}" }
-                            span { "C:{cs}" }
-                            span { "E:{es}" }
-                            span { "A:{a_s}" }
-                            span { "N:{ns}" }
+                rsx! {
+                    table { class: "people-table",
+                        thead {
+                            tr {
+                                th { "{name_hdr}" }
+                                th { class: "pt-col-score", "{ps_hdr}" }
+                                th { class: "pt-col-sub", "{ocean_hdr}" }
+                                th { class: "pt-col-sub", "{rep_hdr}" }
+                                th { class: "pt-col-sub", "{mot_hdr}" }
+                                th { class: "pt-col-sub", "{pat_hdr}" }
+                                th { class: "pt-col-sub", "{bias_hdr}" }
+                            }
                         }
-                    }
-                }
-                if !person.tags.is_empty() {
-                    div { class: "tags",
-                        for tag in &person.tags {
-                            span {
-                                class: "tag tag-clickable",
-                                onclick: {
-                                    let t = tag.name.clone();
-                                    let mut tf = tag_filter;
-                                    move |_| tf.set(Some(t.clone()))
-                                },
-                                "{tag}"
+                        tbody {
+                            for (person, profile) in &rows {
+                                {
+                                let pid = person.id.clone();
+                                let band_idx = bands.iter()
+                                    .position(|&(lo, hi)| profile.total >= lo && profile.total <= hi)
+                                    .unwrap_or(2);
+                                let score_cls = band_cls[band_idx];
+                                rsx! {
+                                    tr {
+                                        key: "{pid}",
+                                        onclick: { let p = pid.clone(); move |_| { let _ = nav.push(Route::PersonDetail { id: p.clone() }); } },
+                                        td { class: "pt-name-cell",
+                                            span { class: "pt-avatar", "{person.avatar_emoji}" }
+                                            span { "{person.name}" }
+                                        }
+                                        td { class: "pt-score {score_cls}", "{profile.total}" }
+                                        td { class: "pt-sub", "{(profile.ocean * 100.0).round() as u8}" }
+                                        td { class: "pt-sub", "{(profile.reputation * 100.0).round() as u8}" }
+                                        td { class: "pt-sub", "{(profile.motivation * 100.0).round() as u8}" }
+                                        td { class: "pt-sub", "{(profile.patterns * 100.0).round() as u8}" }
+                                        td { class: "pt-sub", "{(profile.bias * 100.0).round() as u8}" }
+                                    }
+                                }
+                                }
                             }
                         }
                     }
                 }
             }
+            }
+            Link { to: Route::PersonNew {}, class: "fab", aria_label: "Add new person", "＋" }
         }
     }
 }
