@@ -5,6 +5,7 @@ name = "PeopleModeler"
 title = "People Modeler"
 base_path = "/PeopleModeler"
 pre_compress = true
+wasm_opt = ["z"]
 
 [web.watcher]
 reload_html = true
