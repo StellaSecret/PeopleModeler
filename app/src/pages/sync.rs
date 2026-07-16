@@ -361,8 +361,6 @@ pub fn SyncPage() -> Element {
                         button { class: "btn", aria_label: "{backup_btn}", onclick: move |_| {
                             if db::all_persons().is_empty() {
                                 status.set(no_data_warn.into());
-                                #[cfg(target_arch = "wasm32")]
-                                web_sys::window().map(|w| w.alert_with_message(&no_data_warn).ok());
                                 return;
                             }
                             let t = token();
@@ -409,8 +407,6 @@ pub fn SyncPage() -> Element {
                     button { class: "btn btn-primary", aria_label: "{export_btn}", onclick: move |_| {
                         if db::all_persons().is_empty() {
                             status.set(no_data_warn.into());
-                            #[cfg(target_arch = "wasm32")]
-                            web_sys::window().map(|w| w.alert_with_message(&no_data_warn).ok());
                             return;
                         }
                         let json = drive::build_backup();

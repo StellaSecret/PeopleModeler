@@ -104,6 +104,7 @@ fn en(key: &'static str) -> &'static str {
         "no_people_insights" => "No persons yet. Add someone to see insights.",
         "toast_saved" => "Saved",
         "toast_deleted" => "Deleted",
+        "toast_error" => "Something went wrong",
 
         // Person detail
         "person_not_found" => "Person not found",
@@ -504,6 +505,7 @@ fn fr(key: &'static str) -> &'static str {
         "no_people_insights" => "Aucune personne encore. Ajoutez quelqu'un pour voir les analyses.",
         "toast_saved" => "Enregistré",
         "toast_deleted" => "Supprimé",
+        "toast_error" => "Une erreur est survenue",
         "person_not_found" => "Personne introuvable",
         "edit_btn" => "✏ Modifier",
         "delete_btn" => "🗑 Supprimer",
