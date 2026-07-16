@@ -68,6 +68,9 @@ pub fn PersonDetail(id: String) -> Element {
             let rel_title = crate::i18n::tr("rel_title", lang());
             let rel_notes = crate::i18n::tr("rel_notes", lang());
             let rel_confirm_delete = crate::i18n::tr("rel_confirm_delete", lang());
+            let rel_open_add = crate::i18n::tr("rel_open_add", lang());
+            let rel_close_add = crate::i18n::tr("rel_close_add", lang());
+            let rel_search_placeholder = crate::i18n::tr("rel_search_placeholder", lang());
             let common_add = crate::i18n::tr("common_add", lang());
             let common_save = crate::i18n::tr("common_save", lang());
             let common_cancel = crate::i18n::tr("common_cancel", lang());
@@ -455,7 +458,7 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Relationships {
-                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title, rel_notes, rel_confirm_delete, common_add, common_save, common_cancel, common_edit, common_delete }
+                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title, rel_notes, rel_confirm_delete, rel_open_add, rel_close_add, rel_search_placeholder, common_add, common_save, common_cancel, common_edit, common_delete }
                     }
 
                     Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "{common_edit}", "✏" }
@@ -640,6 +643,9 @@ fn RelationshipSection(
     rel_title: String,
     rel_notes: String,
     rel_confirm_delete: String,
+    rel_open_add: String,
+    rel_close_add: String,
+    rel_search_placeholder: String,
     common_add: String,
     common_save: String,
     common_cancel: String,
@@ -746,7 +752,7 @@ fn RelationshipSection(
                 button {
                     class: "btn",
                     onclick: move |_| adding.set(!adding()),
-                    if adding() { "− Cancel" } else { "＋ Add" }
+                    if adding() { "{rel_close_add}" } else { "{rel_open_add}" }
                 }
             }
 
@@ -764,7 +770,7 @@ fn RelationshipSection(
                     div { class: "rel-add-form",
                         input {
                             class: "rel-autocomplete-input",
-                            placeholder: "Search person…",
+                            placeholder: "{rel_search_placeholder}",
                             value: "{search_text}",
                             oninput: move |e| search_text.set(e.value()),
                         }

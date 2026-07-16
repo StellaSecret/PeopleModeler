@@ -51,6 +51,7 @@ pub fn Relationships() -> Element {
 
     let title = crate::i18n::tr("rel_title", lang());
     let none = crate::i18n::tr("rel_none", lang());
+    let rel_search_placeholder = crate::i18n::tr("rel_search_placeholder", lang());
 
     let mut search = use_signal(String::new);
     let mut active_types = use_signal(|| RelationType::ALL.to_vec());
@@ -64,7 +65,7 @@ pub fn Relationships() -> Element {
             div { class: "chord-controls",
                 input {
                     class: "chord-search",
-                    placeholder: "Search person…",
+                    placeholder: "{rel_search_placeholder}",
                     oninput: move |e| search.set(e.value()),
                 }
                 div { class: "type-chips",
