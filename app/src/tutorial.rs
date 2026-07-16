@@ -125,6 +125,7 @@ pub fn TutorialModal(
     let skip_text = tr("common_skip", lang());
     let finish_text = tr("common_finish", lang());
     let next_text = tr("common_next", lang());
+    let step_text = tr("tut_step", lang());
 
     let go_next = move |_| {
         if is_last {
@@ -170,7 +171,7 @@ pub fn TutorialModal(
             div { class: "tut-modal",
                 div { class: "tut-header",
                     span { class: "tut-step-indicator",
-                        "Step {step_idx + 1}/{total}"
+                        "{step_text} {step_idx + 1}/{total}"
                     }
                 }
                 h2 { class: "tut-title", "{title}" }

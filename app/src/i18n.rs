@@ -466,6 +466,7 @@ fn en(key: &'static str) -> &'static str {
         // Tags
 
         // Tutorial
+        "tut_step" => "Step",
         "tut_welcome_title" => "Welcome to PeopleModeler!",
         "tut_welcome_body" => "This app helps you model and understand the people in your life using personality frameworks like OCEAN (Big Five), motivations, cognitive biases, and behavioral patterns.\n\nYou can compare people side by side, track predictions over time, map relationships, and explore synergy scores.",
         "tut_people_title" => "Your People",
@@ -889,6 +890,7 @@ fn fr(key: &'static str) -> &'static str {
 
 
         // Tutorial
+        "tut_step" => "Étape",
         "tut_welcome_title" => "Bienvenue sur PeopleModeler !",
         "tut_welcome_body" => "Cette application vous aide à modéliser et comprendre les personnes de votre vie en utilisant des cadres de personnalité comme l'OCEAN (Big Five), les motivations, les biais cognitifs et les schémas comportementaux.\n\nVous pouvez comparer des personnes côte à côte, suivre des prédictions dans le temps, cartographier les relations et explorer les scores de synergie.",
         "tut_people_title" => "Vos Personnes",
