@@ -174,7 +174,6 @@ pub fn Relationships() -> Element {
                 input {
                     class: "chord-search",
                     placeholder: "Search person…",
-                    value: search,
                     oninput: move |e| search.set(e.value()),
                 }
                 div { class: "type-chips",
