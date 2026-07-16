@@ -240,7 +240,7 @@ pub fn PersonDetail(id: String) -> Element {
                                     }
                                 }
                             }
-                            if person.motivations.is_empty() { p { "{no_mot}" } }
+                            if person.motivations.is_empty() { div { class: "empty-state", p { "{no_mot}" } } }
                         }
                         div { class: "section",
                             h2 { "{pat_title}" }
@@ -251,7 +251,7 @@ pub fn PersonDetail(id: String) -> Element {
                                 small { "⚡{bp.intensity}/10" }
                             }
                         }
-                            if person.behavioral_patterns.is_empty() { p { "{no_pat}" } }
+                            if person.behavioral_patterns.is_empty() { div { class: "empty-state", p { "{no_pat}" } } }
                         }
                     }
 
@@ -273,7 +273,7 @@ pub fn PersonDetail(id: String) -> Element {
                                     }
                                 }
                             }
-                            if person.biases.is_empty() { p { "{no_bias}" } }
+                            if person.biases.is_empty() { div { class: "empty-state", p { "{no_bias}" } } }
                         }
                         div { class: "section",
                             h2 { "{rep_title}" }

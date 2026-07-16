@@ -148,7 +148,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             behavioral_patterns: patterns(),
             ocean: ocean(),
             confidence: confidence(),
-            log: Vec::new(),
+            log: p.log.clone(),
             created_at: chrono::Utc::now().timestamp_millis(),
             updated_at: chrono::Utc::now().timestamp_millis(),
         };

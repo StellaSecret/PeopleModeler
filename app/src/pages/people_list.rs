@@ -69,7 +69,8 @@ pub fn PeopleList() -> Element {
                 let band_cls = ["ps-tension", "ps-friction", "ps-moderate", "ps-good", "ps-strong"];
 
                 rsx! {
-                    table { class: "people-table",
+                    div { class: "table-wrap",
+                        table { class: "people-table",
                         thead {
                             tr {
                                 th { "{name_hdr}" }
@@ -107,6 +108,7 @@ pub fn PeopleList() -> Element {
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
