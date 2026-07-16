@@ -19,6 +19,7 @@ pub struct SynergyBreakdown {
     pub danger_details: String,
 }
 
+#[derive(Clone, Copy, PartialEq)]
 pub struct PersonProfile {
     pub total: u8,
     pub motivation: f64,

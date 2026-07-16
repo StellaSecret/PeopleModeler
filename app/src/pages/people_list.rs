@@ -12,6 +12,20 @@ pub fn PeopleList() -> Element {
     let persons = use_signal(db::all_persons);
     let mut search = use_signal(String::new);
 
+    let profiles = use_memo(move || {
+        let all = persons();
+        all.iter()
+            .map(|p| {
+                (
+                    p.id.clone(),
+                    p.name.clone(),
+                    p.avatar_emoji.clone(),
+                    compute_person_profile(p),
+                )
+            })
+            .collect::<Vec<_>>()
+    });
+
     let search_placeholder = crate::i18n::tr("search_placeholder", lang());
     let no_people = crate::i18n::tr("no_people_yet", lang());
     let name_hdr = crate::i18n::tr("pl_name", lang());
@@ -35,17 +49,13 @@ pub fn PeopleList() -> Element {
             }
             {
             let q = search().to_lowercase();
-            let all = persons();
+            let all_profiles = profiles();
 
-            let mut rows: Vec<_> = all
+            let mut rows: Vec<_> = all_profiles
                 .into_iter()
-                .filter(|p| q.is_empty() || p.name.to_lowercase().contains(&q))
-                .map(|p| {
-                    let profile = compute_person_profile(&p);
-                    (p, profile)
-                })
+                .filter(|(_, name, _, _)| q.is_empty() || name.to_lowercase().contains(&q))
                 .collect();
-            rows.sort_by_key(|(_, b)| std::cmp::Reverse(b.total));
+            rows.sort_by_key(|(_, _, _, b)| std::cmp::Reverse(b.total));
 
             if rows.is_empty() {
                 rsx! {
@@ -72,9 +82,8 @@ pub fn PeopleList() -> Element {
                             }
                         }
                         tbody {
-                            for (person, profile) in &rows {
+                            for (pid, name, avatar, profile) in &rows {
                                 {
-                                let pid = person.id.clone();
                                 let band_idx = bands.iter()
                                     .position(|&(lo, hi)| profile.total >= lo && profile.total <= hi)
                                     .unwrap_or(2);
@@ -84,8 +93,8 @@ pub fn PeopleList() -> Element {
                                         key: "{pid}",
                                         onclick: { let p = pid.clone(); move |_| { let _ = nav.push(Route::PersonDetail { id: p.clone() }); } },
                                         td { class: "pt-name-cell",
-                                            span { class: "pt-avatar", "{person.avatar_emoji}" }
-                                            span { "{person.name}" }
+                                            span { class: "pt-avatar", "{avatar}" }
+                                            span { "{name}" }
                                         }
                                         td { class: "pt-score {score_cls}", "{profile.total}" }
                                         td { class: "pt-sub", "{(profile.ocean * 100.0).round() as u8}" }
