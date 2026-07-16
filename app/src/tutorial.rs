@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-use crate::i18n::{tr, Lang};
 use crate::Route;
+use crate::i18n::{Lang, tr};
 
 #[derive(Clone, PartialEq)]
 pub enum TutorialStatus {
@@ -103,9 +103,7 @@ pub fn clear_mark() {
 }
 
 #[component]
-pub fn TutorialModal(
-    status: Signal<TutorialStatus>,
-) -> Element {
+pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let mut s = status;
 

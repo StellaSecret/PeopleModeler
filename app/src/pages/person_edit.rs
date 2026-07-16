@@ -118,7 +118,13 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut context = use_signal(|| p.context.clone());
     let mut emoji = use_signal(|| p.avatar_emoji.clone());
     let mut notes = use_signal(|| p.notes.clone());
-    let mut tags_str = use_signal(|| p.tags.iter().map(|t| t.name.clone()).collect::<Vec<_>>().join(", "));
+    let mut tags_str = use_signal(|| {
+        p.tags
+            .iter()
+            .map(|t| t.name.clone())
+            .collect::<Vec<_>>()
+            .join(", ")
+    });
     let mut ocean = use_signal(|| p.ocean.clone());
     let mut confidence = use_signal(|| p.confidence);
     let motivations = use_signal(|| p.motivations.clone());
@@ -152,7 +158,13 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             created_at: chrono::Utc::now().timestamp_millis(),
             updated_at: chrono::Utc::now().timestamp_millis(),
         };
-        db::save_person(&person);
+        if let Err(e) = db::save_person(&person) {
+            toast_sig.set(Some(format!(
+                "{}: {e}",
+                crate::i18n::tr("toast_error", lang())
+            )));
+            return;
+        }
         toast_sig.set(Some(crate::i18n::tr("toast_saved", lang()).into()));
         dioxus::prelude::navigator().push(Route::PersonDetail {
             id: pers_id.clone(),
@@ -541,7 +553,11 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let mut edit_idx = use_signal(|| None::<usize>);
 
     use peoplemodeler_core::i18n::Lang as CoreLang;
-    let cl = if lang == crate::i18n::Lang::Fr { CoreLang::Fr } else { CoreLang::En };
+    let cl = if lang == crate::i18n::Lang::Fr {
+        CoreLang::Fr
+    } else {
+        CoreLang::En
+    };
 
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
     let add_btn = crate::i18n::tr("add_btn", lang);

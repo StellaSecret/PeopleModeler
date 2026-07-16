@@ -28,6 +28,7 @@ pub fn PersonPredictions(person_id: String) -> Element {
     let mut preds = use_signal(|| db::predictions_for_person(&person_id));
     let mut context = use_signal(String::new);
     let mut predicted = use_signal(String::new);
+    let mut toast_sig = use_context::<Signal<Option<String>>>();
     let pred_for = crate::i18n::tr("pred_for", lang());
     let pred_title = crate::i18n::tr("pred_title", lang());
     let ctx_pl = crate::i18n::tr("pred_context_placeholder", lang());
@@ -52,7 +53,12 @@ pub fn PersonPredictions(person_id: String) -> Element {
             resolved_at: None,
             resolved: false,
         };
-        db::save_prediction(&p);
+        db::save_prediction(&p).unwrap_or_else(|e| {
+            toast_sig.set(Some(format!(
+                "{}: {e}",
+                crate::i18n::tr("toast_error", lang())
+            )))
+        });
         context.set(String::new());
         predicted.set(String::new());
         preds.set(db::predictions_for_person(&pid));
@@ -128,6 +134,7 @@ fn PredictionCard(
     ondelete: EventHandler<()>,
 ) -> Element {
     let lang = use_context::<Signal<Lang>>();
+    let mut toast_sig = use_context::<Signal<Option<String>>>();
     let resolved = prediction.resolved;
     let pred_label = crate::i18n::tr("pred_predicted_label", lang());
     let actual_label = crate::i18n::tr("pred_actual_label", lang());
@@ -151,9 +158,18 @@ fn PredictionCard(
         .map(|a| format!("{acc_label}: {a}/10"))
         .unwrap_or_default();
     let del_id = prediction.id.clone();
-    let delete = move || {
-        db::delete_prediction(&del_id);
-        ondelete.call(());
+    let mut delete = move || {
+        let e = match db::delete_prediction(&del_id) {
+            Ok(()) => {
+                ondelete.call(());
+                return;
+            }
+            Err(e) => e,
+        };
+        toast_sig.set(Some(format!(
+            "{}: {e}",
+            crate::i18n::tr("toast_error", lang())
+        )));
     };
     let resolve_pred = prediction.clone();
     let mut resolve = move || {
@@ -166,7 +182,13 @@ fn PredictionCard(
         p.accuracy = Some(accuracy());
         p.resolved = true;
         p.resolved_at = Some(chrono::Utc::now().timestamp_millis());
-        db::save_prediction(&p);
+        if let Err(e) = db::save_prediction(&p) {
+            toast_sig.set(Some(format!(
+                "{}: {e}",
+                crate::i18n::tr("toast_error", lang())
+            )));
+            return;
+        }
         show_form.set(false);
         onresolve.call(());
     };

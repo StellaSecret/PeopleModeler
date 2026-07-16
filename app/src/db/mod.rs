@@ -29,15 +29,15 @@ fn db() -> &'static dyn StorageBackend {
 trait StorageBackend: Send + Sync {
     fn load_all_persons(&self) -> Vec<Person>;
     fn load_person(&self, id: &str) -> Option<Person>;
-    fn save_person(&self, person: &Person);
-    fn delete_person(&self, id: &str);
+    fn save_person(&self, person: &Person) -> Result<(), String>;
+    fn delete_person(&self, id: &str) -> Result<(), String>;
     fn load_all_predictions(&self) -> Vec<Prediction>;
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction>;
-    fn save_prediction(&self, prediction: &Prediction);
-    fn delete_prediction(&self, id: &str);
+    fn save_prediction(&self, prediction: &Prediction) -> Result<(), String>;
+    fn delete_prediction(&self, id: &str) -> Result<(), String>;
     fn load_all_relationships(&self) -> Vec<Relationship>;
-    fn save_relationship(&self, relationship: &Relationship);
-    fn delete_relationship(&self, id: &str);
+    fn save_relationship(&self, relationship: &Relationship) -> Result<(), String>;
+    fn delete_relationship(&self, id: &str) -> Result<(), String>;
 }
 
 pub fn all_persons() -> Vec<Person> {
@@ -46,22 +46,22 @@ pub fn all_persons() -> Vec<Person> {
 pub fn person(id: &str) -> Option<Person> {
     db().load_person(id)
 }
-pub fn save_person(person: &Person) {
+pub fn save_person(person: &Person) -> Result<(), String> {
     undo::push_snapshot();
-    db().save_person(person);
+    db().save_person(person)
 }
 pub(crate) fn save_person_quiet(person: &Person) {
-    db().save_person(person);
+    let _ = db().save_person(person);
 }
 pub(crate) fn save_prediction_quiet(prediction: &Prediction) {
-    db().save_prediction(prediction);
+    let _ = db().save_prediction(prediction);
 }
 pub(crate) fn save_relationship_quiet(relationship: &Relationship) {
-    db().save_relationship(relationship);
+    let _ = db().save_relationship(relationship);
 }
-pub fn delete_person(id: &str) {
+pub fn delete_person(id: &str) -> Result<(), String> {
     undo::push_snapshot();
-    db().delete_person(id);
+    db().delete_person(id)
 }
 pub fn all_predictions() -> Vec<Prediction> {
     db().load_all_predictions()
@@ -69,24 +69,24 @@ pub fn all_predictions() -> Vec<Prediction> {
 pub fn predictions_for_person(person_id: &str) -> Vec<Prediction> {
     db().load_predictions_for_person(person_id)
 }
-pub fn save_prediction(prediction: &Prediction) {
+pub fn save_prediction(prediction: &Prediction) -> Result<(), String> {
     undo::push_snapshot();
-    db().save_prediction(prediction);
+    db().save_prediction(prediction)
 }
-pub fn delete_prediction(id: &str) {
+pub fn delete_prediction(id: &str) -> Result<(), String> {
     undo::push_snapshot();
-    db().delete_prediction(id);
+    db().delete_prediction(id)
 }
 pub fn all_relationships() -> Vec<Relationship> {
     db().load_all_relationships()
 }
-pub fn save_relationship(relationship: &Relationship) {
+pub fn save_relationship(relationship: &Relationship) -> Result<(), String> {
     undo::push_snapshot();
-    db().save_relationship(relationship);
+    db().save_relationship(relationship)
 }
-pub fn delete_relationship(id: &str) {
+pub fn delete_relationship(id: &str) -> Result<(), String> {
     undo::push_snapshot();
-    db().delete_relationship(id);
+    db().delete_relationship(id)
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -129,31 +129,41 @@ where
 use gloo_storage::Storage;
 
 #[cfg(target_arch = "wasm32")]
-fn person_key(id: &str) -> String { format!("person_{id}") }
+fn person_key(id: &str) -> String {
+    format!("person_{id}")
+}
 
 #[cfg(target_arch = "wasm32")]
-fn prediction_key(id: &str) -> String { format!("pred_{id}") }
+fn prediction_key(id: &str) -> String {
+    format!("pred_{id}")
+}
 
 #[cfg(target_arch = "wasm32")]
-fn relationship_key(id: &str) -> String { format!("rel_{id}") }
+fn relationship_key(id: &str) -> String {
+    format!("rel_{id}")
+}
 
 #[cfg(target_arch = "wasm32")]
-fn store_individual<T: serde::Serialize>(key: &str, val: &T) {
+fn store_individual<T: serde::Serialize>(key: &str, val: &T) -> Result<(), String> {
     use base64::Engine;
-    let json = serde_json::to_string(val).expect("serialize");
+    let json = serde_json::to_string(val).map_err(|e| e.to_string())?;
     let enc = crate::crypto::encrypt(json.as_bytes());
     let b64 = base64::engine::general_purpose::STANDARD.encode(&enc);
-    if let Err(e) = gloo_storage::LocalStorage::set(key, &b64) {
-        web_sys::console::error_1(&format!("WASM store error [{key}]: {e}").into());
-    }
+    gloo_storage::LocalStorage::set(key, &b64).map_err(|e| format!("WASM store error [{key}]: {e}"))
 }
 
 #[cfg(target_arch = "wasm32")]
 fn load_individual<T: serde::de::DeserializeOwned>(key: &str) -> Option<T> {
     use base64::Engine;
-    let Ok(b64) = gloo_storage::LocalStorage::get::<String>(key) else { return None };
-    if b64.is_empty() { return None; }
-    let enc = base64::engine::general_purpose::STANDARD.decode(&b64).ok()?;
+    let Ok(b64) = gloo_storage::LocalStorage::get::<String>(key) else {
+        return None;
+    };
+    if b64.is_empty() {
+        return None;
+    }
+    let enc = base64::engine::general_purpose::STANDARD
+        .decode(&b64)
+        .ok()?;
     let dec = crate::crypto::decrypt(&enc)?;
     let json = String::from_utf8(dec).ok()?;
     serde_json::from_str(&json).ok()
@@ -161,9 +171,15 @@ fn load_individual<T: serde::de::DeserializeOwned>(key: &str) -> Option<T> {
 
 #[cfg(target_arch = "wasm32")]
 fn load_all_individual<T: serde::de::DeserializeOwned>(prefix: &str) -> Vec<(String, T)> {
-    let Some(window) = web_sys::window() else { return vec![] };
-    let Ok(Some(storage)) = window.local_storage() else { return vec![] };
-    let Ok(len) = storage.length() else { return vec![] };
+    let Some(window) = web_sys::window() else {
+        return vec![];
+    };
+    let Ok(Some(storage)) = window.local_storage() else {
+        return vec![];
+    };
+    let Ok(len) = storage.length() else {
+        return vec![];
+    };
     let mut results = Vec::new();
     for i in 0..len {
         if let Ok(Some(k)) = storage.key(i) {
@@ -197,7 +213,7 @@ fn migrate_from_bulk() {
                     if let Ok(json) = String::from_utf8(dec) {
                         if let Ok(persons) = serde_json::from_str::<Vec<Person>>(&json) {
                             for p in &persons {
-                                store_individual(&person_key(&p.id), p);
+                                let _ = store_individual(&person_key(&p.id), p);
                             }
                         }
                     }
@@ -216,7 +232,7 @@ fn migrate_from_bulk() {
                     if let Ok(json) = String::from_utf8(dec) {
                         if let Ok(preds) = serde_json::from_str::<Vec<Prediction>>(&json) {
                             for p in &preds {
-                                store_individual(&prediction_key(&p.id), p);
+                                let _ = store_individual(&prediction_key(&p.id), p);
                             }
                         }
                     }
@@ -235,7 +251,7 @@ fn migrate_from_bulk() {
                     if let Ok(json) = String::from_utf8(dec) {
                         if let Ok(rels) = serde_json::from_str::<Vec<Relationship>>(&json) {
                             for r in &rels {
-                                store_individual(&relationship_key(&r.id), r);
+                                let _ = store_individual(&relationship_key(&r.id), r);
                             }
                         }
                     }
@@ -310,21 +326,23 @@ impl StorageBackend for WebStorage {
         // Direct single-key lookup
         load_individual(&person_key(id))
     }
-    fn save_person(&self, person: &Person) {
-        store_individual(&person_key(&person.id), person);
+    fn save_person(&self, person: &Person) -> Result<(), String> {
+        store_individual(&person_key(&person.id), person)?;
         with_persons_cache(|cache| {
             let mut all = cache.clone().unwrap_or_default();
             upsert(&mut all, person);
             *cache = Some(all);
         });
+        Ok(())
     }
-    fn delete_person(&self, id: &str) {
+    fn delete_person(&self, id: &str) -> Result<(), String> {
         remove_individual(&person_key(id));
         with_persons_cache(|cache| {
             if let Some(ref mut all) = *cache {
                 all.retain(|p| p.id != id);
             }
         });
+        Ok(())
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
         with_preds_cache(|cache| {
@@ -343,21 +361,23 @@ impl StorageBackend for WebStorage {
             .filter(|p| p.person_id == person_id)
             .collect()
     }
-    fn save_prediction(&self, prediction: &Prediction) {
-        store_individual(&prediction_key(&prediction.id), prediction);
+    fn save_prediction(&self, prediction: &Prediction) -> Result<(), String> {
+        store_individual(&prediction_key(&prediction.id), prediction)?;
         with_preds_cache(|cache| {
             let mut all = cache.clone().unwrap_or_default();
             upsert(&mut all, prediction);
             *cache = Some(all);
         });
+        Ok(())
     }
-    fn delete_prediction(&self, id: &str) {
+    fn delete_prediction(&self, id: &str) -> Result<(), String> {
         remove_individual(&prediction_key(id));
         with_preds_cache(|cache| {
             if let Some(ref mut all) = *cache {
                 all.retain(|p| p.id != id);
             }
         });
+        Ok(())
     }
     fn load_all_relationships(&self) -> Vec<Relationship> {
         with_rels_cache(|cache| {
@@ -370,21 +390,23 @@ impl StorageBackend for WebStorage {
             rels
         })
     }
-    fn save_relationship(&self, relationship: &Relationship) {
-        store_individual(&relationship_key(&relationship.id), relationship);
+    fn save_relationship(&self, relationship: &Relationship) -> Result<(), String> {
+        store_individual(&relationship_key(&relationship.id), relationship)?;
         with_rels_cache(|cache| {
             let mut all = cache.clone().unwrap_or_default();
             upsert(&mut all, relationship);
             *cache = Some(all);
         });
+        Ok(())
     }
-    fn delete_relationship(&self, id: &str) {
+    fn delete_relationship(&self, id: &str) -> Result<(), String> {
         remove_individual(&relationship_key(id));
         with_rels_cache(|cache| {
             if let Some(ref mut all) = *cache {
                 all.retain(|r| r.id != id);
             }
         });
+        Ok(())
     }
 }
 
@@ -446,24 +468,23 @@ impl StorageBackend for SqliteStorage {
         })
         .ok()
     }
-    fn save_person(&self, person: &Person) {
-        let Ok(conn) = self.conn.lock() else { return };
-        let Ok(data) = serde_json::to_string(person) else {
-            return;
-        };
-        if let Err(e) = conn.execute(
+    fn save_person(&self, person: &Person) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let data = serde_json::to_string(person).map_err(|e| e.to_string())?;
+        conn.execute(
             "INSERT OR REPLACE INTO persons (id, data) VALUES (?1, ?2)",
             [&person.id, &data],
-        ) { eprintln!("DB write error [save_person {}]: {e}", person.id); }
+        )
+        .map_err(|e| format!("DB write error [save_person {}]: {e}", person.id))?;
+        Ok(())
     }
-    fn delete_person(&self, id: &str) {
-        let Ok(conn) = self.conn.lock() else { return };
-        if let Err(e) = conn.execute("DELETE FROM persons WHERE id = ?1", [id]) {
-            eprintln!("DB write error [delete_person {id}]: {e}");
-        }
-        if let Err(e) = conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id]) {
-            eprintln!("DB write error [delete_person predictions {id}]: {e}");
-        }
+    fn delete_person(&self, id: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM persons WHERE id = ?1", [id])
+            .map_err(|e| format!("DB write error [delete_person {id}]: {e}"))?;
+        conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id])
+            .map_err(|e| format!("DB write error [delete_person predictions {id}]: {e}"))?;
+        Ok(())
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
         let Ok(conn) = self.conn.lock() else {
@@ -495,21 +516,21 @@ impl StorageBackend for SqliteStorage {
         };
         rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
     }
-    fn save_prediction(&self, prediction: &Prediction) {
-        let Ok(conn) = self.conn.lock() else { return };
-        let Ok(data) = serde_json::to_string(prediction) else {
-            return;
-        };
-        if let Err(e) = conn.execute(
+    fn save_prediction(&self, prediction: &Prediction) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let data = serde_json::to_string(prediction).map_err(|e| e.to_string())?;
+        conn.execute(
             "INSERT OR REPLACE INTO predictions (id, person_id, data) VALUES (?1, ?2, ?3)",
             [&prediction.id, &prediction.person_id, &data],
-        ) { eprintln!("DB write error [save_prediction {}]: {e}", prediction.id); }
+        )
+        .map_err(|e| format!("DB write error [save_prediction {}]: {e}", prediction.id))?;
+        Ok(())
     }
-    fn delete_prediction(&self, id: &str) {
-        let Ok(conn) = self.conn.lock() else { return };
-        if let Err(e) = conn.execute("DELETE FROM predictions WHERE id = ?1", [id]) {
-            eprintln!("DB write error [delete_prediction {id}]: {e}");
-        }
+    fn delete_prediction(&self, id: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM predictions WHERE id = ?1", [id])
+            .map_err(|e| format!("DB write error [delete_prediction {id}]: {e}"))?;
+        Ok(())
     }
     fn load_all_relationships(&self) -> Vec<Relationship> {
         let Ok(conn) = self.conn.lock() else {
@@ -526,21 +547,26 @@ impl StorageBackend for SqliteStorage {
         };
         rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
     }
-    fn save_relationship(&self, relationship: &Relationship) {
-        let Ok(conn) = self.conn.lock() else { return };
-        let Ok(data) = serde_json::to_string(relationship) else {
-            return;
-        };
-        if let Err(e) = conn.execute(
+    fn save_relationship(&self, relationship: &Relationship) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let data = serde_json::to_string(relationship).map_err(|e| e.to_string())?;
+        conn.execute(
             "INSERT OR REPLACE INTO relationships (id, data) VALUES (?1, ?2)",
             [&relationship.id, &data],
-        ) { eprintln!("DB write error [save_relationship {}]: {e}", relationship.id); }
+        )
+        .map_err(|e| {
+            format!(
+                "DB write error [save_relationship {}]: {e}",
+                relationship.id
+            )
+        })?;
+        Ok(())
     }
-    fn delete_relationship(&self, id: &str) {
-        let Ok(conn) = self.conn.lock() else { return };
-        if let Err(e) = conn.execute("DELETE FROM relationships WHERE id = ?1", [id]) {
-            eprintln!("DB write error [delete_relationship {id}]: {e}");
-        }
+    fn delete_relationship(&self, id: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM relationships WHERE id = ?1", [id])
+            .map_err(|e| format!("DB write error [delete_relationship {id}]: {e}"))?;
+        Ok(())
     }
 }
 
@@ -548,8 +574,9 @@ impl StorageBackend for SqliteStorage {
 mod tests {
     use super::*;
     use peoplemodeler_core::models::{
-        BehaviorResponse, BehavioralPattern, BehaviorTrigger, Bias, BiasType, Motivation, MotivationType,
-        OceanScores, Person, Prediction, RelationType, Relationship, RepScores, Tag,
+        BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation,
+        MotivationType, OceanScores, Person, Prediction, RelationType, Relationship, RepScores,
+        Tag,
     };
 
     fn test_db() -> SqliteStorage {
@@ -572,7 +599,10 @@ mod tests {
             role: "Engineer".into(),
             context: "test".into(),
             avatar_emoji: "🧑".into(),
-            tags: vec![Tag { name: "tag1".into(), color: None }],
+            tags: vec![Tag {
+                name: "tag1".into(),
+                color: None,
+            }],
             notes: "some notes".into(),
             motivations: vec![Motivation {
                 r#type: MotivationType::Achievement,
@@ -625,7 +655,7 @@ mod tests {
     fn test_save_and_load_person() {
         let db = test_db();
         let p = sample_person("p1");
-        db.save_person(&p);
+        let _ = db.save_person(&p);
         let loaded = db.load_person("p1").unwrap();
         assert_eq!(loaded.name, "Test Person");
         assert_eq!(loaded.id, "p1");
@@ -638,9 +668,9 @@ mod tests {
     fn test_update_person() {
         let db = test_db();
         let mut p = sample_person("p-upd");
-        db.save_person(&p);
+        let _ = db.save_person(&p);
         p.name = "Updated Name".into();
-        db.save_person(&p);
+        let _ = db.save_person(&p);
         let loaded = db.load_person("p-upd").unwrap();
         assert_eq!(loaded.name, "Updated Name");
     }
@@ -649,9 +679,9 @@ mod tests {
     fn test_delete_person() {
         let db = test_db();
         let p = sample_person("p-del");
-        db.save_person(&p);
+        let _ = db.save_person(&p);
         assert!(db.load_person("p-del").is_some());
-        db.delete_person("p-del");
+        let _ = db.delete_person("p-del");
         assert!(db.load_person("p-del").is_none());
     }
 
@@ -665,9 +695,9 @@ mod tests {
     fn test_all_persons() {
         let db = test_db();
         assert!(db.load_all_persons().is_empty());
-        db.save_person(&sample_person("a"));
-        db.save_person(&sample_person("b"));
-        db.save_person(&sample_person("c"));
+        let _ = db.save_person(&sample_person("a"));
+        let _ = db.save_person(&sample_person("b"));
+        let _ = db.save_person(&sample_person("c"));
         let all = db.load_all_persons();
         assert_eq!(all.len(), 3);
         let ids: Vec<&str> = all.iter().map(|p| p.id.as_str()).collect();
@@ -686,17 +716,39 @@ mod tests {
             context: "pro".into(),
             avatar_emoji: "🎯".into(),
             tags: vec![
-                Tag { name: "alpha".into(), color: None },
-                Tag { name: "beta".into(), color: Some("#ff0".into()) },
+                Tag {
+                    name: "alpha".into(),
+                    color: None,
+                },
+                Tag {
+                    name: "beta".into(),
+                    color: Some("#ff0".into()),
+                },
             ],
             notes: "detailed notes".into(),
             motivations: vec![
-                Motivation { r#type: MotivationType::Power, intensity: 9, notes: "driven".into() },
-                Motivation { r#type: MotivationType::Learning, intensity: 7, notes: "curious".into() },
+                Motivation {
+                    r#type: MotivationType::Power,
+                    intensity: 9,
+                    notes: "driven".into(),
+                },
+                Motivation {
+                    r#type: MotivationType::Learning,
+                    intensity: 7,
+                    notes: "curious".into(),
+                },
             ],
             biases: vec![
-                Bias { r#type: BiasType::Anchoring, intensity: 8, evidence: "first impressions".into() },
-                Bias { r#type: BiasType::LossAversion, intensity: 6, evidence: "risk averse".into() },
+                Bias {
+                    r#type: BiasType::Anchoring,
+                    intensity: 8,
+                    evidence: "first impressions".into(),
+                },
+                Bias {
+                    r#type: BiasType::LossAversion,
+                    intensity: 6,
+                    evidence: "risk averse".into(),
+                },
             ],
             rep_scores: RepScores {
                 hardworker_lazy: Some(9),
@@ -720,7 +772,7 @@ mod tests {
             created_at: 1000,
             updated_at: 2000,
         };
-        db.save_person(&p);
+        let _ = db.save_person(&p);
         let loaded = db.load_person("full").unwrap();
         assert_eq!(loaded.name, "Full Person");
         assert_eq!(loaded.tags.len(), 2);
@@ -740,7 +792,7 @@ mod tests {
     fn test_save_and_load_prediction() {
         let db = test_db();
         let p = sample_prediction("p1");
-        db.save_prediction(&p);
+        let _ = db.save_prediction(&p);
         let all = db.load_all_predictions();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].person_id, "p1");
@@ -749,9 +801,19 @@ mod tests {
     #[test]
     fn test_predictions_for_person() {
         let db = test_db();
-        db.save_prediction(&Prediction { id: "pred-1".into(), ..sample_prediction("p1") });
-        db.save_prediction(&Prediction { id: "pred-2".into(), person_id: "p1".into(), ..sample_prediction("p1") });
-        db.save_prediction(&Prediction { id: "pred-3".into(), ..sample_prediction("p2") });
+        let _ = db.save_prediction(&Prediction {
+            id: "pred-1".into(),
+            ..sample_prediction("p1")
+        });
+        let _ = db.save_prediction(&Prediction {
+            id: "pred-2".into(),
+            person_id: "p1".into(),
+            ..sample_prediction("p1")
+        });
+        let _ = db.save_prediction(&Prediction {
+            id: "pred-3".into(),
+            ..sample_prediction("p2")
+        });
         let for_p1 = db.load_predictions_for_person("p1");
         assert_eq!(for_p1.len(), 2);
         let for_p2 = db.load_predictions_for_person("p2");
@@ -763,24 +825,24 @@ mod tests {
     #[test]
     fn test_delete_prediction() {
         let db = test_db();
-        db.save_prediction(&sample_prediction("p1"));
+        let _ = db.save_prediction(&sample_prediction("p1"));
         assert_eq!(db.load_all_predictions().len(), 1);
-        db.delete_prediction("pred-1");
+        let _ = db.delete_prediction("pred-1");
         assert!(db.load_all_predictions().is_empty());
     }
 
     #[test]
     fn test_delete_person_cascades_to_predictions() {
         let db = test_db();
-        db.save_person(&sample_person("p-cascade"));
-        db.save_prediction(&sample_prediction("p-cascade"));
-        db.save_prediction(&Prediction {
+        let _ = db.save_person(&sample_person("p-cascade"));
+        let _ = db.save_prediction(&sample_prediction("p-cascade"));
+        let _ = db.save_prediction(&Prediction {
             id: "pred-c2".into(),
             person_id: "p-cascade".into(),
             ..sample_prediction("p-cascade")
         });
         assert_eq!(db.load_all_predictions().len(), 2);
-        db.delete_person("p-cascade");
+        let _ = db.delete_person("p-cascade");
         assert!(db.load_person("p-cascade").is_none());
         assert_eq!(db.load_all_predictions().len(), 0);
     }
@@ -791,7 +853,7 @@ mod tests {
     fn test_save_and_load_relationship() {
         let db = test_db();
         let r = sample_relationship();
-        db.save_relationship(&r);
+        let _ = db.save_relationship(&r);
         let all = db.load_all_relationships();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].id, "rel-1");
@@ -801,9 +863,9 @@ mod tests {
     #[test]
     fn test_delete_relationship() {
         let db = test_db();
-        db.save_relationship(&sample_relationship());
+        let _ = db.save_relationship(&sample_relationship());
         assert_eq!(db.load_all_relationships().len(), 1);
-        db.delete_relationship("rel-1");
+        let _ = db.delete_relationship("rel-1");
         assert!(db.load_all_relationships().is_empty());
     }
 
@@ -821,10 +883,10 @@ mod tests {
     fn test_upsert_same_prediction_id() {
         let db = test_db();
         let mut p = sample_prediction("p1");
-        db.save_prediction(&p);
+        let _ = db.save_prediction(&p);
         p.context = "updated context".into();
         p.predicted_outcome = "updated outcome".into();
-        db.save_prediction(&p);
+        let _ = db.save_prediction(&p);
         let all = db.load_all_predictions();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].context, "updated context");
@@ -833,9 +895,9 @@ mod tests {
     #[test]
     fn test_delete_nonexistent() {
         let db = test_db();
-        db.delete_person("no-one");
-        db.delete_prediction("no-one");
-        db.delete_relationship("no-one");
+        let _ = db.delete_person("no-one");
+        let _ = db.delete_prediction("no-one");
+        let _ = db.delete_relationship("no-one");
         // Should not panic
     }
 
@@ -848,7 +910,10 @@ mod tests {
             role: "Tester".into(),
             context: "testing".into(),
             avatar_emoji: "🧪".into(),
-            tags: vec![Tag { name: "verify".into(), color: None }],
+            tags: vec![Tag {
+                name: "verify".into(),
+                color: None,
+            }],
             notes: "json roundtrip".into(),
             motivations: vec![Motivation {
                 r#type: MotivationType::Achievement,
@@ -887,7 +952,7 @@ mod tests {
             created_at: 10,
             updated_at: 20,
         };
-        db.save_person(&original);
+        let _ = db.save_person(&original);
         let loaded = db.load_person("json-eq").unwrap();
         let orig_json = serde_json::to_value(&original).unwrap();
         let loaded_json = serde_json::to_value(&loaded).unwrap();
@@ -897,20 +962,26 @@ mod tests {
     #[test]
     fn test_save_all_persons_json_match() {
         let db = test_db();
-        db.save_person(&sample_person("a1"));
-        db.save_person(&sample_person("b1"));
+        let _ = db.save_person(&sample_person("a1"));
+        let _ = db.save_person(&sample_person("b1"));
         let all = db.load_all_persons();
         let a1 = db.load_person("a1").unwrap();
         let b1 = db.load_person("b1").unwrap();
-        assert!(all.iter().any(|p| serde_json::to_value(p).unwrap() == serde_json::to_value(&a1).unwrap()));
-        assert!(all.iter().any(|p| serde_json::to_value(p).unwrap() == serde_json::to_value(&b1).unwrap()));
+        assert!(
+            all.iter()
+                .any(|p| serde_json::to_value(p).unwrap() == serde_json::to_value(&a1).unwrap())
+        );
+        assert!(
+            all.iter()
+                .any(|p| serde_json::to_value(p).unwrap() == serde_json::to_value(&b1).unwrap())
+        );
     }
 
     #[test]
     fn test_prediction_roundtrip_json() {
         let db = test_db();
         let p = sample_prediction("p1");
-        db.save_prediction(&p);
+        let _ = db.save_prediction(&p);
         let loaded = db.load_all_predictions();
         assert_eq!(loaded.len(), 1);
         assert_eq!(
@@ -923,7 +994,7 @@ mod tests {
     fn test_relationship_roundtrip_json() {
         let db = test_db();
         let r = sample_relationship();
-        db.save_relationship(&r);
+        let _ = db.save_relationship(&r);
         let loaded = db.load_all_relationships();
         assert_eq!(loaded.len(), 1);
         assert_eq!(

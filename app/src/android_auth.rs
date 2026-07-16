@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 static JVM: OnceLock<jni::JavaVM> = OnceLock::new();
 static FILES_DIR: OnceLock<PathBuf> = OnceLock::new();

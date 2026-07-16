@@ -2,9 +2,9 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::RelationType;
 use std::collections::{HashMap, HashSet};
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 const NODE_R: f64 = 14.0;
 const CHORD_R: f64 = 260.0;
@@ -13,8 +13,14 @@ const CX: f64 = SVG_S / 2.0;
 const CY: f64 = SVG_S / 2.0;
 
 const TYPE_COLORS: [&str; 8] = [
-    "var(--cyan)", "var(--orange)", "var(--green)", "var(--pink)",
-    "var(--purple)", "var(--gold)", "var(--teal)", "var(--blue)",
+    "var(--cyan)",
+    "var(--orange)",
+    "var(--green)",
+    "var(--pink)",
+    "var(--purple)",
+    "var(--gold)",
+    "var(--teal)",
+    "var(--blue)",
 ];
 
 fn type_color(rt: &RelationType) -> &'static str {

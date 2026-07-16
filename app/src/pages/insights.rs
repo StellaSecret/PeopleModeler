@@ -80,7 +80,11 @@ pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang
 
     let top = build_top_rec(p, trigger, &all_recs, lang);
     let has_secondary = all_recs.len() > 1;
-    InsightOutput { top, secondary: all_recs, has_secondary }
+    InsightOutput {
+        top,
+        secondary: all_recs,
+        has_secondary,
+    }
 }
 
 fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: Lang) -> String {
@@ -88,22 +92,38 @@ fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: L
     let base = recs.first().map_or(String::new(), |s| s.clone());
     let role_info = if !p.role.is_empty() || !p.context.is_empty() {
         let mut parts = vec![];
-        if !p.role.is_empty() { parts.push(p.role.as_str()); }
-        if !p.context.is_empty() { parts.push(p.context.as_str()); }
+        if !p.role.is_empty() {
+            parts.push(p.role.as_str());
+        }
+        if !p.context.is_empty() {
+            parts.push(p.context.as_str());
+        }
         format!(" ({})", parts.join(", "))
     } else {
         String::new()
     };
-    let intensity_tag = p.behavioral_patterns
+    let intensity_tag = p
+        .behavioral_patterns
         .iter()
         .find(|bp| bp.trigger == *trigger)
         .map(|bp| {
-            if bp.intensity >= 8 { " ⚠️ Strong" }
-            else if bp.intensity <= 3 { " 🟢 Mild" }
-            else { "" }
+            if bp.intensity >= 8 {
+                " ⚠️ Strong"
+            } else if bp.intensity <= 3 {
+                " 🟢 Mild"
+            } else {
+                ""
+            }
         })
         .unwrap_or("");
-    format!("When {}{} is{}{}:\n\n{}", p.name, role_info, tl.to_lowercase(), intensity_tag, base)
+    format!(
+        "When {}{} is{}{}:\n\n{}",
+        p.name,
+        role_info,
+        tl.to_lowercase(),
+        intensity_tag,
+        base
+    )
 }
 
 fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {

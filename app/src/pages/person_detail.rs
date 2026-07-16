@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction, RelationType, Relationship, RepDim};
+use peoplemodeler_core::models::{
+    BehaviorTrigger, Person, Prediction, RelationType, Relationship, RepDim,
+};
 use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
@@ -90,22 +92,53 @@ pub fn PersonDetail(id: String) -> Element {
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
-            let insight_output = crate::pages::insights::generate_insight(person, &trigger(), lang());
+            let insight_output =
+                crate::pages::insights::generate_insight(person, &trigger(), lang());
 
             let cl = core_lang(lang());
             let profile_score = compute_person_profile(person);
             let self_score_label = crate::i18n::tr("person_self_score", lang());
             let bands = synergy_bands();
-            let active_band = bands.iter().position(|&(lo, hi)| profile_score.total >= lo && profile_score.total <= hi).unwrap_or(2);
-            let band_keys = ["scale_tension", "scale_friction", "scale_moderate", "scale_good", "scale_strong"];
-            let band_cls = ["ps-tension", "ps-friction", "ps-moderate", "ps-good", "ps-strong"];
+            let active_band = bands
+                .iter()
+                .position(|&(lo, hi)| profile_score.total >= lo && profile_score.total <= hi)
+                .unwrap_or(2);
+            let band_keys = [
+                "scale_tension",
+                "scale_friction",
+                "scale_moderate",
+                "scale_good",
+                "scale_strong",
+            ];
+            let band_cls = [
+                "ps-tension",
+                "ps-friction",
+                "ps-moderate",
+                "ps-good",
+                "ps-strong",
+            ];
             let band_label = crate::i18n::tr(band_keys[active_band], lang());
             let ps_breakdown: Vec<(&'static str, u8)> = vec![
-                (crate::i18n::tr("compare_cat_ocean", lang()), (profile_score.ocean * 100.0).round() as u8),
-                (crate::i18n::tr("compare_cat_reputation", lang()), (profile_score.reputation * 100.0).round() as u8),
-                (crate::i18n::tr("compare_cat_motivation", lang()), (profile_score.motivation * 100.0).round() as u8),
-                (crate::i18n::tr("compare_cat_patterns", lang()), (profile_score.patterns * 100.0).round() as u8),
-                (crate::i18n::tr("compare_cat_bias", lang()), (profile_score.bias * 100.0).round() as u8),
+                (
+                    crate::i18n::tr("compare_cat_ocean", lang()),
+                    (profile_score.ocean * 100.0).round() as u8,
+                ),
+                (
+                    crate::i18n::tr("compare_cat_reputation", lang()),
+                    (profile_score.reputation * 100.0).round() as u8,
+                ),
+                (
+                    crate::i18n::tr("compare_cat_motivation", lang()),
+                    (profile_score.motivation * 100.0).round() as u8,
+                ),
+                (
+                    crate::i18n::tr("compare_cat_patterns", lang()),
+                    (profile_score.patterns * 100.0).round() as u8,
+                ),
+                (
+                    crate::i18n::tr("compare_cat_bias", lang()),
+                    (profile_score.bias * 100.0).round() as u8,
+                ),
             ];
             let rep_items: Vec<_> = RepDim::ALL
                 .iter()
@@ -133,7 +166,13 @@ pub fn PersonDetail(id: String) -> Element {
                     resolved_at: None,
                     resolved: false,
                 };
-                db::save_prediction(&pred);
+                if let Err(e) = db::save_prediction(&pred) {
+                    toast_sig.set(Some(format!(
+                        "{}: {e}",
+                        crate::i18n::tr("toast_error", lang())
+                    )));
+                    return;
+                }
                 ctx.set(String::new());
                 predicted.set(String::new());
                 preds.set(db::predictions_for_person(&id_pred));
@@ -147,9 +186,13 @@ pub fn PersonDetail(id: String) -> Element {
                         button {
                             class: "btn btn-danger",
                             onclick: move |_| {
-                                db::delete_person(&id);
-                                toast_sig.set(Some(crate::i18n::tr("toast_deleted", lang()).into()));
-                                navigator().push(Route::PeopleList {});
+                                match db::delete_person(&id) {
+                                    Ok(()) => {
+                                        toast_sig.set(Some(crate::i18n::tr("toast_deleted", lang()).into()));
+                                        navigator().push(Route::PeopleList {});
+                                    }
+                                    Err(e) => toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang())))),
+                                }
                             },
                             "{delete_btn}"
                         }
@@ -417,7 +460,10 @@ pub fn PersonDetail(id: String) -> Element {
                                                 timestamp: chrono::Utc::now().timestamp_millis(),
                                                 text: t,
                                             });
-                                            db::save_person(p);
+                                            if let Err(e) = db::save_person(p) {
+                                                toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                return;
+                                            }
                                             person_sig.set(db::person(&pid));
                                         }
                                         log_text.set(String::new());
@@ -442,7 +488,10 @@ pub fn PersonDetail(id: String) -> Element {
                                                         let mut p = person_sig.write().clone();
                                                         if let Some(ref mut p) = p {
                                                             p.log.retain(|e| e.id != eid);
-                                                            db::save_person(p);
+                                                            if let Err(e) = db::save_person(p) {
+                                                                toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                                return;
+                                                            }
                                                             person_sig.set(db::person(&pid));
                                                         }
                                                     }
@@ -589,10 +638,7 @@ fn OceanChart(person: Person) -> Element {
 
 type RelGroup = Vec<(RelationType, Vec<(String, String, bool)>)>;
 
-fn group_relationships(
-    rels: Vec<Relationship>,
-    person_id: &str,
-) -> RelGroup {
+fn group_relationships(rels: Vec<Relationship>, person_id: &str) -> RelGroup {
     let edges: Vec<(String, String, bool, RelationType)> = rels
         .into_iter()
         .map(|rel| {
@@ -617,8 +663,14 @@ fn group_relationships(
 }
 
 const TYPE_COLORS: [&str; 8] = [
-    "var(--cyan)", "var(--orange)", "var(--green)", "var(--pink)",
-    "var(--purple)", "var(--gold)", "var(--teal)", "var(--blue)",
+    "var(--cyan)",
+    "var(--orange)",
+    "var(--green)",
+    "var(--pink)",
+    "var(--purple)",
+    "var(--gold)",
+    "var(--teal)",
+    "var(--blue)",
 ];
 
 fn match_type(s: &str) -> RelationType {
@@ -655,6 +707,7 @@ fn RelationshipSection(
     let nav = use_navigator();
     let lang = use_context::<Signal<Lang>>();
     let cl = core_lang(lang());
+    let mut toast_sig = use_context::<Signal<Option<String>>>();
     let persons = use_signal(db::all_persons);
     let mut all_rels = use_signal(db::all_relationships);
 
@@ -701,7 +754,12 @@ fn RelationshipSection(
                 notes: notes.clone(),
                 created_at: chrono::Utc::now().timestamp_millis(),
             };
-            db::save_relationship(&rel);
+            db::save_relationship(&rel).unwrap_or_else(|e| {
+                toast_sig.set(Some(format!(
+                    "{}: {e}",
+                    crate::i18n::tr("toast_error", lang())
+                )))
+            });
         }
         refresh();
         selected_ids.set(std::collections::HashSet::new());
@@ -727,7 +785,12 @@ fn RelationshipSection(
             let mut updated = rel.clone();
             updated.r#type = edit_type();
             updated.notes = edit_notes();
-            db::save_relationship(&updated);
+            db::save_relationship(&updated).unwrap_or_else(|e| {
+                toast_sig.set(Some(format!(
+                    "{}: {e}",
+                    crate::i18n::tr("toast_error", lang())
+                )))
+            });
             refresh();
         }
         editing_id.set(String::new());
@@ -740,7 +803,12 @@ fn RelationshipSection(
     let mut execute_delete = move || {
         let id = confirm_del();
         if !id.is_empty() {
-            db::delete_relationship(&id);
+            db::delete_relationship(&id).unwrap_or_else(|e| {
+                toast_sig.set(Some(format!(
+                    "{}: {e}",
+                    crate::i18n::tr("toast_error", lang())
+                )))
+            });
             refresh();
             confirm_del.set(String::new());
         }
@@ -970,10 +1038,7 @@ mod tests {
 
     #[test]
     fn group_single_rel() {
-        let g = group_relationships(
-            vec![rel("alice", "bob", RelationType::WorksWith)],
-            "alice",
-        );
+        let g = group_relationships(vec![rel("alice", "bob", RelationType::WorksWith)], "alice");
         assert_eq!(g.len(), 1);
         assert_eq!(format!("{}", g[0].0), "WorksWith");
         assert_eq!(g[0].1.len(), 1);
@@ -1011,10 +1076,7 @@ mod tests {
 
     #[test]
     fn group_incoming_rel() {
-        let g = group_relationships(
-            vec![rel("bob", "alice", RelationType::Manages)],
-            "alice",
-        );
+        let g = group_relationships(vec![rel("bob", "alice", RelationType::Manages)], "alice");
         assert_eq!(g.len(), 1);
         assert!(!g[0].1[0].2);
     }

@@ -28,8 +28,8 @@ mod pages;
 mod templates;
 mod theme;
 mod toast;
-mod undo;
 mod tutorial;
+mod undo;
 
 #[derive(Clone, Debug, PartialEq, Routable)]
 enum Route {

@@ -34,13 +34,14 @@ pub fn restore_from_json(json: &str) -> Result<RestoreCount, String> {
     let data: BackupData =
         serde_json::from_str(json).map_err(|e| format!("Invalid backup: {e}"))?;
     for p in &data.persons {
-        db::save_person(p);
+        db::save_person(p).map_err(|e| format!("Restore failed (person {}): {e}", p.id))?;
     }
     for p in &data.predictions {
-        db::save_prediction(p);
+        db::save_prediction(p).map_err(|e| format!("Restore failed (prediction {}): {e}", p.id))?;
     }
     for r in &data.relationships {
-        db::save_relationship(r);
+        db::save_relationship(r)
+            .map_err(|e| format!("Restore failed (relationship {}): {e}", r.id))?;
     }
     Ok(RestoreCount {
         persons: data.persons.len(),
@@ -300,9 +301,7 @@ fn mock_backup_json() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use peoplemodeler_core::models::{
-        OceanScores, Person, RepScores, Tag,
-    };
+    use peoplemodeler_core::models::{OceanScores, Person, RepScores, Tag};
 
     #[test]
     fn test_backup_serde_roundtrip() {
@@ -317,8 +316,14 @@ mod tests {
                 context: "test".into(),
                 avatar_emoji: "🧑".into(),
                 tags: vec![
-                    Tag { name: "auto".into(), color: None },
-                    Tag { name: "ci".into(), color: Some("#ff0".into()) },
+                    Tag {
+                        name: "auto".into(),
+                        color: None,
+                    },
+                    Tag {
+                        name: "ci".into(),
+                        color: Some("#ff0".into()),
+                    },
                 ],
                 notes: String::new(),
                 motivations: vec![],

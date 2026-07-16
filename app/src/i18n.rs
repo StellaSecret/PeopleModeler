@@ -28,7 +28,9 @@ impl Lang {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            if let Ok(l) = std::env::var("LANG") && l.starts_with("en") {
+            if let Ok(l) = std::env::var("LANG")
+                && l.starts_with("en")
+            {
                 return Lang::En;
             }
             Lang::Fr
@@ -87,7 +89,6 @@ pub fn tr_danger_details(details: &str, lang: Lang) -> String {
         .collect::<Vec<_>>()
         .join(", ")
 }
-
 
 fn en(key: &'static str) -> &'static str {
     match key {
@@ -468,21 +469,37 @@ fn en(key: &'static str) -> &'static str {
         // Tutorial
         "tut_step" => "Step",
         "tut_welcome_title" => "Welcome to PeopleModeler!",
-        "tut_welcome_body" => "This app helps you model and understand the people in your life using personality frameworks like OCEAN (Big Five), motivations, cognitive biases, and behavioral patterns.\n\nYou can compare people side by side, track predictions over time, map relationships, and explore synergy scores.",
+        "tut_welcome_body" => {
+            "This app helps you model and understand the people in your life using personality frameworks like OCEAN (Big Five), motivations, cognitive biases, and behavioral patterns.\n\nYou can compare people side by side, track predictions over time, map relationships, and explore synergy scores."
+        }
         "tut_people_title" => "Your People",
-        "tut_people_body" => "The main page shows everyone you've created. Use the search bar to find someone, sort by name / recent / OCEAN score, and click the + button to add someone new.",
+        "tut_people_body" => {
+            "The main page shows everyone you've created. Use the search bar to find someone, sort by name / recent / OCEAN score, and click the + button to add someone new."
+        }
         "tut_create_title" => "Creating a Person",
-        "tut_create_body" => "The person form is divided into sections: basic info (name, role, context), OCEAN personality scores, motivations, cognitive biases, reputation dimensions, and behavioral patterns.\n\nEach section captures a different facet of someone's personality — fill in what you know, leave the rest blank.",
+        "tut_create_body" => {
+            "The person form is divided into sections: basic info (name, role, context), OCEAN personality scores, motivations, cognitive biases, reputation dimensions, and behavioral patterns.\n\nEach section captures a different facet of someone's personality — fill in what you know, leave the rest blank."
+        }
         "tut_ocean_title" => "OCEAN Model (Big Five)",
-        "tut_ocean_body" => "OCEAN measures personality across five dimensions from 1 to 10:\n• Openness — curiosity vs. caution\n• Conscientiousness — organization vs. flexibility\n• Extraversion — sociability vs. solitude\n• Agreeableness — cooperation vs. competition\n• Neuroticism — sensitivity vs. emotional stability\n\nThese scores power the comparison engine and help predict behaviour.",
+        "tut_ocean_body" => {
+            "OCEAN measures personality across five dimensions from 1 to 10:\n• Openness — curiosity vs. caution\n• Conscientiousness — organization vs. flexibility\n• Extraversion — sociability vs. solitude\n• Agreeableness — cooperation vs. competition\n• Neuroticism — sensitivity vs. emotional stability\n\nThese scores power the comparison engine and help predict behaviour."
+        }
         "tut_mot_bias_title" => "Motivations & Biases",
-        "tut_mot_bias_body" => "Motivations capture what drives a person — their goals, fears, and values (Achievement, Power, Affiliation, Security, Autonomy, etc.).\n\nBiases represent mental shortcuts that shape their decisions (Confirmation bias, Anchoring, Overconfidence, etc.). Together they give you a deeper understanding of why people act the way they do.",
+        "tut_mot_bias_body" => {
+            "Motivations capture what drives a person — their goals, fears, and values (Achievement, Power, Affiliation, Security, Autonomy, etc.).\n\nBiases represent mental shortcuts that shape their decisions (Confirmation bias, Anchoring, Overconfidence, etc.). Together they give you a deeper understanding of why people act the way they do."
+        }
         "tut_rep_pattern_title" => "Reputation & Patterns",
-        "tut_rep_pattern_body" => "Reputation scores capture how others perceive this person across bipolar scales (hardworking vs. lazy, honest vs. deceitful, etc.).\n\nBehavioral patterns let you record how they typically react to specific triggers (stress, criticism, success, conflict, etc.). This helps anticipate their responses in future situations.",
+        "tut_rep_pattern_body" => {
+            "Reputation scores capture how others perceive this person across bipolar scales (hardworking vs. lazy, honest vs. deceitful, etc.).\n\nBehavioral patterns let you record how they typically react to specific triggers (stress, criticism, success, conflict, etc.). This helps anticipate their responses in future situations."
+        }
         "tut_compare_title" => "Comparisons & More",
-        "tut_compare_body" => "Once you have at least two people, you can compare them side by side to see their synergy score, friction points, and interaction strategies.\n\nYou can also track predictions (guess an outcome, then check if you were right), build a relationship map, and log interactions on a timeline.",
+        "tut_compare_body" => {
+            "Once you have at least two people, you can compare them side by side to see their synergy score, friction points, and interaction strategies.\n\nYou can also track predictions (guess an outcome, then check if you were right), build a relationship map, and log interactions on a timeline."
+        }
         "tut_done_title" => "You're Ready!",
-        "tut_done_body" => "You can replay this tutorial anytime from the navigation bar.\n\nQuick tips:\n• Create at least two people to unlock comparisons\n• Use the Sync page to back up your data\n• Tag people to organise them by group\n\nGo ahead and start modeling the people in your world!",
+        "tut_done_body" => {
+            "You can replay this tutorial anytime from the navigation bar.\n\nQuick tips:\n• Create at least two people to unlock comparisons\n• Use the Sync page to back up your data\n• Tag people to organise them by group\n\nGo ahead and start modeling the people in your world!"
+        }
 
         // Common (tutorial)
         "common_next" => "Next →",
@@ -858,7 +875,7 @@ fn fr(key: &'static str) -> &'static str {
         "compare_balanced" => "Équilibré",
         "compare_ethics" => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
-        },
+        }
 
         // Scale bands
         "scale_strong" => "Fort",
@@ -888,25 +905,40 @@ fn fr(key: &'static str) -> &'static str {
 
         // Tags
 
-
         // Tutorial
         "tut_step" => "Étape",
         "tut_welcome_title" => "Bienvenue sur PeopleModeler !",
-        "tut_welcome_body" => "Cette application vous aide à modéliser et comprendre les personnes de votre vie en utilisant des cadres de personnalité comme l'OCEAN (Big Five), les motivations, les biais cognitifs et les schémas comportementaux.\n\nVous pouvez comparer des personnes côte à côte, suivre des prédictions dans le temps, cartographier les relations et explorer les scores de synergie.",
+        "tut_welcome_body" => {
+            "Cette application vous aide à modéliser et comprendre les personnes de votre vie en utilisant des cadres de personnalité comme l'OCEAN (Big Five), les motivations, les biais cognitifs et les schémas comportementaux.\n\nVous pouvez comparer des personnes côte à côte, suivre des prédictions dans le temps, cartographier les relations et explorer les scores de synergie."
+        }
         "tut_people_title" => "Vos Personnes",
-        "tut_people_body" => "La page principale montre toutes les personnes que vous avez créées. Utilisez la barre de recherche pour trouver quelqu'un, triez par nom / récent / score OCEAN, et cliquez sur le bouton + pour ajouter une nouvelle personne.",
+        "tut_people_body" => {
+            "La page principale montre toutes les personnes que vous avez créées. Utilisez la barre de recherche pour trouver quelqu'un, triez par nom / récent / score OCEAN, et cliquez sur le bouton + pour ajouter une nouvelle personne."
+        }
         "tut_create_title" => "Créer une Personne",
-        "tut_create_body" => "Le formulaire personne est divisé en sections : infos de base (nom, rôle, contexte), scores de personnalité OCEAN, motivations, biais cognitifs, dimensions de réputation et schémas comportementaux.\n\nChaque section capture une facette différente de la personnalité — remplissez ce que vous savez, laissez le reste vide.",
+        "tut_create_body" => {
+            "Le formulaire personne est divisé en sections : infos de base (nom, rôle, contexte), scores de personnalité OCEAN, motivations, biais cognitifs, dimensions de réputation et schémas comportementaux.\n\nChaque section capture une facette différente de la personnalité — remplissez ce que vous savez, laissez le reste vide."
+        }
         "tut_ocean_title" => "Modèle OCEAN (Big Five)",
-        "tut_ocean_body" => "L'OCEAN mesure la personnalité sur cinq dimensions de 1 à 10 :\n• Ouverture — curiosité vs. prudence\n• Conscience — organisation vs. flexibilité\n• Extraversion — sociabilité vs. solitude\n• Agréabilité — coopération vs. compétition\n• Névrosisme — sensibilité vs. stabilité émotionnelle\n\nCes scores alimentent le moteur de comparaison et aident à prédire le comportement.",
+        "tut_ocean_body" => {
+            "L'OCEAN mesure la personnalité sur cinq dimensions de 1 à 10 :\n• Ouverture — curiosité vs. prudence\n• Conscience — organisation vs. flexibilité\n• Extraversion — sociabilité vs. solitude\n• Agréabilité — coopération vs. compétition\n• Névrosisme — sensibilité vs. stabilité émotionnelle\n\nCes scores alimentent le moteur de comparaison et aident à prédire le comportement."
+        }
         "tut_mot_bias_title" => "Motivations & Biais",
-        "tut_mot_bias_body" => "Les motivations capturent ce qui anime une personne — ses objectifs, ses peurs et ses valeurs (Réussite, Pouvoir, Affiliation, Sécurité, Autonomie, etc.).\n\nLes biais représentent des raccourcis mentaux qui influencent ses décisions (biais de confirmation, ancrage, excès de confiance, etc.). Ensemble, ils vous donnent une compréhension plus profonde de pourquoi les gens agissent comme ils le font.",
+        "tut_mot_bias_body" => {
+            "Les motivations capturent ce qui anime une personne — ses objectifs, ses peurs et ses valeurs (Réussite, Pouvoir, Affiliation, Sécurité, Autonomie, etc.).\n\nLes biais représentent des raccourcis mentaux qui influencent ses décisions (biais de confirmation, ancrage, excès de confiance, etc.). Ensemble, ils vous donnent une compréhension plus profonde de pourquoi les gens agissent comme ils le font."
+        }
         "tut_rep_pattern_title" => "Réputation & Schémas",
-        "tut_rep_pattern_body" => "Les scores de réputation capturent comment les autres perçoivent cette personne sur des échelles bipolaires (travailleur vs. paresseux, honnête vs. trompeur, etc.).\n\nLes schémas comportementaux vous permettent d'enregistrer comment elle réagit typiquement à des déclencheurs spécifiques (stress, critique, succès, conflit, etc.). Cela aide à anticiper ses réponses dans des situations futures.",
+        "tut_rep_pattern_body" => {
+            "Les scores de réputation capturent comment les autres perçoivent cette personne sur des échelles bipolaires (travailleur vs. paresseux, honnête vs. trompeur, etc.).\n\nLes schémas comportementaux vous permettent d'enregistrer comment elle réagit typiquement à des déclencheurs spécifiques (stress, critique, succès, conflit, etc.). Cela aide à anticiper ses réponses dans des situations futures."
+        }
         "tut_compare_title" => "Comparaisons & Plus",
-        "tut_compare_body" => "Une fois que vous avez au moins deux personnes, vous pouvez les comparer côte à côte pour voir leur score de synergie, leurs points de friction et leurs stratégies d'interaction.\n\nVous pouvez aussi suivre des prédictions (devinez un résultat, puis vérifiez si vous aviez raison), construire une carte des relations et journaliser les interactions sur une chronologie.",
+        "tut_compare_body" => {
+            "Une fois que vous avez au moins deux personnes, vous pouvez les comparer côte à côte pour voir leur score de synergie, leurs points de friction et leurs stratégies d'interaction.\n\nVous pouvez aussi suivre des prédictions (devinez un résultat, puis vérifiez si vous aviez raison), construire une carte des relations et journaliser les interactions sur une chronologie."
+        }
         "tut_done_title" => "Prêt à Commencer !",
-        "tut_done_body" => "Vous pouvez rejouer ce tutoriel à tout moment depuis la barre de navigation.\n\nConseils rapides :\n• Créez au moins deux personnes pour débloquer les comparaisons\n• Utilisez la page Sync pour sauvegarder vos données\n• Utilisez les tags pour organiser les personnes par groupe\n\nAllez-y et commencez à modéliser les personnes de votre monde !",
+        "tut_done_body" => {
+            "Vous pouvez rejouer ce tutoriel à tout moment depuis la barre de navigation.\n\nConseils rapides :\n• Créez au moins deux personnes pour débloquer les comparaisons\n• Utilisez la page Sync pour sauvegarder vos données\n• Utilisez les tags pour organiser les personnes par groupe\n\nAllez-y et commencez à modéliser les personnes de votre monde !"
+        }
 
         // Common (tutorial)
         "common_next" => "Suivant →",

@@ -30,7 +30,8 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let score = brk.total;
             let na = a.name.clone();
             let nb = b.name.clone();
-            let (synergies, frictions, (top_strategy, all_strategies)) = compare_analysis(&a, &b, lang());
+            let (synergies, frictions, (top_strategy, all_strategies)) =
+                compare_analysis(&a, &b, lang());
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
             let compare_asymmetric = crate::i18n::tr("compare_asymmetric", lang());
@@ -39,11 +40,30 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let a_score = brk.a_score;
             let b_score = brk.b_score;
             let (a_benefit_label, b_benefit_label) = if a_score > b_score {
-                (format!("(+{}% — {} {})", a_score - b_score, na, compare_benefit_more), String::new())
+                (
+                    format!(
+                        "(+{}% — {} {})",
+                        a_score - b_score,
+                        na,
+                        compare_benefit_more
+                    ),
+                    String::new(),
+                )
             } else if b_score > a_score {
-                (String::new(), format!("(+{}% — {} {})", b_score - a_score, nb, compare_benefit_more))
+                (
+                    String::new(),
+                    format!(
+                        "(+{}% — {} {})",
+                        b_score - a_score,
+                        nb,
+                        compare_benefit_more
+                    ),
+                )
             } else {
-                (format!("({})", compare_balanced), format!("({})", compare_balanced))
+                (
+                    format!("({})", compare_balanced),
+                    format!("({})", compare_balanced),
+                )
             };
             let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
             let cat_ocean = crate::i18n::tr("compare_cat_ocean", lang());
@@ -74,7 +94,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 let (lo, hi) = band_ranges[i];
                 (band_meta[i].0, lo, hi, band_meta[i].1)
             });
-            let active_band = scale_bands.iter().position(|(_, lo, hi, _)| score >= *lo && score <= *hi).unwrap_or(2);
+            let active_band = scale_bands
+                .iter()
+                .position(|(_, lo, hi, _)| score >= *lo && score <= *hi)
+                .unwrap_or(2);
 
             rsx! {
                 div { class: "page",
@@ -268,8 +291,16 @@ fn PersonCard(person: Person) -> Element {
 
 #[component]
 fn BreakdownBars(
-    cat_ocean: String, cat_rep: String, cat_mot: String, cat_pat: String, cat_bias: String,
-    s_ocean: f64, s_rep: f64, s_mot: f64, s_pat: f64, s_bias: f64,
+    cat_ocean: String,
+    cat_rep: String,
+    cat_mot: String,
+    cat_pat: String,
+    cat_bias: String,
+    s_ocean: f64,
+    s_rep: f64,
+    s_mot: f64,
+    s_pat: f64,
+    s_bias: f64,
     bias_mod_active: bool,
 ) -> Element {
     let cats = [
@@ -320,7 +351,11 @@ fn MiniBars(scores: [Option<u8>; 5]) -> Element {
     }
 }
 
-fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<String>, (String, Vec<String>)) {
+fn compare_analysis(
+    a: &Person,
+    b: &Person,
+    lang: Lang,
+) -> (Vec<String>, Vec<String>, (String, Vec<String>)) {
     let oa = &a.ocean;
     let ob = &b.ocean;
     let cl = core_lang(lang);
@@ -335,20 +370,34 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     // --- Synergies ---
 
     // O-C complementarity
-    if oa.openness.zip(ob.conscientiousness).is_some_and(|(o, c)| o >= 7 && c >= 7) {
+    if oa
+        .openness
+        .zip(ob.conscientiousness)
+        .is_some_and(|(o, c)| o >= 7 && c >= 7)
+    {
         syn.push(if lang == Lang::Fr {
             format!("{na} apporte la vision créative, {nb} assure l'exécution rigoureuse")
         } else {
             format!("{na} brings creative vision, {nb} ensures rigorous execution")
         });
-    } else if ob.openness.zip(oa.conscientiousness).is_some_and(|(o, c)| o >= 7 && c >= 7) {
+    } else if ob
+        .openness
+        .zip(oa.conscientiousness)
+        .is_some_and(|(o, c)| o >= 7 && c >= 7)
+    {
         syn.push(if lang == Lang::Fr {
             format!("{nb} apporte la vision créative, {na} assure l'exécution rigoureuse")
         } else {
             format!("{nb} brings creative vision, {na} ensures rigorous execution")
         });
-    } else if oa.openness.zip(ob.openness).is_some_and(|(a, b)| a.abs_diff(b) <= 2)
-        && oa.conscientiousness.zip(ob.conscientiousness).is_some_and(|(a, b)| a.abs_diff(b) <= 2)
+    } else if oa
+        .openness
+        .zip(ob.openness)
+        .is_some_and(|(a, b)| a.abs_diff(b) <= 2)
+        && oa
+            .conscientiousness
+            .zip(ob.conscientiousness)
+            .is_some_and(|(a, b)| a.abs_diff(b) <= 2)
     {
         syn.push(if lang == Lang::Fr {
             "Profils OCEAN très proches — communication fluide et attentes alignées".into()
@@ -358,8 +407,14 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // E-A complementarity
-    if oa.extraversion.zip(ob.agreeableness).is_some_and(|(e, a)| e >= 7 && a >= 7)
-        || ob.extraversion.zip(oa.agreeableness).is_some_and(|(e, a)| e >= 7 && a >= 7)
+    if oa
+        .extraversion
+        .zip(ob.agreeableness)
+        .is_some_and(|(e, a)| e >= 7 && a >= 7)
+        || ob
+            .extraversion
+            .zip(oa.agreeableness)
+            .is_some_and(|(e, a)| e >= 7 && a >= 7)
     {
         syn.push(if lang == Lang::Fr {
             "Extraversion et agréabilité se compensent : l'un conduit, l'autre harmonise".into()
@@ -436,15 +491,13 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     if let (Some(na_n), Some(nb_n)) = (oa.neuroticism, ob.neuroticism) {
         let nd = na_n.abs_diff(nb_n);
         if nd >= 3 {
-            let (stable, reactive) = if na_n <= nb_n {
-                (&na, &nb)
-            } else {
-                (&nb, &na)
-            };
+            let (stable, reactive) = if na_n <= nb_n { (&na, &nb) } else { (&nb, &na) };
             fri.push(if lang == Lang::Fr {
                 format!("{reactive} plus réactif au stress que {stable} — risque d'incompréhension")
             } else {
-                format!("{reactive} more reactive to stress than {stable} — risk of misunderstanding")
+                format!(
+                    "{reactive} more reactive to stress than {stable} — risk of misunderstanding"
+                )
             });
         }
     }
@@ -626,7 +679,8 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // Conscientiousness-based strategy
-    if oa.conscientiousness.is_some_and(|v| v >= 7) || ob.conscientiousness.is_some_and(|v| v >= 7) {
+    if oa.conscientiousness.is_some_and(|v| v >= 7) || ob.conscientiousness.is_some_and(|v| v >= 7)
+    {
         str.push(if lang == Lang::Fr {
             "Présenter les informations de manière structurée avec des données tangibles".into()
         } else {
@@ -651,7 +705,9 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
     }
 
     // --- OCEAN-gap strategies ---
-    if let (Some(ea), Some(eb)) = (oa.extraversion, ob.extraversion) && ea.abs_diff(eb) >= 3 {
+    if let (Some(ea), Some(eb)) = (oa.extraversion, ob.extraversion)
+        && ea.abs_diff(eb) >= 3
+    {
         let (more, quieter) = if ea >= eb { (&na, &nb) } else { (&nb, &na) };
         str.push(if lang == Lang::Fr {
             format!("Rythme social très différent — {more} préfère plus d'échanges, {quieter} plus de calme")
@@ -659,14 +715,18 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
             format!("Very different social pace — {more} prefers more interaction, {quieter} more quiet time")
         });
     }
-    if let (Some(aa), Some(ab)) = (oa.agreeableness, ob.agreeableness) && aa.abs_diff(ab) >= 3 {
+    if let (Some(aa), Some(ab)) = (oa.agreeableness, ob.agreeableness)
+        && aa.abs_diff(ab) >= 3
+    {
         str.push(if lang == Lang::Fr {
             "Styles de conflit différents — l'un cherche l'harmonie, l'autre la franchise".into()
         } else {
             "Different conflict styles — one seeks harmony, the other directness".into()
         });
     }
-    if let (Some(ca), Some(cb)) = (oa.conscientiousness, ob.conscientiousness) && ca.abs_diff(cb) >= 3 {
+    if let (Some(ca), Some(cb)) = (oa.conscientiousness, ob.conscientiousness)
+        && ca.abs_diff(cb) >= 3
+    {
         str.push(if lang == Lang::Fr {
             "Niveaux d'organisation différents — adapter le niveau de détail et de structure".into()
         } else {
@@ -680,16 +740,27 @@ fn compare_analysis(a: &Person, b: &Person, lang: Lang) -> (Vec<String>, Vec<Str
         b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
     ) {
         let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
-        let intensity_bonus = if pa.intensity.max(pb.intensity) >= 8 { " ⚠️" } else { "" };
+        let intensity_bonus = if pa.intensity.max(pb.intensity) >= 8 {
+            " ⚠️"
+        } else {
+            ""
+        };
         if t_syn < -0.1 {
             str.push(if lang == Lang::Fr {
-                format!("Risque de déclenchement mutuel{} — leurs réactions au stress s'amplifient", intensity_bonus)
+                format!(
+                    "Risque de déclenchement mutuel{} — leurs réactions au stress s'amplifient",
+                    intensity_bonus
+                )
             } else {
-                format!("Risk of mutual triggering{} — their stress responses amplify each other", intensity_bonus)
+                format!(
+                    "Risk of mutual triggering{} — their stress responses amplify each other",
+                    intensity_bonus
+                )
             });
         } else if t_syn > 0.1 {
             str.push(if lang == Lang::Fr {
-                "Complémentarité comportementale — leurs réactions s'équilibrent naturellement".into()
+                "Complémentarité comportementale — leurs réactions s'équilibrent naturellement"
+                    .into()
             } else {
                 "Natural behavioral complementarity — their responses balance each other".into()
             });
