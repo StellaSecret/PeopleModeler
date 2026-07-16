@@ -66,6 +66,13 @@ pub fn PersonDetail(id: String) -> Element {
             let rel_person_rel = crate::i18n::tr("rel_person_rel", lang());
             let rel_none = crate::i18n::tr("rel_none", lang());
             let rel_title = crate::i18n::tr("rel_title", lang());
+            let rel_notes = crate::i18n::tr("rel_notes", lang());
+            let rel_confirm_delete = crate::i18n::tr("rel_confirm_delete", lang());
+            let common_add = crate::i18n::tr("common_add", lang());
+            let common_save = crate::i18n::tr("common_save", lang());
+            let common_cancel = crate::i18n::tr("common_cancel", lang());
+            let common_edit = crate::i18n::tr("common_edit", lang());
+            let common_delete = crate::i18n::tr("common_delete", lang());
 
             let mut preds = use_signal(|| db::predictions_for_person(&id));
             let mut ctx = use_signal(String::new);
@@ -448,10 +455,10 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Relationships {
-                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title }
+                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title, rel_notes, rel_confirm_delete, common_add, common_save, common_cancel, common_edit, common_delete }
                     }
 
-                    Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "Edit person", "✏" }
+                    Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "{common_edit}", "✏" }
                 }
             }
         }
@@ -631,6 +638,13 @@ fn RelationshipSection(
     rel_person_rel: String,
     rel_none: String,
     rel_title: String,
+    rel_notes: String,
+    rel_confirm_delete: String,
+    common_add: String,
+    common_save: String,
+    common_cancel: String,
+    common_edit: String,
+    common_delete: String,
 ) -> Element {
     let nav = use_navigator();
     let persons = use_signal(db::all_persons);
@@ -792,7 +806,7 @@ fn RelationshipSection(
                             }
                             input {
                                 class: "rel-notes-input",
-                                placeholder: "Notes…",
+                                placeholder: "{rel_notes}",
                                 value: "{new_notes}",
                                 oninput: move |e| new_notes.set(e.value()),
                             }
@@ -800,7 +814,7 @@ fn RelationshipSection(
                                 class: "btn btn-primary",
                                 disabled: selected_count == 0,
                                 onclick: move |_| add_rel(),
-                                "Add",
+                                "{common_add}",
                                 if selected_count > 0 {
                                     " ({selected_count})"
                                 }
@@ -850,12 +864,12 @@ fn RelationshipSection(
                                                         button {
                                                             class: "btn btn-small btn-primary",
                                                             onclick: move |_| save_edit(),
-                                                            "Save"
+                                                            "{common_save}"
                                                         }
                                                         button {
                                                             class: "btn btn-small",
                                                             onclick: move |_| cancel_edit(),
-                                                            "Cancel"
+                                                            "{common_cancel}"
                                                         }
                                                     }
                                                 } else {
@@ -876,19 +890,19 @@ fn RelationshipSection(
                                                             button {
                                                                 class: "btn btn-small btn-danger",
                                                                 onclick: move |_| execute_delete(),
-                                                                "Delete?"
+                                                                "{rel_confirm_delete}"
                                                             }
                                                             button {
                                                                 class: "btn btn-small",
                                                                 onclick: move |_| cancel_delete(),
-                                                                "Cancel"
+                                                                "{common_cancel}"
                                                             }
                                                         }
                                                     } else {
                                                         span { class: "rel-person-actions",
                                                             button {
                                                                 class: "btn-icon",
-                                                                title: "Edit",
+                                                                title: "{common_edit}",
                                                                 onclick: {
                                                                     let rid2 = rid.clone();
                                                                     move |_| start_edit(rid2.clone())
@@ -897,7 +911,7 @@ fn RelationshipSection(
                                                             }
                                                             button {
                                                                 class: "btn-icon",
-                                                                title: "Delete",
+                                                                title: "{common_delete}",
                                                                 onclick: {
                                                                     let rid2 = rid.clone();
                                                                     move |_| confirm_delete(rid2.clone())

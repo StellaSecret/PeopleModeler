@@ -92,12 +92,9 @@ pub fn tr_danger_details(details: &str, lang: Lang) -> String {
 fn en(key: &'static str) -> &'static str {
     match key {
         // Nav
-        "nav_app_title" => "PeopleModeler",
         "nav_people" => "People",
         "nav_relationships" => "Relationships",
         "nav_timeline" => "Timeline",
-        "nav_pred" => "Pred",
-        "nav_insights" => "Insights",
         "nav_sync" => "Sync",
 
         // People list
@@ -107,12 +104,6 @@ fn en(key: &'static str) -> &'static str {
         "no_people_insights" => "No persons yet. Add someone to see insights.",
         "toast_saved" => "Saved",
         "toast_deleted" => "Deleted",
-        "toast_pred_resolved" => "Prediction resolved",
-        "toast_pred_deleted" => "Prediction deleted",
-        "sort_by" => "Sort",
-        "sort_name" => "Name",
-        "sort_recent" => "Recent",
-        "sort_ocean" => "OCEAN",
 
         // Person detail
         "person_not_found" => "Person not found",
@@ -127,9 +118,6 @@ fn en(key: &'static str) -> &'static str {
 
         "patterns_title" => "Behavioral Patterns",
         "no_patterns" => "No behavioral patterns recorded.",
-        "predictions_insights" => "Predictions & Insights",
-        "predictions_link" => "🔮 Predictions",
-        "insights_link" => "📊 Insights",
         "ocean_title" => "OCEAN Scores",
         "confidence_label" => "Confidence",
         // Person edit form
@@ -147,7 +135,6 @@ fn en(key: &'static str) -> &'static str {
         "form_ocean_title" => "OCEAN Scores (1-10)",
         "form_save" => "💾 Save",
         "form_cancel" => "Cancel",
-        "form_alert_name" => "Please enter a name.",
 
         // Ocean labels
         "ocean_openness" => "Openness",
@@ -240,24 +227,11 @@ fn en(key: &'static str) -> &'static str {
         // Insights
         "insights_title" => "📊 Insights",
         "insights_select_person" => "Select a person to view behavioral insights.",
-        "insights_for" => "📊 Insights for",
         "insights_observed" => "Observed Patterns",
         "log_title" => "📋 Log",
         "log_placeholder" => "What happened?",
         "log_add" => "Add entry",
         "log_empty" => "No entries yet.",
-        "insights_context_analysis" => "🔍 {trigger} – Context Analysis for {name}",
-        "insights_primary_driver" => "• Primary driver",
-        "insights_key_bias" => "• Key bias",
-        "insights_recommendations" => "Recommendations",
-        "insights_stress" => "😰 Under stress",
-        "insights_conflict" => "⚔️ In conflict",
-        "insights_success" => "🏆 In success",
-        "insights_uncertainty" => "❓ Uncertainty",
-        "insights_recognition" => "⭐ Seeking recognition",
-        "insights_threat" => "🛡️ Feeling threatened",
-        "insights_change" => "🔄 Facing change",
-        "insights_feedback" => "💬 Receiving feedback",
 
         // Insight strategies
         "strategy_stress_label" => "Under stress",
@@ -268,15 +242,6 @@ fn en(key: &'static str) -> &'static str {
         "strategy_threat_label" => "Feeling threatened",
         "strategy_change_label" => "Facing change",
         "strategy_feedback_label" => "Receiving feedback",
-
-        "strategy_stress_header" => "Under stress, {name} will tend to:",
-        "strategy_conflict_header" => "In conflict situations, {name}:",
-        "strategy_success_header" => "In periods of success, {name}:",
-        "strategy_uncertainty_header" => "Facing uncertainty, {name}:",
-        "strategy_recognition_header" => "When {name} seeks recognition:",
-        "strategy_threat_header" => "When {name} feels threatened:",
-        "strategy_change_header" => "When {name} faces change:",
-        "strategy_feedback_header" => "When {name} receives feedback:",
 
         "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
         "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
@@ -418,14 +383,11 @@ fn en(key: &'static str) -> &'static str {
         "sync_exported" => "✅ Exported",
         "sync_export_btn" => "📥 Export JSON",
         "sync_import_btn" => "📤 Import JSON",
-        "sync_import_placeholder" => "Paste JSON backup here to import",
-        "sync_paste_first" => "Paste JSON first",
         "sync_passphrase_label" => "Encrypt backup with passphrase (optional)",
         "sync_passphrase_placeholder" => "Enter passphrase...",
         "sync_passphrase_show" => "Show",
         "sync_passphrase_hide" => "Hide",
         "sync_wrong_passphrase" => "❌ Wrong passphrase or corrupted data",
-        "sync_token_paste_title" => "Paste Token",
         "sync_token_instruction_1" => "1. Tap 'Sign in with Google' — opens your browser",
         "sync_token_instruction_2" => "2. Sign in and grant access",
         "sync_token_instruction_3" => {
@@ -449,7 +411,6 @@ fn en(key: &'static str) -> &'static str {
         "compare_btn" => "Compare",
         "compare_sub" => "Identify synergies and friction points between two people",
         "compare_vs" => "VS",
-        "compare_synergy" => "synergy",
         "compare_top_mot" => "Top Motivation",
         "compare_bias_main" => "Main Bias",
         "compare_ocean" => "OCEAN Profile",
@@ -497,12 +458,8 @@ fn en(key: &'static str) -> &'static str {
         // Timeline
         "tl_title" => "Timeline",
         "tl_empty" => "No interaction entries yet.",
-        "tl_today" => "Today",
-        "tl_yesterday" => "Yesterday",
 
         // Tags
-        "tag_filter" => "Tag: {tag}",
-        "tag_clear" => "✕ Clear filter",
 
         // Tutorial
         "tut_welcome_title" => "Welcome to PeopleModeler!",
@@ -533,12 +490,9 @@ fn en(key: &'static str) -> &'static str {
 
 fn fr(key: &'static str) -> &'static str {
     match key {
-        "nav_app_title" => "PeopleModeler",
         "nav_people" => "Personnes",
         "nav_relationships" => "Relations",
         "nav_timeline" => "Chrono",
-        "nav_pred" => "Préd.",
-        "nav_insights" => "Analyses",
         "nav_sync" => "Sync",
 
         "search_placeholder" => "Rechercher...",
@@ -547,13 +501,6 @@ fn fr(key: &'static str) -> &'static str {
         "no_people_insights" => "Aucune personne encore. Ajoutez quelqu'un pour voir les analyses.",
         "toast_saved" => "Enregistré",
         "toast_deleted" => "Supprimé",
-        "toast_pred_resolved" => "Prédiction résolue",
-        "toast_pred_deleted" => "Prédiction supprimée",
-        "sort_by" => "Trier",
-        "sort_name" => "Nom",
-        "sort_recent" => "Récents",
-        "sort_ocean" => "OCÉAN",
-
         "person_not_found" => "Personne introuvable",
         "edit_btn" => "✏ Modifier",
         "delete_btn" => "🗑 Supprimer",
@@ -566,9 +513,6 @@ fn fr(key: &'static str) -> &'static str {
 
         "patterns_title" => "Patterns comportementaux",
         "no_patterns" => "Aucun pattern comportemental enregistré.",
-        "predictions_insights" => "Prédictions & Analyses",
-        "predictions_link" => "🔮 Prédictions",
-        "insights_link" => "📊 Analyses",
         "ocean_title" => "Scores OCEAN",
         "confidence_label" => "Confiance",
         "form_new_title" => "Nouvelle personne",
@@ -585,7 +529,6 @@ fn fr(key: &'static str) -> &'static str {
         "form_ocean_title" => "Scores OCEAN (1-10)",
         "form_save" => "💾 Enregistrer",
         "form_cancel" => "Annuler",
-        "form_alert_name" => "Veuillez entrer un nom.",
 
         "ocean_openness" => "Ouverture",
         "ocean_conscientiousness" => "Conscienciosité",
@@ -675,22 +618,11 @@ fn fr(key: &'static str) -> &'static str {
         "insights_select_person" => {
             "Sélectionnez une personne pour voir les analyses comportementales."
         }
-        "insights_for" => "📊 Analyses pour",
         "insights_observed" => "Patterns observés",
         "log_title" => "📋 Journal",
         "log_placeholder" => "Que s'est-il passé ?",
         "log_add" => "Ajouter",
         "log_empty" => "Aucune entrée.",
-        "insights_context_analysis" => "🔍 {trigger} – Analyse contextuelle de {name}",
-        "insights_primary_driver" => "• Moteur principal",
-        "insights_key_bias" => "• Biais clé",
-        "insights_recommendations" => "Recommandations",
-        "insights_stress" => "😰 Sous stress",
-        "insights_conflict" => "⚔️ En conflit",
-        "insights_success" => "🏆 En réussite",
-        "insights_uncertainty" => "❓ Incertitude",
-        "insights_recognition" => "⭐ Reconnaissance",
-        "insights_threat" => "🛡️ Menacé",
 
         "strategy_stress_label" => "Sous stress",
         "strategy_conflict_label" => "En conflit",
@@ -700,15 +632,6 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_threat_label" => "Se sentant menacé",
         "strategy_change_label" => "Face au changement",
         "strategy_feedback_label" => "Recevoir du feedback",
-
-        "strategy_stress_header" => "Sous stress, {name} aura tendance à :",
-        "strategy_conflict_header" => "En situation de conflit, {name} :",
-        "strategy_success_header" => "En période de réussite, {name} :",
-        "strategy_uncertainty_header" => "Face à l'incertitude, {name} :",
-        "strategy_recognition_header" => "Quand {name} cherche de la reconnaissance :",
-        "strategy_threat_header" => "Quand {name} se sent menacé :",
-        "strategy_change_header" => "Quand {name} fait face au changement :",
-        "strategy_feedback_header" => "Quand {name} reçoit du feedback :",
 
         "strategy_stress_high_n" => {
             "Névrosisme élevé — offrez du soutien émotionnel avant les solutions."
@@ -879,14 +802,11 @@ fn fr(key: &'static str) -> &'static str {
         "sync_exported" => "✅ Exporté",
         "sync_export_btn" => "📥 Exporter JSON",
         "sync_import_btn" => "📤 Importer JSON",
-        "sync_import_placeholder" => "Collez la sauvegarde JSON ici",
-        "sync_paste_first" => "Collez d'abord le JSON",
         "sync_passphrase_label" => "Chiffrer la sauvegarde avec une phrase de passe (optionnel)",
         "sync_passphrase_placeholder" => "Entrez la phrase de passe...",
         "sync_passphrase_show" => "Afficher",
         "sync_passphrase_hide" => "Masquer",
         "sync_wrong_passphrase" => "❌ Mauvaise phrase de passe ou données corrompues",
-        "sync_token_paste_title" => "Coller le jeton",
         "sync_token_instruction_1" => "1. Appuyez sur « Connexion Google » — le navigateur s'ouvre",
         "sync_token_instruction_2" => "2. Connectez-vous et autorisez l'accès",
         "sync_token_instruction_3" => {
@@ -909,7 +829,6 @@ fn fr(key: &'static str) -> &'static str {
         "compare_btn" => "Comparer",
         "compare_sub" => "Identifiez synergies et points de friction entre deux personnes",
         "compare_vs" => "VS",
-        "compare_synergy" => "synergie",
         "compare_top_mot" => "Motivation principale",
         "compare_bias_main" => "Biais principal",
         "compare_ocean" => "Profil OCEAN",
@@ -957,12 +876,9 @@ fn fr(key: &'static str) -> &'static str {
         // Timeline
         "tl_title" => "Chronologie",
         "tl_empty" => "Aucune entrée d'interaction.",
-        "tl_today" => "Aujourd'hui",
-        "tl_yesterday" => "Hier",
 
         // Tags
-        "tag_filter" => "Tag : {tag}",
-        "tag_clear" => "✕ Effacer le filtre",
+
 
         // Tutorial
         "tut_welcome_title" => "Bienvenue sur PeopleModeler !",
