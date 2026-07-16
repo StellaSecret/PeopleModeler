@@ -39,10 +39,11 @@ pub fn PersonDetail(id: String) -> Element {
     let not_found = crate::i18n::tr("person_not_found", lang());
     let tag_filter = use_context::<Signal<Option<String>>>();
 
-    let p = person_sig.read().clone();
+    let person_guard = person_sig.read();
+    let p = &*person_guard;
     match p {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
-        Some(ref person) => {
+        Some(person) => {
             let edit_btn = crate::i18n::tr("edit_btn", lang());
             let delete_btn = crate::i18n::tr("delete_btn", lang());
             let mot_title = crate::i18n::tr("motivations_title", lang());
