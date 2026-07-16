@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction, RepDim};
+use peoplemodeler_core::models::{BehaviorTrigger, Person, Prediction, RelationType, Relationship, RepDim};
 use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
@@ -76,10 +76,6 @@ pub fn PersonDetail(id: String) -> Element {
             let mut comparing = use_signal(|| false);
             let other_persons = use_signal(db::all_persons);
             let mut log_text = use_signal(String::new);
-            let all_rels = db::all_relationships();
-            let person_rels = all_rels.into_iter()
-                .filter(|r| r.source_id == id || r.target_id == id)
-                .collect::<Vec<_>>();
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
@@ -451,7 +447,7 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Relationships {
-                        RelationshipSection { person: person.clone(), person_id: id.clone(), rels: person_rels.clone(), rel_person_rel, rel_none, rel_title }
+                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title }
                     }
 
                     Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "Edit person", "✏" }
@@ -580,13 +576,13 @@ fn OceanChart(person: Person) -> Element {
     }
 }
 
-use peoplemodeler_core::models::Relationship;
+type RelGroup = Vec<(String, Vec<(String, String, bool)>)>;
 
 fn group_relationships(
     rels: Vec<Relationship>,
     person_id: &str,
-) -> Vec<(String, Vec<(String, bool)>)> {
-    let edges: Vec<(String, bool, String)> = rels
+) -> RelGroup {
+    let edges: Vec<(String, String, bool, String)> = rels
         .into_iter()
         .map(|rel| {
             let is_outgoing = rel.source_id == person_id;
@@ -595,15 +591,15 @@ fn group_relationships(
             } else {
                 rel.source_id
             };
-            (other_id, is_outgoing, rel.r#type.to_string())
+            (rel.id, other_id, is_outgoing, rel.r#type.to_string())
         })
         .collect();
-    let mut groups: Vec<(String, Vec<(String, bool)>)> = Vec::new();
-    for (other_id, is_outgoing, rel_type) in edges {
+    let mut groups: RelGroup = Vec::new();
+    for (rel_id, other_id, is_outgoing, rel_type) in edges {
         if let Some(pos) = groups.iter().position(|(t, _)| *t == rel_type) {
-            groups[pos].1.push((other_id, is_outgoing));
+            groups[pos].1.push((rel_id, other_id, is_outgoing));
         } else {
-            groups.push((rel_type, vec![(other_id, is_outgoing)]));
+            groups.push((rel_type, vec![(rel_id, other_id, is_outgoing)]));
         }
     }
     groups
@@ -614,124 +610,16 @@ const TYPE_COLORS: [&str; 8] = [
     "var(--purple)", "var(--gold)", "var(--teal)", "var(--blue)",
 ];
 
-#[component]
-fn RelationshipGraph(
-    person_id: String,
-    person: Person,
-    rels: Vec<Relationship>,
-    toggle_list: Signal<bool>,
-) -> Element {
-    let nav = use_navigator();
-    if rels.is_empty() {
-        return VNode::empty();
-    }
-    let type_groups = group_relationships(rels, &person_id);
-
-    let mut cards: Vec<VNode> = Vec::new();
-    for (t_idx, (rel_type, people)) in type_groups.iter().enumerate() {
-        let color = TYPE_COLORS[t_idx % TYPE_COLORS.len()];
-        let mut person_spans: Vec<VNode> = Vec::new();
-        for (other_id, _) in people {
-            let click_id = other_id.clone();
-            let other = db::person(other_id);
-            let span = if let Some(ref o) = other {
-                rsx! {
-                    span {
-                        key: "{other_id}",
-                        class: "rel-person",
-                        onclick: move |_| {
-                            let _ = nav.push(Route::PersonDetail { id: click_id.clone() });
-                        },
-                        "{o.avatar_emoji} {o.name}"
-                    }
-                }.unwrap()
-            } else {
-                rsx! {
-                    span {
-                        key: "{other_id}",
-                        class: "rel-person",
-                        "{other_id}"
-                    }
-                }.unwrap()
-            };
-            person_spans.push(span);
-        }
-        cards.push(rsx! {
-            div {
-                key: "{rel_type}",
-                class: "rel-type-card",
-                style: "border-color: {color}",
-                h3 { class: "rel-type-title", style: "color: {color}", "{rel_type}" }
-                div { class: "rel-people", {person_spans.into_iter()} }
-            }
-        }.unwrap());
-    }
-
-    rsx! {
-        div { class: "rel-graph-wrapper",
-            div { class: "rel-graph-header",
-                span { class: "rel-graph-title", "{person.avatar_emoji} {person.name}" }
-            }
-            div { class: "rel-graph-controls",
-                button {
-                    class: "rel-toggle-btn",
-                    onclick: move |_| { let cur = toggle_list(); toggle_list.set(!cur); },
-                    if toggle_list() { "Cards" } else { "List" }
-                }
-            }
-            if !toggle_list() {
-                div { class: "rel-cards", {cards.into_iter()} }
-            }
-        }
-    }
-}
-
-#[component]
-fn RelListView(
-    rels: Vec<Relationship>,
-    person_id: String,
-) -> Element {
-    let nav = use_navigator();
-    if rels.is_empty() {
-        return VNode::empty();
-    }
-    rsx! {
-        div { class: "rel-list",
-            for rel in rels {
-                {
-                    let other_id = if rel.source_id == person_id {
-                        rel.target_id.clone()
-                    } else {
-                        rel.source_id.clone()
-                    };
-                    let other = db::person(&other_id);
-                    let dir = if rel.source_id == person_id {
-                        "→"
-                    } else {
-                        "←"
-                    };
-                    let link_id = other_id.clone();
-                    rsx! {
-                        div { class: "relationship-item",
-                            if let Some(ref o) = other {
-                                span {
-                                    class: "person-link",
-                                    onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: link_id.clone() }); },
-                                    "{o.avatar_emoji} {o.name}"
-                                }
-                            } else {
-                                span { "{other_id}" }
-                            }
-                            span { " {dir} " }
-                            span { class: "tag", "{rel.r#type}" }
-                            if !rel.notes.is_empty() {
-                                p { class: "note", "{rel.notes}" }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+fn match_type(s: &str) -> RelationType {
+    match s {
+        "Manages" => RelationType::Manages,
+        "ReportsTo" => RelationType::ReportsTo,
+        "Friends" => RelationType::Friends,
+        "Family" => RelationType::Family,
+        "Partner" => RelationType::Partner,
+        "Mentors" => RelationType::Mentors,
+        "Collaborates" => RelationType::Collaborates,
+        _ => RelationType::WorksWith,
     }
 }
 
@@ -739,29 +627,297 @@ fn RelListView(
 fn RelationshipSection(
     person: Person,
     person_id: String,
-    rels: Vec<Relationship>,
     rel_person_rel: String,
     rel_none: String,
     rel_title: String,
 ) -> Element {
-    let show_list = use_signal(|| false);
+    let nav = use_navigator();
+    let persons = use_signal(db::all_persons);
+    let mut all_rels = use_signal(db::all_relationships);
+
+    let mut refresh = move || all_rels.set(db::all_relationships());
+
+    let filtered = all_rels()
+        .into_iter()
+        .filter(|r| r.source_id == person_id || r.target_id == person_id)
+        .collect::<Vec<_>>();
+    let type_groups = group_relationships(filtered, &person_id);
+
+    // Add form
+    let mut adding = use_signal(|| false);
+    let mut search_text = use_signal(String::new);
+    let mut selected_ids = use_signal(std::collections::HashSet::<String>::new);
+    let mut new_type = use_signal(|| RelationType::WorksWith);
+    let mut new_notes = use_signal(String::new);
+
+    // Edit
+    let mut editing_id = use_signal(String::new);
+    let mut edit_type = use_signal(|| RelationType::WorksWith);
+    let mut edit_notes = use_signal(String::new);
+
+    // Delete
+    let mut confirm_del = use_signal(String::new);
+
+    let pid = person_id.clone();
+    let mut add_rel = move || {
+        let ids: Vec<String> = selected_ids().into_iter().collect();
+        if ids.is_empty() {
+            return;
+        }
+        let rel_type = new_type();
+        let notes = new_notes();
+        for target in ids {
+            if target == pid {
+                continue;
+            }
+            let rel = Relationship {
+                id: uuid::Uuid::new_v4().to_string(),
+                source_id: pid.clone(),
+                target_id: target,
+                r#type: rel_type,
+                notes: notes.clone(),
+                created_at: chrono::Utc::now().timestamp_millis(),
+            };
+            db::save_relationship(&rel);
+        }
+        refresh();
+        selected_ids.set(std::collections::HashSet::new());
+        new_type.set(RelationType::WorksWith);
+        new_notes.set(String::new());
+        adding.set(false);
+    };
+
+    let mut start_edit = move |rel_id: String| {
+        if let Some(rel) = all_rels().iter().find(|r| r.id == rel_id) {
+            editing_id.set(rel_id);
+            edit_type.set(rel.r#type);
+            edit_notes.set(rel.notes.clone());
+        }
+    };
+
+    let mut save_edit = move || {
+        let id = editing_id();
+        if id.is_empty() {
+            return;
+        }
+        if let Some(rel) = all_rels().iter().find(|r| r.id == id) {
+            let mut updated = rel.clone();
+            updated.r#type = edit_type();
+            updated.notes = edit_notes();
+            db::save_relationship(&updated);
+            refresh();
+        }
+        editing_id.set(String::new());
+    };
+
+    let mut cancel_edit = move || editing_id.set(String::new());
+    let mut confirm_delete = move |rel_id: String| confirm_del.set(rel_id);
+    let mut cancel_delete = move || confirm_del.set(String::new());
+
+    let mut execute_delete = move || {
+        let id = confirm_del();
+        if !id.is_empty() {
+            db::delete_relationship(&id);
+            refresh();
+            confirm_del.set(String::new());
+        }
+    };
+
     rsx! {
         div { class: "section",
-            if rels.is_empty() {
-                h2 { "{rel_person_rel}" }
-                p { "{rel_none}" }
-            } else {
-                RelationshipGraph {
-                    person_id: person_id.clone(),
-                    person,
-                    rels: rels.clone(),
-                    toggle_list: show_list,
-                }
-                if show_list() {
-                    RelListView { rels, person_id }
+            h2 { "{rel_person_rel}" }
+
+            div { class: "rel-controls",
+                button {
+                    class: "btn",
+                    onclick: move |_| adding.set(!adding()),
+                    if adding() { "− Cancel" } else { "＋ Add" }
                 }
             }
-            div { class: "section" }
+
+            if adding() {
+                {
+                let person_options: Vec<Person> = persons().into_iter()
+                    .filter(|p| p.id != person_id)
+                    .filter(|p| {
+                        let q = search_text().to_lowercase();
+                        q.is_empty() || p.name.to_lowercase().contains(&q)
+                    })
+                    .collect();
+                let selected_count = selected_ids().len();
+                rsx! {
+                    div { class: "rel-add-form",
+                        input {
+                            class: "rel-autocomplete-input",
+                            placeholder: "Search person…",
+                            value: "{search_text}",
+                            oninput: move |e| search_text.set(e.value()),
+                        }
+                        div { class: "rel-person-check-list",
+                            for p in &person_options {
+                                {
+                                let checked = selected_ids().contains(&p.id);
+                                rsx! {
+                                    div {
+                                        key: "{p.id}",
+                                        class: "rel-person-check-row",
+                                        onclick: {
+                                            let pid = p.id.clone();
+                                            move |_| {
+                                                let mut s = selected_ids();
+                                                if s.contains(&pid) { s.remove(&pid); }
+                                                else { s.insert(pid.clone()); }
+                                                selected_ids.set(s);
+                                            }
+                                        },
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: checked,
+                                        }
+                                        span { "{p.avatar_emoji} {p.name}" }
+                                    }
+                                }
+                                }
+                            }
+                        }
+                        div { class: "rel-add-actions",
+                            select {
+                                class: "rel-type-select",
+                                value: "{new_type():?}",
+                                onchange: move |e| new_type.set(match_type(&e.value())),
+                                for rt in RelationType::ALL {
+                                    option { value: "{rt:?}", "{rt:?}" }
+                                }
+                            }
+                            input {
+                                class: "rel-notes-input",
+                                placeholder: "Notes…",
+                                value: "{new_notes}",
+                                oninput: move |e| new_notes.set(e.value()),
+                            }
+                            button {
+                                class: "btn btn-primary",
+                                disabled: selected_count == 0,
+                                onclick: move |_| add_rel(),
+                                "Add",
+                                if selected_count > 0 {
+                                    " ({selected_count})"
+                                }
+                            }
+                        }
+                    }
+                }
+                }
+            }
+
+            if type_groups.is_empty() {
+                p { "{rel_none}" }
+            } else {
+                div { class: "rel-cards",
+                    for (t_idx, (rel_type, people)) in type_groups.iter().enumerate() {
+                        {
+                        let color = TYPE_COLORS[t_idx % TYPE_COLORS.len()];
+                        rsx! {
+                            div {
+                                key: "{rel_type}",
+                                class: "rel-type-card",
+                                style: "border-color: {color}",
+                                h3 { class: "rel-type-title", style: "color: {color}", "{rel_type}" }
+                                div { class: "rel-people",
+                                    for (rel_id, other_id, is_outgoing) in people {
+                                        {
+                                        let rid = rel_id.clone();
+                                        let oid = other_id.clone();
+                                        let matched = persons().iter().find(|p| p.id == oid).cloned();
+                                        rsx! {
+                                            div {
+                                                key: "{rel_id}",
+                                                class: "rel-person-row",
+                                                if editing_id() == rid {
+                                                    div { class: "rel-edit-row",
+                                                        select {
+                                                            value: "{edit_type():?}",
+                                                            onchange: move |e| edit_type.set(match_type(&e.value())),
+                                                            for rt in RelationType::ALL {
+                                                                option { value: "{rt:?}", "{rt:?}" }
+                                                            }
+                                                        }
+                                                        input {
+                                                            value: "{edit_notes}",
+                                                            oninput: move |e| edit_notes.set(e.value()),
+                                                        }
+                                                        button {
+                                                            class: "btn btn-small btn-primary",
+                                                            onclick: move |_| save_edit(),
+                                                            "Save"
+                                                        }
+                                                        button {
+                                                            class: "btn btn-small",
+                                                            onclick: move |_| cancel_edit(),
+                                                            "Cancel"
+                                                        }
+                                                    }
+                                                } else {
+                                                    if let Some(ref o) = matched {
+                                                        span {
+                                                            class: "rel-person",
+                                                            onclick: move |_| { let _ = nav.push(Route::PersonDetail { id: oid.clone() }); },
+                                                            "{o.avatar_emoji} {o.name}"
+                                                        }
+                                                    } else {
+                                                        span { class: "rel-person", "{oid}" }
+                                                    }
+
+                                                    span { class: "rel-direction", if *is_outgoing { "→" } else { "←" } }
+
+                                                    if confirm_del() == rid {
+                                                        span { class: "rel-confirm-delete",
+                                                            button {
+                                                                class: "btn btn-small btn-danger",
+                                                                onclick: move |_| execute_delete(),
+                                                                "Delete?"
+                                                            }
+                                                            button {
+                                                                class: "btn btn-small",
+                                                                onclick: move |_| cancel_delete(),
+                                                                "Cancel"
+                                                            }
+                                                        }
+                                                    } else {
+                                                        span { class: "rel-person-actions",
+                                                            button {
+                                                                class: "btn-icon",
+                                                                title: "Edit",
+                                                                onclick: {
+                                                                    let rid2 = rid.clone();
+                                                                    move |_| start_edit(rid2.clone())
+                                                                },
+                                                                "✏"
+                                                            }
+                                                            button {
+                                                                class: "btn-icon",
+                                                                title: "Delete",
+                                                                onclick: {
+                                                                    let rid2 = rid.clone();
+                                                                    move |_| confirm_delete(rid2.clone())
+                                                                },
+                                                                "✕"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        }
+                    }
+                }
+            }
+
             Link { to: Route::Relationships {}, class: "btn", "{rel_title}" }
         }
     }
@@ -797,7 +953,9 @@ mod tests {
         );
         assert_eq!(g.len(), 1);
         assert_eq!(g[0].0, "WorksWith");
-        assert_eq!(g[0].1, vec![("bob".to_string(), true)]);
+        assert_eq!(g[0].1.len(), 1);
+        assert_eq!(g[0].1[0].1, "bob");
+        assert!(g[0].1[0].2);
     }
 
     #[test]
@@ -835,7 +993,7 @@ mod tests {
             "alice",
         );
         assert_eq!(g.len(), 1);
-        assert!(!g[0].1[0].1); // incoming
+        assert!(!g[0].1[0].2);
     }
 
     #[test]

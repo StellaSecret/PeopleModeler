@@ -1,162 +1,262 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{RelationType, Relationship};
+use peoplemodeler_core::models::RelationType;
+use std::collections::{HashMap, HashSet};
 
 use crate::db;
 use crate::i18n::Lang;
 use crate::Route;
 
+
+const NODE_R: f64 = 14.0;
+const CHORD_R: f64 = 260.0;
+const SVG_S: f64 = 800.0;
+const CX: f64 = SVG_S / 2.0;
+const CY: f64 = SVG_S / 2.0;
+
+const TYPE_COLORS: [&str; 8] = [
+    "var(--cyan)", "var(--orange)", "var(--green)", "var(--pink)",
+    "var(--purple)", "var(--gold)", "var(--teal)", "var(--blue)",
+];
+
+fn type_color(rt: &RelationType) -> &'static str {
+    let idx = RelationType::ALL.iter().position(|t| t == rt).unwrap_or(0);
+    TYPE_COLORS[idx % TYPE_COLORS.len()]
+}
+
+fn type_idx(rt: &RelationType) -> usize {
+    RelationType::ALL.iter().position(|t| t == rt).unwrap_or(0)
+}
+
+struct NodePos {
+    id: String,
+    x: f64,
+    y: f64,
+    tx: f64,
+    anchor: String,
+    label: String,
+}
+
+struct ChordArc {
+    key: String,
+    path_d: String,
+    color: &'static str,
+}
+
 #[component]
 pub fn Relationships() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let mut rels = use_signal(db::all_relationships);
+    let nav = use_navigator();
+    let rels = use_signal(db::all_relationships);
     let persons = use_signal(db::all_persons);
 
     let title = crate::i18n::tr("rel_title", lang());
-    let add_label = crate::i18n::tr("rel_add", lang());
     let none = crate::i18n::tr("rel_none", lang());
-    let notes_pl = crate::i18n::tr("rel_notes", lang());
-    let add_btn = crate::i18n::tr("common_add", lang());
-    let del_btn = crate::i18n::tr("common_delete", lang());
-    let rel_from = crate::i18n::tr("rel_from", lang());
 
-    let mut adding = use_signal(|| false);
-    let mut r#type = use_signal(|| RelationType::WorksWith);
-    let mut notes = use_signal(String::new);
-    let mut checked = use_signal(std::collections::HashSet::<String>::new);
-    let mut source_id = use_signal(String::new);
+    let mut search = use_signal(String::new);
+    let mut active_types = use_signal(|| RelationType::ALL.to_vec());
 
-    let persons_list = persons();
+    let all_persons = persons();
+    let all_rels = rels();
+    let search_text = search();
+    let active = active_types();
 
-    let mut add_rel = move || {
-        let src = source_id();
-        if src.is_empty() {
-            return;
+    let matched_persons: Vec<(String, String, String)> = all_persons
+        .into_iter()
+        .filter(|p| {
+            search_text.is_empty()
+                || p.name.to_lowercase().contains(&search_text.to_lowercase())
+        })
+        .map(|p| (p.id, p.name, p.avatar_emoji))
+        .collect();
+
+    let person_ids: HashSet<&str> = matched_persons.iter().map(|(id, _, _)| id.as_str()).collect();
+
+    let mut pair_map: HashMap<(&str, &str), Vec<RelationType>> = HashMap::new();
+    for rel in &all_rels {
+        if !active.contains(&rel.r#type) {
+            continue;
         }
-        for cid in checked().iter() {
-            if *cid == src {
-                continue;
-            }
-            let rel = Relationship {
-                id: uuid::Uuid::new_v4().to_string(),
-                source_id: src.clone(),
-                target_id: cid.clone(),
-                r#type: r#type(),
-                notes: notes(),
-                created_at: chrono::Utc::now().timestamp_millis(),
-            };
-            db::save_relationship(&rel);
+        if !person_ids.contains(rel.source_id.as_str())
+            || !person_ids.contains(rel.target_id.as_str())
+        {
+            continue;
         }
-        rels.set(db::all_relationships());
-        notes.set(String::new());
-        checked.set(std::collections::HashSet::new());
-        source_id.set(String::new());
-        adding.set(false);
-    };
+        let key = if rel.source_id < rel.target_id {
+            (rel.source_id.as_str(), rel.target_id.as_str())
+        } else {
+            (rel.target_id.as_str(), rel.source_id.as_str())
+        };
+        let types = pair_map.entry(key).or_default();
+        if !types.contains(&rel.r#type) {
+            types.push(rel.r#type);
+        }
+    }
 
-    let person_name = |id: &str| -> String {
-        persons_list
-            .iter()
-            .find(|p| p.id == id)
-            .map(|p| format!("{} {}", p.avatar_emoji, p.name))
-            .unwrap_or_else(|| id.to_string())
-    };
+    let n = matched_persons.len() as f64;
+    let n_usize = matched_persons.len();
+
+    let mut nodes: Vec<NodePos> = Vec::new();
+    for (i, (id, name, emoji)) in matched_persons.iter().enumerate() {
+        let angle = 2.0 * std::f64::consts::PI * i as f64 / n - std::f64::consts::PI / 2.0;
+        let x = CX + CHORD_R * angle.cos();
+        let y = CY + CHORD_R * angle.sin();
+        let (anchor, tx) = if angle.cos() >= 0.0 {
+            ("start".to_string(), x + NODE_R + 8.0)
+        } else {
+            ("end".to_string(), x - NODE_R - 8.0)
+        };
+        nodes.push(NodePos {
+            id: id.clone(),
+            x,
+            y,
+            tx,
+            anchor,
+            label: format!("{} {}", emoji, name),
+        });
+    }
+
+    let mut chords: Vec<ChordArc> = Vec::new();
+    for ((id1, id2), types) in &pair_map {
+        let Some(p1) = nodes.iter().find(|n| n.id == *id1) else { continue };
+        let Some(p2) = nodes.iter().find(|n| n.id == *id2) else { continue };
+        let (x1, y1) = (p1.x, p1.y);
+        let (x2, y2) = (p2.x, p2.y);
+
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+        let dist = (dx * dx + dy * dy).sqrt();
+        if dist < 1.0 {
+            continue;
+        }
+        let sx = x1 + dx / dist * NODE_R;
+        let sy = y1 + dy / dist * NODE_R;
+        let ex = x2 - dx / dist * NODE_R;
+        let ey = y2 - dy / dist * NODE_R;
+
+        let pdx = -dy / dist;
+        let pdy = dx / dist;
+
+        let mut sorted: Vec<&RelationType> = types.iter().collect();
+        sorted.sort_by_key(|t| type_idx(t));
+
+        for (i, rt) in sorted.iter().enumerate() {
+            let offset = i as f64 * 7.0 - (sorted.len() as f64 - 1.0) * 3.5;
+            let mx = (sx + ex) / 2.0 + pdx * offset;
+            let my = (sy + ey) / 2.0 + pdy * offset;
+
+            let cdx = CX - mx;
+            let cdy = CY - my;
+            let cd = (cdx * cdx + cdy * cdy).sqrt();
+            let curvature = cd * 0.28;
+            let cpx = mx + cdx / cd * curvature;
+            let cpy = my + cdy / cd * curvature;
+
+            let path_d = format!(
+                "M {:.1},{:.1} Q {:.1},{:.1} {:.1},{:.1}",
+                sx, sy, cpx, cpy, ex, ey
+            );
+            let color = type_color(rt);
+            chords.push(ChordArc {
+                key: format!("{}-{}-{:?}", id1, id2, rt),
+                path_d,
+                color,
+            });
+        }
+    }
 
     rsx! {
         div { class: "page",
-            h2 { "{title}" }
+            div { class: "page-header",
+                h2 { "{title}" }
+            }
 
-            button { class: "btn", aria_label: "{add_label}", onclick: move |_| adding.set(!adding()), "{add_label}" }
-
-            if adding() {
-                div { class: "section rel-form",
-                    p { class: "rel-hint", "{rel_from}" }
-                    div { class: "rel-person-list",
-                        for p in &persons_list {
-                            div { class: "rel-person-row",
-                                input {
-                                    r#type: "radio",
-                                    name: "rel-source",
-                                    value: "{p.id}",
-                                    checked: source_id() == p.id,
-                                    onchange: {
-                                        let pid = p.id.clone();
-                                        move |_| source_id.set(pid.clone())
-                                    },
-                                }
-                                input {
-                                    r#type: "checkbox",
-                                    checked: checked().contains(&p.id),
-                                    onchange: {
-                                        let pid = p.id.clone();
-                                        move |_| {
-                                            let mut c = checked();
-                                            if c.contains(&pid) { c.remove(&pid); }
-                                            else { c.insert(pid.clone()); }
-                                            checked.set(c);
+            div { class: "chord-controls",
+                input {
+                    class: "chord-search",
+                    placeholder: "Search person…",
+                    value: search,
+                    oninput: move |e| search.set(e.value()),
+                }
+                div { class: "type-chips",
+                    for rt in RelationType::ALL {
+                        {
+                        let on = active.contains(&rt);
+                        let chip_color = type_color(&rt);
+                        let chip_style = if on {
+                            format!("border-color: {}; background: {};", chip_color, chip_color)
+                        } else {
+                            format!("border-color: {};", chip_color)
+                        };
+                        rsx! {
+                            button {
+                                key: "chip-{rt:?}",
+                                class: if on { "type-chip On" } else { "type-chip" },
+                                style: "{chip_style}",
+                                onclick: {
+                                    let rt2 = rt;
+                                    move |_| {
+                                        let mut v = active_types();
+                                        if v.contains(&rt2) {
+                                            v.retain(|t| *t != rt2);
+                                        } else {
+                                            v.push(rt2);
                                         }
-                                    },
-                                }
-                                span { class: "rel-avatar", "{p.avatar_emoji}" }
-                                span { "{p.name}" }
+                                        active_types.set(v);
+                                    }
+                                },
+                                "{rt:?}"
                             }
                         }
-                    }
-                    div { class: "form-row",
-                        select {
-                            value: "{r#type():?}",
-                            onchange: move |e| {
-                                r#type.set(match e.value().as_str() {
-                                    "Manages" => RelationType::Manages,
-                                    "ReportsTo" => RelationType::ReportsTo,
-                                    "Friends" => RelationType::Friends,
-                                    "Family" => RelationType::Family,
-                                    "Partner" => RelationType::Partner,
-                                    "Mentors" => RelationType::Mentors,
-                                    "Collaborates" => RelationType::Collaborates,
-                                    _ => RelationType::WorksWith,
-                                });
-                            },
-                            for rt in RelationType::ALL {
-                                option { value: "{rt:?}", "{rt:?}" }
-                            }
                         }
-                        input {
-                            placeholder: "{notes_pl}",
-                            value: "{notes}",
-                            oninput: move |e| notes.set(e.value()),
-                        }
-                        button { class: "btn btn-primary", onclick: move |_| add_rel(), "{add_btn}" }
                     }
                 }
             }
 
-            if rels().is_empty() {
+            if n_usize < 2 {
                 p { "{none}" }
             } else {
-                div { class: "relationship-list",
-                    for rel in rels() {
-                        div { class: "relationship-card",
-                            div { class: "relationship-card-row",
-                                Link { to: Route::PersonDetail { id: rel.source_id.clone() }, class: "person-link", "{person_name(&rel.source_id)}" }
-                                span { class: "arrow", "→" }
-                                Link { to: Route::PersonDetail { id: rel.target_id.clone() }, class: "person-link", "{person_name(&rel.target_id)}" }
-                                span { class: "tag", "{rel.r#type}" }
+                svg {
+                    view_box: "0 0 800 800",
+                    class: "chord-diagram",
+                    for c in &chords {
+                        path {
+                            key: "{c.key}",
+                            d: "{c.path_d}",
+                            fill: "none",
+                            stroke: "{c.color}",
+                            stroke_width: "2.5",
+                            opacity: "0.65",
+                        }
+                    }
+                    for pos in &nodes {
+                        g {
+                            key: "{pos.id}",
+                            class: "chord-node",
+                            onmousedown: {
+                                let pid = pos.id.clone();
+                                move |_| { let _ = nav.push(Route::PersonDetail { id: pid.clone() }); }
+                            },
+                            circle {
+                                cx: "{pos.x:.1}",
+                                cy: "{pos.y:.1}",
+                                r: "{NODE_R}",
+                                class: "chord-node-circle",
                             }
-                            if !rel.notes.is_empty() {
-                                p { class: "note", "{rel.notes}" }
+                            circle {
+                                cx: "{pos.x:.1}",
+                                cy: "{pos.y:.1}",
+                                r: "{NODE_R}",
+                                fill: "none",
+                                stroke: "var(--border)",
+                                stroke_width: "1.5",
                             }
-                            div { class: "card-actions",
-                                button {
-                                    class: "btn btn-small btn-danger",
-                                    onclick: {
-                                        let rid = rel.id.clone();
-                                        move |_| {
-                                            db::delete_relationship(&rid);
-                                            rels.set(db::all_relationships());
-                                        }
-                                    },
-                                    "{del_btn}"
-                                }
+                            text {
+                                x: "{pos.tx:.1}",
+                                y: "{pos.y:.1}",
+                                text_anchor: "{pos.anchor}",
+                                alignment_baseline: "middle",
+                                class: "chord-node-text",
+                                "{pos.label}"
                             }
                         }
                     }
