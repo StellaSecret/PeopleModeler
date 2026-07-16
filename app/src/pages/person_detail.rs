@@ -587,13 +587,13 @@ fn OceanChart(person: Person) -> Element {
     }
 }
 
-type RelGroup = Vec<(String, Vec<(String, String, bool)>)>;
+type RelGroup = Vec<(RelationType, Vec<(String, String, bool)>)>;
 
 fn group_relationships(
     rels: Vec<Relationship>,
     person_id: &str,
 ) -> RelGroup {
-    let edges: Vec<(String, String, bool, String)> = rels
+    let edges: Vec<(String, String, bool, RelationType)> = rels
         .into_iter()
         .map(|rel| {
             let is_outgoing = rel.source_id == person_id;
@@ -602,7 +602,7 @@ fn group_relationships(
             } else {
                 rel.source_id
             };
-            (rel.id, other_id, is_outgoing, rel.r#type.to_string())
+            (rel.id, other_id, is_outgoing, rel.r#type)
         })
         .collect();
     let mut groups: RelGroup = Vec::new();
@@ -653,6 +653,8 @@ fn RelationshipSection(
     common_delete: String,
 ) -> Element {
     let nav = use_navigator();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
     let persons = use_signal(db::all_persons);
     let mut all_rels = use_signal(db::all_relationships);
 
@@ -807,7 +809,7 @@ fn RelationshipSection(
                                 value: "{new_type():?}",
                                 onchange: move |e| new_type.set(match_type(&e.value())),
                                 for rt in RelationType::ALL {
-                                    option { value: "{rt:?}", "{rt:?}" }
+                                                                option { value: "{rt:?}", "{rt.label(cl)}" }
                                 }
                             }
                             input {
@@ -843,7 +845,7 @@ fn RelationshipSection(
                                 key: "{rel_type}",
                                 class: "rel-type-card",
                                 style: "border-color: {color}",
-                                h3 { class: "rel-type-title", style: "color: {color}", "{rel_type}" }
+                                h3 { class: "rel-type-title", style: "color: {color}", "{rel_type.label(cl)}" }
                                 div { class: "rel-people",
                                     for (rel_id, other_id, is_outgoing) in people {
                                         {
@@ -860,7 +862,7 @@ fn RelationshipSection(
                                                             value: "{edit_type():?}",
                                                             onchange: move |e| edit_type.set(match_type(&e.value())),
                                                             for rt in RelationType::ALL {
-                                                                option { value: "{rt:?}", "{rt:?}" }
+                                    option { value: "{rt:?}", "{rt.label(cl)}" }
                                                             }
                                                         }
                                                         input {
@@ -973,7 +975,7 @@ mod tests {
             "alice",
         );
         assert_eq!(g.len(), 1);
-        assert_eq!(g[0].0, "WorksWith");
+        assert_eq!(format!("{}", g[0].0), "WorksWith");
         assert_eq!(g[0].1.len(), 1);
         assert_eq!(g[0].1[0].1, "bob");
         assert!(g[0].1[0].2);
@@ -989,7 +991,7 @@ mod tests {
             "alice",
         );
         assert_eq!(g.len(), 1);
-        assert_eq!(g[0].0, "Friends");
+        assert_eq!(format!("{}", g[0].0), "Friends");
         assert_eq!(g[0].1.len(), 2);
     }
 
@@ -1003,8 +1005,8 @@ mod tests {
             "alice",
         );
         assert_eq!(g.len(), 2);
-        assert_eq!(g[0].0, "WorksWith");
-        assert_eq!(g[1].0, "Friends");
+        assert_eq!(format!("{}", g[0].0), "WorksWith");
+        assert_eq!(format!("{}", g[1].0), "Friends");
     }
 
     #[test]
@@ -1027,8 +1029,8 @@ mod tests {
             ],
             "alice",
         );
-        assert_eq!(g[0].0, "Family");
-        assert_eq!(g[1].0, "WorksWith");
-        assert_eq!(g[2].0, "Partner");
+        assert_eq!(format!("{}", g[0].0), "Family");
+        assert_eq!(format!("{}", g[1].0), "WorksWith");
+        assert_eq!(format!("{}", g[2].0), "Partner");
     }
 }

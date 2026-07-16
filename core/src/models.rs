@@ -507,6 +507,31 @@ impl RelationType {
         Self::Mentors,
         Self::Collaborates,
     ];
+
+    pub fn label(&self, lang: crate::i18n::Lang) -> &'static str {
+        match lang {
+            crate::i18n::Lang::Fr => match self {
+                Self::WorksWith => "Travaille avec",
+                Self::Manages => "Dirige",
+                Self::ReportsTo => "Rend compte à",
+                Self::Friends => "Amis",
+                Self::Family => "Famille",
+                Self::Partner => "Partenaire",
+                Self::Mentors => "Mentore",
+                Self::Collaborates => "Collabore",
+            },
+            crate::i18n::Lang::En => match self {
+                Self::WorksWith => "Works With",
+                Self::Manages => "Manages",
+                Self::ReportsTo => "Reports To",
+                Self::Friends => "Friends",
+                Self::Family => "Family",
+                Self::Partner => "Partner",
+                Self::Mentors => "Mentors",
+                Self::Collaborates => "Collaborates",
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
