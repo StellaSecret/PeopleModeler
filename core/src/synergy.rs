@@ -823,31 +823,6 @@ pub fn motivation_synergy_score(ma: &[Motivation], mb: &[Motivation]) -> f64 {
     }
 }
 
-pub fn all_pair_weighted_avg<T, F>(
-    items_a: &[T],
-    items_b: &[T],
-    get_intensity: F,
-    pair_score: fn(&T, &T) -> f64,
-) -> f64
-where
-    F: Fn(&T) -> u8,
-{
-    let mut sum = 0.0;
-    let mut total_w = 0.0;
-    for a in items_a {
-        for b in items_b {
-            let w = (get_intensity(a) as f64 * get_intensity(b) as f64) / 100.0;
-            sum += pair_score(a, b) * w;
-            total_w += w;
-        }
-    }
-    if total_w == 0.0 {
-        0.5
-    } else {
-        (0.5 + sum / total_w).clamp(0.0, 1.0)
-    }
-}
-
 pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
     match (a, b) {
         (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
@@ -924,10 +899,6 @@ pub fn style_synergy(a: &[PersonalStyle], b: &[PersonalStyle]) -> f64 {
 mod tests {
     use super::*;
     use crate::models::*;
-
-    struct TestItem {
-        intensity: u8,
-    }
 
     fn make_person(
         openness: Option<u8>,
@@ -1350,62 +1321,6 @@ mod tests {
             "ocean should be dampened by DunningKruger: {}",
             brk.ocean
         );
-    }
-
-    // --- all_pair_weighted_avg tests ---
-
-    #[test]
-    fn test_all_pair_avg_empty_a() {
-        let a: Vec<TestItem> = vec![];
-        let b = vec![TestItem { intensity: 5 }];
-        let score = |_: &TestItem, _: &TestItem| 1.0_f64;
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        assert!((result - 0.5).abs() < 1e-9);
-    }
-
-    #[test]
-    fn test_all_pair_avg_empty_both() {
-        let a: Vec<TestItem> = vec![];
-        let b: Vec<TestItem> = vec![];
-        let score = |_: &TestItem, _: &TestItem| 1.0_f64;
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        assert!((result - 0.5).abs() < 1e-9);
-    }
-
-    #[test]
-    fn test_all_pair_avg_single_each() {
-        let a = [TestItem { intensity: 10 }];
-        let b = [TestItem { intensity: 10 }];
-        let score = |_: &TestItem, _: &TestItem| 1.0_f64;
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        assert!((result - 1.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_all_pair_avg_equal_scores() {
-        let a = [TestItem { intensity: 5 }];
-        let b = [TestItem { intensity: 5 }];
-        let score = |_: &TestItem, _: &TestItem| 0.8_f64;
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        assert!((result - 1.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_all_pair_avg_negative_score() {
-        let a = [TestItem { intensity: 10 }];
-        let b = [TestItem { intensity: 10 }];
-        let score = |_: &TestItem, _: &TestItem| -1.0_f64;
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        assert!((result - 0.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_all_pair_avg_weighting() {
-        let a = [TestItem { intensity: 10 }, TestItem { intensity: 2 }];
-        let b = [TestItem { intensity: 10 }];
-        let score = |_: &TestItem, _: &TestItem| 1.0_f64;
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, score);
-        assert!((result - 1.0).abs() < 0.001);
     }
 
     // --- pattern_synergy tests ---
@@ -2623,39 +2538,6 @@ mod tests {
             "mixed pattern synergy: {}",
             result
         );
-    }
-
-    #[test]
-    fn test_all_pair_weighted_avg_diverging_scores() {
-        let a = [TestItem { intensity: 8 }, TestItem { intensity: 8 }];
-        let b = [TestItem { intensity: 8 }, TestItem { intensity: 8 }];
-        // All 4 pairs: alternating 0.3 and -0.3
-        fn alt_score(_: &TestItem, _: &TestItem) -> f64 {
-            0.0
-        }
-        let result = all_pair_weighted_avg(&a, &b, |x| x.intensity, alt_score);
-        // Zero score → (0.5 + 0.0).clamp = 0.5
-        assert!(
-            (result - 0.5).abs() < 0.001,
-            "zero score result: {}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_all_pair_weighted_avg_fn_pointer() {
-        fn always_one(_: &TestItem, _: &TestItem) -> f64 {
-            1.0
-        }
-        fn always_zero(_: &TestItem, _: &TestItem) -> f64 {
-            0.0
-        }
-        let a = [TestItem { intensity: 10 }];
-        let b = [TestItem { intensity: 10 }];
-        let hi = all_pair_weighted_avg(&a, &b, |x| x.intensity, always_one);
-        let lo = all_pair_weighted_avg(&a, &b, |x| x.intensity, always_zero);
-        assert!((hi - 1.0).abs() < 0.001, "always-one: {}", hi);
-        assert!((lo - 0.5).abs() < 0.001, "always-zero: {}", lo);
     }
 
     // --- style_synergy tests ---
