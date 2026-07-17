@@ -757,20 +757,20 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
 }
 
 pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
-    if a == b {
-        use MotivationType::*;
-        return match a {
-            Power => -0.2,
-            Recognition => -0.1,
-            Autonomy => 0.0,
-            Security => 0.0,
-            Creativity => 0.2,
-            Fairness => 0.2,
-            _ => 0.2,
-        };
-    }
     use MotivationType::*;
     match (a, b) {
+        // Self-pairs
+        (Power, Power) => -0.2,
+        (Recognition, Recognition) => -0.1,
+        (Autonomy, Autonomy) => 0.0,
+        (Security, Security) => 0.0,
+        (Creativity, Creativity) => 0.2,
+        (Fairness, Fairness) => 0.2,
+        (Achievement, Achievement)
+        | (Affiliation, Affiliation)
+        | (Helping, Helping)
+        | (Learning, Learning) => 0.2,
+        // Cross-pairs
         (Power, Achievement) | (Achievement, Power) => 0.3,
         (Power, Helping) | (Helping, Power) => 0.1,
         (Achievement, Affiliation) | (Affiliation, Achievement) => 0.1,
@@ -798,7 +798,24 @@ pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
         (Fairness, Affiliation) | (Affiliation, Fairness) => 0.2,
         (Fairness, Power) | (Power, Fairness) => -0.2,
         (Fairness, Recognition) | (Recognition, Fairness) => -0.1,
-        _ => 0.0,
+        (Power, Learning) | (Learning, Power) => 0.0,
+        (Power, Creativity) | (Creativity, Power) => -0.1,
+        (Achievement, Helping) | (Helping, Achievement) => 0.2,
+        (Achievement, Fairness) | (Fairness, Achievement) => 0.2,
+        (Affiliation, Learning) | (Learning, Affiliation) => 0.2,
+        (Affiliation, Creativity) | (Creativity, Affiliation) => 0.2,
+        (Helping, Autonomy) | (Autonomy, Helping) => 0.0,
+        (Helping, Recognition) | (Recognition, Helping) => 0.0,
+        (Autonomy, Recognition) | (Recognition, Autonomy) => 0.0,
+        (Autonomy, Fairness) | (Fairness, Autonomy) => 0.2,
+        (Learning, Recognition) | (Recognition, Learning) => 0.3,
+        (Learning, Security) | (Security, Learning) => 0.2,
+        (Learning, Fairness) | (Fairness, Learning) => 0.2,
+        (Recognition, Security) | (Security, Recognition) => 0.0,
+        (Recognition, Creativity) | (Creativity, Recognition) => 0.3,
+        (Security, Creativity) | (Creativity, Security) => -0.2,
+        (Security, Fairness) | (Fairness, Security) => 0.2,
+        (Creativity, Fairness) | (Fairness, Creativity) => 0.2,
     }
 }
 
@@ -2380,15 +2397,22 @@ mod tests {
 
     #[test]
     fn test_motivation_all_friction_types_have_entry() {
-        // Verify every motivation type has a defined synergy with every other type
+        // Every pair must be explicitly defined (no wildcard allowed).
+        // Adding a new MotivationType will cause a compile error here,
+        // forcing the developer to consider its synergy with all 9 other types.
         let types = MotivationType::ALL;
         for &a in &types {
             for &b in &types {
                 let val = motivation_synergy(a, b);
-                // Every pair should have a defined value (not defaulting to 0.0)
                 assert!(
-                    (-0.4..=0.4).contains(&val),
-                    "undefined synergy {:?} x {:?} = {}",
+                    (val - (-0.3)).abs() < 1e-9
+                        || (val - (-0.2)).abs() < 1e-9
+                        || (val - (-0.1)).abs() < 1e-9
+                        || val.abs() < 1e-9
+                        || (val - 0.1).abs() < 1e-9
+                        || (val - 0.2).abs() < 1e-9
+                        || (val - 0.3).abs() < 1e-9,
+                    "unexpected synergy value {:?} x {:?} = {} (not in {{-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3}})",
                     a,
                     b,
                     val
