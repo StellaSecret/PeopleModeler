@@ -519,10 +519,11 @@ fn compute_synergy_score_inner(
     let motivation = (raw_mot * (1.0 + mot_mod)).clamp(0.0, 1.0);
     let patterns = ((raw_pat - pat_danger_penalty).max(0.0) * (1.0 + pat_mod)).clamp(0.0, 1.0);
 
+    const W_HISTORY: f64 = 0.10;
     let total_danger = ocean_penalty * W_OCEAN
         + rep_penalty * W_REP
         + pat_danger_penalty * W_PAT
-        + history_penalty;
+        + history_penalty * W_HISTORY;
 
     // Dynamic weight redistribution (shared by mutual total & asymmetric)
     const W_OCEAN: f64 = 0.17;
