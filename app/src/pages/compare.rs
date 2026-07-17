@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person};
 
-use peoplemodeler_core::synergy::{compute_synergy_score, synergy_bands};
+use peoplemodeler_core::synergy::{compute_synergy_score_with_preds, synergy_bands};
 
 use crate::db;
 use crate::i18n::Lang;
@@ -26,7 +26,9 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
     match (p1(), p2()) {
         (Some(a), Some(b)) => {
-            let brk = compute_synergy_score(&a, &b);
+            let a_preds = db::predictions_for_person(&a.id);
+            let b_preds = db::predictions_for_person(&b.id);
+            let brk = compute_synergy_score_with_preds(&a, &b, &a_preds, &b_preds);
             let score = brk.total;
             let na = a.name.clone();
             let nb = b.name.clone();

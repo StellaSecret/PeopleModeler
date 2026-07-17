@@ -269,6 +269,24 @@ pub fn synergy_bands() -> [(u8, u8); 5] {
 }
 
 pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
+    compute_synergy_score_inner(a, b, &[], &[])
+}
+
+pub fn compute_synergy_score_with_preds(
+    a: &Person,
+    b: &Person,
+    a_preds: &[Prediction],
+    b_preds: &[Prediction],
+) -> SynergyBreakdown {
+    compute_synergy_score_inner(a, b, a_preds, b_preds)
+}
+
+fn compute_synergy_score_inner(
+    a: &Person,
+    b: &Person,
+    a_preds: &[Prediction],
+    b_preds: &[Prediction],
+) -> SynergyBreakdown {
     let oa = &a.ocean;
     let ob = &b.ocean;
 
@@ -394,8 +412,8 @@ pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
 
     // --- History factor ---
 
-    let a_accuracy = avg_prediction_accuracy(&[]);
-    let b_accuracy = avg_prediction_accuracy(&[]);
+    let a_accuracy = avg_prediction_accuracy(a_preds);
+    let b_accuracy = avg_prediction_accuracy(b_preds);
     let history_penalty = match (a_accuracy, b_accuracy) {
         (Some(pa), Some(pb)) if pa < 5.0 && pb < 5.0 => 0.05,
         (Some(pa), Some(_)) if pa < 5.0 => 0.03,
