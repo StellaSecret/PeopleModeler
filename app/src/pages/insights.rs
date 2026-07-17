@@ -63,6 +63,7 @@ pub(crate) fn trigger_label(t: &BehaviorTrigger, lang: Lang) -> &'static str {
         BehaviorTrigger::Threatened => crate::i18n::tr("strategy_threat_label", lang),
         BehaviorTrigger::Change => crate::i18n::tr("strategy_change_label", lang),
         BehaviorTrigger::Feedback => crate::i18n::tr("strategy_feedback_label", lang),
+        BehaviorTrigger::Injustice => crate::i18n::tr("strategy_injustice_label", lang),
     }
 }
 
@@ -76,6 +77,7 @@ pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang
         BehaviorTrigger::Threatened => threatened_strategy(p, lang),
         BehaviorTrigger::Change => change_strategy(p, lang),
         BehaviorTrigger::Feedback => feedback_strategy(p, lang),
+        BehaviorTrigger::Injustice => injustice_strategy(p, lang),
     };
 
     let top = build_top_rec(p, trigger, &all_recs, lang);
@@ -334,6 +336,32 @@ fn feedback_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_feedback_fallback", lang).into());
+    }
+    s
+}
+
+fn injustice_strategy(p: &Person, lang: Lang) -> Vec<String> {
+    let mut s = Vec::new();
+    if p.ocean.agreeableness.is_some_and(|v| v >= 7) {
+        s.push(crate::i18n::tr("strategy_injustice_high_a", lang).into());
+    }
+    if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
+        s.push(crate::i18n::tr("strategy_injustice_high_n", lang).into());
+    }
+    if let Some(m) = p.top_motivation()
+        && m.r#type == peoplemodeler_core::models::MotivationType::Fairness
+        && m.intensity >= 6
+    {
+        s.push(crate::i18n::tr("strategy_injustice_fairness", lang).into());
+    }
+    if let Some(m) = p.top_motivation()
+        && m.r#type == peoplemodeler_core::models::MotivationType::Power
+        && m.intensity >= 7
+    {
+        s.push(crate::i18n::tr("strategy_injustice_power", lang).into());
+    }
+    if s.is_empty() {
+        s.push(crate::i18n::tr("strategy_injustice_fallback", lang).into());
     }
     s
 }

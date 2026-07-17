@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::models::{
     BehaviorTrigger, BehavioralPattern, BiasType, Motivation, MotivationType, OceanScores, Person,
-    Prediction, RepDim,
+    PersonalStyle, Prediction, RepDim,
 };
 
 pub struct SynergyBreakdown {
@@ -14,6 +14,7 @@ pub struct SynergyBreakdown {
     pub motivation: f64,
     pub patterns: f64,
     pub bias: f64,
+    pub styles: f64,
     pub danger: f64,
     pub bias_mod_active: bool,
     pub danger_details: String,
@@ -27,6 +28,7 @@ pub struct PersonProfile {
     pub ocean: f64,
     pub reputation: f64,
     pub bias: f64,
+    pub styles: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -85,6 +87,10 @@ fn bias_modifier(ty: BiasType) -> Option<Modulation> {
             target: BiasTarget::Ocean,
             coefficient: 0.08,
         }),
+        Favoritism => Some(Modulation {
+            target: BiasTarget::Reputation,
+            coefficient: -0.08,
+        }),
     }
 }
 
@@ -100,15 +106,20 @@ fn avg_prediction_accuracy(predictions: &[Prediction]) -> Option<f64> {
     Some(sum / resolved.len() as f64)
 }
 
-const DIM_WEIGHTS: [(RepDim, f64); 8] = [
-    (RepDim::HonestDeceitful, 0.20),
-    (RepDim::ReliableFlaky, 0.15),
-    (RepDim::AuthoritativeSubmissive, 0.15),
-    (RepDim::HumbleArrogant, 0.15),
-    (RepDim::HardworkerLazy, 0.10),
-    (RepDim::CalmReactive, 0.10),
-    (RepDim::DiplomaticBlunt, 0.10),
-    (RepDim::GenerousSelfish, 0.05),
+const DIM_WEIGHTS: [(RepDim, f64); 13] = [
+    (RepDim::HonestDeceitful, 0.15),
+    (RepDim::ReliableFlaky, 0.12),
+    (RepDim::AuthoritativeSubmissive, 0.12),
+    (RepDim::HumbleArrogant, 0.12),
+    (RepDim::HardworkerLazy, 0.07),
+    (RepDim::CalmReactive, 0.07),
+    (RepDim::DiplomaticBlunt, 0.07),
+    (RepDim::GenerousSelfish, 0.04),
+    (RepDim::FairFavoritism, 0.07),
+    (RepDim::TrustingSuspicious, 0.05),
+    (RepDim::AssertivePassive, 0.05),
+    (RepDim::EmpatheticDetached, 0.05),
+    (RepDim::AdaptableRigid, 0.04),
 ];
 
 pub fn base_rep_quality(p: &Person) -> f64 {
@@ -228,6 +239,56 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
         && ab <= 3
     {
         p += 0.05;
+    }
+
+    // Both untrusting <= 3 → mutual suspicion
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::TrustingSuspicious),
+        rep_b.score(RepDim::TrustingSuspicious),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.08;
+    }
+
+    // Both detached <= 3 → mutual coldness
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::EmpatheticDetached),
+        rep_b.score(RepDim::EmpatheticDetached),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.08;
+    }
+
+    // Both deceitful <= 3 → trust collapse
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::HonestDeceitful),
+        rep_b.score(RepDim::HonestDeceitful),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.10;
+    }
+
+    // Both flaky <= 3 → mutual unreliability
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::ReliableFlaky),
+        rep_b.score(RepDim::ReliableFlaky),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.08;
+    }
+
+    // Both unfair <= 3 → cronyism
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::FairFavoritism),
+        rep_b.score(RepDim::FairFavoritism),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.08;
     }
 
     p
@@ -355,6 +416,7 @@ fn compute_synergy_score_inner(
                     BehaviorTrigger::Conflict
                         | BehaviorTrigger::Stress
                         | BehaviorTrigger::Threatened
+                        | BehaviorTrigger::Injustice
                 )
             })
     };
@@ -433,11 +495,12 @@ fn compute_synergy_score_inner(
         + history_penalty;
 
     // Dynamic weight redistribution (shared by mutual total & asymmetric)
-    const W_OCEAN: f64 = 0.19;
-    const W_REP: f64 = 0.29;
-    const W_MOT: f64 = 0.21;
-    const W_PAT: f64 = 0.16;
-    const W_BIAS: f64 = 0.15;
+    const W_OCEAN: f64 = 0.17;
+    const W_REP: f64 = 0.26;
+    const W_MOT: f64 = 0.19;
+    const W_PAT: f64 = 0.14;
+    const W_BIAS: f64 = 0.13;
+    const W_STYLE: f64 = 0.11;
 
     // --- Asymmetric individual perspectives ---
     // A's benefit = Σ(A's valuation_i × B's quality_i) via composition of
@@ -448,8 +511,8 @@ fn compute_synergy_score_inner(
 
     let a_base_rep = base_rep_quality(a);
     let b_base_rep = base_rep_quality(b);
-    let a_bias_quality = 1.0 - (a.biases.len() as f64 / 10.0);
-    let b_bias_quality = 1.0 - (b.biases.len() as f64 / 10.0);
+    let a_bias_quality = 1.0 - (a.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64);
+    let b_bias_quality = 1.0 - (b.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64);
 
     // OCEAN vector for each person (trait value / 10, stability = 1 - N/10)
     let ovec = |o: &OceanScores| -> [f64; 5] {
@@ -507,6 +570,11 @@ fn compute_synergy_score_inner(
     b_raw += a_bias_quality * W_BIAS;
     asym_w += W_BIAS;
 
+    let styles = style_synergy(&a.styles, &b.styles);
+    a_raw += styles * W_STYLE;
+    b_raw += styles * W_STYLE;
+    asym_w += W_STYLE;
+
     let a_score = if asym_w > 0.0 {
         ((a_raw / asym_w * 100.0).round() as u8).min(100)
     } else {
@@ -556,6 +624,7 @@ fn compute_synergy_score_inner(
         motivation,
         patterns,
         bias: bias_score,
+        styles,
         danger: total_danger,
         bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
         danger_details,
@@ -605,13 +674,21 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
 
     let rep = base_rep_quality(person);
 
-    let bias = 1.0 - (person.biases.len() as f64 / 10.0).min(1.0);
+    let bias =
+        1.0 - (person.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64).min(1.0);
 
-    const W_MOT: f64 = 0.21;
-    const W_PAT: f64 = 0.16;
-    const W_OCEAN: f64 = 0.19;
-    const W_REP: f64 = 0.29;
-    const W_BIAS: f64 = 0.15;
+    let raw_style = if !person.styles.is_empty() {
+        style_synergy(&person.styles, &person.styles)
+    } else {
+        0.5
+    };
+
+    const W_MOT: f64 = 0.19;
+    const W_PAT: f64 = 0.14;
+    const W_OCEAN: f64 = 0.17;
+    const W_REP: f64 = 0.26;
+    const W_BIAS: f64 = 0.13;
+    const W_STYLE: f64 = 0.11;
     let mut total_w = 0.0;
     let mut raw = 0.0;
     if mot_active {
@@ -628,6 +705,8 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     total_w += W_REP;
     raw += bias * W_BIAS;
     total_w += W_BIAS;
+    raw += raw_style * W_STYLE;
+    total_w += W_STYLE;
 
     let total = if total_w > 0.0 {
         ((raw / total_w * 100.0).round() as u8).min(100)
@@ -642,6 +721,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
         ocean,
         reputation: rep,
         bias,
+        styles: raw_style,
     }
 }
 
@@ -653,6 +733,8 @@ pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
             Recognition => -0.1,
             Autonomy => 0.0,
             Security => 0.0,
+            Creativity => 0.2,
+            Fairness => 0.2,
             _ => 0.2,
         };
     }
@@ -677,6 +759,14 @@ pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
         (Autonomy, Affiliation) | (Affiliation, Autonomy) => -0.1,
         (Autonomy, Security) | (Security, Autonomy) => -0.3,
         (Recognition, Affiliation) | (Affiliation, Recognition) => -0.1,
+        (Creativity, Learning) | (Learning, Creativity) => 0.3,
+        (Creativity, Autonomy) | (Autonomy, Creativity) => 0.2,
+        (Creativity, Achievement) | (Achievement, Creativity) => 0.2,
+        (Creativity, Helping) | (Helping, Creativity) => -0.1,
+        (Fairness, Helping) | (Helping, Fairness) => 0.3,
+        (Fairness, Affiliation) | (Affiliation, Fairness) => 0.2,
+        (Fairness, Power) | (Power, Fairness) => -0.2,
+        (Fairness, Recognition) | (Recognition, Fairness) => -0.1,
         _ => 0.0,
     }
 }
@@ -744,6 +834,13 @@ pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
         | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) => -0.2,
         (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition)
         | (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) => 0.2,
+        (BehaviorTrigger::Injustice, BehaviorTrigger::Stress)
+        | (BehaviorTrigger::Stress, BehaviorTrigger::Injustice) => -0.1,
+        (BehaviorTrigger::Injustice, BehaviorTrigger::Conflict)
+        | (BehaviorTrigger::Conflict, BehaviorTrigger::Injustice) => -0.1,
+        (BehaviorTrigger::Injustice, BehaviorTrigger::Uncertainty)
+        | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Injustice) => -0.1,
+        (BehaviorTrigger::Injustice, BehaviorTrigger::Injustice) => -0.2,
         _ => 0.0,
     }
 }
@@ -767,6 +864,29 @@ pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f6
     } else {
         ((sum / total_w + 0.3) / 0.6).clamp(0.0, 1.0)
     }
+}
+
+/// Style synergy: for each of the 6 style categories, if both persons have a
+/// style in that category, score 1.0 if same choice, 0.5 if different.
+/// Average over categories where both have data. Returns 0.5 if no overlap.
+pub fn style_synergy(a: &[PersonalStyle], b: &[PersonalStyle]) -> f64 {
+    use crate::models::StyleCategory;
+    let cats = StyleCategory::ALL;
+    let mut sum = 0.0;
+    let mut n = 0;
+    for cat in &cats {
+        let a_style = a.iter().find(|s| s.r#type.category() == *cat);
+        let b_style = b.iter().find(|s| s.r#type.category() == *cat);
+        if let (Some(sa), Some(sb)) = (a_style, b_style) {
+            if sa.r#type == sb.r#type {
+                sum += 1.0;
+            } else {
+                sum += 0.5;
+            }
+            n += 1;
+        }
+    }
+    if n == 0 { 0.5 } else { sum / n as f64 }
 }
 
 #[cfg(test)]
@@ -797,6 +917,7 @@ mod tests {
             biases: vec![],
             rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
+            styles: vec![],
             ocean: OceanScores {
                 openness,
                 conscientiousness,
@@ -1570,6 +1691,7 @@ mod tests {
             calm_reactive: Some(2),
             diplomatic_blunt: Some(6),
             generous_selfish: Some(6),
+            ..RepScores::default()
         };
         let a = p.clone();
         let b = p;
@@ -2348,6 +2470,7 @@ mod tests {
             calm_reactive: Some(10),
             diplomatic_blunt: Some(10),
             generous_selfish: Some(10),
+            ..RepScores::default()
         };
         let q = base_rep_quality(&p);
         assert!((q - 1.0).abs() < 0.001, "all-10 rep should be 1.0: {}", q);
@@ -2365,6 +2488,7 @@ mod tests {
             calm_reactive: Some(0),
             diplomatic_blunt: Some(0),
             generous_selfish: Some(0),
+            ..RepScores::default()
         };
         let q = base_rep_quality(&p);
         assert!((q - 0.0).abs() < 0.001, "all-0 rep should be 0.0: {}", q);
@@ -2501,5 +2625,194 @@ mod tests {
         let lo = all_pair_weighted_avg(&a, &b, |x| x.intensity, always_zero);
         assert!((hi - 1.0).abs() < 0.001, "always-one: {}", hi);
         assert!((lo - 0.5).abs() < 0.001, "always-zero: {}", lo);
+    }
+
+    // --- style_synergy tests ---
+
+    #[test]
+    fn test_style_synergy_same_style() {
+        let a = vec![PersonalStyle {
+            r#type: StyleType::DirectCommunicator,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let b = vec![PersonalStyle {
+            r#type: StyleType::DirectCommunicator,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let result = style_synergy(&a, &b);
+        assert!((result - 1.0).abs() < 1e-9, "same style → 1.0: {}", result);
+    }
+
+    #[test]
+    fn test_style_synergy_different_same_category() {
+        let a = vec![PersonalStyle {
+            r#type: StyleType::DirectCommunicator,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let b = vec![PersonalStyle {
+            r#type: StyleType::DiplomaticCommunicator,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let result = style_synergy(&a, &b);
+        assert!(
+            (result - 0.5).abs() < 1e-9,
+            "different in same category → 0.5: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_style_synergy_no_shared_categories() {
+        let a = vec![PersonalStyle {
+            r#type: StyleType::DirectCommunicator,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let b = vec![PersonalStyle {
+            r#type: StyleType::Visionary,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let result = style_synergy(&a, &b);
+        assert!(
+            (result - 0.5).abs() < 1e-9,
+            "no shared categories → 0.5: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_style_synergy_empty_both() {
+        let a: Vec<PersonalStyle> = vec![];
+        let b: Vec<PersonalStyle> = vec![];
+        let result = style_synergy(&a, &b);
+        assert!((result - 0.5).abs() < 1e-9, "both empty → 0.5: {}", result);
+    }
+
+    #[test]
+    fn test_style_synergy_mix_same_and_different() {
+        let a = vec![
+            PersonalStyle {
+                r#type: StyleType::DirectCommunicator,
+                intensity: 8,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Competing,
+                intensity: 6,
+                notes: String::new(),
+            },
+        ];
+        let b = vec![
+            PersonalStyle {
+                r#type: StyleType::DirectCommunicator,
+                intensity: 7,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Collaborating,
+                intensity: 9,
+                notes: String::new(),
+            },
+        ];
+        // Communication: same → 1.0, ConflictResolution: different → 0.5
+        // average = (1.0 + 0.5) / 2 = 0.75
+        let result = style_synergy(&a, &b);
+        assert!(
+            (result - 0.75).abs() < 1e-9,
+            "mix same + different → 0.75: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_style_synergy_one_empty_one_populated() {
+        let a: Vec<PersonalStyle> = vec![];
+        let b = vec![PersonalStyle {
+            r#type: StyleType::DirectCommunicator,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let result = style_synergy(&a, &b);
+        assert!((result - 0.5).abs() < 1e-9, "one empty → 0.5: {}", result);
+    }
+
+    #[test]
+    fn test_style_synergy_all_six_categories_same() {
+        let a_styles = vec![
+            PersonalStyle {
+                r#type: StyleType::DirectCommunicator,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Competing,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Analytical,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Visionary,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::PastOriented,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::RuleBased,
+                intensity: 5,
+                notes: String::new(),
+            },
+        ];
+        let b_styles = vec![
+            PersonalStyle {
+                r#type: StyleType::ExpressiveCommunicator,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Collaborating,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Intuitive,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Servant,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::FutureOriented,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::VirtueBased,
+                intensity: 5,
+                notes: String::new(),
+            },
+        ];
+        let result = style_synergy(&a_styles, &b_styles);
+        // All 6 categories covered, all different → 0.5 each → average = 0.5
+        assert!(
+            (result - 0.5).abs() < 1e-9,
+            "all 6 different → 0.5: {}",
+            result
+        );
     }
 }

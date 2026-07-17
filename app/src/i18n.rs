@@ -182,6 +182,7 @@ fn en(key: &'static str) -> &'static str {
         "edit_biases" => "Biases",
         "edit_reputation" => "Reputation",
         "edit_patterns" => "Behavioral Patterns",
+        "edit_styles" => "Personal Styles",
         "edit_notes_placeholder" => "Notes",
         "edit_evidence_placeholder" => "Evidence",
         "add_btn" => "＋",
@@ -195,6 +196,8 @@ fn en(key: &'static str) -> &'static str {
         "mot_helper_recognition" => "Desires acknowledgment, praise, and visibility",
         "mot_helper_learning" => "Thirst for knowledge, growth, and mastery",
         "mot_helper_helping" => "Fulfilled by supporting, mentoring, and serving others",
+        "mot_helper_creativity" => "Driven to create, innovate, and express ideas",
+        "mot_helper_fairness" => "Motivated by justice, equity, and fair treatment",
 
         "bias_helper_confirmation" => "Favors info that confirms existing beliefs",
         "bias_helper_anchoring" => "Over-relies on the first piece of info received",
@@ -206,6 +209,7 @@ fn en(key: &'static str) -> &'static str {
         "bias_helper_authority" => "Defers excessively to authority figures",
         "bias_helper_recency" => "Overweighs recent events over older ones",
         "bias_helper_in_group" => "Favors own group members over outsiders",
+        "bias_helper_favoritism" => "Shows preferential treatment to certain individuals",
 
         "pattern_helper_stress" => "How they react under pressure or tight deadlines",
         "pattern_helper_conflict" => "How they handle disagreements and confrontation",
@@ -215,6 +219,7 @@ fn en(key: &'static str) -> &'static str {
         "pattern_helper_threat" => "How they defend themselves when feeling attacked",
         "pattern_helper_change" => "How they adapt to transitions and new situations",
         "pattern_helper_feedback" => "How they receive and process input from others",
+        "pattern_helper_injustice" => "How they react when treated unfairly or witnessing unfairness",
 
         // Context labels
         "ctx_stress" => "Stress",
@@ -225,6 +230,7 @@ fn en(key: &'static str) -> &'static str {
         "ctx_threatened" => "Threatened",
         "ctx_change" => "Change",
         "ctx_feedback" => "Feedback",
+        "ctx_injustice" => "Injustice",
 
         // Predictions
         "pred_all_title" => "All Predictions",
@@ -380,6 +386,23 @@ fn en(key: &'static str) -> &'static str {
             "Balance praise and constructive input with specific examples."
         }
 
+        "strategy_injustice_label" => "Facing injustice",
+        "strategy_injustice_high_a" => {
+            "High agreeableness — may feel personally wounded by unfairness."
+        }
+        "strategy_injustice_high_n" => {
+            "High neuroticism — may ruminate and escalate perceived slights."
+        }
+        "strategy_injustice_fairness" => {
+            "Fairness-driven — will fight for what they believe is right, even at personal cost."
+        }
+        "strategy_injustice_power" => {
+            "Power-driven — may leverage authority to correct the perceived wrong."
+        }
+        "strategy_injustice_fallback" => {
+            "Acknowledge their concern and clarify the path to resolution."
+        }
+
         // Sync / Drive
         "sync_title" => "☁ Sync & Backup",
         "sync_gdrive_title" => "Google Drive Sync",
@@ -443,6 +466,7 @@ fn en(key: &'static str) -> &'static str {
         "compare_cat_motivation" => "Motivation",
         "compare_cat_patterns" => "Patterns",
         "compare_cat_bias" => "Bias",
+        "compare_cat_styles" => "Styles",
         "person_self_score" => "Profile Score",
         "OCEAN volatility" => "OCEAN volatility",
         "Rep power struggle" => "Rep power struggle",
@@ -480,6 +504,16 @@ fn en(key: &'static str) -> &'static str {
         // Timeline
         "tl_title" => "Timeline",
         "tl_empty" => "No interaction entries yet.",
+
+        // Style helpers
+        "style_cat_communication" => "💬 Communication",
+        "style_cat_conflict" => "🤝 Conflict Resolution",
+        "style_cat_decision" => "🧠 Decision-Making",
+        "style_cat_leadership" => "👥 Leadership",
+        "style_cat_time" => "⏰ Time Orientation",
+        "style_cat_moral" => "📜 Moral Framework",
+        "style_no_styles" => "No personal styles recorded.",
+        "style_panel_title" => "Personal Styles",
 
         // Tags
 
@@ -612,6 +646,7 @@ fn fr(key: &'static str) -> &'static str {
         "edit_biases" => "Biais",
         "edit_reputation" => "Réputation",
         "edit_patterns" => "Patterns comportementaux",
+        "edit_styles" => "Styles personnels",
         "edit_notes_placeholder" => "Notes",
         "edit_evidence_placeholder" => "Preuve",
         "add_btn" => "＋",
@@ -625,6 +660,8 @@ fn fr(key: &'static str) -> &'static str {
         "mot_helper_recognition" => "Désire reconnaissance, éloges et visibilité",
         "mot_helper_learning" => "Soif de connaissance, de croissance et de maîtrise",
         "mot_helper_helping" => "S'épanouit en soutenant, mentorant et servant les autres",
+        "mot_helper_creativity" => "Cherche à créer, innover et exprimer des idées",
+        "mot_helper_fairness" => "Motivé par la justice, l'équité et le traitement juste",
 
         "bias_helper_confirmation" => "Favorise les infos qui confirment ses croyances",
         "bias_helper_anchoring" => "Se fie trop à la première information reçue",
@@ -636,6 +673,7 @@ fn fr(key: &'static str) -> &'static str {
         "bias_helper_authority" => "Se soumet excessivement aux figures d'autorité",
         "bias_helper_recency" => "Accorde trop de poids aux événements récents",
         "bias_helper_in_group" => "Favorise les membres de son propre groupe",
+        "bias_helper_favoritism" => "Accorde un traitement préférentiel à certains",
 
         "pattern_helper_stress" => "Comment il réagit sous pression ou délais serrés",
         "pattern_helper_conflict" => "Comment il gère les désaccords et confrontations",
@@ -645,6 +683,7 @@ fn fr(key: &'static str) -> &'static str {
         "pattern_helper_threat" => "Comment il se défend quand il se sent attaqué",
         "pattern_helper_change" => "Comment il s'adapte aux transitions et nouveautés",
         "pattern_helper_feedback" => "Comment il reçoit et traite les retours des autres",
+        "pattern_helper_injustice" => "Comment il réagit face à l'injustice ou au traitement inéquitable",
 
         "ctx_stress" => "Stress",
         "ctx_conflict" => "Conflit",
@@ -654,6 +693,7 @@ fn fr(key: &'static str) -> &'static str {
         "ctx_threatened" => "Menacé",
         "ctx_change" => "Changement",
         "ctx_feedback" => "Feedback",
+        "ctx_injustice" => "Injustice",
 
         "pred_all_title" => "Toutes les prédictions",
         "pred_for" => "🔮 Prédictions pour",
@@ -836,6 +876,23 @@ fn fr(key: &'static str) -> &'static str {
             "Équilibrez éloges et critiques constructives avec des exemples précis."
         }
 
+        "strategy_injustice_label" => "Face à l'injustice",
+        "strategy_injustice_high_a" => {
+            "Haute agréabilité — peut se sentir personnellement blessé par l'injustice."
+        }
+        "strategy_injustice_high_n" => {
+            "Névrosisme élevé — peut ruminer et amplifier les affronts perçus."
+        }
+        "strategy_injustice_fairness" => {
+            "Motivé par l'équité — se battra pour ce qu'il croit juste, même à titre personnel."
+        }
+        "strategy_injustice_power" => {
+            "Motivé par le pouvoir — peut utiliser son autorité pour corriger le tort perçu."
+        }
+        "strategy_injustice_fallback" => {
+            "Reconnaissez leur préoccupation et clarifiez la voie vers la résolution."
+        }
+
         "sync_title" => "☁ Sync & Sauvegarde",
         "sync_gdrive_title" => "Synchronisation Google Drive",
         "sync_token_loaded" => "✓ Jeton chargé",
@@ -899,6 +956,7 @@ fn fr(key: &'static str) -> &'static str {
         "compare_cat_motivation" => "Motivation",
         "compare_cat_patterns" => "Patterns",
         "compare_cat_bias" => "Biais",
+        "compare_cat_styles" => "Styles",
         "person_self_score" => "Score de profil",
         "OCEAN volatility" => "Volatilité OCEAN",
         "Rep power struggle" => "Lutte de pouvoir (réputation)",
@@ -936,6 +994,16 @@ fn fr(key: &'static str) -> &'static str {
         // Timeline
         "tl_title" => "Chronologie",
         "tl_empty" => "Aucune entrée d'interaction.",
+
+        // Style helpers
+        "style_cat_communication" => "💬 Communication",
+        "style_cat_conflict" => "🤝 Résolution conflit",
+        "style_cat_decision" => "🧠 Prise de décision",
+        "style_cat_leadership" => "👥 Leadership",
+        "style_cat_time" => "⏰ Orientation temporelle",
+        "style_cat_moral" => "📜 Cadre moral",
+        "style_no_styles" => "Aucun style personnel enregistré.",
+        "style_panel_title" => "Styles personnels",
 
         // Tags
 

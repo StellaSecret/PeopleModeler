@@ -299,6 +299,25 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                             if person.behavioral_patterns.is_empty() { div { class: "empty-state", p { "{no_pat}" } } }
                         }
+                        div { class: "section",
+                            h2 { "{crate::i18n::tr(\"style_panel_title\", lang())}" }
+                            for s in &person.styles {
+                                div { class: "motivation-item",
+                                    div { class: "item-icon", "{s.r#type.emoji()}" }
+                                    div { class: "item-info",
+                                        div { class: "item-name", "{s.r#type.i18n_label(cl)}" }
+                                        div { class: "item-bar-row",
+                                            div { class: "item-bar",
+                                                div { class: "item-bar-fill purple", style: "width: {s.intensity * 10}%" }
+                                            }
+                                            div { class: "item-intensity", "{s.intensity}/10" }
+                                        }
+                                        if !s.notes.is_empty() { div { class: "item-notes", "{s.notes}" } }
+                                    }
+                                }
+                            }
+                            if person.styles.is_empty() { div { class: "empty-state", p { "{crate::i18n::tr(\"style_no_styles\", lang())}" } } }
+                        }
                     }
 
                     if tab() == Tab::Biases {

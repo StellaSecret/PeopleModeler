@@ -18,53 +18,45 @@
 ## 📁 Structure du projet
 
 ```
-people-modeler/
+PeopleModeler/
 ├── core/                       # Moteur Rust (WASM + JNI)
 │   ├── src/
-│   │   ├── lib.rs              # Point d'entrée, exports WASM/JNI
-│   │   ├── models.rs           # Types partagés (Person, Prediction, BehaviorTrigger)
-│   │   ├── synergy.rs          # Score de synergie (OCEAN, Rep, Mot, Pat, Bias)
+│   │   ├── lib.rs              # Point d'entrée, exports WASM
+│   │   ├── models.rs           # Types: Person, Motivation, Bias, BehaviorPattern, StyleType...
+│   │   ├── synergy.rs          # Score de synergie (OCEAN, Rep, Mot, Pat, Bias, Style)
 │   │   ├── insights.rs         # Génération d'insights comportementaux
+│   │   ├── predictions.rs      # Logique de prédictions
 │   │   ├── ocean.rs            # Interprétation OCEAN
+│   │   ├── i18n.rs             # Internationalisation (EN/FR)
+│   │   ├── validation.rs       # Avertissements de cohérence
 │   │   ├── wasm.rs             # Exports WebAssembly (JS)
-│   │   └── android.rs          # Exports JNI (Kotlin)
+│   │   └── android.rs          # Exports JNI (Kotlin, legacy)
 │   └── Cargo.toml
 │
-├── android/                    # App Android (Kotlin + Room + MVVM)
-│   ├── app/
-│   │   ├── src/main/
-│   │   │   ├── java/com/peoplemodeler/
-│   │   │   │   ├── core/           # JNI bridge vers Rust
-│   │   │   │   ├── data/
-│   │   │   │   │   ├── models/      # Person, Motivation, Bias, BehaviorPattern
-│   │   │   │   │   └── repository/  # Room DB, DAOs, Repository
-│   │   │   │   ├── ui/
-│   │   │   │   │   ├── screens/     # Fragments (List, Detail, Edit, Predictions, Insights)
-│   │   │   │   │   └── components/  # RecyclerView Adapters
-│   │   │   │   └── viewmodels/      # PersonViewModel
-│   │   │   └── res/                 # Layouts, navigation, menus, colors
-│   │   └── build.gradle
-│   └── build.gradle
+├── app/                        # App Dioxus (Web WASM)
+│   ├── src/
+│   │   ├── main.rs             # Point d'entrée, routage
+│   │   ├── i18n.rs             # Internationalisation app (EN/FR)
+│   │   ├── db/mod.rs           # Stockage SQLite
+│   │   ├── pages/
+│   │   │   ├── person_list.rs      # Liste des personnes
+│   │   │   ├── person_detail.rs    # Fiche personne (onglets)
+│   │   │   ├── person_edit.rs      # Édition personne
+│   │   │   ├── compare.rs          # Comparaison 2 profils
+│   │   │   ├── insights.rs         # Insights globaux
+│   │   │   ├── predictions.rs      # Prédictions
+│   │   │   └── sync.rs             # Sync Google Drive
+│   │   ├── drive.rs            # Backup Google Drive
+│   │   ├── templates.rs        # Archétypes de personnes
+│   │   └── theme.rs            # Thème
+│   ├── assets/styles.css       # Styles
+│   └── Cargo.toml
 │
-├── web/                        # Site web statique
-│   ├── index.html              # Landing page
-│   ├── person.html             # Fiche personne interactive
-│   ├── compare.html            # Comparaison de deux profils
-│   ├── css/
-│   │   ├── main.css            # Design system + landing
-│   │   ├── person.css          # Page fiche
-│   │   └── compare.css         # Page comparaison
-│   └── js/
-│       ├── data.js             # Données, constantes, storage
-│       ├── i18n.js             # Traductions FR/EN
-│       ├── wasm-bridge.js      # Pont WASM → Rust core
-│       ├── main.js             # Animations landing
-│       └── person.js           # Logique interactive fiche
-│
-└── .github/
-    ├── dependabot.yml          # Màj automatiques npm, gradle, cargo, actions
-    └── workflows/
-        └── build.yml           # Pipeline CI/CD complète
+├── tests/                      # Tests E2E Playwright
+├── scripts/
+│   └── spa_server.py           # Serveur dev SPA
+├── public/                     # Assets statiques (sw.js, manifest.json)
+└── .github/workflows/build.yml # Pipeline CI/CD
 ```
 
 ---
@@ -75,34 +67,17 @@ La pipeline `.github/workflows/build.yml` fait :
 
 ### 1. `rust-core` — Moteur Rust
 - Compilation Rust stable (check + clippy + test)
-- Bloque `deploy-web` et `build-android` si échec
-- Les exports WASM (`wasm-pack`) et JNI (`cargo ndk`) sont optionnels
+- Bloque `deploy-web` si échec
+- Exports WASM via `wasm-pack`
 
-### 2. `web-build` — Site web
-- Validation HTML
+### 2. `web-build` — App Dioxus
+- Build WASM avec `dx build --release`
 - Upload artifact `web-static`
 - Déploiement GitHub Pages (nécessite `rust-core` OK)
 
-### 3. `android-build` — APK
-- Build Debug APK
-- Build Release APK (unsigned)
-- Signature optionnelle avec secrets GitHub
-- Upload artifacts APK (debug 7j, release 30j)
-- Bloqué si `rust-core` échoue
-
-### 4. `release` — Sur tag `v*`
-- Télécharge les APK release
-- Crée une GitHub Release avec les APKs joints
+### 3. `release` — Sur tag `v*`
+- Crée une GitHub Release
 - Notes de release auto-générées
-
-### ⚙️ Secrets nécessaires (optionnels)
-
-| Secret | Description |
-|--------|-------------|
-| `SIGNING_KEY` | Keystore en base64 |
-| `SIGNING_KEY_ALIAS` | Alias de la clé |
-| `SIGNING_STORE_PASSWORD` | Mot de passe du keystore |
-| `SIGNING_KEY_PASSWORD` | Mot de passe de la clé |
 
 ---
 
@@ -117,54 +92,44 @@ URL : `https://yourusername.github.io/people-modeler/`
 
 ---
 
-## 📱 Fonctionnalités Android
+## 📱 Android (legacy)
 
-### Architecture
-- **Pattern** : MVVM + Repository
-- **DB** : Room (SQLite locale, aucun cloud)
-- **UI** : Fragments + Navigation Component + Material 3
-- **State** : LiveData + Coroutines
-
-### Écrans
-1. **Liste** — Recherche, cartes avec chips motivation/biais, OCEAN mini-bars
-2. **Fiche détail** — Profil complet avec onglets
-3. **Édition** — Formulaire complet avec sliders OCEAN
-4. **Prédictions** — Toutes les prédictions en attente
-5. **Insights** — Statistiques globales
+L'ancienne app Android (Kotlin + Room + MVVM) n'est plus maintenue.
+Les fonctionnalités ont été migrées vers l'app Dioxus Web/WASM.
 
 ---
 
-## 🌐 Fonctionnalités Web
+## 🌐 Fonctionnalités App (Dioxus Web/WASM)
 
 ### Pages
-1. **index.html** — Landing page avec hero animé
-2. **person.html** — Fiche interactive complète :
-   - Onglets : Motivations / Biais / OCEAN / Prédictions / Insights
-   - Sliders OCEAN interactifs avec interprétation live
-   - Ajout/suppression de motivations et biais
-   - Système de prédictions avec feedback loop
-   - Analyse comportementale par contexte (6 triggers)
-   - Persistance localStorage
-3. **compare.html** — Comparaison de deux profils
+1. **Liste** — Recherche, cartes avec chips OCEAN/motivations/biais
+2. **Fiche détail** — Profil complet avec onglets : Motivations, Biais, OCEAN, Réputation, Prédictions, Insights, Journal, Relations, Styles personnels
+3. **Édition** — Formulaire complet : OCEAN, motivations, biais, réputation (13 dimensions), patterns comportementaux (9 déclencheurs, 28 réponses), styles personnels (6 catégories, 26 variantes)
+4. **Comparaison** — Score de synergie avec décomposition par catégorie
+5. **Prédictions** — Feedbacks et précision
+6. **Insights** — Analyse globale et statistiques
+7. **Sync** — Sauvegarde Google Drive
 
 ---
 
 ## 🛠️ Développement local
 
-### Web
+### App (Dioxus)
 ```bash
-# Ouvrir directement dans le navigateur
-open web/index.html
+# Lancer en dev (hot-reload)
+dx serve
 
-# Ou avec un serveur local
-npx serve web/
+# Build release WASM
+dx build --release
+
+# Tests
+cargo test
+cargo clippy
 ```
 
-### Android
+### Serveur SPA (pour tests E2E)
 ```bash
-cd android
-./gradlew assembleDebug
-# APK dans app/build/outputs/apk/debug/
+python3 scripts/spa_server.py
 ```
 
 ---
@@ -184,15 +149,19 @@ git push origin v1.0.0
 ```
 Person
 ├── id, name, role, context, avatarEmoji
-├── motivations[]        # type (enum), intensity (1-10), notes
-├── biases[]             # type (enum), intensity (1-10), evidence
-├── behavioralPatterns[] # trigger, predictedBehavior (enum 24 variants), intensity (⚡/10)
-├── ocean                # O, C, E, A, N (1-10 each)
-├── rep_scores           # 8 dimensions Option<u8> (0-10), bipolar:
+├── motivations[]        # type (enum 10), intensity (1-10), notes
+├── biases[]             # type (enum 11), intensity (1-10), evidence
+├── behavioralPatterns[] # trigger (enum 9), predictedBehavior (enum 28), intensity
+├── styles[]             # type (enum 26), intensity (1-10), notes
+├── ocean                # O, C, E, A, N (Option<u8>, 1-10)
+├── rep_scores           # 13 dimensions Option<u8> (0-10), bipolar:
 │                        #   Hardworker↔Lazy, Authoritative↔Submissive
 │                        #   Honest↔Deceitful, Reliable↔Flaky
 │                        #   Humble↔Arrogant, Calm↔Reactive
 │                        #   Diplomatic↔Blunt, Generous↔Selfish
+│                        #   Fair↔Favoritism, Trusting↔Suspicious
+│                        #   Assertive↔Passive, Empathetic↔Detached
+│                        #   Adaptable↔Rigid
 │                        #   ≥5 = pole A, <5 = pole B, None = non-renseigné
 ├── tags[]
 ├── predictions[]        # context, predicted, actual, accuracy, resolvedAt
@@ -206,7 +175,7 @@ Person
 Pondérations de base quand toutes les catégories ont des données :
 
 ```
-OCEAN×19% + Réputation×29% + Motivation×21% + Patterns×16% + Biais×15%
+OCEAN×17% + Réputation×26% + Motivation×19% + Patterns×14% + Biais×13% + Styles×11%
 ```
 
 Si une catégorie n'a pas de données (ex: aucun pattern partagé), son poids est
@@ -259,7 +228,7 @@ OCEAN_final = min(OCEAN_penalisé × (1 + modulations_biais_OCEAN), 1)
 
 #### 2. Réputation (29%)
 
-Pour chaque dimension (8 bipolaires) où A et B ont une valeur :
+Pour chaque dimension (13 bipolaires) où A et B ont une valeur :
 
 ```
 similarité = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
@@ -269,15 +238,22 @@ Rep_brut = Σ(similarité_dim × poids_dim) / Σ(poids_dim)
 Les dimensions ont des poids différents selon leur impact relationnel :
 
 | Dimension | Poids |
-|---|---|
-| Honnête ↔ Trompeur | 0.20 |
-| Fiable ↔ Inconstant | 0.15 |
-| Autoritaire ↔ Soumis | 0.15 |
-| Humble ↔ Arrogant | 0.15 |
+|---|---|---|
+| Honnête ↔ Trompeur | 0.18 |
+| Fiable ↔ Inconstant | 0.14 |
+| Humble ↔ Arrogant | 0.13 |
+| Autoritaire ↔ Soumis | 0.12 |
+| Juste ↔ Favoritisme | 0.11 |
 | Travailleur ↔ Paresseux | 0.10 |
-| Calme ↔ Réactif | 0.10 |
-| Diplomate ↔ Direct | 0.10 |
-| Généreux ↔ Égoïste | 0.05 |
+| Empathique ↔ Détaché | 0.10 |
+| Diplomate ↔ Direct | 0.09 |
+| Affirmé ↔ Passif | 0.09 |
+| Calme ↔ Réactif | 0.08 |
+| Confiant ↔ Méfiant | 0.07 |
+| Flexible ↔ Rigide | 0.06 |
+| Généreux ↔ Égoïste | 0.04 |
+
+> Somme = 1.21, normalisée à l'exécution par `total_active_w`.
 
 - Si **aucune** dimension commune : catégorie inactive, poids redistribué
 
@@ -294,6 +270,11 @@ Tous deux Direct ≤ 3       → brutalité, pas de diplomatie +0.10
 Tous deux Réactif ≤ 3      → escalade mutuelle            +0.10
 Tous deux Arrogant ≤ 3     → ni l'un ni l'autre ne cède   +0.10
 Tous deux Paresseux ≤ 3    → passivité mutuelle           +0.05
+Tous deux Trompeur ≤ 3     → effondrement de la confiance +0.10
+Tous deux Inconstant ≤ 3   → manque de fiabilité mutuel   +0.08
+Tous deux Méfiant ≤ 3      → suspicion mutuelle           +0.08
+Tous deux Détaché ≤ 3      → froideur mutuelle            +0.08
+Tous deux Favoritisme ≤ 3  → copinage                     +0.08
 ```
 
 Réputation finale après modulation et pénalité :
@@ -319,21 +300,23 @@ Table `motivation_synergy(tA, tB)` :
 🤝 Même type : selon la motivation — Power × Power = **−0.2** (compétition),
 Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **0.0**
 (indépendance neutre), Security × Security = **0.0** (statu quo). Les autres
-(Achievement, Affiliation, Learning, Helping) restent à **+0.2** (alignement).
+(Achievement, Affiliation, Learning, Helping, Creativity, Fairness) restent à **+0.2** (alignement).
 
 🔄 Complémentarité : paires asymétriques productives — Power × Helping = **+0.1**
 (l'un dirige, l'autre soutient), Achievement × Affiliation = **+0.1** (résultats + harmonie).
 
-| tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping |
-|---|---|---|---|---|---|---|---|---|
-| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0 | **+0.1** |
-| **Achievement** | +0.3 | +0.2 | **+0.1** | −0.2 | +0.2 | +0.3 | +0.3 | 0 |
-| **Affiliation** | −0.2 | **+0.1** | +0.2 | +0.2 | −0.1 | −0.1 | 0 | +0.3 |
-| **Security** | −0.1 | −0.2 | +0.2 | **0.0** | −0.3 | 0 | 0 | +0.2 |
-| **Autonomy** | +0.2 | +0.2 | −0.1 | −0.3 | **0.0** | 0 | +0.2 | 0 |
-| **Recognition** | +0.2 | +0.3 | −0.1 | 0 | 0 | **−0.1** | 0 | 0 |
-| **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 |
-| **Helping** | **+0.1** | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 |
+| tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping | Creativ | Fairness |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0 | +0.1 | 0 | −0.1 |
+| **Achievement** | +0.3 | +0.2 | +0.1 | −0.2 | +0.2 | +0.3 | +0.3 | 0 | +0.2 | 0 |
+| **Affiliation** | −0.2 | +0.1 | +0.2 | +0.2 | −0.1 | −0.1 | 0 | +0.3 | 0 | +0.2 |
+| **Security** | −0.1 | −0.2 | +0.2 | 0.0 | −0.3 | 0 | 0 | +0.2 | 0 | +0.1 |
+| **Autonomy** | +0.2 | +0.2 | −0.1 | −0.3 | 0.0 | 0 | +0.2 | 0 | +0.3 | 0 |
+| **Recognition** | +0.2 | +0.3 | −0.1 | 0 | 0 | **−0.1** | 0 | 0 | 0 | 0 |
+| **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 | +0.3 | +0.1 |
+| **Helping** | +0.1 | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 | 0 | +0.3 |
+| **Creativity** | 0 | +0.2 | 0 | 0 | +0.3 | 0 | +0.3 | 0 | +0.2 | 0 |
+| **Fairness** | −0.1 | 0 | +0.2 | +0.1 | 0 | 0 | +0.1 | +0.3 | 0 | +0.3 |
 
 #### 4. Patterns (16%)
 
@@ -347,19 +330,20 @@ Patterns_brut = (avg + 0.3) / 0.6   → clamp [0, 1]
 
 Table `trigger_synergy(tA, tB)` :
 
-| tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened |
-|---|---|---|---|---|---|---|---|---|
-| **Change** | +0.3 | +0.3 | 0 | 0 | -0.2 | 0 | 0 | 0 |
-| **Feedback** | +0.3 | +0.3 | 0 | 0 | 0 | 0 | +0.2 | 0 |
-| **Success** | 0 | 0 | +0.3 | 0 | 0 | 0 | 0 | 0 |
-| **Conflict** | 0 | 0 | 0 | -0.3 | -0.3 | -0.2 | 0 | 0 |
-| **Stress** | -0.2 | 0 | 0 | -0.3 | -0.2 | 0 | 0 | 0 |
-| **Uncertainty** | 0 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 |
-| **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened | Injustice |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Change** | +0.3 | +0.3 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 |
+| **Feedback** | +0.3 | +0.3 | 0 | 0 | 0 | 0 | +0.2 | 0 | 0 |
+| **Success** | 0 | 0 | +0.3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| **Conflict** | 0 | 0 | 0 | -0.3 | -0.3 | -0.2 | 0 | 0 | 0 |
+| **Stress** | -0.2 | 0 | 0 | -0.3 | -0.2 | 0 | 0 | 0 | 0 |
+| **Uncertainty** | 0 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 | 0 |
+| **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| **Injustice** | 0 | 0 | 0 | −0.1 | −0.1 | 0 | 0 | 0 | −0.2 |
 
 **Pénalité danger Patterns** — lorsque les deux personnes n'ont **que** des
-déclencheurs négatifs (Conflict, Stress, Threatened), aucun pattern positif
+déclencheurs négatifs (Conflict, Stress, Threatened, Injustice), aucun pattern positif
 n'équilibre la relation :
 
 ```
@@ -392,6 +376,7 @@ SocialProof   → Réputation  +0.08  (influence du groupe)
 Authority     → Motivation  +0.08  (déférence à l'autorité)
 Recency       → Patterns    +0.08  (emphase sur le récent)
 InGroup       → OCEAN       +0.08  (favoritisme endogroupe)
+Favoritism    → Réputation  -0.08  (traitement préférentiel)
 ```
 
 Pour chaque paire de biais **de même type** (partagés par A et B) :
@@ -406,6 +391,7 @@ score_cat_modulé = score_cat_brut × (1.0 + Σ_modulations)   → clamp [0, 1]
 ```
 biais_score = shared_types / max(len(A_types), len(B_types))
              → 0.5 si aucun biais renseigné
+qualité_Biais(P) = 1 - nb_biais / 11  (11 types de biais)
 ```
 
 - Biais partagé = les deux personnes ont le même biais → modulation appliquée
@@ -413,7 +399,30 @@ biais_score = shared_types / max(len(A_types), len(B_types))
 - Plus les biais partagés sont intenses, plus la modulation est forte
 - Remplace l'ancien système `bias_pair_synergy` (même=-0.2, différent=+0.2)
 
-#### 6. Facteur historique (traque les angles morts)
+#### 6. Styles personnels (11%)
+
+Les styles personnels mesurent la compatibilité des modes de fonctionnement
+préférentiels dans 6 catégories :
+
+| Catégorie | Variantes |
+|---|---|
+| 💬 Communication | Direct, Diplomatic, Analytical, Expressive, Reserved |
+| 🤝 Résolution conflit | Collaborative, Competitive, Avoidant, Accommodating, Compromising |
+| 🧠 Prise de décision | Rational, Intuitive, Consultative, Decisive |
+| 👥 Leadership | Autocratic, Democratic, Transformational, Transactional, Bureaucratic, LaissezFaire, Servant, Coach |
+| ⏰ Orientation temporelle | PastOriented, PresentOriented, FutureOriented |
+| 📜 Cadre moral | RuleBased, OutcomeBased, VirtueBased, Relativist |
+
+Pour chaque catégorie où les deux personnes ont un style renseigné :
+
+```
+sim_style(cat) = 1.0 si même variante
+                 0.5 si variante différente
+styles_brut = moyenne des sim_style sur les catégories partagées
+              0.5 si aucune catégorie en commun
+```
+
+#### 7. Facteur historique (traque les angles morts)
 
 Si les deux personnes ont ≥ 3 prédictions résolues, leur **précision moyenne**
 (< 5/10) indique une auto-évaluation peu fiable :
@@ -431,11 +440,12 @@ Le score de base (catégories compatibilité) et les scores asymétriques utilis
 les mêmes poids fixes redistribués dynamiquement :
 
 ```
-poids_OCEAN   = 0.19
-poids_Rep     = 0.29
-poids_Mot     = 0.21
-poids_Patterns = 0.16
-poids_Biais   = 0.15
+poids_OCEAN   = 0.17
+poids_Rep     = 0.26
+poids_Mot     = 0.19
+poids_Patterns = 0.14
+poids_Biais   = 0.13
+poids_Styles  = 0.11
 ```
 
 Quand une catégorie manque de données → elle est exclue et son poids est réparti
@@ -457,14 +467,14 @@ qu'elle *bénéficie* de l'autre, calculé par catégorie :
 - **Biais** : l'absence de biais chez l'autre
   (`qualité_base_Biais(P) = 1 - nb_biais / 10`).
 
-- **Motivation / Patterns** : synergie mutuelle (identique pour les deux).
+- **Motivation / Patterns / Styles** : synergie mutuelle (identique pour les deux).
 
 ```
 poids actif = Σ(poids_cat) pour chaque catégorie active
-a_raw = score_OCEAN_a × 0.19 + qual_Rep_B × 0.29 + synergie_Mot × 0.21
-      + synergie_Patterns × 0.16 + qual_Biais_B × 0.15
-b_raw = score_OCEAN_b × 0.19 + qual_Rep_A × 0.29 + synergie_Mot × 0.21
-      + synergie_Patterns × 0.16 + qual_Biais_A × 0.15
+a_raw = score_OCEAN_a × 0.17 + qual_Rep_B × 0.26 + synergie_Mot × 0.19
+      + synergie_Patterns × 0.14 + qual_Biais_B × 0.13 + synergie_Styles × 0.11
+b_raw = score_OCEAN_b × 0.17 + qual_Rep_A × 0.26 + synergie_Mot × 0.19
+      + synergie_Patterns × 0.14 + qual_Biais_A × 0.13 + synergie_Styles × 0.11
 
 a_score = round(a_raw / poids_actif × 100) → clamp [0, 100]
 b_score = round(b_raw / poids_actif × 100) → clamp [0, 100]
@@ -481,8 +491,8 @@ danger_pts = round(danger / poids_actif × 100)
 historique (inchangée) :
 
 ```
-danger = pénalité_OCEAN × 0.19 + pénalité_Rep × 0.29
-       + pénalité_Patterns × 0.16 + pénalité_historique
+danger = pénalité_OCEAN × 0.17 + pénalité_Rep × 0.26
+       + pénalité_Patterns × 0.14 + pénalité_historique
 ```
 
 Le champ `danger` du `SynergyBreakdown` expose cette valeur pour transparence

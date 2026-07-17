@@ -1,4 +1,4 @@
-use crate::models::{BehaviorResponse, BiasType, MotivationType, RepDim};
+use crate::models::{BehaviorResponse, BiasType, MotivationType, RepDim, StyleType};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -52,6 +52,14 @@ impl MotivationType {
                     label: "Aider les autres",
                     desc: "Aider et soutenir les autres",
                 },
+                Self::Creativity => MotI18n {
+                    label: "Créativité",
+                    desc: "Innovation, expression et exploration créative",
+                },
+                Self::Fairness => MotI18n {
+                    label: "Justice",
+                    desc: "Équité, mérite et traitement juste des autres",
+                },
             },
             Lang::En => match self {
                 Self::Power => MotI18n {
@@ -85,6 +93,14 @@ impl MotivationType {
                 Self::Helping => MotI18n {
                     label: "Helping others",
                     desc: "Helping and supporting others",
+                },
+                Self::Creativity => MotI18n {
+                    label: "Creativity",
+                    desc: "Innovation, expression and creative exploration",
+                },
+                Self::Fairness => MotI18n {
+                    label: "Fairness",
+                    desc: "Justice, equity, and fair treatment of others",
                 },
             },
         }
@@ -135,6 +151,10 @@ impl BiasType {
                     label: "Endogroupe",
                     desc: "Favorise les membres de son propre groupe",
                 },
+                Self::Favoritism => BiasI18n {
+                    label: "Favoritisme",
+                    desc: "Accorde un traitement préférentiel à certains individus",
+                },
             },
             Lang::En => match self {
                 Self::Confirmation => BiasI18n {
@@ -177,6 +197,10 @@ impl BiasType {
                     label: "In-group",
                     desc: "Favors members of own group",
                 },
+                Self::Favoritism => BiasI18n {
+                    label: "Favoritism",
+                    desc: "Shows preferential treatment toward certain individuals",
+                },
             },
         }
     }
@@ -200,6 +224,11 @@ impl RepDim {
                 Self::CalmReactive => ("Calme", "Réactif"),
                 Self::DiplomaticBlunt => ("Diplomate", "Direct"),
                 Self::GenerousSelfish => ("Généreux", "Égoïste"),
+                Self::FairFavoritism => ("Équitable", "Partial"),
+                Self::TrustingSuspicious => ("Confiant", "Méfiant"),
+                Self::AssertivePassive => ("Affirmé", "Passif"),
+                Self::EmpatheticDetached => ("Empathique", "Détaché"),
+                Self::AdaptableRigid => ("Flexible", "Rigide"),
             },
             Lang::En => match self {
                 Self::HardworkerLazy => ("Hardworker", "Lazy"),
@@ -210,6 +239,11 @@ impl RepDim {
                 Self::CalmReactive => ("Calm", "Reactive"),
                 Self::DiplomaticBlunt => ("Diplomatic", "Blunt"),
                 Self::GenerousSelfish => ("Generous", "Selfish"),
+                Self::FairFavoritism => ("Fair", "Favoritism"),
+                Self::TrustingSuspicious => ("Trusting", "Suspicious"),
+                Self::AssertivePassive => ("Assertive", "Passive"),
+                Self::EmpatheticDetached => ("Empathetic", "Detached"),
+                Self::AdaptableRigid => ("Adaptable", "Rigid"),
             },
         };
         let desc = match lang {
@@ -222,6 +256,11 @@ impl RepDim {
                 Self::CalmReactive => "Sérénité vs. réactivité émotionnelle",
                 Self::DiplomaticBlunt => "Tact vs. franchise",
                 Self::GenerousSelfish => "Altruisme vs. égoïsme",
+                Self::FairFavoritism => "Justice vs. favoritisme",
+                Self::TrustingSuspicious => "Confiance vs. méfiance",
+                Self::AssertivePassive => "Affirmation vs. passivité",
+                Self::EmpatheticDetached => "Empathie vs. détachement",
+                Self::AdaptableRigid => "Flexibilité vs. rigidité",
             },
             Lang::En => match self {
                 Self::HardworkerLazy => "Effort vs. laziness",
@@ -232,12 +271,146 @@ impl RepDim {
                 Self::CalmReactive => "Serenity vs. emotional reactivity",
                 Self::DiplomaticBlunt => "Tact vs. directness",
                 Self::GenerousSelfish => "Altruism vs. selfishness",
+                Self::FairFavoritism => "Justice vs. favoritism",
+                Self::TrustingSuspicious => "Trust vs. suspicion",
+                Self::AssertivePassive => "Assertion vs. passivity",
+                Self::EmpatheticDetached => "Empathy vs. detachment",
+                Self::AdaptableRigid => "Flexibility vs. rigidity",
             },
         };
         RepI18n {
             label_a,
             label_b,
             desc,
+        }
+    }
+}
+
+pub struct StyleI18n {
+    pub label: &'static str,
+    pub desc: &'static str,
+}
+
+impl StyleType {
+    pub fn i18n_label(&self, lang: Lang) -> &'static str {
+        match lang {
+            Lang::Fr => match self {
+                Self::DirectCommunicator => "Direct",
+                Self::DiplomaticCommunicator => "Diplomate",
+                Self::ReservedCommunicator => "Réservé",
+                Self::ExpressiveCommunicator => "Expressif",
+                Self::Competing => "Compétitif",
+                Self::Collaborating => "Collaboratif",
+                Self::Compromising => "Compromis",
+                Self::Avoiding => "Évitant",
+                Self::Accommodating => "Accommodant",
+                Self::Analytical => "Analytique",
+                Self::Intuitive => "Intuitif",
+                Self::Participatory => "Participatif",
+                Self::Autocratic => "Autocratique",
+                Self::ConsensusDriven => "Consensus",
+                Self::Visionary => "Visionnaire",
+                Self::Servant => "Serviteur",
+                Self::Transactional => "Transactionnel",
+                Self::Transformational => "Transformationnel",
+                Self::Bureaucratic => "Bureaucrate",
+                Self::PastOriented => "Orienté passé",
+                Self::PresentOriented => "Orienté présent",
+                Self::FutureOriented => "Orienté futur",
+                Self::RuleBased => "Basé sur les règles",
+                Self::OutcomeBased => "Basé sur les résultats",
+                Self::VirtueBased => "Basé sur les vertus",
+                Self::Relativist => "Relativiste",
+            },
+            Lang::En => match self {
+                Self::DirectCommunicator => "Direct",
+                Self::DiplomaticCommunicator => "Diplomatic",
+                Self::ReservedCommunicator => "Reserved",
+                Self::ExpressiveCommunicator => "Expressive",
+                Self::Competing => "Competing",
+                Self::Collaborating => "Collaborating",
+                Self::Compromising => "Compromising",
+                Self::Avoiding => "Avoiding",
+                Self::Accommodating => "Accommodating",
+                Self::Analytical => "Analytical",
+                Self::Intuitive => "Intuitive",
+                Self::Participatory => "Participatory",
+                Self::Autocratic => "Autocratic",
+                Self::ConsensusDriven => "Consensus-Driven",
+                Self::Visionary => "Visionary",
+                Self::Servant => "Servant",
+                Self::Transactional => "Transactional",
+                Self::Transformational => "Transformational",
+                Self::Bureaucratic => "Bureaucratic",
+                Self::PastOriented => "Past-Oriented",
+                Self::PresentOriented => "Present-Oriented",
+                Self::FutureOriented => "Future-Oriented",
+                Self::RuleBased => "Rule-Based",
+                Self::OutcomeBased => "Outcome-Based",
+                Self::VirtueBased => "Virtue-Based",
+                Self::Relativist => "Relativist",
+            },
+        }
+    }
+
+    pub fn i18n_desc(&self, lang: Lang) -> &'static str {
+        match lang {
+            Lang::Fr => match self {
+                Self::DirectCommunicator => "Parle franchement et va droit au but",
+                Self::DiplomaticCommunicator => "Adoucit son langage pour ménager les autres",
+                Self::ReservedCommunicator => "Parle peu, choisit ses mots avec soin",
+                Self::ExpressiveCommunicator => "Partage ses pensées et émotions ouvertement",
+                Self::Competing => "Cherche à gagner, confronte directement",
+                Self::Collaborating => "Cherche une solution qui satisfait tout le monde",
+                Self::Compromising => "Accepte des concessions mutuelles",
+                Self::Avoiding => "Évite la confrontation, laisse faire",
+                Self::Accommodating => "Cède pour préserver l'harmonie",
+                Self::Analytical => "Décide après analyse approfondie des données",
+                Self::Intuitive => "Décide par instinct et ressenti",
+                Self::Participatory => "Implique les autres dans la décision",
+                Self::Autocratic => "Décide seul, sans consultation",
+                Self::ConsensusDriven => "Cherche l'accord unanime avant de décider",
+                Self::Visionary => "Inspire avec une vision à long terme",
+                Self::Servant => "Place les besoins de l'équipe en premier",
+                Self::Transactional => "Gère par récompenses et sanctions",
+                Self::Transformational => "Transforme et élève ses collaborateurs",
+                Self::Bureaucratic => "Suit les procédures et la hiérarchie",
+                Self::PastOriented => "Se réfère aux expériences passées",
+                Self::PresentOriented => "Vit dans l'instant présent",
+                Self::FutureOriented => "Planifie et anticipe l'avenir",
+                Self::RuleBased => "Suit des principes moraux universels",
+                Self::OutcomeBased => "Juge la moralité par les conséquences",
+                Self::VirtueBased => "Cultive des qualités de caractère",
+                Self::Relativist => "Adapte sa morale au contexte",
+            },
+            Lang::En => match self {
+                Self::DirectCommunicator => "Speaks frankly, gets straight to the point",
+                Self::DiplomaticCommunicator => "Softens language to spare others' feelings",
+                Self::ReservedCommunicator => "Speaks little, chooses words carefully",
+                Self::ExpressiveCommunicator => "Shares thoughts and emotions openly",
+                Self::Competing => "Seeks to win, confronts directly",
+                Self::Collaborating => "Seeks win-win solutions for everyone",
+                Self::Compromising => "Accepts mutual concessions",
+                Self::Avoiding => "Avoids confrontation, lets things slide",
+                Self::Accommodating => "Yields to preserve harmony",
+                Self::Analytical => "Decides after thorough data analysis",
+                Self::Intuitive => "Decides by gut feeling and instinct",
+                Self::Participatory => "Involves others in the decision",
+                Self::Autocratic => "Decides alone without consultation",
+                Self::ConsensusDriven => "Seeks unanimous agreement before deciding",
+                Self::Visionary => "Inspires with a long-term vision",
+                Self::Servant => "Puts team needs first",
+                Self::Transactional => "Manages through rewards and sanctions",
+                Self::Transformational => "Transforms and elevates collaborators",
+                Self::Bureaucratic => "Follows procedures and hierarchy",
+                Self::PastOriented => "References past experiences",
+                Self::PresentOriented => "Lives in the present moment",
+                Self::FutureOriented => "Plans and anticipates the future",
+                Self::RuleBased => "Follows universal moral principles",
+                Self::OutcomeBased => "Judges morality by consequences",
+                Self::VirtueBased => "Cultivates character qualities",
+                Self::Relativist => "Adapts morality to context",
+            },
         }
     }
 }
@@ -272,6 +445,12 @@ impl BehaviorResponse {
                 Self::AsksForDetails => "🟢 Asks for details (digs deeper, seeks specifics)",
                 Self::Reflects => "🟡 Reflects thoughtfully (takes time to process)",
                 Self::RejectsFeedback => "🔴 Rejects feedback (dismisses, gets defensive)",
+                Self::ProtestsFirmly => "🟡 Protests firmly (stands up for what is right)",
+                Self::AcceptsResignedly => "🔴 Accepts resignedly (gives in but resents it)",
+                Self::SeeksRestoration => "🟢 Seeks restoration (repairs and reconciles)",
+                Self::ExploitsOpportunistically => {
+                    "🔴 Exploits opportunistically (takes advantage of unfair situation)"
+                }
             },
             Lang::Fr => match self {
                 Self::SeeksSupport => "🟢 Cherche du soutien (demande de l'aide)",
@@ -304,6 +483,14 @@ impl BehaviorResponse {
                 Self::AsksForDetails => "🟢 Demande des détails (creuse, cherche des précisions)",
                 Self::Reflects => "🟡 Réfléchit avec soin (prend le temps d'analyser)",
                 Self::RejectsFeedback => "🔴 Rejette le feedback (se braque, se ferme)",
+                Self::ProtestsFirmly => "🟡 Proteste fermement (défend ce qui est juste)",
+                Self::AcceptsResignedly => {
+                    "🔴 Accepte résigné (cède mais en ressent du ressentiment)"
+                }
+                Self::SeeksRestoration => "🟢 Cherche la réparation (répare et réconcilie)",
+                Self::ExploitsOpportunistically => {
+                    "🔴 Exploite opportunément (profite de l'injustice)"
+                }
             },
         }
     }

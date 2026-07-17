@@ -1,5 +1,6 @@
 use serde::de;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 
 pub fn clamp_u8_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     let v = u8::deserialize(d)?.clamp(1, 10);
@@ -50,6 +51,16 @@ pub enum RepDim {
     DiplomaticBlunt,
     #[serde(alias = "GENEROUS_SELFISH")]
     GenerousSelfish,
+    #[serde(alias = "FAIR_FAVORITISM")]
+    FairFavoritism,
+    #[serde(alias = "TRUSTING_SUSPICIOUS")]
+    TrustingSuspicious,
+    #[serde(alias = "ASSERTIVE_PASSIVE")]
+    AssertivePassive,
+    #[serde(alias = "EMPATHETIC_DETACHED")]
+    EmpatheticDetached,
+    #[serde(alias = "ADAPTABLE_RIGID")]
+    AdaptableRigid,
 }
 
 impl std::fmt::Display for RepDim {
@@ -59,7 +70,7 @@ impl std::fmt::Display for RepDim {
 }
 
 impl RepDim {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 13] = [
         Self::HardworkerLazy,
         Self::AuthoritativeSubmissive,
         Self::HonestDeceitful,
@@ -68,6 +79,11 @@ impl RepDim {
         Self::CalmReactive,
         Self::DiplomaticBlunt,
         Self::GenerousSelfish,
+        Self::FairFavoritism,
+        Self::TrustingSuspicious,
+        Self::AssertivePassive,
+        Self::EmpatheticDetached,
+        Self::AdaptableRigid,
     ];
 
     pub fn emoji(&self) -> &'static str {
@@ -80,6 +96,11 @@ impl RepDim {
             Self::CalmReactive => "🧘",
             Self::DiplomaticBlunt => "🤝",
             Self::GenerousSelfish => "🎁",
+            Self::FairFavoritism => "⚖️",
+            Self::TrustingSuspicious => "🤗",
+            Self::AssertivePassive => "📢",
+            Self::EmpatheticDetached => "💗",
+            Self::AdaptableRigid => "🌿",
         }
     }
 
@@ -94,6 +115,11 @@ impl RepDim {
                 Self::CalmReactive => "Calme",
                 Self::DiplomaticBlunt => "Diplomate",
                 Self::GenerousSelfish => "Généreux",
+                Self::FairFavoritism => "Équitable",
+                Self::TrustingSuspicious => "Confiant",
+                Self::AssertivePassive => "Affirmé",
+                Self::EmpatheticDetached => "Empathique",
+                Self::AdaptableRigid => "Flexible",
             },
             crate::i18n::Lang::En => match self {
                 Self::HardworkerLazy => "Hardworker",
@@ -104,6 +130,11 @@ impl RepDim {
                 Self::CalmReactive => "Calm",
                 Self::DiplomaticBlunt => "Diplomatic",
                 Self::GenerousSelfish => "Generous",
+                Self::FairFavoritism => "Fair",
+                Self::TrustingSuspicious => "Trusting",
+                Self::AssertivePassive => "Assertive",
+                Self::EmpatheticDetached => "Empathetic",
+                Self::AdaptableRigid => "Adaptable",
             },
         }
     }
@@ -119,6 +150,11 @@ impl RepDim {
                 Self::CalmReactive => "Réactif",
                 Self::DiplomaticBlunt => "Direct",
                 Self::GenerousSelfish => "Égoïste",
+                Self::FairFavoritism => "Partial",
+                Self::TrustingSuspicious => "Méfiant",
+                Self::AssertivePassive => "Passif",
+                Self::EmpatheticDetached => "Détaché",
+                Self::AdaptableRigid => "Rigide",
             },
             crate::i18n::Lang::En => match self {
                 Self::HardworkerLazy => "Lazy",
@@ -129,6 +165,11 @@ impl RepDim {
                 Self::CalmReactive => "Reactive",
                 Self::DiplomaticBlunt => "Blunt",
                 Self::GenerousSelfish => "Selfish",
+                Self::FairFavoritism => "Favoritism",
+                Self::TrustingSuspicious => "Suspicious",
+                Self::AssertivePassive => "Passive",
+                Self::EmpatheticDetached => "Detached",
+                Self::AdaptableRigid => "Rigid",
             },
         }
     }
@@ -152,6 +193,16 @@ pub struct RepScores {
     pub diplomatic_blunt: Option<u8>,
     #[serde(default)]
     pub generous_selfish: Option<u8>,
+    #[serde(default)]
+    pub fair_favoritism: Option<u8>,
+    #[serde(default)]
+    pub trusting_suspicious: Option<u8>,
+    #[serde(default)]
+    pub assertive_passive: Option<u8>,
+    #[serde(default)]
+    pub empathetic_detached: Option<u8>,
+    #[serde(default)]
+    pub adaptable_rigid: Option<u8>,
 }
 
 impl RepScores {
@@ -170,6 +221,11 @@ impl RepScores {
             RepDim::CalmReactive => self.calm_reactive,
             RepDim::DiplomaticBlunt => self.diplomatic_blunt,
             RepDim::GenerousSelfish => self.generous_selfish,
+            RepDim::FairFavoritism => self.fair_favoritism,
+            RepDim::TrustingSuspicious => self.trusting_suspicious,
+            RepDim::AssertivePassive => self.assertive_passive,
+            RepDim::EmpatheticDetached => self.empathetic_detached,
+            RepDim::AdaptableRigid => self.adaptable_rigid,
         }
     }
 }
@@ -192,6 +248,10 @@ pub enum MotivationType {
     Learning,
     #[serde(alias = "HELPING")]
     Helping,
+    #[serde(alias = "CREATIVITY")]
+    Creativity,
+    #[serde(alias = "FAIRNESS")]
+    Fairness,
 }
 
 impl std::fmt::Display for MotivationType {
@@ -201,7 +261,7 @@ impl std::fmt::Display for MotivationType {
 }
 
 impl MotivationType {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 10] = [
         Self::Power,
         Self::Achievement,
         Self::Affiliation,
@@ -210,6 +270,8 @@ impl MotivationType {
         Self::Recognition,
         Self::Learning,
         Self::Helping,
+        Self::Creativity,
+        Self::Fairness,
     ];
 
     pub fn emoji(&self) -> &'static str {
@@ -222,6 +284,8 @@ impl MotivationType {
             Self::Recognition => "⭐",
             Self::Learning => "📚",
             Self::Helping => "❤️",
+            Self::Creativity => "🎨",
+            Self::Fairness => "⚖️",
         }
     }
 }
@@ -248,6 +312,8 @@ pub enum BiasType {
     Recency,
     #[serde(alias = "IN_GROUP")]
     InGroup,
+    #[serde(alias = "FAVORITISM")]
+    Favoritism,
 }
 
 impl std::fmt::Display for BiasType {
@@ -257,7 +323,7 @@ impl std::fmt::Display for BiasType {
 }
 
 impl BiasType {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::Confirmation,
         Self::Anchoring,
         Self::Availability,
@@ -268,6 +334,7 @@ impl BiasType {
         Self::Authority,
         Self::Recency,
         Self::InGroup,
+        Self::Favoritism,
     ];
 
     pub fn emoji(&self) -> &'static str {
@@ -282,6 +349,7 @@ impl BiasType {
             Self::Authority => "🎖️",
             Self::Recency => "⏰",
             Self::InGroup => "🏠",
+            Self::Favoritism => "🎯",
         }
     }
 }
@@ -304,6 +372,8 @@ pub enum BehaviorTrigger {
     Change,
     #[serde(alias = "FEEDBACK")]
     Feedback,
+    #[serde(alias = "INJUSTICE")]
+    Injustice,
 }
 
 impl std::fmt::Display for BehaviorTrigger {
@@ -313,6 +383,18 @@ impl std::fmt::Display for BehaviorTrigger {
 }
 
 impl BehaviorTrigger {
+    pub const ALL: [Self; 9] = [
+        Self::Stress,
+        Self::Conflict,
+        Self::Success,
+        Self::Uncertainty,
+        Self::Recognition,
+        Self::Threatened,
+        Self::Change,
+        Self::Feedback,
+        Self::Injustice,
+    ];
+
     pub fn emoji(&self) -> &'static str {
         match self {
             Self::Stress => "😰",
@@ -323,6 +405,7 @@ impl BehaviorTrigger {
             Self::Threatened => "🛡️",
             Self::Change => "🔄",
             Self::Feedback => "💬",
+            Self::Injustice => "⚖️",
         }
     }
 }
@@ -370,6 +453,10 @@ pub enum BehaviorResponse {
     AsksForDetails,
     Reflects,
     RejectsFeedback,
+    ProtestsFirmly,
+    AcceptsResignedly,
+    SeeksRestoration,
+    ExploitsOpportunistically,
 }
 
 impl BehaviorResponse {
@@ -399,6 +486,10 @@ impl BehaviorResponse {
             Self::AsksForDetails => "asks_for_details",
             Self::Reflects => "reflects",
             Self::RejectsFeedback => "rejects_feedback",
+            Self::ProtestsFirmly => "protests_firmly",
+            Self::AcceptsResignedly => "accepts_resignedly",
+            Self::SeeksRestoration => "seeks_restoration",
+            Self::ExploitsOpportunistically => "exploits_opportunistically",
         }
     }
     pub fn options_for(t: BehaviorTrigger) -> &'static [Self] {
@@ -431,6 +522,12 @@ impl BehaviorResponse {
             BehaviorTrigger::Feedback => {
                 &[Self::AsksForDetails, Self::Reflects, Self::RejectsFeedback]
             }
+            BehaviorTrigger::Injustice => &[
+                Self::ProtestsFirmly,
+                Self::AcceptsResignedly,
+                Self::SeeksRestoration,
+                Self::ExploitsOpportunistically,
+            ],
         }
     }
 }
@@ -572,6 +669,8 @@ pub struct Person {
     #[serde(default)]
     pub rep_scores: RepScores,
     pub behavioral_patterns: Vec<BehavioralPattern>,
+    #[serde(default)]
+    pub styles: Vec<PersonalStyle>,
     pub ocean: OceanScores,
     #[serde(default)]
     pub log: Vec<InteractionEntry>,
@@ -596,6 +695,148 @@ impl Person {
     pub fn top_bias(&self) -> Option<&Bias> {
         self.biases.iter().max_by_key(|b| b.intensity)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StyleCategory {
+    Communication,
+    ConflictResolution,
+    DecisionMaking,
+    Leadership,
+    TimeOrientation,
+    MoralFramework,
+}
+
+impl StyleCategory {
+    pub const ALL: [Self; 6] = [
+        Self::Communication,
+        Self::ConflictResolution,
+        Self::DecisionMaking,
+        Self::Leadership,
+        Self::TimeOrientation,
+        Self::MoralFramework,
+    ];
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StyleType {
+    // Communication
+    DirectCommunicator,
+    DiplomaticCommunicator,
+    ReservedCommunicator,
+    ExpressiveCommunicator,
+    // Conflict resolution
+    Competing,
+    Collaborating,
+    Compromising,
+    Avoiding,
+    Accommodating,
+    // Decision making
+    Analytical,
+    Intuitive,
+    Participatory,
+    Autocratic,
+    ConsensusDriven,
+    // Leadership
+    Visionary,
+    Servant,
+    Transactional,
+    Transformational,
+    Bureaucratic,
+    // Time orientation
+    PastOriented,
+    PresentOriented,
+    FutureOriented,
+    // Moral framework
+    RuleBased,
+    OutcomeBased,
+    VirtueBased,
+    Relativist,
+}
+
+impl fmt::Display for StyleType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl StyleType {
+    pub const ALL: [Self; 26] = [
+        Self::DirectCommunicator,
+        Self::DiplomaticCommunicator,
+        Self::ReservedCommunicator,
+        Self::ExpressiveCommunicator,
+        Self::Competing,
+        Self::Collaborating,
+        Self::Compromising,
+        Self::Avoiding,
+        Self::Accommodating,
+        Self::Analytical,
+        Self::Intuitive,
+        Self::Participatory,
+        Self::Autocratic,
+        Self::ConsensusDriven,
+        Self::Visionary,
+        Self::Servant,
+        Self::Transactional,
+        Self::Transformational,
+        Self::Bureaucratic,
+        Self::PastOriented,
+        Self::PresentOriented,
+        Self::FutureOriented,
+        Self::RuleBased,
+        Self::OutcomeBased,
+        Self::VirtueBased,
+        Self::Relativist,
+    ];
+
+    pub fn category(&self) -> StyleCategory {
+        use StyleCategory::*;
+        match self {
+            Self::DirectCommunicator
+            | Self::DiplomaticCommunicator
+            | Self::ReservedCommunicator
+            | Self::ExpressiveCommunicator => Communication,
+            Self::Competing
+            | Self::Collaborating
+            | Self::Compromising
+            | Self::Avoiding
+            | Self::Accommodating => ConflictResolution,
+            Self::Analytical
+            | Self::Intuitive
+            | Self::Participatory
+            | Self::Autocratic
+            | Self::ConsensusDriven => DecisionMaking,
+            Self::Visionary
+            | Self::Servant
+            | Self::Transactional
+            | Self::Transformational
+            | Self::Bureaucratic => Leadership,
+            Self::PastOriented | Self::PresentOriented | Self::FutureOriented => TimeOrientation,
+            Self::RuleBased | Self::OutcomeBased | Self::VirtueBased | Self::Relativist => {
+                MoralFramework
+            }
+        }
+    }
+
+    pub fn emoji(&self) -> &'static str {
+        match self.category() {
+            StyleCategory::Communication => "💬",
+            StyleCategory::ConflictResolution => "🤝",
+            StyleCategory::DecisionMaking => "🧠",
+            StyleCategory::Leadership => "👥",
+            StyleCategory::TimeOrientation => "⏰",
+            StyleCategory::MoralFramework => "📜",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PersonalStyle {
+    pub r#type: StyleType,
+    #[serde(deserialize_with = "clamp_u8_1_10")]
+    pub intensity: u8,
+    pub notes: String,
 }
 
 pub const AVATAR_EMOJIS: &[&str] = &[

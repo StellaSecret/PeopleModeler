@@ -67,6 +67,8 @@ fn action_verb(mot: MotivationType, _bias: BiasType) -> &'static str {
         MotivationType::Recognition => "cherche la validation",
         MotivationType::Learning => "explore les options",
         MotivationType::Helping => "propose son aide",
+        MotivationType::Creativity => "cherche à innover",
+        MotivationType::Fairness => "exige l'équité",
     }
 }
 

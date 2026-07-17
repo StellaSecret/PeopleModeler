@@ -303,6 +303,7 @@ fieldset.section legend{
 .item-bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
 .item-bar-fill{height:100%;border-radius:3px}
 .item-bar-fill.cyan{background:var(--cyan)}
+.item-bar-fill.purple{background:var(--purple)}
 .item-bar-fill.red{background:var(--primary)}
 .item-intensity{font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap}
 .motivation-item .item-notes,.bias-item .item-notes{font-size:0.72rem;color:var(--text-muted);margin-top:0.35rem;font-style:italic;overflow-wrap:break-word}

@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
-    Motivation, MotivationType, OceanScores, Person, RepDim, RepScores, Tag,
+    Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores, StyleType,
+    Tag,
 };
 
 use crate::Route;
@@ -38,6 +39,7 @@ pub fn PersonNew() -> Element {
                 biases: Vec::new(),
                 rep_scores: RepScores::default(),
                 behavioral_patterns: Vec::new(),
+                styles: Vec::new(),
                 ocean: OceanScores::default(),
                 confidence: 5,
                 log: Vec::new(),
@@ -106,6 +108,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         biases: Vec::new(),
         rep_scores: RepScores::default(),
         behavioral_patterns: Vec::new(),
+        styles: Vec::new(),
         ocean: OceanScores::default(),
         confidence: 5,
         log: Vec::new(),
@@ -131,6 +134,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let biases = use_signal(|| p.biases.clone());
     let rep_scores = use_signal(|| p.rep_scores.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
+    let styles = use_signal(|| p.styles.clone());
 
     let ocean_rep_flags =
         use_memo(move || peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores()));
@@ -155,6 +159,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             biases: biases(),
             rep_scores: rep_scores(),
             behavioral_patterns: patterns(),
+            styles: styles(),
             ocean: ocean(),
             confidence: confidence(),
             log: p.log.clone(),
@@ -276,6 +281,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 BiasEditPanel { biases, lang: cl }
                 RepEditPanel { rep_scores, lang: cl }
                 PatternEditPanel { patterns, lang: lang() }
+                StyleEditPanel { styles, lang: cl }
 
                 div { class: "form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
@@ -482,6 +488,11 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: peoplemodeler_core::i18n::L
                                 RepDim::CalmReactive => s.calm_reactive = new,
                                 RepDim::DiplomaticBlunt => s.diplomatic_blunt = new,
                                 RepDim::GenerousSelfish => s.generous_selfish = new,
+                                RepDim::FairFavoritism => s.fair_favoritism = new,
+                                RepDim::TrustingSuspicious => s.trusting_suspicious = new,
+                                RepDim::AssertivePassive => s.assertive_passive = new,
+                                RepDim::EmpatheticDetached => s.empathetic_detached = new,
+                                RepDim::AdaptableRigid => s.adaptable_rigid = new,
                             }
                         }
                     }
@@ -553,6 +564,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let ctx_threatened = crate::i18n::tr("ctx_threatened", lang);
     let ctx_change = crate::i18n::tr("ctx_change", lang);
     let ctx_feedback = crate::i18n::tr("ctx_feedback", lang);
+    let ctx_injustice = crate::i18n::tr("ctx_injustice", lang);
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
     let mut sel_intensity = use_signal(|| 5u8);
@@ -578,6 +590,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
             BehaviorTrigger::Threatened => ctx_threatened,
             BehaviorTrigger::Change => ctx_change,
             BehaviorTrigger::Feedback => ctx_feedback,
+            BehaviorTrigger::Injustice => ctx_injustice,
         }
     };
 
@@ -595,6 +608,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                     option { value: "Threatened", "{ctx_threatened}" }
                     option { value: "Change", "{ctx_change}" }
                     option { value: "Feedback", "{ctx_feedback}" }
+                    option { value: "Injustice", "{ctx_injustice}" }
                 }
                 select { value: "{sel_behavior().serde_name()}",
                     onchange: move |e| { let _ = parse_response(&e.value()).map(|v| sel_behavior.set(v)); },
@@ -683,6 +697,8 @@ fn mot_helper(t: &MotivationType, lang: Lang) -> &'static str {
         MotivationType::Recognition => crate::i18n::tr("mot_helper_recognition", lang),
         MotivationType::Learning => crate::i18n::tr("mot_helper_learning", lang),
         MotivationType::Helping => crate::i18n::tr("mot_helper_helping", lang),
+        MotivationType::Creativity => crate::i18n::tr("mot_helper_creativity", lang),
+        MotivationType::Fairness => crate::i18n::tr("mot_helper_fairness", lang),
     }
 }
 
@@ -698,7 +714,17 @@ fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
         BiasType::Authority => crate::i18n::tr("bias_helper_authority", lang),
         BiasType::Recency => crate::i18n::tr("bias_helper_recency", lang),
         BiasType::InGroup => crate::i18n::tr("bias_helper_in_group", lang),
+        BiasType::Favoritism => crate::i18n::tr("bias_helper_favoritism", lang),
     }
+}
+
+fn style_helper(t: &StyleType, lang: Lang) -> &'static str {
+    let cl = if lang == Lang::Fr {
+        peoplemodeler_core::i18n::Lang::Fr
+    } else {
+        peoplemodeler_core::i18n::Lang::En
+    };
+    t.i18n_desc(cl)
 }
 
 fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
@@ -711,6 +737,7 @@ fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
         BehaviorTrigger::Threatened => crate::i18n::tr("pattern_helper_threat", lang),
         BehaviorTrigger::Change => crate::i18n::tr("pattern_helper_change", lang),
         BehaviorTrigger::Feedback => crate::i18n::tr("pattern_helper_feedback", lang),
+        BehaviorTrigger::Injustice => crate::i18n::tr("pattern_helper_injustice", lang),
     }
 }
 
@@ -724,6 +751,8 @@ fn parse_mot_type(s: &str) -> MotivationType {
         "Recognition" => MotivationType::Recognition,
         "Learning" => MotivationType::Learning,
         "Helping" => MotivationType::Helping,
+        "Creativity" => MotivationType::Creativity,
+        "Fairness" => MotivationType::Fairness,
         _ => MotivationType::Achievement,
     }
 }
@@ -740,6 +769,7 @@ fn parse_bias_type(s: &str) -> BiasType {
         "Authority" => BiasType::Authority,
         "Recency" => BiasType::Recency,
         "InGroup" => BiasType::InGroup,
+        "Favoritism" => BiasType::Favoritism,
         _ => BiasType::Confirmation,
     }
 }
@@ -754,10 +784,99 @@ fn parse_trigger(s: &str) -> BehaviorTrigger {
         "Threatened" => BehaviorTrigger::Threatened,
         "Change" => BehaviorTrigger::Change,
         "Feedback" => BehaviorTrigger::Feedback,
+        "Injustice" => BehaviorTrigger::Injustice,
         _ => BehaviorTrigger::Stress,
     }
 }
 
 fn parse_response(s: &str) -> Option<BehaviorResponse> {
     serde_json::from_str(&format!("\"{}\"", s)).ok()
+}
+
+fn parse_style_type(s: &str) -> StyleType {
+    // Use serde for reliable parsing
+    serde_json::from_str(&format!("\"{}\"", s)).unwrap_or(StyleType::DirectCommunicator)
+}
+
+#[component]
+fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+    let app_lang = use_context::<Signal<Lang>>();
+    let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_notes = use_signal(String::new);
+    let mut edit_idx = use_signal(|| None::<usize>);
+    let panel_title = crate::i18n::tr("edit_styles", app_lang());
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
+    let add_btn = crate::i18n::tr("add_btn", app_lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+
+    use peoplemodeler_core::i18n::Lang as CoreLang;
+    let cl = if app_lang() == crate::i18n::Lang::Fr {
+        CoreLang::Fr
+    } else {
+        CoreLang::En
+    };
+
+    rsx! {
+        fieldset { class: "section",
+            legend { "{panel_title}" }
+            div { class: "add-row",
+                select { value: "{sel_type}",
+                    onchange: move |e| { sel_type.set(parse_style_type(&e.value())); },
+                    for t in StyleType::ALL {
+                        option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
+                    }
+                }
+                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
+                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                }
+                span { "{sel_intensity}" }
+                input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                    oninput: move |e| { sel_notes.set(e.value()); }
+                }
+                button { class: "btn", aria_label: if edit_idx().is_some() { "Update style" } else { "Add style" }, onclick: move |_| {
+                    if let Some(idx) = edit_idx() {
+                        let mut items = styles.write();
+                        if idx < items.len() {
+                            items[idx] = PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
+                        }
+                        edit_idx.set(None);
+                    } else {
+                        styles.write().push(PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
+                    }
+                    sel_notes.set(String::new());
+                    sel_intensity.set(5);
+                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+            }
+            div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
+            for (i, s) in styles().iter().enumerate() {
+                div { class: "list-item",
+                    button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { style_move(styles, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { style_move(styles, i, false); }, "▼" }
+                    button { class: "btn btn-small", aria_label: "Edit style", onclick: {
+                        let s = s.clone();
+                        move |_| {
+                            sel_type.set(s.r#type);
+                            sel_intensity.set(s.intensity);
+                            sel_notes.set(s.notes.clone());
+                            edit_idx.set(Some(i));
+                        }
+                    }, "✏" }
+                    strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
+                    span { " {s.intensity}/10" }
+                    span { " {s.notes}" }
+                    button { class: "btn btn-small", aria_label: "Delete style", onclick: move |_| { styles.write().remove(i); }, "✕" }
+                }
+            }
+        }
+    }
+}
+
+fn style_move(mut styles: Signal<Vec<PersonalStyle>>, i: usize, up: bool) {
+    let len = styles.read().len();
+    if up && i > 0 {
+        styles.write().swap(i, i - 1);
+    } else if !up && i + 1 < len {
+        styles.write().swap(i, i + 1);
+    }
 }

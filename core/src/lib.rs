@@ -69,6 +69,7 @@ mod tests {
                 },
             ],
             behavioral_patterns: vec![],
+            styles: vec![],
             rep_scores: RepScores::default(),
             ocean: OceanScores {
                 openness: Some(8),
@@ -180,12 +181,12 @@ mod tests {
 
     #[test]
     fn test_motivation_enum_all() {
-        assert_eq!(MotivationType::ALL.len(), 8);
+        assert_eq!(MotivationType::ALL.len(), 10);
     }
 
     #[test]
     fn test_bias_enum_all() {
-        assert_eq!(BiasType::ALL.len(), 10);
+        assert_eq!(BiasType::ALL.len(), 11);
     }
 
     #[test]
@@ -258,6 +259,7 @@ mod tests {
             BehaviorTrigger::Threatened,
             BehaviorTrigger::Change,
             BehaviorTrigger::Feedback,
+            BehaviorTrigger::Injustice,
         ] {
             assert!(!t.emoji().is_empty(), "emoji for {:?} is empty", t);
         }
@@ -274,6 +276,7 @@ mod tests {
             BehaviorTrigger::Threatened,
             BehaviorTrigger::Change,
             BehaviorTrigger::Feedback,
+            BehaviorTrigger::Injustice,
         ] {
             let json = serde_json::to_string(expected).unwrap();
             let back: BehaviorTrigger = serde_json::from_str(&json).unwrap();
@@ -319,6 +322,7 @@ mod tests {
                     intensity: 5,
                 },
             ],
+            styles: vec![],
             ocean: OceanScores::default(),
             confidence: 5,
             log: Vec::new(),
@@ -348,6 +352,11 @@ mod tests {
             calm_reactive: Some(2),
             diplomatic_blunt: None,
             generous_selfish: Some(6),
+            fair_favoritism: None,
+            trusting_suspicious: Some(7),
+            assertive_passive: Some(4),
+            empathetic_detached: None,
+            adaptable_rigid: Some(5),
         };
         let json = serde_json::to_string(&s).unwrap();
         let back: RepScores = serde_json::from_str(&json).unwrap();
@@ -355,6 +364,8 @@ mod tests {
         assert_eq!(back.authoritative_submissive, Some(3));
         assert_eq!(back.honest_deceitful, None);
         assert_eq!(back.generous_selfish, Some(6));
+        assert_eq!(back.trusting_suspicious, Some(7));
+        assert_eq!(back.adaptable_rigid, Some(5));
     }
 
     #[test]
@@ -366,7 +377,7 @@ mod tests {
 
     #[test]
     fn test_rep_dim_all() {
-        assert_eq!(RepDim::ALL.len(), 8);
+        assert_eq!(RepDim::ALL.len(), 13);
     }
 
     #[test]
@@ -404,6 +415,7 @@ mod tests {
                 ..RepScores::default()
             },
             behavioral_patterns: vec![],
+            styles: vec![],
             ocean: OceanScores::default(),
             confidence: 5,
             log: Vec::new(),
@@ -415,6 +427,94 @@ mod tests {
         assert_eq!(back.rep_scores.hardworker_lazy, Some(9));
         assert_eq!(back.rep_scores.reliable_flaky, Some(7));
         assert_eq!(back.rep_scores.humble_arrogant, None);
+    }
+
+    #[test]
+    fn test_style_type_all_count() {
+        assert_eq!(StyleType::ALL.len(), 26);
+    }
+
+    #[test]
+    fn test_style_category_all_count() {
+        assert_eq!(StyleCategory::ALL.len(), 6);
+    }
+
+    #[test]
+    fn test_style_type_category_mapping() {
+        use StyleCategory::*;
+        for st in &StyleType::ALL {
+            let cat = st.category();
+            match st {
+                StyleType::DirectCommunicator
+                | StyleType::DiplomaticCommunicator
+                | StyleType::ReservedCommunicator
+                | StyleType::ExpressiveCommunicator => assert_eq!(cat, Communication),
+                StyleType::Competing
+                | StyleType::Collaborating
+                | StyleType::Compromising
+                | StyleType::Avoiding
+                | StyleType::Accommodating => assert_eq!(cat, ConflictResolution),
+                StyleType::Analytical
+                | StyleType::Intuitive
+                | StyleType::Participatory
+                | StyleType::Autocratic
+                | StyleType::ConsensusDriven => assert_eq!(cat, DecisionMaking),
+                StyleType::Visionary
+                | StyleType::Servant
+                | StyleType::Transactional
+                | StyleType::Transformational
+                | StyleType::Bureaucratic => assert_eq!(cat, Leadership),
+                StyleType::PastOriented
+                | StyleType::PresentOriented
+                | StyleType::FutureOriented => assert_eq!(cat, TimeOrientation),
+                StyleType::RuleBased
+                | StyleType::OutcomeBased
+                | StyleType::VirtueBased
+                | StyleType::Relativist => assert_eq!(cat, MoralFramework),
+            }
+        }
+    }
+
+    #[test]
+    fn test_style_type_emoji() {
+        for st in &StyleType::ALL {
+            assert!(!st.emoji().is_empty(), "emoji for {:?} is empty", st);
+        }
+    }
+
+    #[test]
+    fn test_style_type_i18n_label() {
+        for st in &StyleType::ALL {
+            let fr = st.i18n_label(Lang::Fr);
+            let en = st.i18n_label(Lang::En);
+            assert!(!fr.is_empty(), "FR label for {:?} is empty", st);
+            assert!(!en.is_empty(), "EN label for {:?} is empty", st);
+        }
+    }
+
+    #[test]
+    fn test_style_type_i18n_desc() {
+        for st in &StyleType::ALL {
+            let fr = st.i18n_desc(Lang::Fr);
+            let en = st.i18n_desc(Lang::En);
+            assert!(!fr.is_empty(), "FR desc for {:?} is empty", st);
+            assert!(!en.is_empty(), "EN desc for {:?} is empty", st);
+        }
+    }
+
+    #[test]
+    fn test_style_type_category_all_categories_covered() {
+        let mut seen = Vec::new();
+        for st in &StyleType::ALL {
+            let cat = st.category();
+            if !seen.contains(&cat) {
+                seen.push(cat);
+            }
+        }
+        assert_eq!(seen.len(), 6);
+        for cat in &StyleCategory::ALL {
+            assert!(seen.contains(cat), "category {:?} not covered", cat);
+        }
     }
 
     #[test]
@@ -431,6 +531,7 @@ mod tests {
             biases: vec![],
             rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
+            styles: vec![],
             ocean: OceanScores::default(),
             confidence: 5,
             log: Vec::new(),

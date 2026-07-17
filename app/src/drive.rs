@@ -330,6 +330,7 @@ mod tests {
                 biases: vec![],
                 rep_scores: RepScores::default(),
                 behavioral_patterns: vec![],
+                styles: vec![],
                 ocean: OceanScores::default(),
                 confidence: 5,
                 log: vec![],
