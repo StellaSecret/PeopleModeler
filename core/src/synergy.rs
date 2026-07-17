@@ -291,6 +291,36 @@ fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::R
         p += 0.08;
     }
 
+    // Both selfish <= 3 → mutual hoarding
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::GenerousSelfish),
+        rep_b.score(RepDim::GenerousSelfish),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.05;
+    }
+
+    // Both passive <= 3 → decision paralysis
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::AssertivePassive),
+        rep_b.score(RepDim::AssertivePassive),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.05;
+    }
+
+    // Both rigid <= 3 → gridlock
+    if let (Some(aa), Some(ab)) = (
+        rep_a.score(RepDim::AdaptableRigid),
+        rep_b.score(RepDim::AdaptableRigid),
+    ) && aa <= 3
+        && ab <= 3
+    {
+        p += 0.05;
+    }
+
     p
 }
 
