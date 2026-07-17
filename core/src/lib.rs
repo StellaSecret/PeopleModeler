@@ -4,6 +4,7 @@ pub mod models;
 pub mod ocean;
 pub mod predictions;
 pub mod synergy;
+pub mod validation;
 
 #[cfg(any(target_arch = "wasm32", test))]
 pub mod wasm;

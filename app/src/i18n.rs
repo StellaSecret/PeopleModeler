@@ -160,6 +160,23 @@ fn en(key: &'static str) -> &'static str {
         "ocean_n_high" => "emotionally reactive, prone to stress, sensitive to criticism",
         "ocean_n_low" => "emotionally stable, calm under pressure",
 
+        // Consistency flags
+        "flag_high_e_low_a" => {
+            "Very outgoing but low agreeableness — may be assertive to the point of abrasiveness."
+        }
+        "flag_high_n_low_c" => {
+            "High emotional reactivity with low conscientiousness — may struggle with structure under stress."
+        }
+        "flag_high_o_low_c" => {
+            "Highly creative but unstructured — may have many ideas with difficulty following through."
+        }
+        "flag_calm_neurotic" => {
+            "Reported as calm under pressure but OCEAN indicates high reactivity — review for consistency."
+        }
+        "flag_honest_selfish" => {
+            "Principled honesty paired with low generosity — may indicate a rigid moral stance."
+        }
+
         // Edit form sections
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biases",
@@ -573,6 +590,23 @@ fn fr(key: &'static str) -> &'static str {
         "ocean_a_low" => "direct voire abrasif, met ses objectifs avant les relations",
         "ocean_n_high" => "émotionnellement réactif, stressable, sensible aux critiques",
         "ocean_n_low" => "stable émotionnellement, calme sous pression",
+
+        // Consistency flags
+        "flag_high_e_low_a" => {
+            "Très extraverti mais faible agréabilité — peut être assertif jusqu'à l'abrasivité."
+        }
+        "flag_high_n_low_c" => {
+            "Réactivité émotionnelle élevée avec faible conscience — peut avoir du mal sous stress."
+        }
+        "flag_high_o_low_c" => {
+            "Très créatif mais désorganisé — beaucoup d'idées mais difficulté à les concrétiser."
+        }
+        "flag_calm_neurotic" => {
+            "Décrit comme calme sous pression mais l'OCEAN indique une forte réactivité — à vérifier."
+        }
+        "flag_honest_selfish" => {
+            "Honnêteté de principe associée à une faible générosité — peut indiquer une position morale rigide."
+        }
 
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biais",

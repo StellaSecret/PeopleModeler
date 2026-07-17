@@ -132,6 +132,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let rep_scores = use_signal(|| p.rep_scores.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
 
+    let ocean_rep_flags =
+        use_memo(move || peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores()));
+
     let pers_id = p.id.clone();
 
     let mut save = move || {
@@ -264,6 +267,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
                         high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
                     }
+                }
+                for key in ocean_rep_flags() {
+                    div { class: "danger-warning", "⚠ {crate::i18n::tr(key, lang())}" }
                 }
 
                 MotEditPanel { motivations, lang: cl }
