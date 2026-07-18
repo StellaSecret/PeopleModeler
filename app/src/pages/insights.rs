@@ -118,14 +118,11 @@ fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: L
             }
         })
         .unwrap_or("");
-    format!(
-        "When {}{} is{}{}:\n\n{}",
-        p.name,
-        role_info,
-        tl.to_lowercase(),
-        intensity_tag,
-        base
-    )
+    crate::i18n::tr("strategy_when", lang)
+        .replace("{name}", &format!("{}{}", p.name, role_info))
+        .replace("{trigger}", &tl.to_lowercase())
+        .replace("{intensity}", intensity_tag)
+        .replace("{advice}", &base)
 }
 
 fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {

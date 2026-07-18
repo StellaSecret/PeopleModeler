@@ -273,6 +273,7 @@ fn en(key: &'static str) -> &'static str {
         "strategy_threat_label" => "Feeling threatened",
         "strategy_change_label" => "Facing change",
         "strategy_feedback_label" => "Receiving feedback",
+        "strategy_when" => "When {name} is{trigger}{intensity}:\n\n{advice}",
 
         "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
         "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
@@ -741,6 +742,7 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_threat_label" => "Se sentant menacé",
         "strategy_change_label" => "Face au changement",
         "strategy_feedback_label" => "Recevoir du feedback",
+        "strategy_when" => "Quand {name} est {trigger}{intensity} :\n\n{advice}",
 
         "strategy_stress_high_n" => {
             "Névrosisme élevé — offrez du soutien émotionnel avant les solutions."
