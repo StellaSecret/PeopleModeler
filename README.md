@@ -181,7 +181,7 @@ OCEAN×17% + Réputation×26% + Motivation×19% + Patterns×14% + Biais×13% + S
 Si une catégorie n'a pas de données (ex: aucun pattern partagé), son poids est
 redistribué proportionnellement aux autres catégories actives.
 
-#### 1. OCEAN (19%)
+#### 1. OCEAN (17%)
 
 Distance continue par trait (1-10) + bonus de complémentarité :
 
@@ -226,7 +226,7 @@ OCEAN_penalisé = max(OCEAN_brut - pénalité_OCEAN, 0)
 OCEAN_final = min(OCEAN_penalisé × (1 + modulations_biais_OCEAN), 1)
 ```
 
-#### 2. Réputation (29%)
+#### 2. Réputation (26%)
 
 Pour chaque dimension (13 bipolaires) où A et B ont une valeur :
 
@@ -238,22 +238,22 @@ Rep_brut = Σ(similarité_dim × poids_dim) / Σ(poids_dim)
 Les dimensions ont des poids différents selon leur impact relationnel :
 
 | Dimension | Poids |
-|---|---|---|
-| Honnête ↔ Trompeur | 0.18 |
-| Fiable ↔ Inconstant | 0.14 |
-| Humble ↔ Arrogant | 0.13 |
+|---|---|---|---|
+| Honnête ↔ Trompeur | 0.15 |
+| Fiable ↔ Inconstant | 0.12 |
 | Autoritaire ↔ Soumis | 0.12 |
-| Juste ↔ Favoritisme | 0.11 |
-| Travailleur ↔ Paresseux | 0.10 |
-| Empathique ↔ Détaché | 0.10 |
-| Diplomate ↔ Direct | 0.09 |
-| Affirmé ↔ Passif | 0.09 |
-| Calme ↔ Réactif | 0.08 |
-| Confiant ↔ Méfiant | 0.07 |
-| Flexible ↔ Rigide | 0.06 |
+| Humble ↔ Arrogant | 0.12 |
+| Travailleur ↔ Paresseux | 0.07 |
+| Calme ↔ Réactif | 0.07 |
+| Diplomate ↔ Direct | 0.07 |
+| Équitable ↔ Partial | 0.07 |
+| Confiant ↔ Méfiant | 0.05 |
+| Affirmé ↔ Passif | 0.05 |
+| Empathique ↔ Détaché | 0.05 |
 | Généreux ↔ Égoïste | 0.04 |
+| Flexible ↔ Rigide | 0.04 |
 
-> Somme = 1.21, normalisée à l'exécution par `total_active_w`.
+> Somme = 1.02, normalisée à l'exécution par `total_active_w`.
 
 - Si **aucune** dimension commune : catégorie inactive, poids redistribué
 
@@ -275,6 +275,9 @@ Tous deux Inconstant ≤ 3   → manque de fiabilité mutuel   +0.08
 Tous deux Méfiant ≤ 3      → suspicion mutuelle           +0.08
 Tous deux Détaché ≤ 3      → froideur mutuelle            +0.08
 Tous deux Favoritisme ≤ 3  → copinage                     +0.08
+Tous deux Égoïste ≤ 3      → accaparement mutuel          +0.05
+Tous deux Passif ≤ 3       → paralysie décisionnelle      +0.05
+Tous deux Rigide ≤ 3       → blocage mutuel               +0.05
 ```
 
 Réputation finale après modulation et pénalité :
@@ -284,7 +287,7 @@ Rep_penalisé = max(Rep_brut - pénalité_Rep, 0)
 Rep_final = min(Rep_penalisé × (1 + modulations_biais_Rep), 1)
 ```
 
-#### 3. Motivation (21%)
+#### 3. Motivation (19%)
 
 Paires pondérées par `intensity_A × intensity_B / 100`. Les paires neutres
 (synergy = 0.0) sont ignorées pour éviter le biais de dilution. La moyenne
@@ -306,19 +309,47 @@ Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **
 (l'un dirige, l'autre soutient), Achievement × Affiliation = **+0.1** (résultats + harmonie).
 
 | tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping | Creativ | Fairness |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0 | +0.1 | 0 | −0.1 |
-| **Achievement** | +0.3 | +0.2 | +0.1 | −0.2 | +0.2 | +0.3 | +0.3 | 0 | +0.2 | 0 |
-| **Affiliation** | −0.2 | +0.1 | +0.2 | +0.2 | −0.1 | −0.1 | 0 | +0.3 | 0 | +0.2 |
-| **Security** | −0.1 | −0.2 | +0.2 | 0.0 | −0.3 | 0 | 0 | +0.2 | 0 | +0.1 |
-| **Autonomy** | +0.2 | +0.2 | −0.1 | −0.3 | 0.0 | 0 | +0.2 | 0 | +0.3 | 0 |
-| **Recognition** | +0.2 | +0.3 | −0.1 | 0 | 0 | **−0.1** | 0 | 0 | 0 | 0 |
-| **Learning** | 0 | +0.3 | 0 | 0 | +0.2 | 0 | +0.2 | +0.2 | +0.3 | +0.1 |
-| **Helping** | +0.1 | 0 | +0.3 | +0.2 | 0 | 0 | +0.2 | +0.2 | 0 | +0.3 |
-| **Creativity** | 0 | +0.2 | 0 | 0 | +0.3 | 0 | +0.3 | 0 | +0.2 | 0 |
-| **Fairness** | −0.1 | 0 | +0.2 | +0.1 | 0 | 0 | +0.1 | +0.3 | 0 | +0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0.0 | +0.1 | −0.1 | −0.2 |
+| **Achievement** | +0.3 | +0.2 | +0.1 | −0.2 | +0.2 | +0.3 | +0.3 | +0.2 | +0.2 | +0.2 |
+| **Affiliation** | −0.2 | +0.1 | +0.2 | +0.2 | −0.1 | −0.1 | +0.2 | +0.3 | +0.2 | +0.2 |
+| **Security** | −0.1 | −0.2 | +0.2 | 0.0 | −0.3 | 0.0 | +0.2 | +0.2 | −0.2 | +0.2 |
+| **Autonomy** | +0.2 | +0.2 | −0.1 | −0.3 | 0.0 | 0.0 | +0.2 | 0.0 | +0.2 | +0.2 |
+| **Recognition** | +0.2 | +0.3 | −0.1 | 0.0 | 0.0 | **−0.1** | +0.3 | 0.0 | +0.3 | −0.1 |
+| **Learning** | 0.0 | +0.3 | +0.2 | +0.2 | +0.2 | +0.3 | +0.2 | +0.2 | +0.3 | +0.2 |
+| **Helping** | +0.1 | +0.2 | +0.3 | +0.2 | 0.0 | 0.0 | +0.2 | +0.2 | −0.1 | +0.3 |
+| **Creativity** | −0.1 | +0.2 | +0.2 | −0.2 | +0.2 | +0.3 | +0.3 | −0.1 | +0.2 | +0.2 |
+| **Fairness** | −0.2 | +0.2 | +0.2 | +0.2 | +0.2 | −0.1 | +0.2 | +0.3 | +0.2 | +0.2 |
 
-#### 4. Patterns (16%)
+##### Ajustement vertus (profil individuel)
+
+Avant le calcul de synergie, chaque profil individuel (`compute_person_profile`)
+applique un ajustement moral à son score de motivation selon les vertus/vices :
+
+| Motivation | ≥ 7 (vertu) | ≤ 3 ou absent (vice) |
+|---|---|---|
+| Équité (Fairness) | +0.08 | −0.08 |
+| Entraide (Helping) | +0.06 | −0.06 |
+| Apprentissage (Learning) | +0.04 | 0 |
+| Créativité (Creativity) | +0.04 | 0 |
+| Pouvoir (Power) | −0.08 (vice, seuil 7) | 0 |
+| Sécurité (Security) | −0.05 (vice, seuil 7) | 0 |
+| Reconnaissance (Recognition) | −0.03 (vice, seuil 9) | 0 |
+| Autres (Achievement, Affiliation, Autonomy) | 0 | 0 |
+
+**Pénalité de rareté** : si la personne a peu de motivations, son score est réduit :
+
+| Nb motivations | Pénalité |
+|---|---|
+| 0 | −0.09 |
+| 1 | −0.06 |
+| 2 | −0.03 |
+| 3+ | 0.0 |
+
+Ces ajustements sont appliqués au score de motivation **dans le profil** avant
+tout calcul de synergie cross-personne.
+
+#### 4. Patterns (14%)
 
 Paires pondérées par `conf_A × conf_B / 100`. Les paires neutres
 (synergy = 0.0) sont ignorées (même logique que motivations).
@@ -340,7 +371,7 @@ Table `trigger_synergy(tA, tB)` :
 | **Uncertainty** | 0 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 | 0 |
 | **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Injustice** | 0 | 0 | 0 | −0.1 | −0.1 | 0 | 0 | 0 | −0.2 |
+| **Injustice** | 0 | 0 | 0 | −0.1 | −0.1 | −0.1 | 0 | 0 | −0.2 |
 
 **Pénalité danger Patterns** — lorsque les deux personnes n'ont **que** des
 déclencheurs négatifs (Conflict, Stress, Threatened, Injustice), aucun pattern positif
@@ -358,7 +389,7 @@ Patterns_penalisé = max(Patterns_brut - pénalité_Patterns, 0)
 Patterns_final = min(Patterns_penalisé × (1 + modulations_biais_Patterns), 1)
 ```
 
-#### 5. Biais (15%)
+#### 5. Biais (13%)
 
 Les biais ne sont **pas** scorés directement. Chaque type de biais module une
 autre catégorie du score quand il est partagé par les deux personnes :
@@ -449,7 +480,9 @@ poids_Styles  = 0.11
 ```
 
 Quand une catégorie manque de données → elle est exclue et son poids est réparti
-proportionnellement sur les catégories restantes.
+proportionnellement sur les catégories restantes. La Motivation (poids 0.19) est
+**toujours active** — même sans données, le poids 0.19 est conservé (une pénalité
+de rareté s'applique alors, voir §3).
 
 #### Score asymétrique (bénéfice individuel)
 
@@ -488,11 +521,11 @@ danger_pts = round(danger / poids_actif × 100)
 ```
 
 `danger` est la somme pondérée des pénalités OCEAN, Réputation, Patterns,
-historique (inchangée) :
+historique :
 
 ```
 danger = pénalité_OCEAN × 0.17 + pénalité_Rep × 0.26
-       + pénalité_Patterns × 0.14 + pénalité_historique
+       + pénalité_Patterns × 0.14 + pénalité_historique × 0.10
 ```
 
 Le champ `danger` du `SynergyBreakdown` expose cette valeur pour transparence

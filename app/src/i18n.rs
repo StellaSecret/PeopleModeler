@@ -219,7 +219,9 @@ fn en(key: &'static str) -> &'static str {
         "pattern_helper_threat" => "How they defend themselves when feeling attacked",
         "pattern_helper_change" => "How they adapt to transitions and new situations",
         "pattern_helper_feedback" => "How they receive and process input from others",
-        "pattern_helper_injustice" => "How they react when treated unfairly or witnessing unfairness",
+        "pattern_helper_injustice" => {
+            "How they react when treated unfairly or witnessing unfairness"
+        }
 
         // Context labels
         "ctx_stress" => "Stress",
@@ -683,7 +685,9 @@ fn fr(key: &'static str) -> &'static str {
         "pattern_helper_threat" => "Comment il se défend quand il se sent attaqué",
         "pattern_helper_change" => "Comment il s'adapte aux transitions et nouveautés",
         "pattern_helper_feedback" => "Comment il reçoit et traite les retours des autres",
-        "pattern_helper_injustice" => "Comment il réagit face à l'injustice ou au traitement inéquitable",
+        "pattern_helper_injustice" => {
+            "Comment il réagit face à l'injustice ou au traitement inéquitable"
+        }
 
         "ctx_stress" => "Stress",
         "ctx_conflict" => "Conflit",

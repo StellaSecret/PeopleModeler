@@ -666,11 +666,14 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let mot_active = !person.motivations.is_empty();
     let pat_active = !person.behavioral_patterns.is_empty();
 
-    let raw_mot = if mot_active {
+    let base_mot = if mot_active {
         motivation_synergy_score(&person.motivations, &person.motivations)
     } else {
         0.5
     };
+    let virtue = virtue_adjustment(&person.motivations);
+    let count_penalty = motivation_count_penalty(person.motivations.len());
+    let motivation = (base_mot + virtue - count_penalty).clamp(0.0, 1.0);
 
     let raw_pat = if pat_active {
         pattern_synergy(&person.behavioral_patterns, &person.behavioral_patterns)
@@ -722,10 +725,8 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     const W_STYLE: f64 = 0.11;
     let mut total_w = 0.0;
     let mut raw = 0.0;
-    if mot_active {
-        raw += raw_mot * W_MOT;
-        total_w += W_MOT;
-    }
+    raw += motivation * W_MOT;
+    total_w += W_MOT;
     if pat_active {
         raw += raw_pat * W_PAT;
         total_w += W_PAT;
@@ -747,7 +748,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
 
     PersonProfile {
         total,
-        motivation: raw_mot,
+        motivation,
         patterns: raw_pat,
         ocean,
         reputation: rep,
@@ -838,6 +839,34 @@ pub fn motivation_synergy_score(ma: &[Motivation], mb: &[Motivation]) -> f64 {
     } else {
         ((sum / total_w + 0.3) / 0.6).clamp(0.0, 1.0)
     }
+}
+
+pub fn virtue_adjustment(motivations: &[Motivation]) -> f64 {
+    use crate::models::MotivationType::*;
+    let mut sum = 0.0;
+    for &t in &MotivationType::ALL {
+        let mot = motivations.iter().find(|m| m.r#type == t);
+        let intensity = mot.map(|m| m.intensity);
+        match (t, intensity) {
+            (Fairness, Some(i)) if i >= 7 => sum += 0.08,
+            (Fairness, Some(i)) if i <= 3 => sum -= 0.08,
+            (Fairness, None) => sum -= 0.08,
+            (Helping, Some(i)) if i >= 7 => sum += 0.06,
+            (Helping, Some(i)) if i <= 3 => sum -= 0.06,
+            (Helping, None) => sum -= 0.06,
+            (Learning, Some(i)) if i >= 7 => sum += 0.04,
+            (Creativity, Some(i)) if i >= 7 => sum += 0.04,
+            (Power, Some(i)) if i >= 7 => sum -= 0.08,
+            (Security, Some(i)) if i >= 7 => sum -= 0.05,
+            (Recognition, Some(i)) if i >= 9 => sum -= 0.03,
+            _ => {}
+        }
+    }
+    sum
+}
+
+fn motivation_count_penalty(n: usize) -> f64 {
+    if n >= 3 { 0.0 } else { (3 - n) as f64 * 0.03 }
 }
 
 pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
@@ -1177,6 +1206,128 @@ mod tests {
             (motivation_synergy(MotivationType::Helping, MotivationType::Recognition) - 0.0).abs()
                 < 1e-9
         );
+    }
+
+    // --- virtue_adjustment tests ---
+
+    #[test]
+    fn test_virtue_fairness_high_bonus() {
+        // Fairness 8 → +0.08, absent Helping → −0.06
+        let m = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        assert!((virtue_adjustment(&m) - 0.02).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_virtue_all_virtues_high() {
+        // Fairness 8 (+0.08) + Helping 8 (+0.06) + Learning 8 (+0.04) + Creativity 8 (+0.04)
+        // No absent virtue penalties → +0.22
+        let m = vec![
+            Motivation {
+                r#type: MotivationType::Fairness,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Helping,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Creativity,
+                intensity: 8,
+                notes: String::new(),
+            },
+        ];
+        assert!((virtue_adjustment(&m) - 0.22).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_virtue_absent_both_virtues_penalty() {
+        // Absent Fairness (−0.08) + absent Helping (−0.06) = −0.14
+        assert!((virtue_adjustment(&[]) - (-0.14)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_virtue_power_high_without_virtues() {
+        // Power 8 → −0.08, absent Fairness → −0.08, absent Helping → −0.06 = −0.22
+        let m = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        assert!((virtue_adjustment(&m) - (-0.22)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_virtue_learning_creativity_without_virtues() {
+        // Learning 8 (+0.04) + Creativity 9 (+0.04) − absent Fairness (−0.08) − absent Helping (−0.06) = −0.06
+        let m = vec![
+            Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Creativity,
+                intensity: 9,
+                notes: String::new(),
+            },
+        ];
+        assert!((virtue_adjustment(&m) - (-0.06)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_virtue_recognition_extreme_without_virtues() {
+        // Recognition 10 → −0.03, absent Fairness → −0.08, absent Helping → −0.06 = −0.17
+        let m = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 10,
+            notes: String::new(),
+        }];
+        assert!((virtue_adjustment(&m) - (-0.17)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_virtue_recognition_moderate_without_virtues() {
+        // Recognition 8 → no vice penalty, absent Fairness → −0.08, absent Helping → −0.06 = −0.14
+        let m = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        assert!((virtue_adjustment(&m) - (-0.14)).abs() < 1e-9);
+    }
+
+    // --- motivation_count_penalty tests ---
+
+    #[test]
+    fn test_count_penalty_empty() {
+        assert!((motivation_count_penalty(0) - 0.09).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_count_penalty_one() {
+        assert!((motivation_count_penalty(1) - 0.06).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_count_penalty_two() {
+        assert!((motivation_count_penalty(2) - 0.03).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_count_penalty_three_or_more() {
+        assert!((motivation_count_penalty(3)).abs() < 1e-9);
+        assert!((motivation_count_penalty(5)).abs() < 1e-9);
     }
 
     // --- bias_modifier tests ---
@@ -2115,14 +2266,10 @@ mod tests {
     fn test_self_score_baseline() {
         let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let pf = compute_person_profile(&p);
-        // Empty motivations/patterns → 0.5 each. Neutral OCEAN, rep, bias.
+        // Empty motivations → virtue penalty (−0.14 absent Fairness/Helping)
+        // + count penalty (−0.09 for 0 motivations) → 0.5 − 0.23 = 0.27.
         assert!(
-            pf.total > 30 && pf.total < 70,
-            "baseline self-score: {}",
-            pf.total
-        );
-        assert!(
-            (pf.motivation - 0.5).abs() < 0.001,
+            (pf.motivation - 0.27).abs() < 0.001,
             "baseline mot: {}",
             pf.motivation
         );
@@ -2130,6 +2277,11 @@ mod tests {
             (pf.patterns - 0.5).abs() < 0.001,
             "baseline pat: {}",
             pf.patterns
+        );
+        assert!(
+            pf.total > 30 && pf.total < 70,
+            "baseline self-score: {}",
+            pf.total
         );
     }
 

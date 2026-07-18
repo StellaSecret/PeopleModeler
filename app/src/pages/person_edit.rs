@@ -799,7 +799,10 @@ fn parse_style_type(s: &str) -> StyleType {
 }
 
 #[component]
-fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+fn StyleEditPanel(
+    styles: Signal<Vec<PersonalStyle>>,
+    lang: peoplemodeler_core::i18n::Lang,
+) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
     let mut sel_intensity = use_signal(|| 5u8);
