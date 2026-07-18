@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::models::{
-    BehaviorTrigger, BehavioralPattern, BiasType, Motivation, MotivationType, OceanScores, Person,
-    PersonalStyle, Prediction, RepDim,
+    BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
+    Person, PersonalStyle, Prediction, RepDim,
 };
 
 pub struct SynergyBreakdown {
@@ -708,8 +708,12 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
 
     let rep = base_rep_quality(person);
 
-    let bias =
-        1.0 - (person.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64).min(1.0);
+    let bias_adj = bias_adjustment(&person.biases);
+    let present_bias_count = person.biases.iter().filter(|b| b.intensity > 0).count();
+    let base_bias =
+        1.0 - (present_bias_count as f64 / crate::models::BiasType::ALL.len() as f64).min(1.0);
+    let count_bonus = bias_count_bonus(present_bias_count);
+    let bias = (base_bias + bias_adj + count_bonus).clamp(0.0, 1.0);
 
     let raw_style = if !person.styles.is_empty() {
         style_synergy(&person.styles, &person.styles)
@@ -867,6 +871,28 @@ pub fn virtue_adjustment(motivations: &[Motivation]) -> f64 {
 
 fn motivation_count_penalty(n: usize) -> f64 {
     if n >= 3 { 0.0 } else { (3 - n) as f64 * 0.03 }
+}
+
+pub fn bias_adjustment(biases: &[Bias]) -> f64 {
+    let mut sum = 0.0;
+    for &t in &BiasType::ALL {
+        match biases.iter().find(|b| b.r#type == t).map(|b| b.intensity) {
+            Some(0) => sum += 0.02,           // explicitly absent → bonus
+            Some(i) if i <= 3 => sum += 0.01, // mild → small bonus
+            Some(i) if i >= 7 => sum -= 0.03, // strong → penalty
+            _ => {}                           // moderate (4-6) or undefined → neutral
+        }
+    }
+    sum
+}
+
+fn bias_count_bonus(n: usize) -> f64 {
+    match n {
+        0 => 0.09,
+        1 => 0.06,
+        2 => 0.03,
+        _ => 0.0,
+    }
 }
 
 pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
@@ -1328,6 +1354,124 @@ mod tests {
     fn test_count_penalty_three_or_more() {
         assert!((motivation_count_penalty(3)).abs() < 1e-9);
         assert!((motivation_count_penalty(5)).abs() < 1e-9);
+    }
+
+    // --- bias_adjustment tests ---
+
+    #[test]
+    fn test_bias_adjustment_empty() {
+        assert!((bias_adjustment(&[]) - 0.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_adjustment_all_absent() {
+        let b = vec![
+            Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 0,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 0,
+                evidence: String::new(),
+            },
+        ];
+        assert!((bias_adjustment(&b) - 0.04).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_adjustment_mild() {
+        let b = vec![
+            Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 2,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 3,
+                evidence: String::new(),
+            },
+        ];
+        assert!((bias_adjustment(&b) - 0.02).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_adjustment_moderate() {
+        let b = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        assert!((bias_adjustment(&b) - 0.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_adjustment_strong() {
+        let b = vec![
+            Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 8,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 9,
+                evidence: String::new(),
+            },
+        ];
+        assert!((bias_adjustment(&b) - (-0.06)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_adjustment_mixed() {
+        let b = vec![
+            Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 0,
+                evidence: String::new(),
+            }, // +0.02
+            Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 2,
+                evidence: String::new(),
+            }, // +0.01
+            Bias {
+                r#type: BiasType::Availability,
+                intensity: 5,
+                evidence: String::new(),
+            }, //  0.0
+            Bias {
+                r#type: BiasType::SunkCost,
+                intensity: 8,
+                evidence: String::new(),
+            }, // -0.03
+        ];
+        assert!((bias_adjustment(&b) - 0.0).abs() < 1e-9);
+    }
+
+    // --- bias_count_bonus tests ---
+
+    #[test]
+    fn test_bias_count_bonus_zero() {
+        assert!((bias_count_bonus(0) - 0.09).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_count_bonus_one() {
+        assert!((bias_count_bonus(1) - 0.06).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_count_bonus_two() {
+        assert!((bias_count_bonus(2) - 0.03).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_bias_count_bonus_three_or_more() {
+        assert!((bias_count_bonus(3) - 0.0).abs() < 1e-9);
+        assert!((bias_count_bonus(5) - 0.0).abs() < 1e-9);
     }
 
     // --- bias_modifier tests ---

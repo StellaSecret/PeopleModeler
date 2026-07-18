@@ -7,6 +7,11 @@ pub fn clamp_u8_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     Ok(v)
 }
 
+pub fn clamp_u8_0_10<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    let v = u8::deserialize(d)?.clamp(0, 10);
+    Ok(v)
+}
+
 pub fn deserialize_behavior_response<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<BehaviorResponse, D::Error> {
@@ -421,7 +426,7 @@ pub struct Motivation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Bias {
     pub r#type: BiasType,
-    #[serde(deserialize_with = "clamp_u8_1_10")]
+    #[serde(deserialize_with = "clamp_u8_0_10")]
     pub intensity: u8,
     pub evidence: String,
 }

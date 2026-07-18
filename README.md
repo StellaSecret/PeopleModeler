@@ -417,7 +417,38 @@ modulation = coefficient × (intensity_A × intensity_B / 100)
 score_cat_modulé = score_cat_brut × (1.0 + Σ_modulations)   → clamp [0, 1]
 ```
 
-**Score de biais** pour l'affichage : fraction des types de biais partagés :
+**Score de biais** pour le profil individuel : combiné d'une base
+comptable, d'un ajustement d'intensité et d'un bonus de rareté :
+
+1. **Base** : `1.0 - nb_biais_présents / 11` (biais avec intensité > 0)
+2. **Ajustement d'intensité** (`bias_adjustment`) :
+
+   | Statut | Ajustement |
+   |---|---|
+   | Absent (non défini) | 0 |
+   | Intensité **0** (explicitement absent) | +0.02 |
+   | ≤ 3 (faible) | +0.01 |
+   | 4‑6 (modéré) | 0 |
+   | ≥ 7 (fort) | −0.03 |
+
+3. **Bonus de rareté** (`bias_count_bonus`) :
+
+   | Nb biais présents | Bonus |
+   |---|---|
+   | 0 | +0.09 |
+   | 1 | +0.06 |
+   | 2 | +0.03 |
+   | 3+ | 0.0 |
+
+```
+biais_score_profil = (base + ajustement + bonus).clamp(0, 1)
+```
+
+Ces ajustements sont appliqués au score de biais **dans le profil** avant tout
+calcul de comparaison cross-personne.
+
+**Score de biais cross-personne** (comparaison) : fraction des types de biais
+partagés :
 
 ```
 biais_score = shared_types / max(len(A_types), len(B_types))

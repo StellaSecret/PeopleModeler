@@ -393,10 +393,10 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
                         option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
                     }
                 }
-                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
+                input { r#type: "range", min: "0", max: "10", value: "{sel_intensity}",
                     oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
                 }
-                span { "{sel_intensity}" }
+                span { "{sel_intensity}/10" }
                 input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
                     oninput: move |e| { sel_evidence.set(e.value()); }
                 }
