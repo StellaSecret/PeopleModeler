@@ -2,8 +2,8 @@
 
 > Modéliser les gens comme des systèmes : motivations, biais, comportements.
 
-[![Build](https://github.com/yourusername/people-modeler/actions/workflows/build.yml/badge.svg)](https://github.com/yourusername/people-modeler/actions)
-[![Web](https://img.shields.io/badge/Web-GitHub%20Pages-blue)](https://yourusername.github.io/people-modeler)
+[![Build](https://github.com/stellasecret/peoplemodeler/actions/workflows/build.yml/badge.svg)](https://github.com/stellasecret/peoplemodeler/actions)
+[![Web](https://img.shields.io/badge/Web-GitHub%20Pages-blue)](https://stellasecret.github.io/PeopleModeler)
 
 ---
 
@@ -88,7 +88,7 @@ La pipeline `.github/workflows/build.yml` fait :
 3. Branche : `gh-pages`
 4. La pipeline déploie automatiquement à chaque push sur `main`
 
-URL : `https://yourusername.github.io/people-modeler/`
+URL : `https://stellasecret.github.io/PeopleModeler/`
 
 ---
 
@@ -238,7 +238,7 @@ Rep_brut = Σ(similarité_dim × poids_dim) / Σ(poids_dim)
 Les dimensions ont des poids différents selon leur impact relationnel :
 
 | Dimension | Poids |
-|---|---|---|---|
+|---|---|
 | Honnête ↔ Trompeur | 0.15 |
 | Fiable ↔ Inconstant | 0.12 |
 | Autoritaire ↔ Soumis | 0.12 |
@@ -304,7 +304,6 @@ Rep_ajusté = clamp(base_rep_quality(person) + rep_adjustment(&person.rep_scores
 ```
 
 > Les dimensions contextuelles n'ont pas de pôle universellement positif/négatif : les extrêmes sont pénalisés, le centre (4-6) récompensé.
-```
 
 #### 3. Motivation (19%)
 
@@ -328,7 +327,7 @@ Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **
 (l'un dirige, l'autre soutient), Achievement × Affiliation = **+0.1** (résultats + harmonie).
 
 | tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping | Creativ | Fairness |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|---|---|
 | **Power** | **−0.2** | +0.3 | −0.2 | −0.1 | +0.2 | +0.2 | 0.0 | +0.1 | −0.1 | −0.2 |
 | **Achievement** | +0.3 | +0.2 | +0.1 | −0.2 | +0.2 | +0.3 | +0.3 | +0.2 | +0.2 | +0.2 |
 | **Affiliation** | −0.2 | +0.1 | +0.2 | +0.2 | −0.1 | −0.1 | +0.2 | +0.3 | +0.2 | +0.2 |
@@ -381,7 +380,7 @@ Patterns_brut = (avg + 0.3) / 0.6   → clamp [0, 1]
 Table `trigger_synergy(tA, tB)` :
 
 | tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened | Injustice |
-|---|---|---|---|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|---|
 | **Change** | +0.3 | +0.3 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 |
 | **Feedback** | +0.3 | +0.3 | 0 | 0 | 0 | 0 | +0.2 | 0 | 0 |
 | **Success** | 0 | 0 | +0.3 | 0 | 0 | 0 | 0 | 0 | 0 |

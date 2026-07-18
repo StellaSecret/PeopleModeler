@@ -306,10 +306,12 @@ fn MotEditPanel(
     let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+    let mot_undefined_warning = crate::i18n::tr("mot_undefined_warning", app_lang());
 
     rsx! {
         fieldset { class: "section",
             legend { "{edit_motivations}" }
+            div { class: "helper-text", "{mot_undefined_warning}" }
             div { class: "add-row",
                 select { value: "{sel_type}",
                     onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
