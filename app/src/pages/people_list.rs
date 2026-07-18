@@ -35,6 +35,7 @@ pub fn PeopleList() -> Element {
     let mot_hdr = crate::i18n::tr("compare_cat_motivation", lang());
     let pat_hdr = crate::i18n::tr("compare_cat_patterns", lang());
     let bias_hdr = crate::i18n::tr("compare_cat_bias", lang());
+    let comp_hdr = crate::i18n::tr("profile_completeness", lang());
 
     rsx! {
         div { class: "page",
@@ -80,6 +81,7 @@ pub fn PeopleList() -> Element {
                                 th { class: "pt-col-sub", "{mot_hdr}" }
                                 th { class: "pt-col-sub", "{pat_hdr}" }
                                 th { class: "pt-col-sub", "{bias_hdr}" }
+                                th { class: "pt-col-sub", "{comp_hdr}" }
                             }
                         }
                         tbody {
@@ -106,6 +108,7 @@ pub fn PeopleList() -> Element {
                                         td { class: "pt-sub", "{(profile.motivation * 100.0).round() as u8}" }
                                         td { class: "pt-sub", "{(profile.patterns * 100.0).round() as u8}" }
                                         td { class: "pt-sub", "{(profile.bias * 100.0).round() as u8}" }
+                                        td { class: "pt-sub", "{profile.completeness}%" }
                                     }
                                 }
                                 }

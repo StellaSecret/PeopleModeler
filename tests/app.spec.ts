@@ -74,7 +74,7 @@ test.describe('People Modeler Dioxus App', () => {
     await page.locator('.logo').click();
     await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
     const headers = page.locator('.people-table th');
-    await expect(headers).toHaveCount(7);
+    await expect(headers).toHaveCount(8);
     await expect(headers.nth(0)).toContainText('Name');
     await expect(headers.nth(1)).toContainText('Profile Score');
     await expect(headers.nth(2)).toContainText('OCEAN');
@@ -82,6 +82,7 @@ test.describe('People Modeler Dioxus App', () => {
     await expect(headers.nth(4)).toContainText('Motivation');
     await expect(headers.nth(5)).toContainText('Patterns');
     await expect(headers.nth(6)).toContainText('Bias');
+    await expect(headers.nth(7)).toContainText('Compl.');
   });
 
   test('people table search filters by name', async ({ page }) => {

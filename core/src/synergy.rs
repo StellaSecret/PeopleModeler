@@ -29,6 +29,7 @@ pub struct PersonProfile {
     pub reputation: f64,
     pub bias: f64,
     pub styles: f64,
+    pub completeness: u8,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -160,6 +161,36 @@ pub fn rep_adjustment(rep: &crate::models::RepScores) -> f64 {
         }
     }
     adj
+}
+
+pub fn profile_completeness(person: &Person) -> f64 {
+    let ocean = person.ocean.openness.is_some() as u32
+        + person.ocean.conscientiousness.is_some() as u32
+        + person.ocean.extraversion.is_some() as u32
+        + person.ocean.agreeableness.is_some() as u32
+        + person.ocean.neuroticism.is_some() as u32;
+    let mot = person.motivations.len().min(3) as u32;
+    let biases = person.biases.len().min(11) as u32;
+    let rep = RepDim::ALL
+        .iter()
+        .filter(|d| person.rep_scores.score(**d).is_some())
+        .count() as u32;
+    let styles = person
+        .styles
+        .iter()
+        .map(|s| s.r#type.category())
+        .fold(Vec::new(), |mut acc, cat| {
+            if !acc.contains(&cat) {
+                acc.push(cat);
+            }
+            acc
+        })
+        .len()
+        .min(6) as u32;
+    let pat = person.behavioral_patterns.len().min(5) as u32;
+    let num = ocean + mot + biases + rep + styles + pat;
+    let den = 43.0;
+    (num as f64 / den).clamp(0.0, 1.0)
 }
 
 fn ocean_danger_penalty(oa: &crate::models::OceanScores, ob: &crate::models::OceanScores) -> f64 {
@@ -788,6 +819,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
         reputation: rep,
         bias,
         styles: raw_style,
+        completeness: (profile_completeness(person) * 100.0).round() as u8,
     }
 }
 
@@ -2618,6 +2650,187 @@ mod tests {
             (adj - expected).abs() < 0.001,
             "all-9 rep adj should be {expected}: {adj}"
         );
+    }
+
+    #[test]
+    fn test_profile_completeness_empty() {
+        let p = make_person(None, None, None, None, None);
+        let c = profile_completeness(&p);
+        assert!((c - 0.0).abs() < 0.001, "empty: {c}");
+    }
+
+    #[test]
+    fn test_profile_completeness_full() {
+        let mut p = make_person(Some(8), Some(7), Some(6), Some(9), Some(3));
+        p.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Power,
+                intensity: 5,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Affiliation,
+                intensity: 7,
+                notes: String::new(),
+            },
+        ];
+        p.biases = (0..11)
+            .map(|i| Bias {
+                r#type: BiasType::ALL[i],
+                intensity: 5,
+                evidence: String::new(),
+            })
+            .collect();
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(8),
+            reliable_flaky: Some(7),
+            authoritative_submissive: Some(5),
+            humble_arrogant: Some(6),
+            hardworker_lazy: Some(9),
+            calm_reactive: Some(5),
+            diplomatic_blunt: Some(4),
+            generous_selfish: Some(7),
+            fair_favoritism: Some(6),
+            trusting_suspicious: Some(5),
+            assertive_passive: Some(5),
+            empathetic_detached: Some(8),
+            adaptable_rigid: Some(7),
+        };
+        use crate::models::StyleType::*;
+        p.styles = vec![
+            PersonalStyle {
+                r#type: DirectCommunicator,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: Collaborating,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: Analytical,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: Visionary,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: PastOriented,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: RuleBased,
+                intensity: 5,
+                notes: String::new(),
+            },
+        ];
+        p.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 5,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Feedback,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 5,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Success,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 5,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 5,
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::BecomesDefensive,
+                intensity: 5,
+            },
+        ];
+        let c = profile_completeness(&p);
+        assert!((c - 1.0).abs() < 0.001, "full: {c}");
+    }
+
+    #[test]
+    fn test_profile_completeness_ocean_only() {
+        let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let c = profile_completeness(&p);
+        let expected = 5.0 / 43.0;
+        assert!((c - expected).abs() < 0.001, "ocean only: {c}");
+    }
+
+    #[test]
+    fn test_profile_completeness_rep_and_mot() {
+        let mut p = make_person(None, None, None, None, None);
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(8),
+            reliable_flaky: Some(7),
+            authoritative_submissive: Some(5),
+            humble_arrogant: Some(6),
+            hardworker_lazy: Some(9),
+            calm_reactive: Some(5),
+            diplomatic_blunt: Some(4),
+            generous_selfish: Some(7),
+            fair_favoritism: Some(6),
+            trusting_suspicious: Some(5),
+            assertive_passive: Some(5),
+            empathetic_detached: Some(8),
+            adaptable_rigid: Some(7),
+        };
+        p.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 6,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Helping,
+                intensity: 7,
+                notes: String::new(),
+            },
+        ];
+        let c = profile_completeness(&p);
+        let expected = (13.0 + 3.0) / 43.0;
+        assert!((c - expected).abs() < 0.001, "rep+mot: {c}");
+    }
+
+    #[test]
+    fn test_profile_completeness_two_motivations() {
+        let mut p = make_person(None, None, None, None, None);
+        p.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Power,
+                intensity: 5,
+                notes: String::new(),
+            },
+        ];
+        let c = profile_completeness(&p);
+        let expected = 2.0 / 43.0;
+        assert!((c - expected).abs() < 0.001, "2 mot: {c}");
     }
 
     #[test]

@@ -473,6 +473,26 @@ biais_score_profil = (base + ajustement + bonus).clamp(0, 1)
 Ces ajustements sont appliqués au score de biais **dans le profil** avant tout
 calcul de comparaison cross-personne.
 
+#### Complétude du profil
+
+Le profil est évalué à 100 % quand tous les champs suivants sont renseignés :
+
+| Catégorie | Max | Détail |
+|---|---|---|
+| OCEAN | 5 | 5 traits Big Five remplis |
+| Motivations | 3 | cap à 3 (au-delà n'apporte rien) |
+| Biais | 11 | 11 types de biais dans le vecteur |
+| Réputation | 13 | 13 dimensions bipolaires activées |
+| Styles | 6 | 6 catégories de styles (1 par catégorie) |
+| Patterns | 5 | cap à 5 patterns comportementaux |
+| **Total** | **43** | |
+
+```rust
+completion = filled / 43   → [0, 1]
+```
+
+Affiché sous forme de pourcentage dans la fiche détail et la liste des personnes.
+
 **Score de biais cross-personne** (comparaison) : fraction des types de biais
 partagés :
 
