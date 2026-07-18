@@ -1,125 +1,125 @@
 # 🧩 People Modeler
 
-> Modéliser les gens comme des systèmes : motivations, biais, comportements.
+> Model people as systems: motivations, biases, behaviors.
 
 [![Build](https://github.com/stellasecret/peoplemodeler/actions/workflows/build.yml/badge.svg)](https://github.com/stellasecret/peoplemodeler/actions)
 [![Web](https://img.shields.io/badge/Web-GitHub%20Pages-blue)](https://stellasecret.github.io/PeopleModeler)
 
 ---
 
-## ⚠️ Note éthique
+## ⚠️ Ethical Note
 
-> Ce projet est un outil de **compréhension**, pas de manipulation.  
-> Utilisez-le pour améliorer vos relations, votre leadership, votre empathie.  
-> La connaissance des systèmes humains est une responsabilité.
+> This project is a tool for **understanding**, not manipulation.
+> Use it to improve your relationships, leadership, and empathy.
+> Knowledge of human systems is a responsibility.
 
 ---
 
-## 📁 Structure du projet
+## 📁 Project Structure
 
 ```
 PeopleModeler/
-├── core/                       # Moteur Rust (WASM + JNI)
+├── core/                       # Rust engine (WASM + JNI)
 │   ├── src/
-│   │   ├── lib.rs              # Point d'entrée, exports WASM
+│   │   ├── lib.rs              # Entry point, WASM exports
 │   │   ├── models.rs           # Types: Person, Motivation, Bias, BehaviorPattern, StyleType...
-│   │   ├── synergy.rs          # Score de synergie (OCEAN, Rep, Mot, Pat, Bias, Style)
-│   │   ├── insights.rs         # Génération d'insights comportementaux
-│   │   ├── predictions.rs      # Logique de prédictions
-│   │   ├── ocean.rs            # Interprétation OCEAN
-│   │   ├── i18n.rs             # Internationalisation (EN/FR)
-│   │   ├── validation.rs       # Avertissements de cohérence
-│   │   ├── wasm.rs             # Exports WebAssembly (JS)
-│   │   └── android.rs          # Exports JNI (Kotlin, legacy)
+│   │   ├── synergy.rs          # Synergy scoring (OCEAN, Rep, Mot, Pat, Bias, Style)
+│   │   ├── insights.rs         # Behavioral insight generation
+│   │   ├── predictions.rs      # Prediction logic
+│   │   ├── ocean.rs            # OCEAN interpretation
+│   │   ├── i18n.rs             # Internationalization (EN/FR)
+│   │   ├── validation.rs       # Consistency warnings
+│   │   ├── wasm.rs             # WebAssembly exports (JS)
+│   │   └── android.rs          # JNI exports (Kotlin, legacy)
 │   └── Cargo.toml
 │
-├── app/                        # App Dioxus (Web WASM)
+├── app/                        # Dioxus app (Web WASM)
 │   ├── src/
-│   │   ├── main.rs             # Point d'entrée, routage
-│   │   ├── i18n.rs             # Internationalisation app (EN/FR)
-│   │   ├── db/mod.rs           # Stockage SQLite
+│   │   ├── main.rs             # Entry point, routing
+│   │   ├── i18n.rs             # App i18n (EN/FR)
+│   │   ├── db/mod.rs           # SQLite storage
 │   │   ├── pages/
-│   │   │   ├── person_list.rs      # Liste des personnes
-│   │   │   ├── person_detail.rs    # Fiche personne (onglets)
-│   │   │   ├── person_edit.rs      # Édition personne
-│   │   │   ├── compare.rs          # Comparaison 2 profils
-│   │   │   ├── insights.rs         # Insights globaux
-│   │   │   ├── predictions.rs      # Prédictions
-│   │   │   └── sync.rs             # Sync Google Drive
-│   │   ├── drive.rs            # Backup Google Drive
-│   │   ├── templates.rs        # Archétypes de personnes
-│   │   └── theme.rs            # Thème
+│   │   │   ├── person_list.rs      # Person list
+│   │   │   ├── person_detail.rs    # Person detail (tabs)
+│   │   │   ├── person_edit.rs      # Person edit
+│   │   │   ├── compare.rs          # Compare 2 profiles
+│   │   │   ├── insights.rs         # Global insights
+│   │   │   ├── predictions.rs      # Predictions
+│   │   │   └── sync.rs             # Google Drive sync
+│   │   ├── drive.rs            # Google Drive backup
+│   │   ├── templates.rs        # Person archetypes
+│   │   └── theme.rs            # Theme
 │   ├── assets/styles.css       # Styles
 │   └── Cargo.toml
 │
-├── tests/                      # Tests E2E Playwright
+├── tests/                      # E2E Playwright tests
 ├── scripts/
-│   └── spa_server.py           # Serveur dev SPA
-├── public/                     # Assets statiques (sw.js, manifest.json)
-└── .github/workflows/build.yml # Pipeline CI/CD
+│   └── spa_server.py           # Dev SPA server
+├── public/                     # Static assets (sw.js, manifest.json)
+└── .github/workflows/build.yml # CI/CD pipeline
 ```
 
 ---
 
-## 🚀 Pipeline GitHub Actions
+## 🚀 GitHub Actions Pipeline
 
-La pipeline `.github/workflows/build.yml` fait :
+The `.github/workflows/build.yml` pipeline does:
 
-### 1. `rust-core` — Moteur Rust
-- Compilation Rust stable (check + clippy + test)
-- Bloque `deploy-web` si échec
-- Exports WASM via `wasm-pack`
+### 1. `rust-core` — Rust Engine
+- Rust stable compile (check + clippy + test)
+- Blocks `deploy-web` on failure
+- WASM exports via `wasm-pack`
 
-### 2. `web-build` — App Dioxus
-- Build WASM avec `dx build --release`
-- Upload artifact `web-static`
-- Déploiement GitHub Pages (nécessite `rust-core` OK)
+### 2. `web-build` — Dioxus App
+- WASM build with `dx build --release`
+- Uploads `web-static` artifact
+- GitHub Pages deployment (requires `rust-core` OK)
 
-### 3. `release` — Sur tag `v*`
-- Crée une GitHub Release
-- Notes de release auto-générées
+### 3. `release` — On tag `v*`
+- Creates a GitHub Release
+- Auto-generated release notes
 
 ---
 
-## 🌐 Déploiement Web (GitHub Pages)
+## 🌐 Web Deployment (GitHub Pages)
 
-1. Allez dans **Settings → Pages**
-2. Source : **Deploy from a branch**
-3. Branche : `gh-pages`
-4. La pipeline déploie automatiquement à chaque push sur `main`
+1. Go to **Settings → Pages**
+2. Source: **Deploy from a branch**
+3. Branch: `gh-pages`
+4. The pipeline auto-deploys on every push to `main`
 
-URL : `https://stellasecret.github.io/PeopleModeler/`
+URL: `https://stellasecret.github.io/PeopleModeler/`
 
 ---
 
 ## 📱 Android (legacy)
 
-L'ancienne app Android (Kotlin + Room + MVVM) n'est plus maintenue.
-Les fonctionnalités ont été migrées vers l'app Dioxus Web/WASM.
+The old Android app (Kotlin + Room + MVVM) is no longer maintained.
+Features have been migrated to the Dioxus Web/WASM app.
 
 ---
 
-## 🌐 Fonctionnalités App (Dioxus Web/WASM)
+## 🌐 App Features (Dioxus Web/WASM)
 
 ### Pages
-1. **Liste** — Recherche, cartes avec chips OCEAN/motivations/biais
-2. **Fiche détail** — Profil complet avec onglets : Motivations, Biais, OCEAN, Réputation, Prédictions, Insights, Journal, Relations, Styles personnels
-3. **Édition** — Formulaire complet : OCEAN, motivations, biais, réputation (13 dimensions), patterns comportementaux (9 déclencheurs, 28 réponses), styles personnels (6 catégories, 26 variantes)
-4. **Comparaison** — Score de synergie avec décomposition par catégorie
-5. **Prédictions** — Feedbacks et précision
-6. **Insights** — Analyse globale et statistiques
-7. **Sync** — Sauvegarde Google Drive
+1. **List** — Search, cards with OCEAN/motivations/biases chips
+2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Predictions, Insights, Journal, Relationships, Personal Styles
+3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (6 categories, 26 variants)
+4. **Compare** — Synergy score with per-category breakdown
+5. **Predictions** — Feedback and accuracy
+6. **Insights** — Global analysis and statistics
+7. **Sync** — Google Drive backup
 
 ---
 
-## 🛠️ Développement local
+## 🛠️ Local Development
 
 ### App (Dioxus)
 ```bash
-# Lancer en dev (hot-reload)
+# Run in dev (hot-reload)
 dx serve
 
-# Build release WASM
+# Release WASM build
 dx build --release
 
 # Tests
@@ -127,24 +127,24 @@ cargo test
 cargo clippy
 ```
 
-### Serveur SPA (pour tests E2E)
+### SPA Server (for E2E tests)
 ```bash
 python3 scripts/spa_server.py
 ```
 
 ---
 
-## 📦 Créer une release
+## 📦 Creating a Release
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
-# → La pipeline crée automatiquement une GitHub Release avec l'APK
+# → Pipeline auto-creates a GitHub Release with the APK
 ```
 
 ---
 
-## 🔬 Modèle de données
+## 🔬 Data Model
 
 ```
 Person
@@ -162,169 +162,169 @@ Person
 │                        #   Fair↔Favoritism, Trusting↔Suspicious
 │                        #   Assertive↔Passive, Empathetic↔Detached
 │                        #   Adaptable↔Rigid
-│                        #   ≥5 = pole A, <5 = pole B, None = non-renseigné
+│                        #   ≥5 = pole A, <5 = pole B, None = not set
 ├── tags[]
 ├── predictions[]        # context, predicted, actual, accuracy, resolvedAt
 ├── relationships[]      # sourceId, targetId, type, strength
 ├── log[]                # InteractionEntry: type, description, timestamp
-└── confidence           # 1-10, fiabilité perçue du profil
+└── confidence           # 1-10, profile reliability
 ```
 
-### Score de synergie (comparaison 2 personnes)
+### Synergy Score (comparing 2 people)
 
-Pondérations de base quand toutes les catégories ont des données :
+Base weights when all categories have data:
 
 ```
-OCEAN×17% + Réputation×26% + Motivation×19% + Patterns×14% + Biais×13% + Styles×11%
+OCEAN×17% + Reputation×26% + Motivation×19% + Patterns×14% + Bias×13% + Styles×11%
 ```
 
-Si une catégorie n'a pas de données (ex: aucun pattern partagé), son poids est
-redistribué proportionnellement aux autres catégories actives.
+If a category has no data (e.g. no shared pattern), its weight is redistributed
+proportionally to the other active categories.
 
 #### 1. OCEAN (17%)
 
-Distance continue par trait (1-10) + bonus de complémentarité :
+Continuous distance per trait (1-10) + complementarity bonus:
 
 ```
-sim(x, y) = 1.0 - |x - y| / 10          → [0.0, 1.0] par trait
+sim(x, y) = 1.0 - |x - y| / 10          → [0.0, 1.0] per trait
 
 OC = (sim(O_A, O_B) + sim(C_A, C_B)) / 2
 EA = (sim(E_A, E_B) + sim(A_A, A_B)) / 2
 N  =  sim(N_A, N_B)
 
-oc_bonus = 0.15 si (O_A≥7 ∧ C_B≥7) ∨ (O_B≥7 ∧ C_A≥7), sinon 0
-ea_bonus = 0.15 si (E_A≥7 ∧ A_B≥7) ∨ (E_B≥7 ∧ A_A≥7), sinon 0
+oc_bonus = 0.15 if (O_A≥7 ∧ C_B≥7) ∨ (O_B≥7 ∧ C_A≥7), else 0
+ea_bonus = 0.15 if (E_A≥7 ∧ A_B≥7) ∨ (E_B≥7 ∧ A_A≥7), else 0
 
-OCEAN_brut = (min(OC + oc_bonus, 1) + min(EA + ea_bonus, 1) + N) / 3
+OCEAN_raw = (min(OC + oc_bonus, 1) + min(EA + ea_bonus, 1) + N) / 3
 ```
 
-- `sim` remplace les anciens paliers (0.15/0.7/1.0) par une valeur continue
-- `bonus` récompense la complémentarité O-C et E-A sans remplacer la distance
+- `sim` replaces the old thresholds (0.15/0.7/1.0) with a continuous value
+- `bonus` rewards O-C and E-A complementarity without overriding distance
 
-**Pénalités danger OCEAN** — combinaisons de traits connues pour générer des
-frictions, **au sein d'une même personne** et **entre les deux** :
-
-```
-pénalité OCEAN = Σ(ci-dessous)
-
-Intra-personne (chaque personne) :
-  N ≥ 7 et A ≤ 4   → volatilité émotionnelle            +0.10
-  N ≥ 7 et C ≤ 4   → impulsivité                        +0.05
-  N ≥ 7 et O ≤ 4   → rigidité anxieuse                  +0.05
-
-Inter-personnes (les deux) :
-  Tous deux N ≥ 7   → contagion émotionnelle              +0.10
-  Tous deux A ≤ 4   → antagonisme mutuel                   +0.15
-  Tous deux C ≤ 4   → manque de fiabilité réciproque       +0.10
-  Tous deux O ≤ 4   → rigidité partagée                    +0.05
-```
-
-OCEAN final après modulation et pénalité :
+**OCEAN Danger Penalties** — trait combinations known to generate friction,
+**within the same person** and **between both**:
 
 ```
-OCEAN_penalisé = max(OCEAN_brut - pénalité_OCEAN, 0)
-OCEAN_final = min(OCEAN_penalisé × (1 + modulations_biais_OCEAN), 1)
+OCEAN penalty = Σ(below)
+
+Intra-person (each person):
+  N ≥ 7 and A ≤ 4   → emotional volatility                +0.10
+  N ≥ 7 and C ≤ 4   → impulsiveness                       +0.05
+  N ≥ 7 and O ≤ 4   → anxious rigidity                    +0.05
+
+Inter-person (both):
+  Both N ≥ 7        → emotional contagion                 +0.10
+  Both A ≤ 4        → mutual antagonism                   +0.15
+  Both C ≤ 4        → reciprocal unreliability             +0.10
+  Both O ≤ 4        → shared rigidity                     +0.05
 ```
 
-#### 2. Réputation (26%)
-
-Pour chaque dimension (13 bipolaires) où A et B ont une valeur :
+OCEAN final after modulation and penalty:
 
 ```
-similarité = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
-Rep_brut = Σ(similarité_dim × poids_dim) / Σ(poids_dim)
+OCEAN_penalized = max(OCEAN_raw - OCEAN_penalty, 0)
+OCEAN_final = min(OCEAN_penalized × (1 + bias_modulations_OCEAN), 1)
 ```
 
-Les dimensions ont des poids différents selon leur impact relationnel :
+#### 2. Reputation (26%)
 
-| Dimension | Poids |
+For each dimension (13 bipolar) where A and B have a value:
+
+```
+similarity = 1.0 - |score_A - score_B| / 10   → [0.0, 1.0]
+Rep_raw = Σ(similarity_dim × weight_dim) / Σ(weight_dim)
+```
+
+Dimensions have different weights based on relational impact:
+
+| Dimension | Weight |
 |---|---|
-| Honnête ↔ Trompeur | 0.15 |
-| Fiable ↔ Inconstant | 0.12 |
-| Autoritaire ↔ Soumis | 0.12 |
+| Honest ↔ Deceitful | 0.15 |
+| Reliable ↔ Flaky | 0.12 |
+| Authoritative ↔ Submissive | 0.12 |
 | Humble ↔ Arrogant | 0.12 |
-| Travailleur ↔ Paresseux | 0.07 |
-| Calme ↔ Réactif | 0.07 |
-| Diplomate ↔ Direct | 0.07 |
-| Équitable ↔ Partial | 0.07 |
-| Confiant ↔ Méfiant | 0.05 |
-| Affirmé ↔ Passif | 0.05 |
-| Empathique ↔ Détaché | 0.05 |
-| Généreux ↔ Égoïste | 0.04 |
-| Flexible ↔ Rigide | 0.04 |
+| Hardworker ↔ Lazy | 0.07 |
+| Calm ↔ Reactive | 0.07 |
+| Diplomatic ↔ Blunt | 0.07 |
+| Fair ↔ Favoritism | 0.07 |
+| Trusting ↔ Suspicious | 0.05 |
+| Assertive ↔ Passive | 0.05 |
+| Empathetic ↔ Detached | 0.05 |
+| Generous ↔ Selfish | 0.04 |
+| Adaptable ↔ Rigid | 0.04 |
 
-> Somme = 1.02, normalisée à l'exécution par `total_active_w`.
+> Sum = 1.02, normalized at runtime by `total_active_w`.
 
-- Si **aucune** dimension commune : catégorie inactive, poids redistribué
+- If **no** shared dimension: category inactive, weight redistributed
 
-**Pénalités danger Réputation** — mêmes pôles extrêmes chez les deux :
+**Reputation Danger Penalties** — same extreme poles in both:
 
-Les scores de réputation sont bipolaires : `0 = pôle négatif`, `10 = pôle positif`.
-Les seuils ci-dessous utilisent la valeur du score directement.
-
-```
-pénalité_Rep = Σ(ci-dessous)
-
-Tous deux Autoritaire ≥ 8  → lutte de pouvoir            +0.10
-Tous deux Direct ≤ 3       → brutalité, pas de diplomatie +0.10
-Tous deux Réactif ≤ 3      → escalade mutuelle            +0.10
-Tous deux Arrogant ≤ 3     → ni l'un ni l'autre ne cède   +0.10
-Tous deux Paresseux ≤ 3    → passivité mutuelle           +0.05
-Tous deux Trompeur ≤ 3     → effondrement de la confiance +0.10
-Tous deux Inconstant ≤ 3   → manque de fiabilité mutuel   +0.08
-Tous deux Méfiant ≤ 3      → suspicion mutuelle           +0.08
-Tous deux Détaché ≤ 3      → froideur mutuelle            +0.08
-Tous deux Favoritisme ≤ 3  → copinage                     +0.08
-Tous deux Égoïste ≤ 3      → accaparement mutuel          +0.05
-Tous deux Passif ≤ 3       → paralysie décisionnelle      +0.05
-Tous deux Rigide ≤ 3       → blocage mutuel               +0.05
-```
-
-Réputation finale après modulation et pénalité :
+Reputation scores are bipolar: `0 = negative pole`, `10 = positive pole`.
+Thresholds below use the raw score value.
 
 ```
-Rep_penalisé = max(Rep_brut - pénalité_Rep, 0)
-Rep_final = min(Rep_penalisé × (1 + modulations_biais_Rep), 1)
+Rep_penalty = Σ(below)
+
+Both Authoritative ≥ 8  → power struggle                 +0.10
+Both Blunt ≤ 3          → brutality, no diplomacy          +0.10
+Both Reactive ≤ 3       → mutual escalation                +0.10
+Both Arrogant ≤ 3       → neither backs down              +0.10
+Both Lazy ≤ 3           → mutual passivity                 +0.05
+Both Deceitful ≤ 3      → trust collapse                   +0.10
+Both Flaky ≤ 3          → mutual unreliability             +0.08
+Both Suspicious ≤ 3     → mutual suspicion                 +0.08
+Both Detached ≤ 3       → mutual coldness                  +0.08
+Both Favoritism ≤ 3     → cronyism                         +0.08
+Both Selfish ≤ 3        → mutual hoarding                  +0.05
+Both Passive ≤ 3        → decision paralysis               +0.05
+Both Rigid ≤ 3          → mutual blockage                  +0.05
 ```
 
-**Ajustement Réputation** — appliqué au score individuel (*compute_person_profile*) :
+Reputation final after modulation and penalty:
 
-Chaque dimension non définie pénalise (−0.02). Les valeurs extrêmes ajustent selon le type de dimension :
+```
+Rep_penalized = max(Rep_raw - Rep_penalty, 0)
+Rep_final = min(Rep_penalized × (1 + bias_modulations_Rep), 1)
+```
 
-| Type | Condition | Ajustement |
+**Reputation Adjustment** — applied to the individual score (*compute_person_profile*):
+
+Each undefined dimension penalizes (−0.02). Extreme values adjust based on dimension type:
+
+| Type | Condition | Adjustment |
 |---|---|---|
-| **Bon pôle** (Honnête, Fiable, Humble, Travailleur, Calme, Généreux, Équitable, Empathique, Flexible) | ≤ 2 | −0.05 |
+| **Good pole** (Honest, Reliable, Humble, Hardworker, Calm, Generous, Fair, Empathetic, Adaptable) | ≤ 2 | −0.05 |
 | | ≥ 9 | +0.03 |
-| **Contextuel** (Autoritaire/Soumis, Diplomate/Direct, Confiant/Méfiant, Affirmé/Passif) | ≤ 2 ou ≥ 9 | −0.04 |
+| **Contextual** (Authoritative/Submissive, Diplomatic/Blunt, Trusting/Suspicious, Assertive/Passive) | ≤ 2 or ≥ 9 | −0.04 |
 | | 4‑6 | +0.02 |
-| **Toute dimension** | non définie | −0.02 |
+| **Any dimension** | undefined | −0.02 |
 
 ```text
-Rep_ajusté = clamp(base_rep_quality(person) + rep_adjustment(&person.rep_scores), 0, 1)
+Rep_adjusted = clamp(base_rep_quality(person) + rep_adjustment(&person.rep_scores), 0, 1)
 ```
 
-> Les dimensions contextuelles n'ont pas de pôle universellement positif/négatif : les extrêmes sont pénalisés, le centre (4-6) récompensé.
+> Contextual dimensions have no universally positive/negative pole: extremes are penalized, center (4-6) is rewarded.
 
 #### 3. Motivation (19%)
 
-Paires pondérées par `intensity_A × intensity_B / 100`. Les paires neutres
-(synergy = 0.0) sont ignorées pour éviter le biais de dilution. La moyenne
-résultante est re-mappée de `[−0.3, +0.3]` vers `[0, 1]` :
+Pairs weighted by `intensity_A × intensity_B / 100`. Neutral pairs
+(synergy = 0.0) are skipped to avoid dilution bias. The resulting
+average is remapped from `[−0.3, +0.3]` to `[0, 1]`:
 
 ```
-avg = moyenne_pondérée(mot_synergy(type_A, type_B), poids, skip_neutral)
-Mot_brut = (avg + 0.3) / 0.6   → clamp [0, 1]
+avg = weighted_average(mot_synergy(type_A, type_B), weights, skip_neutral)
+Mot_raw = (avg + 0.3) / 0.6   → clamp [0, 1]
 ```
 
-Table `motivation_synergy(tA, tB)` :
+Table `motivation_synergy(tA, tB)`:
 
-🤝 Même type : selon la motivation — Power × Power = **−0.2** (compétition),
-Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **0.0**
-(indépendance neutre), Security × Security = **0.0** (statu quo). Les autres
-(Achievement, Affiliation, Learning, Helping, Creativity, Fairness) restent à **+0.2** (alignement).
+🤝 Same type: depends on motivation — Power × Power = **−0.2** (competition),
+Recognition × Recognition = **−0.1** (ego battle), Autonomy × Autonomy = **0.0**
+(neutral independence), Security × Security = **0.0** (status quo). Others
+(Achievement, Affiliation, Learning, Helping, Creativity, Fairness) stay at **+0.2** (alignment).
 
-🔄 Complémentarité : paires asymétriques productives — Power × Helping = **+0.1**
-(l'un dirige, l'autre soutient), Achievement × Affiliation = **+0.1** (résultats + harmonie).
+🔄 Complementarity: productive asymmetric pairs — Power × Helping = **+0.1**
+(one leads, the other supports), Achievement × Affiliation = **+0.1** (results + harmony).
 
 | tA \ tB | Power | Achieve | Affil | Security | Autonomy | Recogn | Learn | Helping | Creativ | Fairness |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -339,45 +339,45 @@ Recognition × Recognition = **−0.1** (lutte d'ego), Autonomy × Autonomy = **
 | **Creativity** | −0.1 | +0.2 | +0.2 | −0.2 | +0.2 | +0.3 | +0.3 | −0.1 | +0.2 | +0.2 |
 | **Fairness** | −0.2 | +0.2 | +0.2 | +0.2 | +0.2 | −0.1 | +0.2 | +0.3 | +0.2 | +0.2 |
 
-##### Ajustement vertus (profil individuel)
+##### Virtue adjustment (individual profile)
 
-Avant le calcul de synergie, chaque profil individuel (`compute_person_profile`)
-applique un ajustement moral à son score de motivation selon les vertus/vices :
+Before synergy computation, each individual profile (`compute_person_profile`)
+applies a moral adjustment to its motivation score based on virtues/vices:
 
-| Motivation | ≥ 7 (vertu) | ≤ 3 ou absent (vice) |
+| Motivation | ≥ 7 (virtue) | ≤ 3 or absent (vice) |
 |---|---|---|
-| Équité (Fairness) | +0.08 | −0.08 |
-| Entraide (Helping) | +0.06 | −0.06 |
-| Apprentissage (Learning) | +0.04 | 0 |
-| Créativité (Creativity) | +0.04 | 0 |
-| Pouvoir (Power) | −0.08 (vice, seuil 7) | 0 |
-| Sécurité (Security) | −0.05 (vice, seuil 7) | 0 |
-| Reconnaissance (Recognition) | −0.03 (vice, seuil 9) | 0 |
-| Autres (Achievement, Affiliation, Autonomy) | 0 | 0 |
+| Fairness | +0.08 | −0.08 |
+| Helping | +0.06 | −0.06 |
+| Learning | +0.04 | 0 |
+| Creativity | +0.04 | 0 |
+| Power | −0.08 (vice, threshold 7) | 0 |
+| Security | −0.05 (vice, threshold 7) | 0 |
+| Recognition | −0.03 (vice, threshold 9) | 0 |
+| Others (Achievement, Affiliation, Autonomy) | 0 | 0 |
 
-**Pénalité de rareté** : si la personne a peu de motivations, son score est réduit :
+**Count Penalty**: if the person has few motivations, their score is reduced:
 
-| Nb motivations | Pénalité |
+| Motivations | Penalty |
 |---|---|
 | 0 | −0.09 |
 | 1 | −0.06 |
 | 2 | −0.03 |
 | 3+ | 0.0 |
 
-Ces ajustements sont appliqués au score de motivation **dans le profil** avant
-tout calcul de synergie cross-personne.
+These adjustments are applied to the motivation score **in the profile** before
+any cross-person synergy computation.
 
 #### 4. Patterns (14%)
 
-Paires pondérées par `conf_A × conf_B / 100`. Les paires neutres
-(synergy = 0.0) sont ignorées (même logique que motivations).
+Pairs weighted by `conf_A × conf_B / 100`. Neutral pairs
+(synergy = 0.0) are skipped (same logic as motivations).
 
 ```
-avg = moyenne_pondérée(trigger_synergy(tA, tB), poids, skip_neutral)
-Patterns_brut = (avg + 0.3) / 0.6   → clamp [0, 1]
+avg = weighted_average(trigger_synergy(tA, tB), weights, skip_neutral)
+Patterns_raw = (avg + 0.3) / 0.6   → clamp [0, 1]
 ```
 
-Table `trigger_synergy(tA, tB)` :
+Table `trigger_synergy(tA, tB)`:
 
 | tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened | Injustice |
 |---|---|---|---|---|---|---|---|---|---|
@@ -391,75 +391,75 @@ Table `trigger_synergy(tA, tB)` :
 | **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **Injustice** | 0 | 0 | 0 | −0.1 | −0.1 | −0.1 | 0 | 0 | −0.2 |
 
-**Pénalité danger Patterns** — lorsque les deux personnes n'ont **que** des
-déclencheurs négatifs (Conflict, Stress, Threatened, Injustice), aucun pattern positif
-n'équilibre la relation :
+**Patterns Danger Penalty** — when both persons have **only** negative
+triggers (Conflict, Stress, Threatened, Injustice), no positive pattern
+balances the relationship:
 
 ```
-pénalité_Patterns = 0.05 si les deux n'ont que des déclencheurs négatifs
-                     0.00 sinon
+Patterns_penalty = 0.05 if both have only negative triggers
+                   0.00 otherwise
 ```
 
-Patterns final après modulation et pénalité :
+Patterns final after modulation and penalty:
 
 ```
-Patterns_penalisé = max(Patterns_brut - pénalité_Patterns, 0)
-Patterns_final = min(Patterns_penalisé × (1 + modulations_biais_Patterns), 1)
+Patterns_penalized = max(Patterns_raw - Patterns_penalty, 0)
+Patterns_final = min(Patterns_penalized × (1 + bias_modulations_Patterns), 1)
 ```
 
-#### 5. Biais (13%)
+#### 5. Bias (13%)
 
-Les biais ne sont **pas** scorés directement. Chaque type de biais module une
-autre catégorie du score quand il est partagé par les deux personnes :
+Biases are **not** scored directly. Each bias type modulates another
+category of the score when shared by both persons:
 
 ```
-biais_modificateur(type) → (cible, coefficient)
+bias_modifier(type) → (target, coefficient)
 
-Anchoring     → OCEAN       +0.10  (ancrage des premières impressions)
-Confirmation  → Réputation  +0.10  (recherche de confirmation)
-Availability  → Patterns    +0.10  (poids des événements récents)
-SunkCost      → Motivation  +0.10  (investissement passé)
-DunningKruger → OCEAN       -0.10  (auto-évaluation distordue)
-LossAversion  → Patterns    -0.10  (poids excessif du négatif)
-SocialProof   → Réputation  +0.08  (influence du groupe)
-Authority     → Motivation  +0.08  (déférence à l'autorité)
-Recency       → Patterns    +0.08  (emphase sur le récent)
-InGroup       → OCEAN       +0.08  (favoritisme endogroupe)
-Favoritism    → Réputation  -0.08  (traitement préférentiel)
+Anchoring     → OCEAN       +0.10  (anchoring of first impressions)
+Confirmation  → Reputation  +0.10  (confirmation seeking)
+Availability  → Patterns    +0.10  (weight of recent events)
+SunkCost      → Motivation  +0.10  (past investment)
+DunningKruger → OCEAN       -0.10  (distorted self-assessment)
+LossAversion  → Patterns    -0.10  (excessive weight on negatives)
+SocialProof   → Reputation  +0.08  (group influence)
+Authority     → Motivation  +0.08  (deference to authority)
+Recency       → Patterns    +0.08  (emphasis on recent)
+InGroup       → OCEAN       +0.08  (in-group favoritism)
+Favoritism    → Reputation  -0.08  (preferential treatment)
 ```
 
-Pour chaque paire de biais **de même type** (partagés par A et B) :
+For each bias pair **of the same type** (shared by A and B):
 
 ```
 modulation = coefficient × (intensity_A × intensity_B / 100)
-score_cat_modulé = score_cat_brut × (1.0 + Σ_modulations)   → clamp [0, 1]
+modulated_cat_score = raw_cat_score × (1.0 + Σ_modulations)   → clamp [0, 1]
 ```
 
-**Score de biais** pour le profil individuel : combiné d'une base
-comptable, d'un ajustement d'intensité et d'un bonus de rareté.
+**Bias score** for the individual profile: combination of a counting
+base, an intensity adjustment, and a rarity bonus.
 
-Le **décompte des biais présents** inclut :
-- les types **non définis** (absents du vecteur de la personne) — par défaut,
-  un biais non renseigné est considéré comme présent
-- les types définis avec une intensité **≥ 4** (modéré ou fort)
+The **present bias count** includes:
+- **undefined** types (absent from the person's vector) — by default,
+  an unset bias is considered present
+- defined types with intensity **≥ 4** (moderate or strong)
 
-Les types avec intensité **0** (explicitement absent) ou **≤ 3** (faible) ne
-sont pas comptés comme présents.
+Types with intensity **0** (explicitly absent) or **≤ 3** (mild) are
+not counted as present.
 
-1. **Base** : `1.0 - nb_biais_présents / 11`
-2. **Ajustement d'intensité** (`bias_adjustment`) :
+1. **Base**: `1.0 - present_bias_count / 11`
+2. **Intensity adjustment** (`bias_adjustment`):
 
-   | Statut | Ajustement |
+   | Status | Adjustment |
    |---|---|
-   | Non défini (absent du vecteur) | 0 (mais compte dans la base) |
-   | Intensité **0** (explicitement absent) | +0.02 |
-   | ≤ 3 (faible) | +0.01 |
-   | 4‑6 (modéré) | 0 |
-   | ≥ 7 (fort) | −0.03 |
+   | Undefined (absent from vector) | 0 (but counted in base) |
+   | Intensity **0** (explicitly absent) | +0.02 |
+   | ≤ 3 (mild) | +0.01 |
+   | 4‑6 (moderate) | 0 |
+   | ≥ 7 (strong) | −0.03 |
 
-3. **Bonus de rareté** (`bias_count_bonus`) — basé sur `nb_biais_présents` :
+3. **Rarity bonus** (`bias_count_bonus`) — based on `present_bias_count`:
 
-   | Nb biais présents | Bonus |
+   | Present biases | Bonus |
    |---|---|
    | 0 | +0.09 |
    | 1 | +0.06 |
@@ -467,154 +467,153 @@ sont pas comptés comme présents.
    | 3+ | 0.0 |
 
 ```
-biais_score_profil = (base + ajustement + bonus).clamp(0, 1)
+profile_bias_score = (base + adjustment + bonus).clamp(0, 1)
 ```
 
-Ces ajustements sont appliqués au score de biais **dans le profil** avant tout
-calcul de comparaison cross-personne.
+These adjustments are applied to the bias score **in the profile** before any
+cross-person comparison computation.
 
-#### Complétude du profil
+**Cross-person bias score** (comparison): fraction of shared bias types:
 
-Le profil est évalué à 100 % quand tous les champs suivants sont renseignés :
+```
+bias_score = shared_types / max(len(A_types), len(B_types))
+             → 0.5 if no biases set
+quality_Bias(P) = 1 - bias_count / 11  (11 bias types)
+```
 
-| Catégorie | Max | Détail |
+- Shared bias = both persons have the same bias → modulation applied
+- Unshared bias = no effect (neither bonus nor penalty)
+- The more intense the shared biases, the stronger the modulation
+- Replaces the old `bias_pair_synergy` system (same=-0.2, different=+0.2)
+
+#### Profile Completeness
+
+The profile is 100% complete when all following fields are filled:
+
+| Category | Max | Detail |
 |---|---|---|
-| OCEAN | 5 | 5 traits Big Five remplis |
-| Motivations | 3 | cap à 3 (au-delà n'apporte rien) |
-| Biais | 11 | 11 types de biais dans le vecteur |
-| Réputation | 13 | 13 dimensions bipolaires activées |
-| Styles | 6 | 6 catégories de styles (1 par catégorie) |
-| Patterns | 5 | cap à 5 patterns comportementaux |
+| OCEAN | 5 | 5 Big Five traits filled |
+| Motivations | 3 | capped at 3 (beyond doesn't help) |
+| Biases | 11 | 11 bias types in the vector |
+| Reputation | 13 | 13 bipolar dimensions enabled |
+| Styles | 6 | 6 style categories (1 per category) |
+| Patterns | 5 | capped at 5 behavioral patterns |
 | **Total** | **43** | |
 
 ```rust
 completion = filled / 43   → [0, 1]
 ```
 
-Affiché sous forme de pourcentage dans la fiche détail et la liste des personnes.
+Displayed as a percentage in the detail page and the person list.
 
-**Score de biais cross-personne** (comparaison) : fraction des types de biais
-partagés :
+#### 6. Personal Styles (11%)
 
-```
-biais_score = shared_types / max(len(A_types), len(B_types))
-             → 0.5 si aucun biais renseigné
-qualité_Biais(P) = 1 - nb_biais / 11  (11 types de biais)
-```
+Personal styles measure the compatibility of preferred working
+modes across 6 categories:
 
-- Biais partagé = les deux personnes ont le même biais → modulation appliquée
-- Biais non partagé = pas d'effet (ni bonus, ni malus)
-- Plus les biais partagés sont intenses, plus la modulation est forte
-- Remplace l'ancien système `bias_pair_synergy` (même=-0.2, différent=+0.2)
-
-#### 6. Styles personnels (11%)
-
-Les styles personnels mesurent la compatibilité des modes de fonctionnement
-préférentiels dans 6 catégories :
-
-| Catégorie | Variantes |
+| Category | Variants |
 |---|---|
 | 💬 Communication | Direct, Diplomatic, Analytical, Expressive, Reserved |
-| 🤝 Résolution conflit | Collaborative, Competitive, Avoidant, Accommodating, Compromising |
-| 🧠 Prise de décision | Rational, Intuitive, Consultative, Decisive |
+| 🤝 Conflict Resolution | Collaborative, Competitive, Avoidant, Accommodating, Compromising |
+| 🧠 Decision Making | Rational, Intuitive, Consultative, Decisive |
 | 👥 Leadership | Autocratic, Democratic, Transformational, Transactional, Bureaucratic, LaissezFaire, Servant, Coach |
-| ⏰ Orientation temporelle | PastOriented, PresentOriented, FutureOriented |
-| 📜 Cadre moral | RuleBased, OutcomeBased, VirtueBased, Relativist |
+| ⏰ Time Orientation | PastOriented, PresentOriented, FutureOriented |
+| 📜 Moral Framework | RuleBased, OutcomeBased, VirtueBased, Relativist |
 
-Pour chaque catégorie où les deux personnes ont un style renseigné :
-
-```
-sim_style(cat) = 1.0 si même variante
-                 0.5 si variante différente
-styles_brut = moyenne des sim_style sur les catégories partagées
-              0.5 si aucune catégorie en commun
-```
-
-#### 7. Facteur historique (traque les angles morts)
-
-Si les deux personnes ont ≥ 3 prédictions résolues, leur **précision moyenne**
-(< 5/10) indique une auto-évaluation peu fiable :
+For each category where both persons have a style set:
 
 ```
-pénalité_historique =
-  0.05 si les deux ont avg < 5
-  0.03 si l'une des deux a avg < 5
-  0.00 sinon
+sim_style(cat) = 1.0 if same variant
+                 0.5 if different variant
+styles_raw = average of sim_style over shared categories
+             0.5 if no categories in common
 ```
 
-#### Agrégation finale (poids dynamiques)
+#### 7. Historical Factor (blind-spot tracking)
 
-Le score de base (catégories compatibilité) et les scores asymétriques utilisent
-les mêmes poids fixes redistribués dynamiquement :
-
-```
-poids_OCEAN   = 0.17
-poids_Rep     = 0.26
-poids_Mot     = 0.19
-poids_Patterns = 0.14
-poids_Biais   = 0.13
-poids_Styles  = 0.11
-```
-
-Quand une catégorie manque de données → elle est exclue et son poids est réparti
-proportionnellement sur les catégories restantes. La Motivation (poids 0.19) est
-**toujours active** — même sans données, le poids 0.19 est conservé (une pénalité
-de rareté s'applique alors, voir §3).
-
-#### Score asymétrique (bénéfice individuel)
-
-Chaque personne reçoit son propre score (`a_score` / `b_score`) reflétant ce
-qu'elle *bénéficie* de l'autre, calculé par catégorie :
-
-- **OCEAN** : qualité du partenaire pondérée par similarité. Pour chaque trait,
-  la contribution est `B_qualité × sim(A, B)` où
-  `sim(A, B) = 1 - |A/10 - B/10|`. Asymétrique car `B × sim ≠ A × sim`
-  quand les niveaux de traits diffèrent. Résultat : moyenne des 5 traits.
-
-- **Réputation** : la qualité brute de l'autre
-  (`qualité_base_Rep(P) = moyenne pondérée des scores / 10`).
-
-- **Biais** : l'absence de biais chez l'autre
-  (`qualité_base_Biais(P) = 1 - nb_biais / 10`).
-
-- **Motivation / Patterns / Styles** : synergie mutuelle (identique pour les deux).
+If both persons have ≥ 3 resolved predictions, their **average accuracy**
+(< 5/10) indicates unreliable self-assessment:
 
 ```
-poids actif = Σ(poids_cat) pour chaque catégorie active
-a_raw = score_OCEAN_a × 0.17 + qual_Rep_B × 0.26 + synergie_Mot × 0.19
-      + synergie_Patterns × 0.14 + qual_Biais_B × 0.13 + synergie_Styles × 0.11
-b_raw = score_OCEAN_b × 0.17 + qual_Rep_A × 0.26 + synergie_Mot × 0.19
-      + synergie_Patterns × 0.14 + qual_Biais_A × 0.13 + synergie_Styles × 0.11
-
-a_score = round(a_raw / poids_actif × 100) → clamp [0, 100]
-b_score = round(b_raw / poids_actif × 100) → clamp [0, 100]
+historical_penalty =
+  0.05 if both have avg < 5
+  0.03 if one has avg < 5
+  0.00 otherwise
 ```
 
-Le **score total** est la moyenne des deux, réduite des pénalités danger :
+#### Final Aggregation (dynamic weights)
+
+The base score (compatibility categories) and asymmetric scores use
+the same fixed weights redistributed dynamically:
+
+```
+weight_OCEAN   = 0.17
+weight_Rep     = 0.26
+weight_Mot     = 0.19
+weight_Patterns = 0.14
+weight_Bias    = 0.13
+weight_Styles  = 0.11
+```
+
+When a category lacks data → it is excluded and its weight is redistributed
+proportionally to the remaining categories. Motivation (weight 0.19) is
+**always active** — even without data, the 0.19 weight is kept (a scarcity
+penalty applies instead, see §3).
+
+#### Asymmetric Score (individual benefit)
+
+Each person receives their own score (`a_score` / `b_score`) reflecting what
+they *benefit* from the other, computed per category:
+
+- **OCEAN**: partner quality weighted by similarity. For each trait,
+  the contribution is `B_quality × sim(A, B)` where
+  `sim(A, B) = 1 - |A/10 - B/10|`. Asymmetric because `B × sim ≠ A × sim`
+  when trait levels differ. Result: average of 5 traits.
+
+- **Reputation**: raw quality of the other
+  (`base_rep_quality(P) = weighted average of scores / 10`).
+
+- **Bias**: absence of biases in the other
+  (`base_bias_quality(P) = 1 - bias_count / 10`).
+
+- **Motivation / Patterns / Styles**: mutual synergy (identical for both).
+
+```
+active_weight = Σ(cat_weight) for each active category
+a_raw = OCEAN_score_a × 0.17 + Rep_quality_B × 0.26 + Mot_synergy × 0.19
+       + Patterns_synergy × 0.14 + Bias_quality_B × 0.13 + Styles_synergy × 0.11
+b_raw = OCEAN_score_b × 0.17 + Rep_quality_A × 0.26 + Mot_synergy × 0.19
+       + Patterns_synergy × 0.14 + Bias_quality_A × 0.13 + Styles_synergy × 0.11
+
+a_score = round(a_raw / active_weight × 100) → clamp [0, 100]
+b_score = round(b_raw / active_weight × 100) → clamp [0, 100]
+```
+
+The **total score** is the average of the two, reduced by danger penalties:
 
 ```
 total = round((a_score + b_score) / 2) - danger_pts
-danger_pts = round(danger / poids_actif × 100)
+danger_pts = round(danger / active_weight × 100)
 ```
 
-`danger` est la somme pondérée des pénalités OCEAN, Réputation, Patterns,
-historique :
+`danger` is the weighted sum of OCEAN, Reputation, Patterns, and
+historical penalties:
 
 ```
-danger = pénalité_OCEAN × 0.17 + pénalité_Rep × 0.26
-       + pénalité_Patterns × 0.14 + pénalité_historique × 0.10
+danger = OCEAN_penalty × 0.17 + Rep_penalty × 0.26
+       + Patterns_penalty × 0.14 + historical_penalty × 0.10
 ```
 
-Le champ `danger` du `SynergyBreakdown` expose cette valeur pour transparence
-(sans double soustraction).
+The `danger` field in `SynergyBreakdown` exposes this value for transparency
+(without double subtraction).
 
-L'interface affiche les trois scores : `{A}% – {total}% – {B}%` avec des
-flèches directionnelles indiquant qui bénéficie le plus.
+The UI displays three scores: `{A}% – {total}% – {B}%` with directional
+arrows showing who benefits more.
 
 ---
 
-## 📄 Licence
+## 📄 License
 
-MIT — Libre d'utilisation, modification et distribution.
+MIT — Free to use, modify, and distribute.
 
-> 🧩 Construit avec Kotlin, HTML/CSS/JS vanilla, et GitHub Actions.
+> 🧩 Built with Kotlin, HTML/CSS/JS vanilla, and GitHub Actions.
