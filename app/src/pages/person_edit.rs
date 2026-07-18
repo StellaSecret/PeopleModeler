@@ -379,6 +379,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
     let mut sel_evidence = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
     let edit_biases = crate::i18n::tr("edit_biases", app_lang());
+    let bias_undefined_warning = crate::i18n::tr("bias_undefined_warning", app_lang());
     let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", app_lang());
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
@@ -386,6 +387,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
     rsx! {
         fieldset { class: "section",
             legend { "{edit_biases}" }
+            div { class: "helper-text", "{bias_undefined_warning}" }
             div { class: "add-row",
                 select { value: "{sel_type}",
                     onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },

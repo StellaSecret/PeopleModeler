@@ -180,6 +180,7 @@ fn en(key: &'static str) -> &'static str {
         // Edit form sections
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biases",
+        "bias_undefined_warning" => "Undefined biases count as present. Set 0 to mark as absent.",
         "edit_reputation" => "Reputation",
         "edit_patterns" => "Behavioral Patterns",
         "edit_styles" => "Personal Styles",
@@ -646,6 +647,7 @@ fn fr(key: &'static str) -> &'static str {
 
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biais",
+        "bias_undefined_warning" => "Les biais non définis comptent comme présents. Mettez 0 pour les marquer absents.",
         "edit_reputation" => "Réputation",
         "edit_patterns" => "Patterns comportementaux",
         "edit_styles" => "Styles personnels",

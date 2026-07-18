@@ -709,7 +709,9 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let rep = base_rep_quality(person);
 
     let bias_adj = bias_adjustment(&person.biases);
-    let present_bias_count = person.biases.iter().filter(|b| b.intensity > 0).count();
+    let absent_count = BiasType::ALL.len() - person.biases.len();
+    let moderate_plus = person.biases.iter().filter(|b| b.intensity >= 4).count();
+    let present_bias_count = absent_count + moderate_plus;
     let base_bias =
         1.0 - (present_bias_count as f64 / crate::models::BiasType::ALL.len() as f64).min(1.0);
     let count_bonus = bias_count_bonus(present_bias_count);
@@ -2486,7 +2488,7 @@ mod tests {
         };
         let pf = compute_person_profile(&p);
         assert!(pf.reputation > 0.70, "good rep: {}", pf.reputation);
-        assert!(pf.total > 50, "good rep boosts total: {}", pf.total);
+        assert!(pf.total > 45, "good rep boosts total: {}", pf.total);
     }
 
     #[test]

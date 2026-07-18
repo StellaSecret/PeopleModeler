@@ -418,20 +418,28 @@ score_cat_modulé = score_cat_brut × (1.0 + Σ_modulations)   → clamp [0, 1]
 ```
 
 **Score de biais** pour le profil individuel : combiné d'une base
-comptable, d'un ajustement d'intensité et d'un bonus de rareté :
+comptable, d'un ajustement d'intensité et d'un bonus de rareté.
 
-1. **Base** : `1.0 - nb_biais_présents / 11` (biais avec intensité > 0)
+Le **décompte des biais présents** inclut :
+- les types **non définis** (absents du vecteur de la personne) — par défaut,
+  un biais non renseigné est considéré comme présent
+- les types définis avec une intensité **≥ 4** (modéré ou fort)
+
+Les types avec intensité **0** (explicitement absent) ou **≤ 3** (faible) ne
+sont pas comptés comme présents.
+
+1. **Base** : `1.0 - nb_biais_présents / 11`
 2. **Ajustement d'intensité** (`bias_adjustment`) :
 
    | Statut | Ajustement |
    |---|---|
-   | Absent (non défini) | 0 |
+   | Non défini (absent du vecteur) | 0 (mais compte dans la base) |
    | Intensité **0** (explicitement absent) | +0.02 |
    | ≤ 3 (faible) | +0.01 |
    | 4‑6 (modéré) | 0 |
    | ≥ 7 (fort) | −0.03 |
 
-3. **Bonus de rareté** (`bias_count_bonus`) :
+3. **Bonus de rareté** (`bias_count_bonus`) — basé sur `nb_biais_présents` :
 
    | Nb biais présents | Bonus |
    |---|---|
