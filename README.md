@@ -287,6 +287,25 @@ Rep_penalisé = max(Rep_brut - pénalité_Rep, 0)
 Rep_final = min(Rep_penalisé × (1 + modulations_biais_Rep), 1)
 ```
 
+**Ajustement Réputation** — appliqué au score individuel (*compute_person_profile*) :
+
+Chaque dimension non définie pénalise (−0.02). Les valeurs extrêmes ajustent selon le type de dimension :
+
+| Type | Condition | Ajustement |
+|---|---|---|
+| **Bon pôle** (Honnête, Fiable, Humble, Travailleur, Calme, Généreux, Équitable, Empathique, Flexible) | ≤ 2 | −0.05 |
+| | ≥ 9 | +0.03 |
+| **Contextuel** (Autoritaire/Soumis, Diplomate/Direct, Confiant/Méfiant, Affirmé/Passif) | ≤ 2 ou ≥ 9 | −0.04 |
+| | 4‑6 | +0.02 |
+| **Toute dimension** | non définie | −0.02 |
+
+```text
+Rep_ajusté = clamp(base_rep_quality(person) + rep_adjustment(&person.rep_scores), 0, 1)
+```
+
+> Les dimensions contextuelles n'ont pas de pôle universellement positif/négatif : les extrêmes sont pénalisés, le centre (4-6) récompensé.
+```
+
 #### 3. Motivation (19%)
 
 Paires pondérées par `intensity_A × intensity_B / 100`. Les paires neutres

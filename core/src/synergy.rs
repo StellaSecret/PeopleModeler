@@ -134,6 +134,34 @@ pub fn base_rep_quality(p: &Person) -> f64 {
     if n == 0.0 { 0.5 } else { sum / n }
 }
 
+pub fn rep_adjustment(rep: &crate::models::RepScores) -> f64 {
+    let mut adj = 0.0;
+    for &dim in &RepDim::ALL {
+        match rep.score(dim) {
+            Some(v) => {
+                let v = v.min(10);
+                if dim.is_context_dependent() {
+                    if v <= 2 || v >= 9 {
+                        adj -= 0.04;
+                    } else if (4..=6).contains(&v) {
+                        adj += 0.02;
+                    }
+                } else {
+                    if v <= 2 {
+                        adj -= 0.05;
+                    } else if v >= 9 {
+                        adj += 0.03;
+                    }
+                }
+            }
+            None => {
+                adj -= 0.02;
+            }
+        }
+    }
+    adj
+}
+
 fn ocean_danger_penalty(oa: &crate::models::OceanScores, ob: &crate::models::OceanScores) -> f64 {
     let mut p = 0.0;
 
@@ -540,8 +568,8 @@ fn compute_synergy_score_inner(
     //   Motivation / Patterns: shared synergy        → symmetric (same for both)
     // Total = (a_score + b_score) / 2
 
-    let a_base_rep = base_rep_quality(a);
-    let b_base_rep = base_rep_quality(b);
+    let a_base_rep = (base_rep_quality(a) + rep_adjustment(&a.rep_scores)).clamp(0.0, 1.0);
+    let b_base_rep = (base_rep_quality(b) + rep_adjustment(&b.rep_scores)).clamp(0.0, 1.0);
     let a_bias_quality = 1.0 - (a.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64);
     let b_bias_quality = 1.0 - (b.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64);
 
@@ -706,7 +734,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let raw_ocean = (a_s + n_s) / 2.0;
     let ocean = (raw_ocean - ocean_penalty).max(0.0);
 
-    let rep = base_rep_quality(person);
+    let rep = (base_rep_quality(person) + rep_adjustment(&person.rep_scores)).clamp(0.0, 1.0);
 
     let bias_adj = bias_adjustment(&person.biases);
     let absent_count = BiasType::ALL.len() - person.biases.len();
@@ -2425,7 +2453,7 @@ mod tests {
             pf.patterns
         );
         assert!(
-            pf.total > 30 && pf.total < 70,
+            pf.total >= 30 && pf.total < 70,
             "baseline self-score: {}",
             pf.total
         );
@@ -2437,7 +2465,7 @@ mod tests {
         let p = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
         let pf = compute_person_profile(&p);
         assert!(pf.ocean > 0.80, "high A + low N ocean: {}", pf.ocean);
-        assert!(pf.total > 40, "should be decent: {}", pf.total);
+        assert!(pf.total >= 36, "should be decent: {}", pf.total);
     }
 
     #[test]
@@ -2478,6 +2506,121 @@ mod tests {
     }
 
     #[test]
+    fn test_rep_adjustment_empty() {
+        let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let adj = rep_adjustment(&p.rep_scores);
+        let expected = -0.02 * 13.0;
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "empty rep adj should be {expected}: {adj}"
+        );
+    }
+
+    #[test]
+    fn test_rep_adjustment_all_ten() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(10),
+            reliable_flaky: Some(10),
+            authoritative_submissive: Some(10),
+            humble_arrogant: Some(10),
+            hardworker_lazy: Some(10),
+            calm_reactive: Some(10),
+            diplomatic_blunt: Some(10),
+            generous_selfish: Some(10),
+            fair_favoritism: Some(10),
+            trusting_suspicious: Some(10),
+            assertive_passive: Some(10),
+            empathetic_detached: Some(10),
+            adaptable_rigid: Some(10),
+        };
+        let adj = rep_adjustment(&p.rep_scores);
+        let expected = 9.0 * 0.03 + 4.0 * (-0.04);
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "all-10 rep adj should be {expected}: {adj}"
+        );
+    }
+
+    #[test]
+    fn test_rep_adjustment_all_zero() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(0),
+            reliable_flaky: Some(0),
+            authoritative_submissive: Some(0),
+            humble_arrogant: Some(0),
+            hardworker_lazy: Some(0),
+            calm_reactive: Some(0),
+            diplomatic_blunt: Some(0),
+            generous_selfish: Some(0),
+            fair_favoritism: Some(0),
+            trusting_suspicious: Some(0),
+            assertive_passive: Some(0),
+            empathetic_detached: Some(0),
+            adaptable_rigid: Some(0),
+        };
+        let adj = rep_adjustment(&p.rep_scores);
+        let expected = 9.0 * (-0.05) + 4.0 * (-0.04);
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "all-0 rep adj should be {expected}: {adj}"
+        );
+    }
+
+    #[test]
+    fn test_rep_adjustment_all_five() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(5),
+            reliable_flaky: Some(5),
+            authoritative_submissive: Some(5),
+            humble_arrogant: Some(5),
+            hardworker_lazy: Some(5),
+            calm_reactive: Some(5),
+            diplomatic_blunt: Some(5),
+            generous_selfish: Some(5),
+            fair_favoritism: Some(5),
+            trusting_suspicious: Some(5),
+            assertive_passive: Some(5),
+            empathetic_detached: Some(5),
+            adaptable_rigid: Some(5),
+        };
+        let adj = rep_adjustment(&p.rep_scores);
+        let expected = 4.0 * 0.02;
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "all-5 rep adj should be {expected}: {adj}"
+        );
+    }
+
+    #[test]
+    fn test_rep_adjustment_all_nine() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(9),
+            reliable_flaky: Some(9),
+            authoritative_submissive: Some(9),
+            humble_arrogant: Some(9),
+            hardworker_lazy: Some(9),
+            calm_reactive: Some(9),
+            diplomatic_blunt: Some(9),
+            generous_selfish: Some(9),
+            fair_favoritism: Some(9),
+            trusting_suspicious: Some(9),
+            assertive_passive: Some(9),
+            empathetic_detached: Some(9),
+            adaptable_rigid: Some(9),
+        };
+        let adj = rep_adjustment(&p.rep_scores);
+        let expected = 9.0 * 0.03 + 4.0 * (-0.04);
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "all-9 rep adj should be {expected}: {adj}"
+        );
+    }
+
+    #[test]
     fn test_self_score_good_rep_boosts() {
         let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         p.rep_scores = RepScores {
@@ -2488,7 +2631,7 @@ mod tests {
         };
         let pf = compute_person_profile(&p);
         assert!(pf.reputation > 0.70, "good rep: {}", pf.reputation);
-        assert!(pf.total > 45, "good rep boosts total: {}", pf.total);
+        assert!(pf.total >= 45, "good rep boosts total: {}", pf.total);
     }
 
     #[test]

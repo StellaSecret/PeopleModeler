@@ -178,6 +178,16 @@ impl RepDim {
             },
         }
     }
+
+    pub fn is_context_dependent(&self) -> bool {
+        matches!(
+            self,
+            Self::AuthoritativeSubmissive
+                | Self::DiplomaticBlunt
+                | Self::TrustingSuspicious
+                | Self::AssertivePassive
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]

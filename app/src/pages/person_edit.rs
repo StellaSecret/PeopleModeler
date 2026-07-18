@@ -453,6 +453,7 @@ fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
 fn RepEditPanel(rep_scores: Signal<RepScores>, lang: peoplemodeler_core::i18n::Lang) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let edit_rep = crate::i18n::tr("edit_reputation", app_lang());
+    let rep_undefined_warning = crate::i18n::tr("rep_undefined_warning", app_lang());
     let cl = core_lang(app_lang());
 
     let rep_data: Vec<_> = RepDim::ALL
@@ -467,6 +468,7 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: peoplemodeler_core::i18n::L
     rsx! {
         fieldset { class: "ocean-inputs",
             legend { "{edit_rep}" }
+            div { class: "helper-text", "{rep_undefined_warning}" }
             {rep_data.into_iter().map(|(dim, ri, cur)| {
                 let start_val = cur.unwrap_or(5);
                 let start_on = cur.is_some();
