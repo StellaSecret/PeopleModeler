@@ -298,7 +298,7 @@ pub fn PersonDetail(id: String) -> Element {
                             div { class: "pattern-item",
                                 strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
                                 p { "{bp.predicted_behavior.label(cl)}" }
-                                small { "⚡{bp.intensity}/10" }
+                                if !bp.notes.is_empty() { p { class: "item-notes", "{bp.notes}" } }
                             }
                         }
                             if person.behavioral_patterns.is_empty() { div { class: "empty-state", p { "{no_pat}" } } }
@@ -441,7 +441,7 @@ pub fn PersonDetail(id: String) -> Element {
                                 if insight_output.has_secondary {
                                     details { class: "more-recs",
                                         summary {
-                                            span { "More recommendations (" "{insight_output.secondary.len() - 1}" ")" }
+                                            span { "{crate::i18n::tr(\"more_recs\", lang())} (" "{insight_output.secondary.len() - 1}" ")" }
                                         }
                                         ul {
                                             for s in &insight_output.secondary[1..] {
@@ -458,7 +458,7 @@ pub fn PersonDetail(id: String) -> Element {
                                 for bp in &person.behavioral_patterns {
                                     div { class: "pattern-item",
                                         strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }
-                                        p { "{bp.predicted_behavior.label(cl)}" }
+                                p { "{bp.predicted_behavior.label_bare(cl)}" }
                                     }
                                 }
                             }

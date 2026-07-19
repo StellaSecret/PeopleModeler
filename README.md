@@ -391,6 +391,31 @@ Table `trigger_synergy(tA, tB)`:
 | **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **Injustice** | 0 | 0 | 0 | −0.1 | −0.1 | −0.1 | 0 | 0 | −0.2 |
 
+##### Pattern Adjustment (individual profile)
+
+Before cross-person comparison, the individual pattern score is adjusted
+based on the quality of the **chosen response** (not the trigger or intensity).
+Each `BehaviorResponse` variant has a built-in score from −0.03 to +0.03
+in 7 tiers:
+
+| Tier | Score | Color | Example responses |
+|---|---|---|---|
+| 1 | **+0.03** | ⭐ Proactive | RemainsCalm, FacilitatesResolution, EmbracesChange |
+| 2 | **+0.02** | 🟢 Constructive | SeeksSupport, CommunicatesOpenly, PlansAhead |
+| 3 | **+0.01** | 🟢 Adaptive | StaysFocused, SeeksCompromise, Reflects |
+| 4 | **0.00** | 🟡 Neutral | BecomesQuiet, WaitsForClarity, ResistsChange |
+| 5 | **−0.01** | 🟠 Mild friction | BecomesIrritable, OverPlans, RejectsFeedback |
+| 6 | **−0.02** | 🔴 Bad | Overwhelmed, BecomesDefensive, BecomesOverconfident |
+| 7 | **−0.03** | 🔴 Maladaptive | Panics, Escalates, Sabotages |
+
+Each undefined trigger (not present in the person's vector) incurs −0.02.
+
+```
+Pat_adjusted = clamp(raw_pat + pattern_adjustment(&person.behavioral_patterns), 0, 1)
+```
+
+The score is stored on `BehaviorResponse::score()` (see `core/src/models.rs`).
+
 **Patterns Danger Penalty** — when both persons have **only** negative
 triggers (Conflict, Stress, Threatened, Injustice), no positive pattern
 balances the relationship:

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person};
 
-pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 8] = [
+pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 9] = [
     BehaviorTrigger::Stress,
     BehaviorTrigger::Conflict,
     BehaviorTrigger::Success,
@@ -10,6 +10,7 @@ pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 8] = [
     BehaviorTrigger::Threatened,
     BehaviorTrigger::Change,
     BehaviorTrigger::Feedback,
+    BehaviorTrigger::Injustice,
 ];
 
 use crate::Route;
@@ -104,24 +105,9 @@ fn build_top_rec(p: &Person, trigger: &BehaviorTrigger, recs: &[String], lang: L
     } else {
         String::new()
     };
-    let intensity_tag = p
-        .behavioral_patterns
-        .iter()
-        .find(|bp| bp.trigger == *trigger)
-        .map(|bp| {
-            if bp.intensity >= 8 {
-                " ⚠️ Strong"
-            } else if bp.intensity <= 3 {
-                " 🟢 Mild"
-            } else {
-                ""
-            }
-        })
-        .unwrap_or("");
     crate::i18n::tr("strategy_when", lang)
         .replace("{name}", &format!("{}{}", p.name, role_info))
         .replace("{trigger}", &tl.to_lowercase())
-        .replace("{intensity}", intensity_tag)
         .replace("{advice}", &base)
 }
 

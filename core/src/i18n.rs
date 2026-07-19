@@ -418,80 +418,191 @@ impl StyleType {
 impl BehaviorResponse {
     pub fn label(self, lang: Lang) -> &'static str {
         match lang {
-            Lang::En => match self {
-                Self::SeeksSupport => "🟢 Seeks support (asks for help)",
-                Self::BecomesQuiet => "🟡 Becomes quiet (shuts down, goes silent)",
-                Self::Withdraws => "🔴 Withdraws (panics, isolates, pulls away)",
-                Self::CommunicatesOpenly => "🟢 Communicates openly (expresses feelings)",
-                Self::SeeksCompromise => "🟡 Seeks compromise (meets halfway)",
-                Self::BecomesDefensive => "🔴 Becomes defensive (stonewalls, argues, deflects)",
-                Self::SharesCredit => "🟢 Shares credit (gives praise to others)",
-                Self::SetsNewGoals => "🟡 Sets new goals (raises the bar)",
-                Self::BecomesOverconfident => "🔴 Becomes overconfident (arrogant, boasts)",
-                Self::AsksQuestions => "🟢 Asks questions (seeks clarity)",
-                Self::SeeksData => "🟡 Seeks data (gathers facts)",
-                Self::OverPlans => "🔴 Over-plans (analysis paralysis)",
-                Self::AppreciatesPraise => "🟢 Appreciates praise (accepts compliments gracefully)",
-                Self::SharesAchievement => "🟡 Shares achievement (updates on progress)",
-                Self::SeeksMore => "🔴 Seeks more validation (needs constant approval)",
-                Self::StandsGround => "🟢 Stands ground (asserts position calmly)",
-                Self::SeeksAllies => "🟡 Seeks allies (builds coalitions)",
-                Self::DeflectsBlame => {
-                    "🔴 Deflects blame (freezes, points fingers, avoids responsibility)"
-                }
-                Self::EmbracesChange => "🟢 Embraces change (adapts quickly)",
-                Self::PlansAhead => "🟡 Plans ahead (prepares, anticipates)",
-                Self::ResistsChange => "🔴 Resists change (clings to status quo)",
-                Self::AsksForDetails => "🟢 Asks for details (digs deeper, seeks specifics)",
-                Self::Reflects => "🟡 Reflects thoughtfully (takes time to process)",
-                Self::RejectsFeedback => "🔴 Rejects feedback (dismisses, gets defensive)",
-                Self::ProtestsFirmly => "🟡 Protests firmly (stands up for what is right)",
-                Self::AcceptsResignedly => "🔴 Accepts resignedly (gives in but resents it)",
-                Self::SeeksRestoration => "🟢 Seeks restoration (repairs and reconciles)",
-                Self::ExploitsOpportunistically => {
-                    "🔴 Exploits opportunistically (takes advantage of unfair situation)"
-                }
-            },
-            Lang::Fr => match self {
-                Self::SeeksSupport => "🟢 Cherche du soutien (demande de l'aide)",
-                Self::BecomesQuiet => "🟡 Devient silencieux (se ferme, se tait)",
-                Self::Withdraws => "🔴 Se retire (panique, s'isole, se met à l'écart)",
-                Self::CommunicatesOpenly => "🟢 Communique ouvertement (exprime ses sentiments)",
-                Self::SeeksCompromise => "🟡 Cherche un compromis (trouve un terrain d'entente)",
-                Self::BecomesDefensive => {
-                    "🔴 Devient défensif (fait obstruction, argumente, se justifie)"
-                }
-                Self::SharesCredit => "🟢 Partage le crédit (félicite les autres)",
-                Self::SetsNewGoals => "🟡 Se fixe de nouveaux objectifs (élève la barre)",
-                Self::BecomesOverconfident => "🔴 Devient trop confiant (arrogant, se vante)",
-                Self::AsksQuestions => "🟢 Pose des questions (cherche à comprendre)",
-                Self::SeeksData => "🟡 Cherche des données (rassemble des faits)",
-                Self::OverPlans => "🔴 Planifie trop (paralyse par l'analyse)",
-                Self::AppreciatesPraise => {
-                    "🟢 Apprécie les éloges (accepte les compliments avec grâce)"
-                }
-                Self::SharesAchievement => "🟡 Partage ses réussites (informe des progrès)",
-                Self::SeeksMore => "🔴 Cherche plus de validation (besoin constant d'approbation)",
-                Self::StandsGround => "🟢 Tient bon (affirme sa position calmement)",
-                Self::SeeksAllies => "🟡 Cherche des alliés (tisse des coalitions)",
-                Self::DeflectsBlame => {
-                    "🔴 Détourne le blâme (se fige, montre du doigt, évite les responsabilités)"
-                }
-                Self::EmbracesChange => "🟢 Accepte le changement (s'adapte rapidement)",
-                Self::PlansAhead => "🟡 Planifie à l'avance (se prépare, anticipe)",
-                Self::ResistsChange => "🔴 Résiste au changement (s'accroche au statu quo)",
-                Self::AsksForDetails => "🟢 Demande des détails (creuse, cherche des précisions)",
-                Self::Reflects => "🟡 Réfléchit avec soin (prend le temps d'analyser)",
-                Self::RejectsFeedback => "🔴 Rejette le feedback (se braque, se ferme)",
-                Self::ProtestsFirmly => "🟡 Proteste fermement (défend ce qui est juste)",
-                Self::AcceptsResignedly => {
-                    "🔴 Accepte résigné (cède mais en ressent du ressentiment)"
-                }
-                Self::SeeksRestoration => "🟢 Cherche la réparation (répare et réconcilie)",
-                Self::ExploitsOpportunistically => {
-                    "🔴 Exploite opportunément (profite de l'injustice)"
-                }
-            },
+            Lang::En => self.label_en(),
+            Lang::Fr => self.label_fr(),
+        }
+    }
+
+    pub fn label_bare(self, lang: Lang) -> &'static str {
+        let l = self.label(lang);
+        // strip "<emoji> " prefix (2 unicode chars: emoji + trailing space)
+        let byte_start = l.char_indices().nth(2).map(|(i, _)| i).unwrap_or(0);
+        &l[byte_start..]
+    }
+
+    fn label_en(self) -> &'static str {
+        match self {
+            // Stress
+            Self::RemainsCalm => "⭐ Remains calm (stays composed under pressure)",
+            Self::SeeksSupport => "🔵 Seeks support (asks for help)",
+            Self::StaysFocused => "🟢 Stays focused (channels stress into productivity)",
+            Self::BecomesQuiet => "🟡 Becomes quiet (shuts down, goes silent)",
+            Self::BecomesIrritable => "🟠 Becomes irritable (gets snappy)",
+            Self::Overwhelmed => "🔴 Overwhelmed (shuts down)",
+            Self::Panics => "⚫ Panics (loses control)",
+            // Conflict
+            Self::FacilitatesResolution => {
+                "⭐ Facilitates resolution (mediates, finds common ground)"
+            }
+            Self::CommunicatesOpenly => {
+                "🔵 Communicates openly (expresses feelings constructively)"
+            }
+            Self::SeeksCompromise => "🟢 Seeks compromise (meets halfway)",
+            Self::StaysSilent => "🟡 Stays silent (avoids engagement)",
+            Self::BecomesPassiveAggressive => "🟠 Becomes passive-aggressive (indirect digs)",
+            Self::BecomesDefensive => "🔴 Becomes defensive (stonewalls, argues, deflects)",
+            Self::Escalates => "⚫ Escalates (attacks personally)",
+            // Success
+            Self::CelebratesWithOthers => "⭐ Celebrates with others (shares joy, builds team)",
+            Self::SharesCredit => "🔵 Shares credit (gives praise to others)",
+            Self::SetsNewGoals => "🟢 Sets new goals (raises the bar)",
+            Self::EnjoysQuietly => "🟡 Enjoys quietly (internal satisfaction)",
+            Self::BecomesComplacent => "🟠 Becomes complacent (rests on laurels)",
+            Self::BecomesOverconfident => "🔴 Becomes overconfident (arrogant, boasts)",
+            Self::DismissesOthers => "⚫ Dismisses others (belittles contributions)",
+            // Uncertainty
+            Self::EmbracesAmbiguity => "⭐ Embraces ambiguity (thrives in unknown)",
+            Self::AsksQuestions => "🔵 Asks questions (seeks clarity)",
+            Self::SeeksData => "🟢 Seeks data (gathers facts)",
+            Self::WaitsForClarity => "🟡 Waits for clarity (holds off)",
+            Self::OverPlans => "🟠 Over-plans (tries to control the unknown)",
+            Self::BecomesParalyzed => "🔴 Becomes paralyzed (unable to act)",
+            Self::DeflectsResponsibility => "⚫ Deflects responsibility (blames ambiguity)",
+            // Recognition
+            Self::AppreciatesQuietly => {
+                "⭐ Appreciates quietly (values recognition without display)"
+            }
+            Self::AppreciatesPraise => "🔵 Appreciates praise (accepts compliments gracefully)",
+            Self::SharesAchievement => "🟢 Shares achievement (updates on progress)",
+            Self::SeeksMore => "🟡 Seeks more validation (needs some approval)",
+            Self::BecomesJealous => "🟠 Becomes jealous (resents others' recognition)",
+            Self::DemandsAttention => "🔴 Demands attention (must be center)",
+            Self::UnderminesOthers => "⚫ Undermines others (diminishes them to get ahead)",
+            // Threatened
+            Self::SeeksUnderstanding => "⭐ Seeks understanding (tries to understand the threat)",
+            Self::SeeksAllies => "🔵 Seeks allies (builds support network)",
+            Self::StandsGround => "🟢 Stands ground (calmly defends position)",
+            Self::BecomesCautious => "🟡 Becomes cautious (withdraws to assess)",
+            Self::DeflectsBlame => "🟠 Deflects blame (redirects responsibility)",
+            Self::Counterattacks => "🔴 Counterattacks (strikes back)",
+            Self::BecomesParanoid => "⚫ Becomes paranoid (sees threats everywhere)",
+            // Change
+            Self::EmbracesChange => "⭐ Embraces change (adapts quickly)",
+            Self::PlansAhead => "🔵 Plans ahead (prepares, anticipates)",
+            Self::AdaptsQuickly => "🟢 Adapts quickly (adjusts on the fly)",
+            Self::ResistsChange => "🟡 Resists change (pushes back initially)",
+            Self::NeedsReassurance => "🟠 Needs reassurance (requires support)",
+            Self::BecomesDisoriented => "🔴 Becomes disoriented (can't keep up)",
+            Self::Sabotages => "⚫ Sabotages (actively undermines)",
+            // Feedback
+            Self::SeeksFeedback => "⭐ Seeks feedback (proactively asks)",
+            Self::AsksForDetails => "🔵 Asks for details (digs deeper, seeks specifics)",
+            Self::Reflects => "🟢 Reflects thoughtfully (takes time to process)",
+            Self::AcceptsResignedly => "🟡 Accepts resignedly (reluctant acceptance)",
+            Self::RejectsFeedback => "🟠 Rejects feedback (dismisses)",
+            Self::IgnoresCompletely => "⚫ Ignores completely (disregards entirely)",
+            // Injustice
+            Self::SeeksRestoration => "⭐ Seeks restoration (repairs and reconciles)",
+            Self::ProtestsConstructively => {
+                "🔵 Protests constructively (raises concerns productively)"
+            }
+            Self::ProtestsFirmly => "🟢 Protests firmly (advocates clearly)",
+            Self::SeeksClarity => "🟡 Seeks clarity (investigates facts)",
+            Self::WithdrawsFromInjustice => "🟠 Withdraws (disengages from injustice)",
+            Self::ExploitsOpportunistically => "🔴 Exploits opportunistically (takes advantage)",
+            Self::BecomesBitter => "⚫ Becomes bitter (resentful, cynical)",
+        }
+    }
+
+    fn label_fr(self) -> &'static str {
+        match self {
+            // Stress
+            Self::RemainsCalm => "⭐ Reste calme (garde son sang-froid sous pression)",
+            Self::SeeksSupport => "🔵 Cherche du soutien (demande de l'aide)",
+            Self::StaysFocused => "🟢 Reste concentré (canalise le stress en productivité)",
+            Self::BecomesQuiet => "🟡 Devient silencieux (se ferme, se tait)",
+            Self::BecomesIrritable => "🟠 Devient irritable (s'énerve facilement)",
+            Self::Overwhelmed => "🔴 Submergé (se ferme complètement)",
+            Self::Panics => "⚫ Panique (perd le contrôle)",
+            // Conflict
+            Self::FacilitatesResolution => {
+                "⭐ Facilite la résolution (médie, trouve un terrain d'entente)"
+            }
+            Self::CommunicatesOpenly => {
+                "🔵 Communique ouvertement (exprime ses sentiments avec constructivité)"
+            }
+            Self::SeeksCompromise => "🟢 Cherche un compromis (trouve un terrain d'entente)",
+            Self::StaysSilent => "🟡 Reste silencieux (évite l'engagement)",
+            Self::BecomesPassiveAggressive => "🟠 Devient passif-agressif (piques indirectes)",
+            Self::BecomesDefensive => {
+                "🔴 Devient défensif (fait obstruction, argumente, se justifie)"
+            }
+            Self::Escalates => "⚫ Escalade (attaque personnellement)",
+            // Success
+            Self::CelebratesWithOthers => {
+                "⭐ Célèbre avec les autres (partage la joie, soude l'équipe)"
+            }
+            Self::SharesCredit => "🔵 Partage le crédit (félicite les autres)",
+            Self::SetsNewGoals => "🟢 Se fixe de nouveaux objectifs (élève la barre)",
+            Self::EnjoysQuietly => "🟡 Apprécie en silence (satisfaction intérieure)",
+            Self::BecomesComplacent => "🟠 Devient complaisant (se repose sur ses lauriers)",
+            Self::BecomesOverconfident => "🔴 Devient trop confiant (arrogant, se vante)",
+            Self::DismissesOthers => "⚫ Dévalorise les autres (minimise leurs contributions)",
+            // Uncertainty
+            Self::EmbracesAmbiguity => "⭐ Embrasse l'ambiguïté (prospère dans l'incertain)",
+            Self::AsksQuestions => "🔵 Pose des questions (cherche à comprendre)",
+            Self::SeeksData => "🟢 Cherche des données (rassemble des faits)",
+            Self::WaitsForClarity => "🟡 Attend des éclaircissements (temporise)",
+            Self::OverPlans => "🟠 Planifie trop (essaie de contrôler l'incertain)",
+            Self::BecomesParalyzed => "🔴 Devient paralysé (incapable d'agir)",
+            Self::DeflectsResponsibility => "⚫ Esquive la responsabilité (blâme l'ambiguïté)",
+            // Recognition
+            Self::AppreciatesQuietly => {
+                "⭐ Apprécie discrètement (valorise sans chercher la lumière)"
+            }
+            Self::AppreciatesPraise => {
+                "🔵 Apprécie les éloges (accepte les compliments avec grâce)"
+            }
+            Self::SharesAchievement => "🟢 Partage ses réussites (informe des progrès)",
+            Self::SeeksMore => "🟡 Cherche plus de validation (besoin d'approbation modéré)",
+            Self::BecomesJealous => "🟠 Devient jaloux (ressent la reconnaissance des autres)",
+            Self::DemandsAttention => "🔴 Exige l'attention (veut être le centre)",
+            Self::UnderminesOthers => "⚫ Dénigre les autres (les rabaisse pour avancer)",
+            // Threatened
+            Self::SeeksUnderstanding => "⭐ Cherche à comprendre (essaie de cerner la menace)",
+            Self::SeeksAllies => "🔵 Cherche des alliés (tisse des coalitions)",
+            Self::StandsGround => "🟢 Tient bon (affirme sa position calmement)",
+            Self::BecomesCautious => "🟡 Devient prudent (recule pour évaluer)",
+            Self::DeflectsBlame => "🟠 Détourne le blâme (redirige la responsabilité)",
+            Self::Counterattacks => "🔴 Contre-attaque (riposte)",
+            Self::BecomesParanoid => "⚫ Devient paranoïaque (voit des menaces partout)",
+            // Change
+            Self::EmbracesChange => "⭐ Accepte le changement (s'adapte rapidement)",
+            Self::PlansAhead => "🔵 Planifie à l'avance (se prépare, anticipe)",
+            Self::AdaptsQuickly => "🟢 S'adapte rapidement (s'ajuste à la volée)",
+            Self::ResistsChange => "🟡 Résiste au changement (rechigne initialement)",
+            Self::NeedsReassurance => "🟠 A besoin de réassurance (demande du soutien)",
+            Self::BecomesDisoriented => "🔴 Désorienté (n'arrive pas à suivre)",
+            Self::Sabotages => "⚫ Sabote (compromet activement)",
+            // Feedback
+            Self::SeeksFeedback => "⭐ Cherche le feedback (le sollicite proactivement)",
+            Self::AsksForDetails => "🔵 Demande des détails (creuse, cherche des précisions)",
+            Self::Reflects => "🟢 Réfléchit avec soin (prend le temps d'analyser)",
+            Self::AcceptsResignedly => "🟡 Accepte résigné (acceptation à contrecœur)",
+            Self::RejectsFeedback => "🟠 Rejette le feedback (se braque, se ferme)",
+            Self::IgnoresCompletely => "⚫ Ignore complètement (fait la sourde oreille)",
+            // Injustice
+            Self::SeeksRestoration => "⭐ Cherche la réparation (répare et réconcilie)",
+            Self::ProtestsConstructively => {
+                "🔵 Proteste avec constructivité (exprime ses préoccupations)"
+            }
+            Self::ProtestsFirmly => "🟢 Proteste fermement (défend ce qui est juste)",
+            Self::SeeksClarity => "🟡 Cherche des éclaircissements (enquête sur les faits)",
+            Self::WithdrawsFromInjustice => "🟠 Se retire (se désengage de l'injustice)",
+            Self::ExploitsOpportunistically => {
+                "🔴 Exploite opportunément (profite de la situation)"
+            }
+            Self::BecomesBitter => "⚫ Devient amer (ranceur, cynisme)",
         }
     }
 }

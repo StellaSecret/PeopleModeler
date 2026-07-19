@@ -29,13 +29,13 @@ test.describe('Compare — Advanced Synergy', () => {
   async function createPersonWithPatterns(
     page: Page,
     name: string,
-    triggers: { trigger: string; outcome: string; intensity: number }[],
+    triggers: { trigger: string; outcome: string; notes: string }[],
   ): Promise<string> {
     const id = await createPerson(page, name);
     await page.goto(`/PeopleModeler/person/${id}/edit`);
     await page.waitForTimeout(200);
     for (const p of triggers) {
-      await addPattern(page, p.trigger, p.outcome, p.intensity);
+      await addPattern(page, p.trigger, p.outcome, p.notes);
     }
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
@@ -87,11 +87,11 @@ test.describe('Compare — Advanced Synergy', () => {
 
   test('all-negative patterns pair renders analysis', async ({ page }) => {
     const id1 = await createPersonWithPatterns(page, 'Pessimist', [
-      { trigger: 'Conflict', outcome: 'becomes_defensive', intensity: 8 },
-      { trigger: 'Stress', outcome: 'withdraws', intensity: 7 },
+      { trigger: 'Conflict', outcome: 'becomes_defensive', notes: 'conflict test' },
+      { trigger: 'Stress', outcome: 'becomes_quiet', notes: 'stress test' },
     ]);
     const id2 = await createPersonWithPatterns(page, 'Defensive', [
-      { trigger: 'Threatened', outcome: 'deflects_blame', intensity: 6 },
+      { trigger: 'Threatened', outcome: 'deflects_blame', notes: 'threat test' },
     ]);
 
     await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);
@@ -104,10 +104,10 @@ test.describe('Compare — Advanced Synergy', () => {
 
   test('mixed pattern pair renders analysis', async ({ page }) => {
     const id1 = await createPersonWithPatterns(page, 'Optimist', [
-      { trigger: 'Change', outcome: 'embraces_change', intensity: 9 },
+      { trigger: 'Change', outcome: 'embraces_change', notes: 'change test' },
     ]);
     const id2 = await createPersonWithPatterns(page, 'Anxious', [
-      { trigger: 'Stress', outcome: 'becomes_quiet', intensity: 7 },
+      { trigger: 'Stress', outcome: 'becomes_quiet', notes: 'anxiety test' },
     ]);
 
     await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);

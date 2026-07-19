@@ -498,16 +498,7 @@ fn compute_synergy_score_inner(
     // --- Pattern danger: both persons have only negative triggers ---
 
     let has_negative_only = |patterns: &[BehavioralPattern]| -> bool {
-        !patterns.is_empty()
-            && patterns.iter().all(|p| {
-                matches!(
-                    p.trigger,
-                    BehaviorTrigger::Conflict
-                        | BehaviorTrigger::Stress
-                        | BehaviorTrigger::Threatened
-                        | BehaviorTrigger::Injustice
-                )
-            })
+        !patterns.is_empty() && patterns.iter().all(|p| p.trigger.is_negative())
     };
     let pat_danger_penalty = if pat_active
         && has_negative_only(&a.behavioral_patterns)
@@ -739,6 +730,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     } else {
         0.5
     };
+    let pat = (raw_pat + pattern_adjustment(&person.behavioral_patterns)).clamp(0.0, 1.0);
 
     let a_s = person.ocean.agreeableness.map_or(0.5, |v| v as f64 / 10.0);
     let n_s = person
@@ -793,7 +785,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     raw += motivation * W_MOT;
     total_w += W_MOT;
     if pat_active {
-        raw += raw_pat * W_PAT;
+        raw += pat * W_PAT;
         total_w += W_PAT;
     }
     raw += ocean * W_OCEAN;
@@ -814,7 +806,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     PersonProfile {
         total,
         motivation,
-        patterns: raw_pat,
+        patterns: pat,
         ocean,
         reputation: rep,
         bias,
@@ -957,6 +949,21 @@ fn bias_count_bonus(n: usize) -> f64 {
     }
 }
 
+pub fn pattern_adjustment(patterns: &[BehavioralPattern]) -> f64 {
+    let mut adj = 0.0;
+    let mut defined: HashSet<BehaviorTrigger> = HashSet::new();
+    for p in patterns {
+        defined.insert(p.trigger);
+        adj += p.predicted_behavior.score();
+    }
+    for t in BehaviorTrigger::ALL {
+        if !defined.contains(&t) {
+            adj -= 0.02;
+        }
+    }
+    adj
+}
+
 pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
     match (a, b) {
         (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
@@ -994,7 +1001,7 @@ pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f6
             if syn == 0.0 {
                 continue;
             }
-            let w = (a.intensity as f64 * b.intensity as f64) / 100.0;
+            let w = 1.0;
             sum += syn * w;
             total_w += w;
         }
@@ -1711,15 +1718,179 @@ mod tests {
         let a = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: BehaviorResponse::EmbracesChange,
-            intensity: 5,
+            notes: String::new(),
         }];
         let b = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: BehaviorResponse::EmbracesChange,
-            intensity: 5,
+            notes: String::new(),
         }];
         let result = pattern_synergy(&a, &b);
         assert!((result - 1.0).abs() < 0.001, "got {}", result);
+    }
+
+    // --- Pattern adjustment tests ---
+
+    #[test]
+    fn test_pattern_adjustment_empty() {
+        let p: Vec<BehavioralPattern> = vec![];
+        let adj = pattern_adjustment(&p);
+        // 9 undefined triggers × −0.02 = −0.18
+        assert!((adj + 0.18).abs() < 0.001, "empty adj: {}", adj);
+    }
+
+    #[test]
+    fn test_pattern_adjustment_best_response() {
+        // RemainsCalm is tier 1 (+0.03)
+        let p = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        let adj = pattern_adjustment(&p);
+        // +0.03 from RemainsCalm, 8 undefined × −0.02 = −0.16 → total −0.13
+        assert!((adj + 0.13).abs() < 0.001, "best adj: {}", adj);
+    }
+
+    #[test]
+    fn test_pattern_adjustment_worst_response() {
+        // Panics is tier 7 (−0.03)
+        let p = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        let adj = pattern_adjustment(&p);
+        // −0.03 from Panics, 8 undefined × −0.02 = −0.16 → total −0.19
+        assert!((adj + 0.19).abs() < 0.001, "worst adj: {}", adj);
+    }
+
+    #[test]
+    fn test_pattern_adjustment_neutral_response() {
+        // BecomesQuiet is tier 4 (0.00)
+        let p = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::BecomesQuiet,
+            notes: String::new(),
+        }];
+        let adj = pattern_adjustment(&p);
+        // 0.00 from BecomesQuiet, 8 undefined × −0.02 = −0.16 → total −0.16
+        assert!((adj + 0.16).abs() < 0.001, "neutral adj: {}", adj);
+    }
+
+    #[test]
+    fn test_pattern_adjustment_all_tiers() {
+        // One response from each tier
+        let p = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Success,
+                predicted_behavior: BehaviorResponse::CelebratesWithOthers, // +0.03
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::CommunicatesOpenly, // +0.02
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Uncertainty,
+                predicted_behavior: BehaviorResponse::SeeksData, // +0.01
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Recognition,
+                predicted_behavior: BehaviorResponse::SeeksMore, // 0.00
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::NeedsReassurance, // −0.01
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Threatened,
+                predicted_behavior: BehaviorResponse::Counterattacks, // −0.02
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Injustice,
+                predicted_behavior: BehaviorResponse::BecomesBitter, // −0.03
+                notes: String::new(),
+            },
+        ];
+        let adj = pattern_adjustment(&p);
+        // Sum of scores: 0.03+0.02+0.01+0.00−0.01−0.02−0.03 = 0.0
+        // 2 undefined triggers × −0.02 = −0.04 (Feedback, Stress)
+        assert!((adj + 0.04).abs() < 0.001, "all tiers adj: {}", adj);
+    }
+
+    #[test]
+    fn test_pattern_adjustment_mixed_scores() {
+        let p = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Success,
+                predicted_behavior: BehaviorResponse::CelebratesWithOthers, // +0.03
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::Escalates, // −0.03
+                notes: String::new(),
+            },
+        ];
+        let adj = pattern_adjustment(&p);
+        // +0.03 + (−0.03) = 0.0 from defined, 7 undefined × −0.02 = −0.14 → total −0.14
+        assert!((adj + 0.14).abs() < 0.001, "mixed adj: {}", adj);
+    }
+
+    #[test]
+    fn test_profile_pattern_adjustment_integration() {
+        // Change trigger self-pair: trigger_synergy(Change, Change) = +0.3
+        // raw_pat = ((0.3 + 0.3) / 0.6) = 1.0
+        // RemainsCalm score = +0.03, 8 missing × −0.02 = −0.16 → adj = −0.13
+        // adjusted = clamp(1.0 + (−0.13), 0, 1) = 0.87
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        let pf = compute_person_profile(&p);
+        let expected = 0.87;
+        assert!(
+            (pf.patterns - expected).abs() < 0.001,
+            "expected {expected}, got {}",
+            pf.patterns
+        );
+    }
+
+    #[test]
+    fn test_profile_pattern_adjustment_all_negative() {
+        // All worst responses (−0.03 each) × 9 triggers = −0.27
+        // raw_pat varies, but each trigger is paired with itself in pattern_synergy
+        // We just verify patterns < 0.5 (baseline)
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::Panics,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::Escalates,
+                notes: String::new(),
+            },
+        ];
+        let pf = compute_person_profile(&p);
+        // Adjust: −0.03 + (−0.03) = −0.06 from defined, 7 missing × −0.02 = −0.14 → −0.20
+        // raw_pat ≈ 0.0 (self-pair Conflict×Conflict = −0.3, Stress×Stress = −0.2, cross = −0.3)
+        // adjusted ≈ clamp(0.0 + (−0.20), 0, 1) = 0.0
+        assert!(
+            (pf.patterns - 0.0).abs() < 0.001,
+            "all negative: {}",
+            pf.patterns
+        );
     }
 
     // --- OCEAN danger penalty tests ---
@@ -2218,18 +2389,18 @@ mod tests {
             BehavioralPattern {
                 trigger: BehaviorTrigger::Conflict,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 5,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::Withdraws,
-                intensity: 5,
+                predicted_behavior: BehaviorResponse::Overwhelmed,
+                notes: String::new(),
             },
         ];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Threatened,
             predicted_behavior: BehaviorResponse::DeflectsBlame,
-            intensity: 5,
+            notes: String::new(),
         }];
         let brk = compute_synergy_score(&a, &b);
         assert!(
@@ -2246,12 +2417,12 @@ mod tests {
         a.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Conflict,
             predicted_behavior: BehaviorResponse::BecomesDefensive,
-            intensity: 5,
+            notes: String::new(),
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Change,
             predicted_behavior: BehaviorResponse::EmbracesChange,
-            intensity: 5,
+            notes: String::new(),
         }];
         let brk = compute_synergy_score(&a, &b);
         assert!(
@@ -2480,7 +2651,7 @@ mod tests {
             pf.motivation
         );
         assert!(
-            (pf.patterns - 0.5).abs() < 0.001,
+            (pf.patterns - 0.32).abs() < 0.001,
             "baseline pat: {}",
             pf.patterns
         );
@@ -2738,27 +2909,27 @@ mod tests {
             BehavioralPattern {
                 trigger: BehaviorTrigger::Change,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 5,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Feedback,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 5,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Success,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 5,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Conflict,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 5,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Stress,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 5,
+                notes: String::new(),
             },
         ];
         let c = profile_completeness(&p);
@@ -2853,7 +3024,7 @@ mod tests {
         p.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Conflict,
             predicted_behavior: BehaviorResponse::BecomesDefensive,
-            intensity: 8,
+            notes: String::new(),
         }];
         let pf = compute_person_profile(&p);
         // Single Conflict pattern → self-pair synergy = -0.3
@@ -3187,29 +3358,31 @@ mod tests {
             BehavioralPattern {
                 trigger: BehaviorTrigger::Change,
                 predicted_behavior: BehaviorResponse::EmbracesChange,
-                intensity: 8,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Conflict,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 6,
+                notes: String::new(),
             },
         ];
         let b = vec![
             BehavioralPattern {
                 trigger: BehaviorTrigger::Change,
                 predicted_behavior: BehaviorResponse::EmbracesChange,
-                intensity: 8,
+                notes: String::new(),
             },
             BehavioralPattern {
                 trigger: BehaviorTrigger::Conflict,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
-                intensity: 6,
+                notes: String::new(),
             },
         ];
         let result = pattern_synergy(&a, &b);
         // Same triggers: Change=0.3, Conflict=-0.3
-        // w_cc = 64/100=0.64, score+0.5=0.8; w_cf = 48/100=0.48, score-0.3+0.5=0.2 etc.
+        // (Change,Change): syn=+0.3, w=1.0
+        // (Conflict,Conflict): syn=-0.3, w=1.0
+        // result = ((0.0 / 2.0) + 0.3) / 0.6 = 0.5
         // Detailed math: let's just verify it's sensible
         assert!(
             (0.4..=0.9).contains(&result),

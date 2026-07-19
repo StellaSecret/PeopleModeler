@@ -36,10 +36,9 @@ test.describe('Person Page — Dioxus', () => {
   test('add pattern then verify on detail page', async ({ page }) => {
     await page.goto(`/PeopleModeler/person/${personId}/edit`);
     await page.waitForTimeout(200);
-    await addPattern(page, 'Stress', 'becomes_quiet', 7);
+    await addPattern(page, 'Stress', 'becomes_quiet', 'test note');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
-    await expect(page.locator('.pattern-item')).toContainText('⚡7/10');
     await expect(page.locator('.pattern-item')).toContainText(/stress/i);
   });
 });

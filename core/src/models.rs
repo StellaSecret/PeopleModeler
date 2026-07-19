@@ -369,7 +369,7 @@ impl BiasType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BehaviorTrigger {
     #[serde(alias = "STRESS")]
     Stress,
@@ -423,6 +423,14 @@ impl BehaviorTrigger {
             Self::Injustice => "⚖️",
         }
     }
+
+    /// Returns true for maladaptive triggers: Conflict, Stress, Threatened, Injustice.
+    pub fn is_negative(self) -> bool {
+        matches!(
+            self,
+            Self::Conflict | Self::Stress | Self::Threatened | Self::Injustice
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -444,104 +452,303 @@ pub struct Bias {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BehaviorResponse {
+    // Stress
+    RemainsCalm,
     SeeksSupport,
+    StaysFocused,
     BecomesQuiet,
-    Withdraws,
+    BecomesIrritable,
+    Overwhelmed,
+    Panics,
+    // Conflict
+    FacilitatesResolution,
     CommunicatesOpenly,
     SeeksCompromise,
+    StaysSilent,
+    BecomesPassiveAggressive,
     BecomesDefensive,
+    Escalates,
+    // Success
+    CelebratesWithOthers,
     SharesCredit,
     SetsNewGoals,
+    EnjoysQuietly,
+    BecomesComplacent,
     BecomesOverconfident,
+    DismissesOthers,
+    // Uncertainty
+    EmbracesAmbiguity,
     AsksQuestions,
     SeeksData,
+    WaitsForClarity,
     OverPlans,
+    BecomesParalyzed,
+    DeflectsResponsibility,
+    // Recognition
+    AppreciatesQuietly,
     AppreciatesPraise,
     SharesAchievement,
     SeeksMore,
-    StandsGround,
+    BecomesJealous,
+    DemandsAttention,
+    UnderminesOthers,
+    // Threatened
+    SeeksUnderstanding,
     SeeksAllies,
+    StandsGround,
+    BecomesCautious,
     DeflectsBlame,
+    Counterattacks,
+    BecomesParanoid,
+    // Change
     EmbracesChange,
     PlansAhead,
+    AdaptsQuickly,
     ResistsChange,
+    NeedsReassurance,
+    BecomesDisoriented,
+    Sabotages,
+    // Feedback
+    SeeksFeedback,
     AsksForDetails,
     Reflects,
-    RejectsFeedback,
-    ProtestsFirmly,
     AcceptsResignedly,
+    RejectsFeedback,
+    IgnoresCompletely,
+    // Injustice
     SeeksRestoration,
+    ProtestsConstructively,
+    ProtestsFirmly,
+    SeeksClarity,
+    WithdrawsFromInjustice,
     ExploitsOpportunistically,
+    BecomesBitter,
 }
 
 impl BehaviorResponse {
     pub fn serde_name(self) -> &'static str {
         match self {
+            Self::RemainsCalm => "remains_calm",
             Self::SeeksSupport => "seeks_support",
+            Self::StaysFocused => "stays_focused",
             Self::BecomesQuiet => "becomes_quiet",
-            Self::Withdraws => "withdraws",
+            Self::BecomesIrritable => "becomes_irritable",
+            Self::Overwhelmed => "overwhelmed",
+            Self::Panics => "panics",
+            Self::FacilitatesResolution => "facilitates_resolution",
             Self::CommunicatesOpenly => "communicates_openly",
             Self::SeeksCompromise => "seeks_compromise",
+            Self::StaysSilent => "stays_silent",
+            Self::BecomesPassiveAggressive => "becomes_passive_aggressive",
             Self::BecomesDefensive => "becomes_defensive",
+            Self::Escalates => "escalates",
+            Self::CelebratesWithOthers => "celebrates_with_others",
             Self::SharesCredit => "shares_credit",
             Self::SetsNewGoals => "sets_new_goals",
+            Self::EnjoysQuietly => "enjoys_quietly",
+            Self::BecomesComplacent => "becomes_complacent",
             Self::BecomesOverconfident => "becomes_overconfident",
+            Self::DismissesOthers => "dismisses_others",
+            Self::EmbracesAmbiguity => "embraces_ambiguity",
             Self::AsksQuestions => "asks_questions",
             Self::SeeksData => "seeks_data",
+            Self::WaitsForClarity => "waits_for_clarity",
             Self::OverPlans => "over_plans",
+            Self::BecomesParalyzed => "becomes_paralyzed",
+            Self::DeflectsResponsibility => "deflects_responsibility",
+            Self::AppreciatesQuietly => "appreciates_quietly",
             Self::AppreciatesPraise => "appreciates_praise",
             Self::SharesAchievement => "shares_achievement",
             Self::SeeksMore => "seeks_more",
-            Self::StandsGround => "stands_ground",
+            Self::BecomesJealous => "becomes_jealous",
+            Self::DemandsAttention => "demands_attention",
+            Self::UnderminesOthers => "undermines_others",
+            Self::SeeksUnderstanding => "seeks_understanding",
             Self::SeeksAllies => "seeks_allies",
+            Self::StandsGround => "stands_ground",
+            Self::BecomesCautious => "becomes_cautious",
             Self::DeflectsBlame => "deflects_blame",
+            Self::Counterattacks => "counterattacks",
+            Self::BecomesParanoid => "becomes_paranoid",
             Self::EmbracesChange => "embraces_change",
             Self::PlansAhead => "plans_ahead",
+            Self::AdaptsQuickly => "adapts_quickly",
             Self::ResistsChange => "resists_change",
+            Self::NeedsReassurance => "needs_reassurance",
+            Self::BecomesDisoriented => "becomes_disoriented",
+            Self::Sabotages => "sabotages",
+            Self::SeeksFeedback => "seeks_feedback",
             Self::AsksForDetails => "asks_for_details",
             Self::Reflects => "reflects",
-            Self::RejectsFeedback => "rejects_feedback",
-            Self::ProtestsFirmly => "protests_firmly",
             Self::AcceptsResignedly => "accepts_resignedly",
+            Self::RejectsFeedback => "rejects_feedback",
+            Self::IgnoresCompletely => "ignores_completely",
             Self::SeeksRestoration => "seeks_restoration",
+            Self::ProtestsConstructively => "protests_constructively",
+            Self::ProtestsFirmly => "protests_firmly",
+            Self::SeeksClarity => "seeks_clarity",
+            Self::WithdrawsFromInjustice => "withdraws_from_injustice",
             Self::ExploitsOpportunistically => "exploits_opportunistically",
+            Self::BecomesBitter => "becomes_bitter",
         }
     }
+
+    pub fn score(self) -> f64 {
+        match self {
+            // Tier 1 — Proactive (+0.03)
+            Self::RemainsCalm
+            | Self::FacilitatesResolution
+            | Self::CelebratesWithOthers
+            | Self::EmbracesAmbiguity
+            | Self::AppreciatesQuietly
+            | Self::SeeksUnderstanding
+            | Self::EmbracesChange
+            | Self::SeeksFeedback
+            | Self::SeeksRestoration => 0.03,
+            // Tier 2 — Constructive (+0.02)
+            Self::SeeksSupport
+            | Self::CommunicatesOpenly
+            | Self::SharesCredit
+            | Self::AsksQuestions
+            | Self::AppreciatesPraise
+            | Self::SeeksAllies
+            | Self::PlansAhead
+            | Self::AsksForDetails
+            | Self::ProtestsConstructively => 0.02,
+            // Tier 3 — Adaptive (+0.01)
+            Self::StaysFocused
+            | Self::SeeksCompromise
+            | Self::SetsNewGoals
+            | Self::SeeksData
+            | Self::SharesAchievement
+            | Self::StandsGround
+            | Self::AdaptsQuickly
+            | Self::Reflects
+            | Self::ProtestsFirmly => 0.01,
+            // Tier 4 — Neutral (0.00)
+            Self::BecomesQuiet
+            | Self::StaysSilent
+            | Self::EnjoysQuietly
+            | Self::WaitsForClarity
+            | Self::SeeksMore
+            | Self::BecomesCautious
+            | Self::ResistsChange
+            | Self::AcceptsResignedly
+            | Self::SeeksClarity => 0.0,
+            // Tier 5 — Mild friction (−0.01)
+            Self::BecomesIrritable
+            | Self::BecomesPassiveAggressive
+            | Self::BecomesComplacent
+            | Self::OverPlans
+            | Self::BecomesJealous
+            | Self::NeedsReassurance
+            | Self::RejectsFeedback
+            | Self::WithdrawsFromInjustice => -0.01,
+            // Tier 6 — Bad (−0.02)
+            Self::Overwhelmed
+            | Self::BecomesDefensive
+            | Self::BecomesOverconfident
+            | Self::BecomesParalyzed
+            | Self::DemandsAttention
+            | Self::DeflectsBlame
+            | Self::Counterattacks
+            | Self::BecomesDisoriented
+            | Self::ExploitsOpportunistically => -0.02,
+            // Tier 7 — Maladaptive (−0.03)
+            Self::Panics
+            | Self::Escalates
+            | Self::DismissesOthers
+            | Self::DeflectsResponsibility
+            | Self::UnderminesOthers
+            | Self::BecomesParanoid
+            | Self::Sabotages
+            | Self::IgnoresCompletely
+            | Self::BecomesBitter => -0.03,
+        }
+    }
+
     pub fn options_for(t: BehaviorTrigger) -> &'static [Self] {
         match t {
-            BehaviorTrigger::Stress => &[Self::SeeksSupport, Self::BecomesQuiet, Self::Withdraws],
+            BehaviorTrigger::Stress => &[
+                Self::RemainsCalm,
+                Self::SeeksSupport,
+                Self::StaysFocused,
+                Self::BecomesQuiet,
+                Self::BecomesIrritable,
+                Self::Overwhelmed,
+                Self::Panics,
+            ],
             BehaviorTrigger::Conflict => &[
+                Self::FacilitatesResolution,
                 Self::CommunicatesOpenly,
                 Self::SeeksCompromise,
+                Self::StaysSilent,
+                Self::BecomesPassiveAggressive,
                 Self::BecomesDefensive,
+                Self::Escalates,
             ],
             BehaviorTrigger::Success => &[
+                Self::CelebratesWithOthers,
                 Self::SharesCredit,
                 Self::SetsNewGoals,
+                Self::EnjoysQuietly,
+                Self::BecomesComplacent,
                 Self::BecomesOverconfident,
+                Self::DismissesOthers,
             ],
-            BehaviorTrigger::Uncertainty => {
-                &[Self::AsksQuestions, Self::SeeksData, Self::OverPlans]
-            }
+            BehaviorTrigger::Uncertainty => &[
+                Self::EmbracesAmbiguity,
+                Self::AsksQuestions,
+                Self::SeeksData,
+                Self::WaitsForClarity,
+                Self::OverPlans,
+                Self::BecomesParalyzed,
+                Self::DeflectsResponsibility,
+            ],
             BehaviorTrigger::Recognition => &[
+                Self::AppreciatesQuietly,
                 Self::AppreciatesPraise,
                 Self::SharesAchievement,
                 Self::SeeksMore,
+                Self::BecomesJealous,
+                Self::DemandsAttention,
+                Self::UnderminesOthers,
             ],
-            BehaviorTrigger::Threatened => {
-                &[Self::StandsGround, Self::SeeksAllies, Self::DeflectsBlame]
-            }
-            BehaviorTrigger::Change => {
-                &[Self::EmbracesChange, Self::PlansAhead, Self::ResistsChange]
-            }
-            BehaviorTrigger::Feedback => {
-                &[Self::AsksForDetails, Self::Reflects, Self::RejectsFeedback]
-            }
-            BehaviorTrigger::Injustice => &[
-                Self::ProtestsFirmly,
+            BehaviorTrigger::Threatened => &[
+                Self::SeeksUnderstanding,
+                Self::SeeksAllies,
+                Self::StandsGround,
+                Self::BecomesCautious,
+                Self::DeflectsBlame,
+                Self::Counterattacks,
+                Self::BecomesParanoid,
+            ],
+            BehaviorTrigger::Change => &[
+                Self::EmbracesChange,
+                Self::PlansAhead,
+                Self::AdaptsQuickly,
+                Self::ResistsChange,
+                Self::NeedsReassurance,
+                Self::BecomesDisoriented,
+                Self::Sabotages,
+            ],
+            BehaviorTrigger::Feedback => &[
+                Self::SeeksFeedback,
+                Self::AsksForDetails,
+                Self::Reflects,
                 Self::AcceptsResignedly,
+                Self::RejectsFeedback,
+                Self::BecomesDefensive,
+                Self::IgnoresCompletely,
+            ],
+            BehaviorTrigger::Injustice => &[
                 Self::SeeksRestoration,
+                Self::ProtestsConstructively,
+                Self::ProtestsFirmly,
+                Self::SeeksClarity,
+                Self::WithdrawsFromInjustice,
                 Self::ExploitsOpportunistically,
+                Self::BecomesBitter,
             ],
         }
     }
@@ -552,8 +759,8 @@ pub struct BehavioralPattern {
     pub trigger: BehaviorTrigger,
     #[serde(deserialize_with = "deserialize_behavior_response")]
     pub predicted_behavior: BehaviorResponse,
-    #[serde(default = "default_intensity")]
-    pub intensity: u8,
+    #[serde(default)]
+    pub notes: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -696,10 +903,6 @@ pub struct Person {
 }
 
 fn default_confidence() -> u8 {
-    5
-}
-
-fn default_intensity() -> u8 {
     5
 }
 

@@ -52,14 +52,14 @@ export async function addPattern(
   page: Page,
   trigger: string,
   outcome: string,
-  intensity: number,
+  notes: string,
 ) {
   const fs = page.locator(
     'fieldset.section:has(legend:text-is("Behavioral Patterns"))',
   );
   await fs.locator('select').nth(0).selectOption(trigger);
   await fs.locator('select').nth(1).selectOption(outcome);
-  await fs.locator('input[type="range"]').fill(String(intensity));
+  await fs.locator('input[type="text"][placeholder="Notes..."]').fill(notes);
   await fs.locator("button[aria-label='Add pattern']").click();
 }
 

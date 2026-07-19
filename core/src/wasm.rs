@@ -173,7 +173,7 @@ mod tests {
             ],
             "rep_scores": {},
             "behavioral_patterns": [
-                {"trigger": "Change", "predicted_behavior": "embraces_change", "intensity": 5}
+                {"trigger": "Change", "predicted_behavior": "embraces_change"}
             ],
             "ocean": {
                 "openness": 7,

@@ -314,12 +314,12 @@ mod tests {
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Change,
                     predicted_behavior: BehaviorResponse::EmbracesChange,
-                    intensity: 5,
+                    notes: String::new(),
                 },
                 BehavioralPattern {
                     trigger: BehaviorTrigger::Feedback,
                     predicted_behavior: BehaviorResponse::AsksForDetails,
-                    intensity: 5,
+                    notes: String::new(),
                 },
             ],
             styles: vec![],

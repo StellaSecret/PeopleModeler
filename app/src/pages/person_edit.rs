@@ -573,7 +573,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let ctx_injustice = crate::i18n::tr("ctx_injustice", lang);
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
-    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
 
     use peoplemodeler_core::i18n::Lang as CoreLang;
@@ -622,22 +622,24 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                         option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
                     }
                 }
-                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
-                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); },
-                    aria_label: "Intensity"
+                input {
+                    r#type: "text",
+                    placeholder: "Notes...",
+                    value: "{sel_notes()}",
+                    oninput: move |e| sel_notes.set(e.value()),
                 }
-                span { "⚡{sel_intensity}" }
                 button { class: "btn", aria_label: if edit_idx().is_some() { "Update pattern" } else { "Add pattern" }, onclick: move |_| {
                     if let Some(idx) = edit_idx() {
                         let mut items = patterns.write();
                         if idx < items.len() {
-                            items[idx] = BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() };
+                            items[idx] = BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() };
                         }
                         edit_idx.set(None);
                     } else {
-                        patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), intensity: sel_intensity() });
+                        patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() });
                     }
                     sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
+                    sel_notes.set(String::new());
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
             div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
@@ -648,14 +650,16 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                         move |_| {
                             sel_trigger.set(bp.trigger);
                             sel_behavior.set(bp.predicted_behavior);
-                            sel_intensity.set(bp.intensity);
+                            sel_notes.set(bp.notes.clone());
                             edit_idx.set(Some(i));
                         }
                     }, "✏" }
                     strong { "{trigger_label(bp.trigger)}" }
                     span { " {bp.predicted_behavior.label(cl)}" }
-                    span { " (⚡{bp.intensity}/10)" }
-                    button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); }, "✕" }
+                    if !bp.notes.is_empty() {
+                        span { class: "item-notes", " — {bp.notes}" }
+                    }
+                    button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); sel_notes.set(String::new()); }, "✕" }
                 }
             }
         }

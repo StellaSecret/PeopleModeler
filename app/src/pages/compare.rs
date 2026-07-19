@@ -595,9 +595,24 @@ fn compare_analysis(
 
     // --- Behavioral Patterns ---
     if let (Some(pa), Some(pb)) = (
-        a.behavioral_patterns.iter().max_by_key(|p| p.intensity),
-        b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
+        a.behavioral_patterns.first(),
+        b.behavioral_patterns.first(),
     ) {
+        let cl = core_lang(lang);
+        syn.push(if lang == Lang::Fr {
+            format!(
+                "A réagit par «{}» | B réagit par «{}»",
+                pa.predicted_behavior.label_bare(cl),
+                pb.predicted_behavior.label_bare(cl)
+            )
+        } else {
+            format!(
+                "A responds with «{}» | B responds with «{}»",
+                pa.predicted_behavior.label_bare(cl),
+                pb.predicted_behavior.label_bare(cl)
+            )
+        });
+
         match (&pa.trigger, &pb.trigger) {
             (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
                 syn.push(if lang == Lang::Fr {
@@ -743,33 +758,37 @@ fn compare_analysis(
 
     // --- Trigger-pair clash strategies ---
     if let (Some(pa), Some(pb)) = (
-        a.behavioral_patterns.iter().max_by_key(|p| p.intensity),
-        b.behavioral_patterns.iter().max_by_key(|p| p.intensity),
+        a.behavioral_patterns.first(),
+        b.behavioral_patterns.first(),
     ) {
         let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
-        let intensity_bonus = if pa.intensity.max(pb.intensity) >= 8 {
-            " ⚠️"
-        } else {
-            ""
-        };
+        let cl = core_lang(lang);
+        let a_resp = pa.predicted_behavior.label_bare(cl);
+        let b_resp = pb.predicted_behavior.label_bare(cl);
+        let resp_info = format!(" (A: {a_resp} | B: {b_resp})");
         if t_syn < -0.1 {
             str.push(if lang == Lang::Fr {
                 format!(
-                    "Risque de déclenchement mutuel{} — leurs réactions au stress s'amplifient",
-                    intensity_bonus
+                    "Risque de déclenchement mutuel — leurs réactions au stress s'amplifient{}",
+                    resp_info
                 )
             } else {
                 format!(
-                    "Risk of mutual triggering{} — their stress responses amplify each other",
-                    intensity_bonus
+                    "Risk of mutual triggering — their stress responses amplify each other{}",
+                    resp_info
                 )
             });
         } else if t_syn > 0.1 {
             str.push(if lang == Lang::Fr {
-                "Complémentarité comportementale — leurs réactions s'équilibrent naturellement"
-                    .into()
+                format!(
+                    "Complémentarité comportementale — leurs réactions s'équilibrent{}",
+                    resp_info
+                )
             } else {
-                "Natural behavioral complementarity — their responses balance each other".into()
+                format!(
+                    "Natural behavioral complementarity — their responses balance each other{}",
+                    resp_info
+                )
             });
         }
     }

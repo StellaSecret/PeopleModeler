@@ -759,7 +759,7 @@ mod tests {
             behavioral_patterns: vec![BehavioralPattern {
                 trigger: peoplemodeler_core::models::BehaviorTrigger::Change,
                 predicted_behavior: BehaviorResponse::EmbracesChange,
-                intensity: 6,
+                notes: String::new(),
             }],
             styles: vec![],
             ocean: OceanScores {
@@ -945,7 +945,7 @@ mod tests {
             behavioral_patterns: vec![BehavioralPattern {
                 trigger: BehaviorTrigger::Change,
                 predicted_behavior: BehaviorResponse::EmbracesChange,
-                intensity: 6,
+                notes: String::new(),
             }],
             styles: vec![],
             ocean: OceanScores {
