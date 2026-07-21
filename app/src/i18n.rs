@@ -453,7 +453,6 @@ fn en(key: &'static str) -> &'static str {
         "common_save" => "Save",
         "common_cancel" => "Cancel",
         "common_delete" => "Delete",
-        "common_confirm" => "Confirm",
         "common_add" => "Add",
         "common_edit" => "Edit",
         "common_back" => "← Back",
@@ -496,16 +495,11 @@ fn en(key: &'static str) -> &'static str {
 
         // Relationships
         "rel_title" => "Relationships",
-        "rel_add" => "＋ Add Relationship",
-        "rel_from" => "From",
-        "rel_to" => "To",
-        "rel_type" => "Type",
         "rel_notes" => "Notes",
         "rel_none" => "No relationships yet.",
         "rel_open_add" => "＋ Add",
         "rel_close_add" => "− Cancel",
         "rel_search_placeholder" => "Search person…",
-        "rel_type_placeholder" => "e.g. works_with, manages, friends, family",
         "rel_confirm_delete" => "Delete this relationship?",
         "rel_person_rel" => "Relationships",
 
@@ -514,12 +508,6 @@ fn en(key: &'static str) -> &'static str {
         "tl_empty" => "No interaction entries yet.",
 
         // Style helpers
-        "style_cat_communication" => "💬 Communication",
-        "style_cat_conflict" => "🤝 Conflict Resolution",
-        "style_cat_decision" => "🧠 Decision-Making",
-        "style_cat_leadership" => "👥 Leadership",
-        "style_cat_time" => "⏰ Time Orientation",
-        "style_cat_moral" => "📜 Moral Framework",
         "style_no_styles" => "No personal styles recorded.",
         "style_panel_title" => "Personal Styles",
 
@@ -951,7 +939,6 @@ fn fr(key: &'static str) -> &'static str {
         "common_save" => "Enregistrer",
         "common_cancel" => "Annuler",
         "common_delete" => "Supprimer",
-        "common_confirm" => "Confirmer",
         "common_add" => "Ajouter",
         "common_edit" => "Modifier",
         "common_back" => "← Retour",
@@ -994,16 +981,11 @@ fn fr(key: &'static str) -> &'static str {
 
         // Relationships
         "rel_title" => "Relations",
-        "rel_add" => "＋ Ajouter une relation",
-        "rel_from" => "De",
-        "rel_to" => "Vers",
-        "rel_type" => "Type",
         "rel_notes" => "Notes",
         "rel_none" => "Aucune relation.",
         "rel_open_add" => "＋ Ajouter",
         "rel_close_add" => "− Annuler",
         "rel_search_placeholder" => "Rechercher une personne…",
-        "rel_type_placeholder" => "ex: travaille_avec, dirige, amis, famille",
         "rel_confirm_delete" => "Supprimer cette relation ?",
         "rel_person_rel" => "Relations",
 
@@ -1012,12 +994,6 @@ fn fr(key: &'static str) -> &'static str {
         "tl_empty" => "Aucune entrée d'interaction.",
 
         // Style helpers
-        "style_cat_communication" => "💬 Communication",
-        "style_cat_conflict" => "🤝 Résolution conflit",
-        "style_cat_decision" => "🧠 Prise de décision",
-        "style_cat_leadership" => "👥 Leadership",
-        "style_cat_time" => "⏰ Orientation temporelle",
-        "style_cat_moral" => "📜 Cadre moral",
         "style_no_styles" => "Aucun style personnel enregistré.",
         "style_panel_title" => "Styles personnels",
 

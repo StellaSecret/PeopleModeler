@@ -1,8 +1,15 @@
 use crate::auth;
 use crate::db;
 use crate::drive;
-use crate::i18n::Lang;
+use crate::i18n::{tr, Lang};
 use dioxus::prelude::*;
+
+fn tr_error(err: String, lang: Lang) -> String {
+    match err.as_str() {
+        "sync_wrong_passphrase" => tr("sync_wrong_passphrase", lang).to_string(),
+        _ => err,
+    }
+}
 
 const ENV_CLIENT_ID: Option<&str> = option_env!("GOOGLE_CLIENT_ID");
 const HAS_CLIENT: bool = match ENV_CLIENT_ID {
@@ -373,7 +380,7 @@ pub fn SyncPage() -> Element {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_backup(&t, pp_ref).await {
                                     Ok(id) => s.set(format!("{} (file id: {id})", crate::i18n::tr("sync_backed_up", ll))),
-                                    Err(e) => s.set(format!("❌ {e}")),
+                                    Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
                                 }
                             });
                         }, "{backup_btn}" }
@@ -389,7 +396,7 @@ pub fn SyncPage() -> Element {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_restore(&t, pp_ref).await {
                                     Ok(n) => s.set(format!("{} {} persons, {} relationships from Drive", crate::i18n::tr("sync_restored", ll), n.persons, n.relationships)),
-                                    Err(e) => s.set(format!("❌ {e}")),
+                                    Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
                                 }
                             });
                         }, "{restore_btn}" }

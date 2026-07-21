@@ -354,7 +354,7 @@ pub fn PersonDetail(id: String) -> Element {
                                     format!("{} {} {}/10", ri.label_b, dim.emoji(), score)
                                 };
                                 rsx! {
-                                    div { class: "bias-item",
+                                    div { key: "{dim:?}", class: "bias-item",
                                         div { class: "item-info",
                                             div { class: "item-name", "{label}" }
                                             div { class: "item-bar-row",
