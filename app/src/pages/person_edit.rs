@@ -804,8 +804,19 @@ fn parse_response(s: &str) -> Option<BehaviorResponse> {
 }
 
 fn parse_style_type(s: &str) -> StyleType {
-    // Use serde for reliable parsing
     serde_json::from_str(&format!("\"{}\"", s)).unwrap_or(StyleType::DirectCommunicator)
+}
+
+fn parse_style_category(s: &str) -> peoplemodeler_core::models::StyleCategory {
+    match s {
+        "Communication" => peoplemodeler_core::models::StyleCategory::Communication,
+        "ConflictResolution" => peoplemodeler_core::models::StyleCategory::ConflictResolution,
+        "DecisionMaking" => peoplemodeler_core::models::StyleCategory::DecisionMaking,
+        "Leadership" => peoplemodeler_core::models::StyleCategory::Leadership,
+        "TimeOrientation" => peoplemodeler_core::models::StyleCategory::TimeOrientation,
+        "MoralFramework" => peoplemodeler_core::models::StyleCategory::MoralFramework,
+        _ => peoplemodeler_core::models::StyleCategory::Communication,
+    }
 }
 
 #[component]
@@ -813,7 +824,10 @@ fn StyleEditPanel(
     styles: Signal<Vec<PersonalStyle>>,
     lang: peoplemodeler_core::i18n::Lang,
 ) -> Element {
+    use peoplemodeler_core::models::StyleCategory;
+
     let app_lang = use_context::<Signal<Lang>>();
+    let mut sel_category = use_signal(|| StyleCategory::Communication);
     let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
@@ -830,13 +844,31 @@ fn StyleEditPanel(
         CoreLang::En
     };
 
+    use_effect(move || {
+        let cat = sel_category();
+        let opts = StyleType::options_for(cat);
+        if !opts.contains(&sel_type()) {
+            sel_type.set(opts[0]);
+        }
+    });
+
     rsx! {
         fieldset { class: "section",
             legend { "{panel_title}" }
             div { class: "add-row",
-                select { value: "{sel_type}",
+                select {
+                    value: "{sel_category():?}",
+                    onchange: move |e| {
+                        let cat = parse_style_category(&e.value());
+                        sel_category.set(cat);
+                    },
+                    for cat in StyleCategory::ALL {
+                        option { value: "{cat:?}", "{cat.i18n_label(cl)}" }
+                    }
+                }
+                select { value: "{sel_type()}",
                     onchange: move |e| { sel_type.set(parse_style_type(&e.value())); },
-                    for t in StyleType::ALL {
+                    for t in StyleType::options_for(sel_category()) {
                         option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
                     }
                 }
@@ -862,23 +894,34 @@ fn StyleEditPanel(
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
             div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
-            for (i, s) in styles().iter().enumerate() {
-                div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { style_move(styles, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { style_move(styles, i, false); }, "▼" }
-                    button { class: "btn btn-small", aria_label: "Edit style", onclick: {
-                        let s = s.clone();
-                        move |_| {
-                            sel_type.set(s.r#type);
-                            sel_intensity.set(s.intensity);
-                            sel_notes.set(s.notes.clone());
-                            edit_idx.set(Some(i));
+            for cat in StyleCategory::ALL {
+                { let all_styles = styles();
+                let items: Vec<_> = all_styles.iter().enumerate().filter(|(_, s)| s.r#type.category() == cat).collect();
+                if !items.is_empty() {
+                    rsx! {
+                        div { class: "style-group-header", "{cat.i18n_label(cl)}" }
+                        for (i, s) in items {
+                            div { class: "list-item",
+                                button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { style_move(styles, i, true); }, "▲" }
+                                button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { style_move(styles, i, false); }, "▼" }
+                                button { class: "btn btn-small", aria_label: "Edit style", onclick: {
+                                    let s = s.clone();
+                                    move |_| {
+                                        sel_category.set(s.r#type.category());
+                                        sel_type.set(s.r#type);
+                                        sel_intensity.set(s.intensity);
+                                        sel_notes.set(s.notes.clone());
+                                        edit_idx.set(Some(i));
+                                    }
+                                }, "✏" }
+                                strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
+                                span { " {s.intensity}/10" }
+                                span { " {s.notes}" }
+                                button { class: "btn btn-small", aria_label: "Delete style", onclick: move |_| { styles.write().remove(i); }, "✕" }
+                            }
                         }
-                    }, "✏" }
-                    strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
-                    span { " {s.intensity}/10" }
-                    span { " {s.notes}" }
-                    button { class: "btn btn-small", aria_label: "Delete style", onclick: move |_| { styles.write().remove(i); }, "✕" }
+                    }
+                } else { rsx!{} }
                 }
             }
         }

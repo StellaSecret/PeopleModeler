@@ -1,4 +1,4 @@
-use crate::models::{BehaviorResponse, BiasType, MotivationType, RepDim, StyleType};
+use crate::models::{BehaviorResponse, BiasType, MotivationType, RepDim, StyleCategory, StyleType};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -289,6 +289,25 @@ impl RepDim {
 pub struct StyleI18n {
     pub label: &'static str,
     pub desc: &'static str,
+}
+
+impl StyleCategory {
+    pub fn i18n_label(&self, lang: Lang) -> &'static str {
+        match (self, lang) {
+            (Self::Communication, Lang::En) => "💬 Communication",
+            (Self::Communication, Lang::Fr) => "💬 Communication",
+            (Self::ConflictResolution, Lang::En) => "🤝 Conflict Resolution",
+            (Self::ConflictResolution, Lang::Fr) => "🤝 Résolution de conflit",
+            (Self::DecisionMaking, Lang::En) => "🧠 Decision-Making",
+            (Self::DecisionMaking, Lang::Fr) => "🧠 Prise de décision",
+            (Self::Leadership, Lang::En) => "👥 Leadership",
+            (Self::Leadership, Lang::Fr) => "👥 Leadership",
+            (Self::TimeOrientation, Lang::En) => "⏰ Time Orientation",
+            (Self::TimeOrientation, Lang::Fr) => "⏰ Orientation temporelle",
+            (Self::MoralFramework, Lang::En) => "📜 Moral Framework",
+            (Self::MoralFramework, Lang::Fr) => "📜 Cadre moral",
+        }
+    }
 }
 
 impl StyleType {

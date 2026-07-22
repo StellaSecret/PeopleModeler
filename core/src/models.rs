@@ -1037,6 +1037,49 @@ impl StyleType {
         }
     }
 
+    pub fn options_for(cat: StyleCategory) -> &'static [Self] {
+        match cat {
+            StyleCategory::Communication => &[
+                Self::DirectCommunicator,
+                Self::DiplomaticCommunicator,
+                Self::ReservedCommunicator,
+                Self::ExpressiveCommunicator,
+            ],
+            StyleCategory::ConflictResolution => &[
+                Self::Competing,
+                Self::Collaborating,
+                Self::Compromising,
+                Self::Avoiding,
+                Self::Accommodating,
+            ],
+            StyleCategory::DecisionMaking => &[
+                Self::Analytical,
+                Self::Intuitive,
+                Self::Participatory,
+                Self::Autocratic,
+                Self::ConsensusDriven,
+            ],
+            StyleCategory::Leadership => &[
+                Self::Visionary,
+                Self::Servant,
+                Self::Transactional,
+                Self::Transformational,
+                Self::Bureaucratic,
+            ],
+            StyleCategory::TimeOrientation => &[
+                Self::PastOriented,
+                Self::PresentOriented,
+                Self::FutureOriented,
+            ],
+            StyleCategory::MoralFramework => &[
+                Self::RuleBased,
+                Self::OutcomeBased,
+                Self::VirtueBased,
+                Self::Relativist,
+            ],
+        }
+    }
+
     pub fn emoji(&self) -> &'static str {
         match self.category() {
             StyleCategory::Communication => "💬",
