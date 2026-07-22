@@ -19,4 +19,4 @@ version = "1.37.0"
 
 [android]
 min_sdk = 24
-target_sdk = 35
+target_sdk = 36
