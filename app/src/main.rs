@@ -81,6 +81,7 @@ fn main() {
                     let _ = head.append_child(&style);
                 }
             }
+            doc.set_title("People Modeler");
         }
         db::init();
         dioxus::launch(App);

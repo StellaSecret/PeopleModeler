@@ -59,6 +59,7 @@ test.describe('SPA Navigation', () => {
 
   test('404 edges return app shell', async ({ page }) => {
     await page.goto('/PeopleModeler/nonexistent');
+    await page.waitForFunction(() => document.title.length > 0, { timeout: 10000 });
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
   });
