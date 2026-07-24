@@ -306,6 +306,8 @@ impl StyleCategory {
             (Self::TimeOrientation, Lang::Fr) => "⏰ Orientation temporelle",
             (Self::MoralFramework, Lang::En) => "📜 Moral Framework",
             (Self::MoralFramework, Lang::Fr) => "📜 Cadre moral",
+            (Self::InterpersonalConduct, Lang::En) => "🫂 Interpersonal Conduct",
+            (Self::InterpersonalConduct, Lang::Fr) => "🫂 Conduite interpersonnelle",
         }
     }
 }
@@ -340,6 +342,17 @@ impl StyleType {
                 Self::OutcomeBased => "Basé sur les résultats",
                 Self::VirtueBased => "Basé sur les vertus",
                 Self::Relativist => "Relativiste",
+                // Interpersonal conduct
+                Self::Opportunistic => "Opportuniste",
+                Self::Intrusive => "Intrusif",
+                Self::Manipulative => "Manipulateur",
+                Self::PassiveAggressive => "Agressif passif",
+                Self::Controlling => "Contrôlant",
+                Self::Detached => "Détaché",
+                Self::Respectful => "Respectueux",
+                Self::Empathetic => "Empathique",
+                Self::Supportive => "Supportif",
+                Self::Nurturing => "Bienveillant",
             },
             Lang::En => match self {
                 Self::DirectCommunicator => "Direct",
@@ -368,6 +381,17 @@ impl StyleType {
                 Self::OutcomeBased => "Outcome-Based",
                 Self::VirtueBased => "Virtue-Based",
                 Self::Relativist => "Relativist",
+                // Interpersonal conduct
+                Self::Opportunistic => "Opportunistic",
+                Self::Intrusive => "Intrusive",
+                Self::Manipulative => "Manipulative",
+                Self::PassiveAggressive => "Passive-Aggressive",
+                Self::Controlling => "Controlling",
+                Self::Detached => "Detached",
+                Self::Respectful => "Respectful",
+                Self::Empathetic => "Empathetic",
+                Self::Supportive => "Supportive",
+                Self::Nurturing => "Nurturing",
             },
         }
     }
@@ -401,6 +425,17 @@ impl StyleType {
                 Self::OutcomeBased => "Juge la moralité par les conséquences",
                 Self::VirtueBased => "Cultive des qualités de caractère",
                 Self::Relativist => "Adapte sa morale au contexte",
+                // Interpersonal conduct
+                Self::Opportunistic => "Exploite les situations et les gens pour son profit",
+                Self::Intrusive => "Franchit les limites, s'impose aux autres",
+                Self::Manipulative => "Orchestre les autres par la tromperie",
+                Self::PassiveAggressive => "Résistance indirecte, sabotage subtil",
+                Self::Controlling => "Domine et micro-gère les autres",
+                Self::Detached => "Maintient une distance émotionnelle, objectif",
+                Self::Respectful => "Respecte les limites et l'autonomie",
+                Self::Empathetic => "Comprend et valide les émotions des autres",
+                Self::Supportive => "Aide et encourage activement les autres",
+                Self::Nurturing => "Investit dans la croissance des autres",
             },
             Lang::En => match self {
                 Self::DirectCommunicator => "Speaks frankly, gets straight to the point",
@@ -429,6 +464,17 @@ impl StyleType {
                 Self::OutcomeBased => "Judges morality by consequences",
                 Self::VirtueBased => "Cultivates character qualities",
                 Self::Relativist => "Adapts morality to context",
+                // Interpersonal conduct
+                Self::Opportunistic => "Exploits situations and people for personal gain",
+                Self::Intrusive => "Oversteps boundaries, imposes on others",
+                Self::Manipulative => "Orchestrates others through deception",
+                Self::PassiveAggressive => "Indirect resistance, subtle sabotage",
+                Self::Controlling => "Dominates and micromanages others",
+                Self::Detached => "Maintains emotional distance, objective",
+                Self::Respectful => "Honors boundaries and autonomy",
+                Self::Empathetic => "Understands and validates others' feelings",
+                Self::Supportive => "Actively helps and encourages others",
+                Self::Nurturing => "Invests in others' growth and wellbeing",
             },
         }
     }

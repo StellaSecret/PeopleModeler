@@ -431,12 +431,12 @@ mod tests {
 
     #[test]
     fn test_style_type_all_count() {
-        assert_eq!(StyleType::ALL.len(), 26);
+        assert_eq!(StyleType::ALL.len(), 36);
     }
 
     #[test]
     fn test_style_category_all_count() {
-        assert_eq!(StyleCategory::ALL.len(), 6);
+        assert_eq!(StyleCategory::ALL.len(), 7);
     }
 
     #[test]
@@ -471,6 +471,16 @@ mod tests {
                 | StyleType::OutcomeBased
                 | StyleType::VirtueBased
                 | StyleType::Relativist => assert_eq!(cat, MoralFramework),
+                StyleType::Opportunistic
+                | StyleType::Intrusive
+                | StyleType::Manipulative
+                | StyleType::PassiveAggressive
+                | StyleType::Controlling
+                | StyleType::Detached
+                | StyleType::Respectful
+                | StyleType::Empathetic
+                | StyleType::Supportive
+                | StyleType::Nurturing => assert_eq!(cat, InterpersonalConduct),
             }
         }
     }
@@ -511,7 +521,7 @@ mod tests {
                 seen.push(cat);
             }
         }
-        assert_eq!(seen.len(), 6);
+        assert_eq!(seen.len(), 7);
         for cat in &StyleCategory::ALL {
             assert!(seen.contains(cat), "category {:?} not covered", cat);
         }

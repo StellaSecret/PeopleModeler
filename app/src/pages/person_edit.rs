@@ -815,6 +815,8 @@ fn parse_style_category(s: &str) -> peoplemodeler_core::models::StyleCategory {
         "Leadership" => peoplemodeler_core::models::StyleCategory::Leadership,
         "TimeOrientation" => peoplemodeler_core::models::StyleCategory::TimeOrientation,
         "MoralFramework" => peoplemodeler_core::models::StyleCategory::MoralFramework,
+        "InterpersonalConduct" => peoplemodeler_core::models::StyleCategory::InterpersonalConduct,
+        "TrustStyle" => peoplemodeler_core::models::StyleCategory::TrustStyle,
         _ => peoplemodeler_core::models::StyleCategory::Communication,
     }
 }

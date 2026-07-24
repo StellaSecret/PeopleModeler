@@ -923,16 +923,18 @@ pub enum StyleCategory {
     Leadership,
     TimeOrientation,
     MoralFramework,
+    InterpersonalConduct,
 }
 
 impl StyleCategory {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Communication,
         Self::ConflictResolution,
         Self::DecisionMaking,
         Self::Leadership,
         Self::TimeOrientation,
         Self::MoralFramework,
+        Self::InterpersonalConduct,
     ];
 }
 
@@ -970,6 +972,17 @@ pub enum StyleType {
     OutcomeBased,
     VirtueBased,
     Relativist,
+    // Interpersonal conduct
+    Opportunistic,
+    Intrusive,
+    Manipulative,
+    PassiveAggressive,
+    Controlling,
+    Detached,
+    Respectful,
+    Empathetic,
+    Supportive,
+    Nurturing,
 }
 
 impl fmt::Display for StyleType {
@@ -979,7 +992,7 @@ impl fmt::Display for StyleType {
 }
 
 impl StyleType {
-    pub const ALL: [Self; 26] = [
+    pub const ALL: [Self; 36] = [
         Self::DirectCommunicator,
         Self::DiplomaticCommunicator,
         Self::ReservedCommunicator,
@@ -1006,6 +1019,16 @@ impl StyleType {
         Self::OutcomeBased,
         Self::VirtueBased,
         Self::Relativist,
+        Self::Opportunistic,
+        Self::Intrusive,
+        Self::Manipulative,
+        Self::PassiveAggressive,
+        Self::Controlling,
+        Self::Detached,
+        Self::Respectful,
+        Self::Empathetic,
+        Self::Supportive,
+        Self::Nurturing,
     ];
 
     pub fn category(&self) -> StyleCategory {
@@ -1034,6 +1057,16 @@ impl StyleType {
             Self::RuleBased | Self::OutcomeBased | Self::VirtueBased | Self::Relativist => {
                 MoralFramework
             }
+            Self::Opportunistic
+            | Self::Intrusive
+            | Self::Manipulative
+            | Self::PassiveAggressive
+            | Self::Controlling
+            | Self::Detached
+            | Self::Respectful
+            | Self::Empathetic
+            | Self::Supportive
+            | Self::Nurturing => InterpersonalConduct,
         }
     }
 
@@ -1077,6 +1110,18 @@ impl StyleType {
                 Self::VirtueBased,
                 Self::Relativist,
             ],
+            StyleCategory::InterpersonalConduct => &[
+                Self::Opportunistic,
+                Self::Intrusive,
+                Self::Manipulative,
+                Self::PassiveAggressive,
+                Self::Controlling,
+                Self::Detached,
+                Self::Respectful,
+                Self::Empathetic,
+                Self::Supportive,
+                Self::Nurturing,
+            ],
         }
     }
 
@@ -1088,6 +1133,7 @@ impl StyleType {
             StyleCategory::Leadership => "👥",
             StyleCategory::TimeOrientation => "⏰",
             StyleCategory::MoralFramework => "📜",
+            StyleCategory::InterpersonalConduct => "🫂",
         }
     }
 }
