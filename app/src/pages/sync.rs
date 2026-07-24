@@ -1,7 +1,7 @@
 use crate::auth;
 use crate::db;
 use crate::drive;
-use crate::i18n::{tr, Lang};
+use crate::i18n::{Lang, tr};
 use dioxus::prelude::*;
 
 fn tr_error(err: String, lang: Lang) -> String {

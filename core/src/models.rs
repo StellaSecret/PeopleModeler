@@ -894,6 +894,10 @@ pub struct Person {
     #[serde(default)]
     pub styles: Vec<PersonalStyle>,
     pub ocean: OceanScores,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub resilience: Option<u8>,
+    #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
+    pub risk_appetite: Option<u8>,
     #[serde(default)]
     pub log: Vec<InteractionEntry>,
     #[serde(default = "default_confidence", deserialize_with = "clamp_u8_1_10")]
@@ -924,10 +928,11 @@ pub enum StyleCategory {
     TimeOrientation,
     MoralFramework,
     InterpersonalConduct,
+    TrustStyle,
 }
 
 impl StyleCategory {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Communication,
         Self::ConflictResolution,
         Self::DecisionMaking,
@@ -935,6 +940,7 @@ impl StyleCategory {
         Self::TimeOrientation,
         Self::MoralFramework,
         Self::InterpersonalConduct,
+        Self::TrustStyle,
     ];
 }
 
@@ -983,6 +989,12 @@ pub enum StyleType {
     Empathetic,
     Supportive,
     Nurturing,
+    // Trust style
+    ExtendsTrustFreely,
+    EarnsTrustGradually,
+    VerifiesTrust,
+    Guarded,
+    RepairsTrustActively,
 }
 
 impl fmt::Display for StyleType {
@@ -992,7 +1004,7 @@ impl fmt::Display for StyleType {
 }
 
 impl StyleType {
-    pub const ALL: [Self; 36] = [
+    pub const ALL: [Self; 41] = [
         Self::DirectCommunicator,
         Self::DiplomaticCommunicator,
         Self::ReservedCommunicator,
@@ -1029,6 +1041,11 @@ impl StyleType {
         Self::Empathetic,
         Self::Supportive,
         Self::Nurturing,
+        Self::ExtendsTrustFreely,
+        Self::EarnsTrustGradually,
+        Self::VerifiesTrust,
+        Self::Guarded,
+        Self::RepairsTrustActively,
     ];
 
     pub fn category(&self) -> StyleCategory {
@@ -1067,6 +1084,11 @@ impl StyleType {
             | Self::Empathetic
             | Self::Supportive
             | Self::Nurturing => InterpersonalConduct,
+            Self::ExtendsTrustFreely
+            | Self::EarnsTrustGradually
+            | Self::VerifiesTrust
+            | Self::Guarded
+            | Self::RepairsTrustActively => TrustStyle,
         }
     }
 
@@ -1122,6 +1144,13 @@ impl StyleType {
                 Self::Supportive,
                 Self::Nurturing,
             ],
+            StyleCategory::TrustStyle => &[
+                Self::ExtendsTrustFreely,
+                Self::EarnsTrustGradually,
+                Self::VerifiesTrust,
+                Self::Guarded,
+                Self::RepairsTrustActively,
+            ],
         }
     }
 
@@ -1134,6 +1163,7 @@ impl StyleType {
             StyleCategory::TimeOrientation => "⏰",
             StyleCategory::MoralFramework => "📜",
             StyleCategory::InterpersonalConduct => "🫂",
+            StyleCategory::TrustStyle => "🔗",
         }
     }
 }

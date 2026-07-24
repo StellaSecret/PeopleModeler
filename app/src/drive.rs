@@ -332,6 +332,8 @@ mod tests {
                 behavioral_patterns: vec![],
                 styles: vec![],
                 ocean: OceanScores::default(),
+                resilience: None,
+                risk_appetite: None,
                 confidence: 5,
                 log: vec![],
                 created_at: now,

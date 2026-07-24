@@ -594,10 +594,7 @@ fn compare_analysis(
     }
 
     // --- Behavioral Patterns ---
-    if let (Some(pa), Some(pb)) = (
-        a.behavioral_patterns.first(),
-        b.behavioral_patterns.first(),
-    ) {
+    if let (Some(pa), Some(pb)) = (a.behavioral_patterns.first(), b.behavioral_patterns.first()) {
         let cl = core_lang(lang);
         syn.push(if lang == Lang::Fr {
             format!(
@@ -757,10 +754,7 @@ fn compare_analysis(
     }
 
     // --- Trigger-pair clash strategies ---
-    if let (Some(pa), Some(pb)) = (
-        a.behavioral_patterns.first(),
-        b.behavioral_patterns.first(),
-    ) {
+    if let (Some(pa), Some(pb)) = (a.behavioral_patterns.first(), b.behavioral_patterns.first()) {
         let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
         let cl = core_lang(lang);
         let a_resp = pa.predicted_behavior.label_bare(cl);

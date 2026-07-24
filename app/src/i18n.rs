@@ -122,6 +122,8 @@ fn en(key: &'static str) -> &'static str {
         "no_patterns" => "No behavioral patterns recorded.",
         "ocean_title" => "OCEAN Scores",
         "confidence_label" => "Confidence",
+        "resilience_label" => "Resilience",
+        "risk_appetite_label" => "Risk appetite",
         // Person edit form
         "form_new_title" => "New Person",
         "form_edit_title" => "Edit Person",
@@ -134,6 +136,8 @@ fn en(key: &'static str) -> &'static str {
         "form_tags" => "Tags (comma separated)",
         "form_notes" => "Notes",
         "form_confidence" => "Assessment confidence (1-10)",
+        "form_resilience" => "Resilience (1-10)",
+        "form_risk_appetite" => "Risk appetite (1-10)",
         "form_ocean_title" => "OCEAN Scores (1-10)",
         "form_save" => "💾 Save",
         "form_cancel" => "Cancel",
@@ -181,8 +185,12 @@ fn en(key: &'static str) -> &'static str {
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biases",
         "bias_undefined_warning" => "Undefined biases count as present. Set 0 to mark as absent.",
-        "rep_undefined_warning" => "Undefined traits penalize reputation. Extreme values (≤2 or ≥9) trigger adjustments.",
-        "mot_undefined_warning" => "Fewer than 3 motivations penalizes (−0.03 each). Missing Fairness/Helping also hurts.",
+        "rep_undefined_warning" => {
+            "Undefined traits penalize reputation. Extreme values (≤2 or ≥9) trigger adjustments."
+        }
+        "mot_undefined_warning" => {
+            "Fewer than 3 motivations penalizes (−0.03 each). Missing Fairness/Helping also hurts."
+        }
         "profile_completeness" => "Compl.",
         "edit_reputation" => "Reputation",
         "edit_patterns" => "Behavioral Patterns",
@@ -585,6 +593,8 @@ fn fr(key: &'static str) -> &'static str {
         "no_patterns" => "Aucun pattern comportemental enregistré.",
         "ocean_title" => "Scores OCEAN",
         "confidence_label" => "Confiance",
+        "resilience_label" => "Résilience",
+        "risk_appetite_label" => "Appétence risque",
         "form_new_title" => "Nouvelle personne",
         "form_edit_title" => "Modifier la personne",
         "template_title" => "Modèle rapide",
@@ -596,6 +606,8 @@ fn fr(key: &'static str) -> &'static str {
         "form_tags" => "Tags (séparés par des virgules)",
         "form_notes" => "Notes",
         "form_confidence" => "Confiance estimation (1-10)",
+        "form_resilience" => "Résilience (1-10)",
+        "form_risk_appetite" => "Appétence pour le risque (1-10)",
         "form_ocean_title" => "Scores OCEAN (1-10)",
         "form_save" => "💾 Enregistrer",
         "form_cancel" => "Annuler",
@@ -640,9 +652,15 @@ fn fr(key: &'static str) -> &'static str {
 
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biais",
-        "bias_undefined_warning" => "Les biais non définis comptent comme présents. Mettez 0 pour les marquer absents.",
-        "rep_undefined_warning" => "Les traits non définis pénalisent la réputation. Les valeurs extrêmes (≤2 ou ≥9) déclenchent des ajustements.",
-        "mot_undefined_warning" => "Moins de 3 motivations pénalise (−0.03 chaque). L'absence de Justice/Aide aussi.",
+        "bias_undefined_warning" => {
+            "Les biais non définis comptent comme présents. Mettez 0 pour les marquer absents."
+        }
+        "rep_undefined_warning" => {
+            "Les traits non définis pénalisent la réputation. Les valeurs extrêmes (≤2 ou ≥9) déclenchent des ajustements."
+        }
+        "mot_undefined_warning" => {
+            "Moins de 3 motivations pénalise (−0.03 chaque). L'absence de Justice/Aide aussi."
+        }
         "profile_completeness" => "Compl.",
         "edit_reputation" => "Réputation",
         "edit_patterns" => "Patterns comportementaux",

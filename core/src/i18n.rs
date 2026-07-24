@@ -308,6 +308,8 @@ impl StyleCategory {
             (Self::MoralFramework, Lang::Fr) => "📜 Cadre moral",
             (Self::InterpersonalConduct, Lang::En) => "🫂 Interpersonal Conduct",
             (Self::InterpersonalConduct, Lang::Fr) => "🫂 Conduite interpersonnelle",
+            (Self::TrustStyle, Lang::En) => "🔗 Trust Style",
+            (Self::TrustStyle, Lang::Fr) => "🔗 Style de confiance",
         }
     }
 }
@@ -353,6 +355,12 @@ impl StyleType {
                 Self::Empathetic => "Empathique",
                 Self::Supportive => "Supportif",
                 Self::Nurturing => "Bienveillant",
+                // Trust style
+                Self::ExtendsTrustFreely => "Fait confiance facilement",
+                Self::EarnsTrustGradually => "Gagne la confiance progressivement",
+                Self::VerifiesTrust => "Fait confiance mais vérifie",
+                Self::Guarded => "Méfiant",
+                Self::RepairsTrustActively => "Répare la confiance activement",
             },
             Lang::En => match self {
                 Self::DirectCommunicator => "Direct",
@@ -392,6 +400,12 @@ impl StyleType {
                 Self::Empathetic => "Empathetic",
                 Self::Supportive => "Supportive",
                 Self::Nurturing => "Nurturing",
+                // Trust style
+                Self::ExtendsTrustFreely => "Extends Trust Freely",
+                Self::EarnsTrustGradually => "Earns Trust Gradually",
+                Self::VerifiesTrust => "Verifies Trust",
+                Self::Guarded => "Guarded",
+                Self::RepairsTrustActively => "Repairs Trust Actively",
             },
         }
     }
@@ -436,6 +450,14 @@ impl StyleType {
                 Self::Empathetic => "Comprend et valide les émotions des autres",
                 Self::Supportive => "Aide et encourage activement les autres",
                 Self::Nurturing => "Investit dans la croissance des autres",
+                // Trust style
+                Self::ExtendsTrustFreely => {
+                    "Accorde sa confiance facilement, donne le bénéfice du doute"
+                }
+                Self::EarnsTrustGradually => "Construit la confiance par la fiabilité démontrée",
+                Self::VerifiesTrust => "Fait confiance mais vérifie par les actions",
+                Self::Guarded => "Prudent, a besoin de preuves avant de faire confiance",
+                Self::RepairsTrustActively => "Recrée activement la confiance après une brèche",
             },
             Lang::En => match self {
                 Self::DirectCommunicator => "Speaks frankly, gets straight to the point",
@@ -475,6 +497,12 @@ impl StyleType {
                 Self::Empathetic => "Understands and validates others' feelings",
                 Self::Supportive => "Actively helps and encourages others",
                 Self::Nurturing => "Invests in others' growth and wellbeing",
+                // Trust style
+                Self::ExtendsTrustFreely => "Gives trust easily, offers benefit of the doubt",
+                Self::EarnsTrustGradually => "Builds trust through demonstrated reliability",
+                Self::VerifiesTrust => "Trusts but verifies through actions",
+                Self::Guarded => "Cautious, needs proof before trusting",
+                Self::RepairsTrustActively => "Proactively rebuilds trust after a breach",
             },
         }
     }

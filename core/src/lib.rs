@@ -78,6 +78,8 @@ mod tests {
                 agreeableness: Some(4),
                 neuroticism: Some(5),
             },
+            resilience: Some(7),
+            risk_appetite: Some(8),
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -324,6 +326,8 @@ mod tests {
             ],
             styles: vec![],
             ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -417,6 +421,8 @@ mod tests {
             behavioral_patterns: vec![],
             styles: vec![],
             ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -431,12 +437,12 @@ mod tests {
 
     #[test]
     fn test_style_type_all_count() {
-        assert_eq!(StyleType::ALL.len(), 36);
+        assert_eq!(StyleType::ALL.len(), 41);
     }
 
     #[test]
     fn test_style_category_all_count() {
-        assert_eq!(StyleCategory::ALL.len(), 7);
+        assert_eq!(StyleCategory::ALL.len(), 8);
     }
 
     #[test]
@@ -481,6 +487,11 @@ mod tests {
                 | StyleType::Empathetic
                 | StyleType::Supportive
                 | StyleType::Nurturing => assert_eq!(cat, InterpersonalConduct),
+                StyleType::ExtendsTrustFreely
+                | StyleType::EarnsTrustGradually
+                | StyleType::VerifiesTrust
+                | StyleType::Guarded
+                | StyleType::RepairsTrustActively => assert_eq!(cat, TrustStyle),
             }
         }
     }
@@ -521,7 +532,7 @@ mod tests {
                 seen.push(cat);
             }
         }
-        assert_eq!(seen.len(), 7);
+        assert_eq!(seen.len(), 8);
         for cat in &StyleCategory::ALL {
             assert!(seen.contains(cat), "category {:?} not covered", cat);
         }
@@ -543,6 +554,8 @@ mod tests {
             behavioral_patterns: vec![],
             styles: vec![],
             ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
             confidence: 5,
             log: Vec::new(),
             created_at: 0,

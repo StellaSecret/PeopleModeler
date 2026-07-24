@@ -186,10 +186,10 @@ pub fn profile_completeness(person: &Person) -> f64 {
             acc
         })
         .len()
-        .min(6) as u32;
+        .min(8) as u32;
     let pat = person.behavioral_patterns.len().min(5) as u32;
     let num = ocean + mot + biases + rep + styles + pat;
-    let den = 43.0;
+    let den = 45.0;
     (num as f64 / den).clamp(0.0, 1.0)
 }
 
@@ -1068,6 +1068,8 @@ mod tests {
                 agreeableness,
                 neuroticism,
             },
+            resilience: None,
+            risk_appetite: None,
             confidence: 5,
             log: Vec::new(),
             created_at: 0,
@@ -2904,6 +2906,16 @@ mod tests {
                 intensity: 5,
                 notes: String::new(),
             },
+            PersonalStyle {
+                r#type: Empathetic,
+                intensity: 5,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: Guarded,
+                intensity: 5,
+                notes: String::new(),
+            },
         ];
         p.behavioral_patterns = vec![
             BehavioralPattern {
@@ -2940,7 +2952,7 @@ mod tests {
     fn test_profile_completeness_ocean_only() {
         let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let c = profile_completeness(&p);
-        let expected = 5.0 / 43.0;
+        let expected = 5.0 / 45.0;
         assert!((c - expected).abs() < 0.001, "ocean only: {c}");
     }
 
@@ -2980,7 +2992,7 @@ mod tests {
             },
         ];
         let c = profile_completeness(&p);
-        let expected = (13.0 + 3.0) / 43.0;
+        let expected = (13.0 + 3.0) / 45.0;
         assert!((c - expected).abs() < 0.001, "rep+mot: {c}");
     }
 
@@ -3000,7 +3012,7 @@ mod tests {
             },
         ];
         let c = profile_completeness(&p);
-        let expected = 2.0 / 43.0;
+        let expected = 2.0 / 45.0;
         assert!((c - expected).abs() < 0.001, "2 mot: {c}");
     }
 

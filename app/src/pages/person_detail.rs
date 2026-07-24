@@ -59,6 +59,8 @@ pub fn PersonDetail(id: String) -> Element {
             let no_rep = crate::i18n::tr("no_reputation", lang());
             let pat_title = crate::i18n::tr("patterns_title", lang());
             let conf_label = crate::i18n::tr("confidence_label", lang());
+            let res_label = crate::i18n::tr("resilience_label", lang());
+            let risk_label = crate::i18n::tr("risk_appetite_label", lang());
             let comp_label = crate::i18n::tr("profile_completeness", lang());
             let compare_btn = crate::i18n::tr("compare_btn", lang());
             let no_pat = crate::i18n::tr("no_patterns", lang());
@@ -232,6 +234,16 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                         div { class: "confidence-badge",
                             span { "{conf_label}: {person.confidence}/10" }
+                        }
+                        if let Some(r) = person.resilience {
+                            div { class: "confidence-badge",
+                                span { "{res_label}: {r}/10" }
+                            }
+                        }
+                        if let Some(r) = person.risk_appetite {
+                            div { class: "confidence-badge",
+                                span { "{risk_label}: {r}/10" }
+                            }
                         }
                         div { class: "completeness-badge",
                             span { "{comp_label} {profile_score.completeness}%" }

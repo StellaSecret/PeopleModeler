@@ -41,6 +41,8 @@ pub fn PersonNew() -> Element {
                 behavioral_patterns: Vec::new(),
                 styles: Vec::new(),
                 ocean: OceanScores::default(),
+                resilience: None,
+                risk_appetite: None,
                 confidence: 5,
                 log: Vec::new(),
                 created_at: chrono::Utc::now().timestamp_millis(),
@@ -110,6 +112,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         behavioral_patterns: Vec::new(),
         styles: Vec::new(),
         ocean: OceanScores::default(),
+        resilience: None,
+        risk_appetite: None,
         confidence: 5,
         log: Vec::new(),
         created_at: chrono::Utc::now().timestamp_millis(),
@@ -130,6 +134,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     });
     let mut ocean = use_signal(|| p.ocean.clone());
     let mut confidence = use_signal(|| p.confidence);
+    let mut resilience = use_signal(|| p.resilience.unwrap_or(5));
+    let mut risk_appetite = use_signal(|| p.risk_appetite.unwrap_or(5));
     let motivations = use_signal(|| p.motivations.clone());
     let biases = use_signal(|| p.biases.clone());
     let rep_scores = use_signal(|| p.rep_scores.clone());
@@ -161,6 +167,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             behavioral_patterns: patterns(),
             styles: styles(),
             ocean: ocean(),
+            resilience: Some(resilience()),
+            risk_appetite: Some(risk_appetite()),
             confidence: confidence(),
             log: p.log.clone(),
             created_at: chrono::Utc::now().timestamp_millis(),
@@ -188,6 +196,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_tags = crate::i18n::tr("form_tags", lang());
     let form_notes = crate::i18n::tr("form_notes", lang());
     let form_confidence = crate::i18n::tr("form_confidence", lang());
+    let form_resilience = crate::i18n::tr("form_resilience", lang());
+    let form_risk_appetite = crate::i18n::tr("form_risk_appetite", lang());
     let form_ocean_title = crate::i18n::tr("form_ocean_title", lang());
     let form_save = crate::i18n::tr("form_save", lang());
     let form_cancel = crate::i18n::tr("form_cancel", lang());
@@ -232,6 +242,22 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     span { "{confidence}/10" }
                     input { r#type: "range", min: "1", max: "10", value: "{confidence}",
                         oninput: move |e| confidence.set(e.value().parse().unwrap_or(5)),
+                    }
+                }
+
+                label { "{form_resilience}" }
+                div { class: "ocean-slider",
+                    span { "{resilience}/10" }
+                    input { r#type: "range", min: "1", max: "10", value: "{resilience}",
+                        oninput: move |e| resilience.set(e.value().parse().unwrap_or(5)),
+                    }
+                }
+
+                label { "{form_risk_appetite}" }
+                div { class: "ocean-slider",
+                    span { "{risk_appetite}/10" }
+                    input { r#type: "range", min: "1", max: "10", value: "{risk_appetite}",
+                        oninput: move |e| risk_appetite.set(e.value().parse().unwrap_or(5)),
                     }
                 }
 

@@ -104,7 +104,7 @@ Features have been migrated to the Dioxus Web/WASM app.
 ### Pages
 1. **List** — Search, cards with OCEAN/motivations/biases chips
 2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Predictions, Insights, Journal, Relationships, Personal Styles
-3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (6 categories, 26 variants)
+3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10)
 4. **Compare** — Synergy score with per-category breakdown
 5. **Predictions** — Feedback and accuracy
 6. **Insights** — Global analysis and statistics
@@ -151,9 +151,11 @@ Person
 ├── id, name, role, context, avatarEmoji
 ├── motivations[]        # type (enum 10), intensity (1-10), notes
 ├── biases[]             # type (enum 11), intensity (1-10), evidence
-├── behavioralPatterns[] # trigger (enum 9), predictedBehavior (enum 28), intensity
-├── styles[]             # type (enum 26), intensity (1-10), notes
+├── behavioralPatterns[] # trigger (enum 9), predictedBehavior (enum 55), notes
+├── styles[]             # type (enum 41), intensity (1-10), notes
 ├── ocean                # O, C, E, A, N (Option<u8>, 1-10)
+├── resilience           # Option<u8> 1-10, recovery capacity
+├── risk_appetite        # Option<u8> 1-10, comfort with uncertainty
 ├── rep_scores           # 13 dimensions Option<u8> (0-10), bipolar:
 │                        #   Hardworker↔Lazy, Authoritative↔Submissive
 │                        #   Honest↔Deceitful, Reliable↔Flaky
@@ -521,12 +523,12 @@ The profile is 100% complete when all following fields are filled:
 | Motivations | 3 | capped at 3 (beyond doesn't help) |
 | Biases | 11 | 11 bias types in the vector |
 | Reputation | 13 | 13 bipolar dimensions enabled |
-| Styles | 6 | 6 style categories (1 per category) |
+| Styles | 8 | 8 style categories (1 per category) |
 | Patterns | 5 | capped at 5 behavioral patterns |
-| **Total** | **43** | |
+| **Total** | **45** | |
 
 ```rust
-completion = filled / 43   → [0, 1]
+completion = filled / 45   → [0, 1]
 ```
 
 Displayed as a percentage in the detail page and the person list.
@@ -534,16 +536,18 @@ Displayed as a percentage in the detail page and the person list.
 #### 6. Personal Styles (11%)
 
 Personal styles measure the compatibility of preferred working
-modes across 6 categories:
+modes across 8 categories:
 
 | Category | Variants |
 |---|---|
-| 💬 Communication | Direct, Diplomatic, Analytical, Expressive, Reserved |
-| 🤝 Conflict Resolution | Collaborative, Competitive, Avoidant, Accommodating, Compromising |
-| 🧠 Decision Making | Rational, Intuitive, Consultative, Decisive |
-| 👥 Leadership | Autocratic, Democratic, Transformational, Transactional, Bureaucratic, LaissezFaire, Servant, Coach |
+| 💬 Communication | Direct, Diplomatic, Reserved, Expressive |
+| 🤝 Conflict Resolution | Competing, Collaborating, Compromising, Avoiding, Accommodating |
+| 🧠 Decision Making | Analytical, Intuitive, Participatory, Autocratic, ConsensusDriven |
+| 👥 Leadership | Visionary, Servant, Transactional, Transformational, Bureaucratic |
 | ⏰ Time Orientation | PastOriented, PresentOriented, FutureOriented |
 | 📜 Moral Framework | RuleBased, OutcomeBased, VirtueBased, Relativist |
+| 🫂 Interpersonal Conduct | Opportunistic, Intrusive, Manipulative, PassiveAggressive, Controlling, Detached, Respectful, Empathetic, Supportive, Nurturing |
+| 🔗 Trust Style | ExtendsTrustFreely, EarnsTrustGradually, VerifiesTrust, Guarded, RepairsTrustActively |
 
 For each category where both persons have a style set:
 
