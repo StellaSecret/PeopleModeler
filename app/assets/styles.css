@@ -492,12 +492,10 @@ fieldset.ocean-inputs legend{
   .nav-links{flex-wrap:wrap;gap:0.4rem}
   .nav-links a{font-size:0.75rem}
   .content{padding:0.75rem;padding-bottom:4rem}
-  .people-table .pt-col-sub{display:none}
-  .people-table td.pt-sub,.people-table th.pt-col-sub{display:none}
+  .table-wrap{overflow-x:auto}
 }
 @media(max-width:360px){
-  .people-table th:not(:first-child):not(:nth-child(2)),
-  .people-table td.pt-sub{display:none}
+  .table-wrap{overflow-x:auto}
 }
 
 @media(prefers-reduced-motion:reduce){

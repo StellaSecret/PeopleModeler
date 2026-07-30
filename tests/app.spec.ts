@@ -85,6 +85,23 @@ test.describe('People Modeler Dioxus App', () => {
     await expect(headers.nth(7)).toContainText('Compl.');
   });
 
+  test('ranking columns visible on mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await gotoNewPerson(page);
+    await page.locator('label:has-text("Name") + input').fill('Mobile Test');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await page.locator('.logo').click();
+    await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
+    const headers = page.locator('.people-table th');
+    await expect(headers).toHaveCount(8);
+    for (let i = 0; i < 8; i++) {
+      await expect(headers.nth(i)).toBeVisible();
+    }
+    const cells = page.locator('.people-table td.pt-sub');
+    await expect(cells).not.toHaveCount(0);
+  });
+
   test('people table search filters by name', async ({ page }) => {
     await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Alice');
