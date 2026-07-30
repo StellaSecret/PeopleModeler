@@ -4,18 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>People Modeler — Comprendre les systèmes humains</title>
+  <meta property="og:title" content="People Modeler — Comprendre les systèmes humains">
+  <meta property="og:description" content="Modélisez les personnes comme des systèmes : motivations, biais, comportements, prédictions. Éthique d'abord.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stellasecret.github.io/PeopleModeler/landing.html">
+  <meta name="description" content="People Modeler — Modélisez les personnes comme des systèmes. Motivations, biais cognitifs, OCEAN, prédictions comportementales. Application web et Android.">
   <link rel="stylesheet" href="css/main.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="js/i18n.js"></script>
+  <script src="js/i18n.js" defer></script>
   <script>
     // If Google OAuth redirects here with a token hash, save it and go to SPA
     (function(){
       var h = location.hash;
       if (h && h.indexOf('access_token') !== -1) {
         try { localStorage.setItem('pm_drive_token', h.split('access_token=')[1].split('&')[0]); } catch(e) {}
-        location.href = 'spa.html' + h;
+        location.href = './' + h;
       }
     })();
   </script>
@@ -31,6 +36,9 @@
     <a href="landing.html#how" data-i18n="nav_how">Comment</a>
     <a href="person.html" data-i18n="nav_demo">Démo</a>
     <a href="compare.html" data-i18n="nav_compare">Comparer</a>
+    <a href="https://play.google.com/store/apps/details?id=com.stellasecret.peoplemodeler" class="play-badge-sm" target="_blank" rel="noopener">
+      <img src="badges/fr_badge_web_generic.png" alt="Google Play" data-badge-lang>
+    </a>
     <a class="btn-nav" href="./" data-i18n="nav_open_app">Ouvrir l'app</a>
   </div>
   <button type="button" class="lang-toggle" onclick="toggleLang()">🌐</button>
@@ -167,6 +175,9 @@
   <p data-i18n="cta_sub">Application web. Données 100% locales. Gratuit.</p>
   <div class="cta-buttons">
     <a href="./" class="btn-primary large" data-i18n="cta_app_btn">🚀 Lancer l'application</a>
+    <a href="https://play.google.com/store/apps/details?id=com.stellasecret.peoplemodeler" class="play-badge" target="_blank" rel="noopener">
+      <img src="badges/fr_badge_web_generic.png" alt="Disponible sur Google Play" data-badge-lang>
+    </a>
     <a href="person.html" class="btn-ghost large" data-i18n="cta_demo_btn">👁️ Voir la démo</a>
   </div>
 </section>
@@ -176,6 +187,8 @@
   <div class="footer-links">
     <a href="person.html" data-i18n="nav_demo">Démo fiche</a>
     <a href="compare.html" data-i18n="nav_compare">Comparaison</a>
+    <a href="https://play.google.com/store/apps/details?id=com.stellasecret.peoplemodeler" data-i18n="footer_android" target="_blank" rel="noopener">Google Play</a>
+    <a href="https://github.com/StellaSecret/PeopleModeler" data-i18n="footer_github" target="_blank" rel="noopener">GitHub</a>
   </div>
   <p class="footer-copy" data-i18n="footer_copy">Open Source · MIT License · À utiliser éthiquement</p>
 </footer>

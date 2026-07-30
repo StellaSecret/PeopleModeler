@@ -423,7 +423,30 @@ body {
 }
 .cta-section h2 { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
 .cta-section p { color: var(--text-muted); margin-bottom: 2.5rem; }
-.cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; align-items: center; }
+
+.play-badge { display: inline-block; line-height: 0; }
+.play-badge img {
+  height: 64px;
+  width: auto;
+  border-radius: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.play-badge:hover img {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.play-badge-sm { display: inline-block; line-height: 0; }
+.play-badge-sm img {
+  height: 36px;
+  width: auto;
+  border-radius: 4px;
+  display: block;
+}
+.play-badge-sm:hover img {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
 
 /* ── FOOTER ── */
 .footer {

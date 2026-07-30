@@ -40,7 +40,7 @@ const FR = {
   f4_title: 'Insights & comparaisons',
   f4_desc: 'Comparez deux profils, identifiez les synergies et les points de friction. Parfait pour les équipes et les négociations.',
   f5_title: '100% local',
-  f5_desc: 'Vos données restent sur votre appareil. Aucun serveur, aucune synchronisation cloud. Votre modèle mental est privé.',
+  f5_desc: 'Vos données restent sur votre appareil. Synchronisation optionnelle via Google Drive. Votre modèle mental est privé.',
   f6_title: 'Éthique by design',
   f6_desc: 'Rappels intégrés. Conçu pour améliorer vos relations, pas pour manipuler. Le pouvoir implique la responsabilité.',
 
@@ -71,8 +71,11 @@ const FR = {
   cta_sub: 'Application web. Données 100% locales. Gratuit.',
   cta_app_btn: '🚀 Lancer l\'application',
   cta_demo_btn: '👁️ Voir la démo',
+  cta_android_btn: '📱 Disponible sur Google Play',
 
   footer_copy: 'Open Source · MIT License · À utiliser éthiquement',
+  footer_android: 'Google Play',
+  footer_github: 'GitHub',
 
   // App page
   sidebar_title: 'Profils',
@@ -448,7 +451,7 @@ const EN = {
   f4_title: 'Insights & Comparisons',
   f4_desc: 'Compare two profiles, identify synergies and friction points. Perfect for teams and negotiations.',
   f5_title: '100% Local',
-  f5_desc: 'Your data stays on your device. No server, no cloud sync. Your mental model stays private.',
+  f5_desc: 'Your data stays on your device. Optional Google Drive sync. Your mental model stays private.',
   f6_title: 'Ethics by Design',
   f6_desc: 'Built-in reminders. Designed to improve your relationships, not to manipulate. Power comes with responsibility.',
 
@@ -479,8 +482,11 @@ const EN = {
   cta_sub: 'Web app. 100% local data. Free.',
   cta_app_btn: '🚀 Launch the App',
   cta_demo_btn: '👁️ View Demo',
+  cta_android_btn: '📱 Get it on Google Play',
 
   footer_copy: 'Open Source · MIT License · Use ethically',
+  footer_android: 'Google Play',
+  footer_github: 'GitHub',
 
   sidebar_title: 'Profiles',
   sidebar_new: 'New profile',
@@ -922,6 +928,12 @@ function translatePage() {
         el.textContent = key;
       }
     }
+  });
+  // Switch Google Play badge image + alt by language
+  document.querySelectorAll('[data-badge-lang]').forEach(el => {
+    const lang = L.lang === 'fr' ? 'fr' : 'en';
+    el.src = 'badges/' + lang + '_badge_web_generic.png';
+    el.alt = L.cta_android_btn || 'Google Play';
   });
 }
 
