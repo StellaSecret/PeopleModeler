@@ -2,6 +2,7 @@ package dev.dioxus.main
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.stellasecret.peoplemodeler.FileShareHelper
@@ -14,6 +15,7 @@ class MainActivity : WryActivity() {
     private lateinit var importLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         signInLauncher =
             registerForActivityResult(
                 ActivityResultContracts.StartActivityForResult(),
