@@ -12,20 +12,17 @@ const SVG_S: f64 = 800.0;
 const CX: f64 = SVG_S / 2.0;
 const CY: f64 = SVG_S / 2.0;
 
-const TYPE_COLORS: [&str; 8] = [
-    "var(--cyan)",
-    "var(--orange)",
-    "var(--green)",
-    "var(--pink)",
-    "var(--purple)",
-    "var(--gold)",
-    "var(--teal)",
-    "var(--blue)",
-];
-
 fn type_color(rt: &RelationType) -> &'static str {
-    let idx = RelationType::ALL.iter().position(|t| t == rt).unwrap_or(0);
-    TYPE_COLORS[idx % TYPE_COLORS.len()]
+    match rt {
+        RelationType::WorksWith => "var(--cyan)",
+        RelationType::Manages => "var(--orange)",
+        RelationType::ReportsTo => "var(--green)",
+        RelationType::Friends => "var(--pink)",
+        RelationType::Family => "var(--purple)",
+        RelationType::Partner => "var(--gold)",
+        RelationType::Mentors => "#C0392B",
+        RelationType::Collaborates => "var(--blue)",
+    }
 }
 
 fn type_idx(rt: &RelationType) -> usize {
@@ -83,16 +80,11 @@ pub fn Relationships() -> Element {
                         {
                         let chip_active = active_types().contains(&rt);
                         let chip_color = type_color(&rt);
-                        let chip_style = if chip_active {
-                            format!("border-color: {}; background: {};", chip_color, chip_color)
-                        } else {
-                            format!("border-color: {};", chip_color)
-                        };
                         rsx! {
                             button {
                                 key: "chip-{rt:?}",
                                 class: if chip_active { "type-chip On" } else { "type-chip" },
-                                style: "{chip_style}",
+                                style: "--chip-clr: {chip_color}",
                                 onclick: {
                                     let rt2 = rt;
                                     move |_| {

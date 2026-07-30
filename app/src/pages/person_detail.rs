@@ -697,16 +697,18 @@ fn group_relationships(rels: Vec<Relationship>, person_id: &str) -> RelGroup {
     groups
 }
 
-const TYPE_COLORS: [&str; 8] = [
-    "var(--cyan)",
-    "var(--orange)",
-    "var(--green)",
-    "var(--pink)",
-    "var(--purple)",
-    "var(--gold)",
-    "var(--teal)",
-    "var(--blue)",
-];
+fn rel_type_color(rt: &RelationType) -> &'static str {
+    match rt {
+        RelationType::WorksWith => "var(--cyan)",
+        RelationType::Manages => "var(--orange)",
+        RelationType::ReportsTo => "var(--green)",
+        RelationType::Friends => "var(--pink)",
+        RelationType::Family => "var(--purple)",
+        RelationType::Partner => "var(--gold)",
+        RelationType::Mentors => "#C0392B",
+        RelationType::Collaborates => "var(--blue)",
+    }
+}
 
 fn match_type(s: &str) -> RelationType {
     match s {
@@ -940,9 +942,9 @@ fn RelationshipSection(
                 p { "{rel_none}" }
             } else {
                 div { class: "rel-cards",
-                    for (t_idx, (rel_type, people)) in type_groups.iter().enumerate() {
+                    for (rel_type, people) in type_groups.iter() {
                         {
-                        let color = TYPE_COLORS[t_idx % TYPE_COLORS.len()];
+                        let color = rel_type_color(rel_type);
                         rsx! {
                             div {
                                 key: "{rel_type}",
