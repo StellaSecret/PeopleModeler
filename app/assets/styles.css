@@ -409,6 +409,16 @@ fieldset.ocean-inputs legend{
 .passphrase-input-group{display:flex;gap:0.4rem;width:100%}
 .passphrase-input-group input{flex:1}
 .hint{color:var(--text-muted);font-style:italic;margin-top:1rem;font-size:0.82rem}
+.sync-drive-link{
+  margin-top:1rem;padding-top:0.85rem;
+  border-top:1px dashed var(--border);
+  font-size:0.82rem
+}
+.sync-drive-link a{
+  color:var(--cyan);text-decoration:none;
+  display:inline-flex;align-items:center;gap:0.4rem
+}
+.sync-drive-link a:hover{text-decoration:underline}
 .sync-status{
   margin-top:0.75rem;padding:0.65rem 1rem;
   background:var(--surface);border-radius:var(--radius);

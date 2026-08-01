@@ -456,6 +456,7 @@ fn en(key: &'static str) -> &'static str {
         "sync_token_saved" => "✅ Token saved",
         "sync_save_token_btn" => "Save Token",
         "sync_no_data_warn" => "No people data to back up. Add people first!",
+        "sync_view_backup" => "🔎 View backups in your browser (appDataFolder Browser)",
 
         // Common
         "common_save" => "Save",
@@ -953,6 +954,7 @@ fn fr(key: &'static str) -> &'static str {
         "sync_token_saved" => "✅ Jeton enregistré",
         "sync_save_token_btn" => "Enregistrer",
         "sync_no_data_warn" => "Aucune personne à sauvegarder. Ajoutez des personnes d'abord !",
+        "sync_view_backup" => "🔎 Voir les sauvegardes dans le navigateur (appDataFolder Browser)",
 
         "common_save" => "Enregistrer",
         "common_cancel" => "Annuler",

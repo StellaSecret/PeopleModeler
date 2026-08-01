@@ -3,9 +3,6 @@ name = "peoplemodeler-app"
 version = "1.37.0"
 edition = "2024"
 
-[profile.release]
-debug = true
-
 [dependencies]
 dioxus = { version = "0.7", features = ["web", "router", "asset"] }
 peoplemodeler-core = { path = "../core" }

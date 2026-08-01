@@ -310,6 +310,7 @@ pub fn SyncPage() -> Element {
     let backup_btn = crate::i18n::tr("sync_backup_btn", lang());
     let restore_btn = crate::i18n::tr("sync_restore_btn", lang());
     let no_data_warn = crate::i18n::tr("sync_no_data_warn", lang());
+    let view_backup = crate::i18n::tr("sync_view_backup", lang());
 
     rsx! {
         div { class: "page",
@@ -403,6 +404,15 @@ pub fn SyncPage() -> Element {
                     }
                 } else {
                     p { "{not_configured}" }
+                }
+
+                div { class: "sync-drive-link",
+                    a {
+                        href: "https://stellasecret.github.io/gdrive-appdata-browser/",
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        "{view_backup}"
+                    }
                 }
             }
 

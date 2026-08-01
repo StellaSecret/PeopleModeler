@@ -5,6 +5,7 @@ members = ["core", "app"]
 [profile.release]
 lto = true
 codegen-units = 1
-strip = true
+strip = "symbols"
 panic = "abort"
 opt-level = "z"
+debug = true
