@@ -408,7 +408,6 @@ fieldset.ocean-inputs legend{
 .passphrase-row label{width:100%;font-size:0.82rem;color:var(--text-muted)}
 .passphrase-input-group{display:flex;gap:0.4rem;width:100%}
 .passphrase-input-group input{flex:1}
-.hint{color:var(--text-muted);font-style:italic;margin-top:1rem;font-size:0.82rem}
 .sync-drive-link{
   margin-top:1rem;padding-top:0.85rem;
   border-top:1px dashed var(--border);
