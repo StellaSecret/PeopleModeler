@@ -307,6 +307,147 @@ Rep_adjusted = clamp(base_rep_quality(person) + rep_adjustment(&person.rep_score
 
 > Contextual dimensions have no universally positive/negative pole: extremes are penalized, center (4-6) is rewarded.
 
+**Consistency Malus** — applied on top of `Rep_adjusted` in `compute_person_profile`:
+
+Each consistency flag carries a severity weight by evidence strength, and the
+malus is the **weighted sum of all fired flags, capped at 0.50**:
+
+```
+Rep_final = max(Rep_adjusted − consistency_malus(flags), 0)
+consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
+```
+
+| Tier | Weight | Flags |
+|---|---|---|
+| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist` |
+| Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
+| Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
+
+With Rep weighted at 26%, a single rhetoric gap costs roughly **−7.8 points**,
+a single evidence-based flag **−10.4 points**, and the cap is about **−13 points**.
+
+**Contradicted-claim discount** — beyond the Rep malus, a fired flag also
+**removes the credit the contradicted claim was banking** in the other buckets:
+
+| Bucket | Rule |
+|---|---|
+| Motivation | a flag that disproves a motivation (rhetoric/self-image/pattern/bias-motivation gaps) strips that motivation → its synergy + virtue credit is dropped from the score |
+| OCEAN | warmth-claim flags void A and calm-claim flags void N → those dims are neutralized to 0.5 (only A and N feed the OCEAN sub-score) |
+| Patterns | any `flag_pattern_*` caps the patterns bucket at 0.5 |
+| Style | any `flag_style_*` caps the style bucket at 0.5 |
+| Rep / Bias | unchanged (Rep already carries the malus; bias already self-corrects) |
+
+A manipulator claiming all-good traits — high Fairness/Helping/Achievement/Learning,
+warm (A≥8) and calm (N≤3), good styles, no biases — while recorded behavior
+contradicts each claim loses its motivation credit entirely (motivations all
+invalidated → bucket → 0.27), its OCEAN credit (voided → 0.5), and its pattern
+credit (capped → 0.5), in addition to the 0.50 Rep malus. Measured effect in
+tests: **~53 → 26** on a twin with the same claims but honest evidence, where
+a genuine person with 1–2 honest flags keeps most credit.
+
+**Consistency Flags** — rule-based warnings surfaced as ⚠ chips on the
+**edit**, **person detail**, and **compare** pages:
+
+| Flag | Condition |
+|---|---|
+| `flag_high_e_low_a` | OCEAN E ≥ 8 and A ≤ 3 |
+| `flag_high_n_low_c` | OCEAN N ≥ 8 and C ≤ 3 |
+| `flag_high_o_low_c` | OCEAN O ≥ 8 and C ≤ 3 |
+| `flag_calm_neurotic` | Reputation Calm ≥ 8 but OCEAN N ≥ 8 |
+| `flag_honest_selfish` | Reputation Honest ≥ 8 but Generous ≤ 3 |
+| `flag_fairness_rhetoric` | Fairness motivation ≥ 6 but Reputation Fair-Favoritism ≤ 3 |
+| `flag_helping_selfish` | Helping motivation ≥ 6 but Reputation Generous ≤ 3 |
+| `flag_affiliation_cold` | Affiliation motivation ≥ 6 but Reputation Empathetic ≤ 3 |
+| `flag_ambition_lazy` | Power/Achievement/Recognition motivation ≥ 6 but Reputation Hardworking ≤ 3 |
+| `flag_security_gullible` | Security motivation ≥ 6 but Reputation Trusting ≥ 8 |
+| `flag_discipline_lazy` | OCEAN C ≥ 8 but Reputation Hardworking ≤ 3 |
+| `flag_warmth_blunt` | OCEAN A ≥ 8 but Reputation Diplomatic ≤ 3 |
+| `flag_open_rigid` | OCEAN O ≥ 8 but Reputation Adaptable ≤ 3 |
+| `flag_claims_calm_reactive` | OCEAN N ≤ 3 but Reputation Calm ≤ 3 |
+| `flag_honest_favoritist` | Reputation Honest ≥ 8 but Fair-Favoritism ≤ 3 |
+| `flag_affiliation_distrustful` | Affiliation motivation ≥ 6 but Reputation Trusting ≤ 3 |
+| `flag_warmth_cold` | OCEAN A ≥ 8 but Reputation Empathetic ≤ 3 |
+| `flag_discipline_flaky` | OCEAN C ≥ 8 but Reputation Reliable ≤ 3 |
+| `flag_pattern_calm_volatile` | Reputation Calm ≥ 8 but recorded patterns show volatility under Stress/Conflict/Threatened |
+| `flag_pattern_honest_exploiter` | Reputation Honest ≥ 8 but recorded patterns show exploitation or blame-shifting |
+| `flag_bias_confirmation_open` | Confirmation bias ≥ 7 but OCEAN O ≥ 8 |
+| `flag_bias_favoritism_fairness` | Favoritism/In-group bias ≥ 7 but Fairness motivation ≥ 6 |
+| `flag_security_risky` | Security motivation ≥ 6 but Risk appetite ≥ 8 |
+| `flag_resilient_reactive` | Resilience ≥ 8 but Reputation Calm-Reactive ≤ 3 |
+| `flag_autonomy_submissive` | Autonomy motivation ≥ 6 but Reputation Authoritative-Submissive ≤ 3 |
+| `flag_learning_rigid` | Learning motivation ≥ 6 but Reputation Adaptable-Rigid ≤ 3 |
+| `flag_creativity_closed` | Creativity motivation ≥ 6 but OCEAN O ≤ 3 |
+| `flag_creativity_rigid` | Creativity motivation ≥ 6 but Reputation Adaptable-Rigid ≤ 3 |
+| `flag_authority_dominant` | Authority bias ≥ 7 but Reputation Authoritative-Submissive ≥ 8 |
+| `flag_social_proof_open` | Social proof bias ≥ 7 but OCEAN O ≥ 8 |
+| `flag_sunk_cost_flexible` | Sunk-cost bias ≥ 7 but Reputation Adaptable-Rigid ≥ 8 |
+| `flag_pattern_diplomat_escalator` | Reputation Diplomatic ≥ 8 but recorded patterns escalate conflict |
+| `flag_pattern_fair_exploiter` | Reputation Fair ≥ 8 but recorded patterns exploit injustice |
+| `flag_pattern_humble_dismissive` | Reputation Humble ≥ 8 but recorded patterns put others down |
+| `flag_pattern_trusting_paranoid` | Reputation Trusting ≥ 8 but recorded patterns turn paranoid under threat |
+| `flag_pattern_reliable_shirker` | Reputation Reliable ≥ 8 but recorded patterns dodge accountability |
+| `flag_pattern_hardworker_complacent` | Reputation Hardworking ≥ 8 but recorded patterns rest on laurels |
+| `flag_risk_appetite_ambition` | Power/Achievement motivation ≥ 6 but Risk appetite ≤ 3 |
+| `flag_power_passive` | Power motivation ≥ 6 but Reputation Assertive-Passive ≤ 3 |
+| `flag_helping_cold` | Helping motivation ≥ 6 but Reputation Empathetic-Detached ≤ 3 |
+| `flag_pattern_passive_blowup` | Reputation Assertive-Passive ≤ 3 but recorded patterns blow up under pressure |
+| `flag_pattern_assertive_quiet` | Reputation Assertive-Passive ≥ 8 but recorded patterns go quiet when it counts |
+| `flag_loss_aversion_risky` | Loss-aversion bias ≥ 7 but Risk appetite ≥ 8 |
+| `flag_dunning_kruger_humble` | Dunning-Kruger bias ≥ 7 but Reputation Humble-Arrogant ≤ 3 |
+| `flag_recency_reliable` | Recency bias ≥ 7 but Reputation Reliable-Flaky ≥ 8 |
+| `flag_resilient_hides` | Resilience ≤ 3 but Reputation Calm-Reactive ≥ 8 |
+| `flag_pattern_generous_exploiter` | Reputation Generous ≥ 8 but recorded patterns exploit injustice/recognition/threat |
+| `flag_pattern_empath_dismissive` | Reputation Empathetic ≥ 8 but recorded patterns put others down |
+| `flag_pattern_flexible_resister` | Reputation Adaptable ≥ 8 but recorded patterns resist change or feedback |
+| `flag_anchoring_open` | Anchoring bias ≥ 7 but OCEAN O ≥ 8 |
+| `flag_learning_arrogant` | Learning motivation ≥ 6 but Reputation Humble-Arrogant ≤ 3 |
+| `flag_warmth_selfish` | OCEAN A ≥ 8 but Reputation Generous-Selfish ≤ 3 |
+| `flag_style_direct_diplomatic` | DirectCommunicator style ≥ 6 but Reputation Diplomatic ≥ 8 |
+| `flag_style_diplomatic_blunt` | DiplomaticCommunicator style ≥ 6 but Reputation Diplomatic ≤ 3 |
+| `flag_style_competing_passive` | Competing style ≥ 6 but Reputation Assertive-Passive ≤ 3 |
+| `flag_style_dominant_submissive` | Autocratic/Controlling style ≥ 6 but Reputation Authoritative-Submissive ≤ 3 |
+| `flag_style_manipulative_honest` | Opportunistic/Manipulative/Intrusive style ≥ 6 but Reputation Honest ≥ 8 |
+| `flag_style_empathetic_cold` | Empathetic/Respectful/Supportive/Nurturing style ≥ 6 but Reputation Empathetic-Detached ≤ 3 |
+| `flag_style_guarded_trusting` | Guarded/VerifiesTrust style ≥ 6 but Reputation Trusting ≥ 8 |
+| `flag_pattern_helping_exploiter` | Helping motivation ≥ 6 but recorded patterns exploit injustice/recognition/threat |
+| `flag_pattern_warmth_dismissive` | OCEAN A ≥ 8 but recorded patterns put others down |
+| `flag_pattern_discipline_shirker` | OCEAN C ≥ 8 but recorded patterns dodge accountability |
+| `flag_pattern_claimed_calm_volatile` | OCEAN N ≤ 3 but recorded patterns show volatility |
+| `flag_style_servant_authoritative` | Servant style ≥ 6 but Reputation Authoritative-Submissive ≥ 8 |
+| `flag_style_consensus_authoritative` | Participatory/ConsensusDriven style ≥ 6 but Reputation Authoritative-Submissive ≥ 8 |
+| `flag_style_trusts_freely_suspicious` | ExtendsTrustFreely style ≥ 6 but Reputation Trusting-Suspicious ≤ 3 |
+| `flag_style_repairs_trust_deceitful` | RepairsTrustActively style ≥ 6 but Reputation Honest-Deceitful ≤ 3 |
+| `flag_style_rulebased_favoritist` | RuleBased style ≥ 6 but Reputation Fair-Favoritism ≤ 3 |
+| `flag_pattern_fairness_exploiter` | Fairness motivation ≥ 6 but recorded patterns exploit injustice |
+| `flag_pattern_achievement_complacent` | Achievement motivation ≥ 6 but recorded patterns rest on laurels |
+| `flag_pattern_learning_resister` | Learning motivation ≥ 6 but recorded patterns resist change or feedback |
+| `flag_pattern_extravert_quiet` | OCEAN E ≥ 8 but recorded patterns go quiet when it counts |
+| `flag_style_virtuebased_deceitful` | VirtueBased style ≥ 6 but Reputation Honest-Deceitful ≤ 3 |
+| `flag_availability_calm` | Availability bias ≥ 7 but Reputation Calm-Reactive ≥ 8 |
+| `flag_pattern_open_resister` | OCEAN O ≥ 8 but recorded patterns resist change or feedback |
+| `flag_pattern_recognition_dismissive` | Recognition motivation ≥ 6 but recorded patterns put others down |
+
+Flags split into six families: **rhetoric gaps** (stated motivation contradicts
+perceived behavior — the *"do as I say, not as I do"* cluster: fairness, helping,
+affiliation, ambition, security, autonomy, learning, creativity), **self-image
+gaps** (OCEAN self-report contradicts reputation — discipline, warmth, openness,
+calm), **rep-internal
+conflicts** (two contradictory reputation signals — honesty paired with
+selfishness or favoritism), **scalar gaps** (self-rated sliders contradict stated
+motivations or reputation — risk appetite vs. security/ambition, resilience vs.
+reputation), **evidence-based gaps** (recorded behavioral
+patterns or cognitive biases contradicting reputation or self-image — calm
+volatility, honest exploitation, confirmation bias, favoritism bias), and
+**style gaps** (a declared `StyleType` work/conduct style contradicts reputation —
+directness vs. diplomatic reputation, competitive vs. passive, autocratic vs.
+submissive, etc.). Each
+rhetoric gap also inverts the matching insight strategy: the app stops appealing
+to the stated value and points at the real driver instead (e.g. under Success,
+Stress, Conflict, Change, Feedback, Injustice triggers).
+
+> Only **defined** values trigger flags: an unset trait is never treated as "low".
+> Use `is_some_and`-style checks (see `core/src/validation.rs`).
+
 #### 3. Motivation (19%)
 
 Pairs weighted by `intensity_A × intensity_B / 100`. Neutral pairs

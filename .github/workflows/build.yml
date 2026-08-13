@@ -33,6 +33,11 @@ jobs:
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
         with:
+          # Pinned to 3.88.0 (no v prefix: GHCR tag): v3.96.0 (latest) has a Lob
+          # detector regression that false-positives on 35-char test_* identifiers
+          # (core/src/synergy.rs). Bump to latest once the upstream fix
+          # (trufflehog PR #5188) is released.
+          version: 3.88.0
           path: ./
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
           head: ${{ github.sha }}

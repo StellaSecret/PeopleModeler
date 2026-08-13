@@ -100,6 +100,7 @@ pub fn PersonDetail(id: String) -> Element {
 
             let cl = core_lang(lang());
             let profile_score = compute_person_profile(person);
+            let person_flags = peoplemodeler_core::validation::all_person_flags(person);
             let self_score_label = crate::i18n::tr("person_self_score", lang());
             let bands = synergy_bands();
             let active_band = bands
@@ -273,6 +274,10 @@ pub fn PersonDetail(id: String) -> Element {
                             }
                         }
                     }
+
+                    {person_flags.iter().map(|k| {
+                        rsx! { div { class: "danger-warning", "⚠ {crate::i18n::tr(k, lang())}" } }
+                    })}
 
                     div { class: "tab-bar", role: "tablist",
                         button { role: "tab", aria_label: "{mot_title}", aria_selected: tab() == Tab::Motivations, class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }

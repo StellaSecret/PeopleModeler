@@ -712,17 +712,144 @@ fn compute_synergy_score_inner(
     }
 }
 
+/// Severity weight per consistency flag, by evidence strength:
+/// 0.20 self-report inconsistencies, 0.30 stated-vs-perceived,
+/// 0.40 evidence-based (recorded patterns or biases).
+pub fn flag_weight(key: &str) -> f64 {
+    match key {
+        "flag_high_e_low_a"
+        | "flag_high_n_low_c"
+        | "flag_high_o_low_c"
+        | "flag_honest_selfish"
+        | "flag_honest_favoritist" => 0.20,
+        "flag_pattern_calm_volatile"
+        | "flag_pattern_honest_exploiter"
+        | "flag_pattern_diplomat_escalator"
+        | "flag_pattern_fair_exploiter"
+        | "flag_pattern_humble_dismissive"
+        | "flag_pattern_trusting_paranoid"
+        | "flag_pattern_reliable_shirker"
+        | "flag_pattern_hardworker_complacent"
+        | "flag_pattern_passive_blowup"
+        | "flag_pattern_assertive_quiet"
+        | "flag_pattern_generous_exploiter"
+        | "flag_pattern_empath_dismissive"
+        | "flag_pattern_flexible_resister"
+        | "flag_pattern_helping_exploiter"
+        | "flag_pattern_warmth_dismissive"
+        | "flag_pattern_discipline_shirker"
+        | "flag_pattern_claimed_calm_volatile"
+        | "flag_pattern_fairness_exploiter"
+        | "flag_pattern_achievement_complacent"
+        | "flag_pattern_learning_resister"
+        | "flag_pattern_extravert_quiet"
+        | "flag_pattern_open_resister"
+        | "flag_pattern_recognition_dismissive"
+        | "flag_bias_confirmation_open"
+        | "flag_anchoring_open"
+        | "flag_bias_favoritism_fairness"
+        | "flag_authority_dominant"
+        | "flag_social_proof_open"
+        | "flag_sunk_cost_flexible"
+        | "flag_loss_aversion_risky"
+        | "flag_dunning_kruger_humble"
+        | "flag_recency_reliable"
+        | "flag_availability_calm" => 0.40,
+        _ => 0.30,
+    }
+}
+
+/// Reputation penalty from consistency flags: weighted sum of each flag's
+/// severity, capped at 0.50.
+pub fn consistency_malus(flags: &[&str]) -> f64 {
+    flags.iter().map(|k| flag_weight(k)).sum::<f64>().min(0.50)
+}
+
+/// Motivations whose claimed credit is invalidated by a firing consistency flag.
+/// A flag proves the self-reported drive is contradicted by stated perception or
+/// recorded behavior, so that motivation banks zero credit in the profile.
+fn invalidated_motivations(flags: &[&str]) -> Vec<MotivationType> {
+    use crate::models::MotivationType::*;
+    let mut out: Vec<MotivationType> = Vec::new();
+    for &k in flags {
+        let hits: &[MotivationType] = match k {
+            "flag_fairness_rhetoric"
+            | "flag_bias_favoritism_fairness"
+            | "flag_pattern_fairness_exploiter" => &[Fairness],
+            "flag_helping_selfish" | "flag_helping_cold" | "flag_pattern_helping_exploiter" => {
+                &[Helping]
+            }
+            "flag_affiliation_cold" | "flag_affiliation_distrustful" => &[Affiliation],
+            "flag_ambition_lazy" => &[Power, Achievement, Recognition],
+            "flag_risk_appetite_ambition" => &[Power, Achievement],
+            "flag_security_gullible" | "flag_security_risky" => &[Security],
+            "flag_autonomy_submissive" => &[Autonomy],
+            "flag_learning_rigid" | "flag_learning_arrogant" | "flag_pattern_learning_resister" => {
+                &[Learning]
+            }
+            "flag_creativity_closed" | "flag_creativity_rigid" => &[Creativity],
+            "flag_power_passive" => &[Power],
+            "flag_pattern_achievement_complacent" => &[Achievement],
+            "flag_pattern_recognition_dismissive" => &[Recognition],
+            _ => &[],
+        };
+        for &m in hits {
+            if !out.contains(&m) {
+                out.push(m);
+            }
+        }
+    }
+    out
+}
+
+/// OCEAN dimensions voided to neutral (0.5) by a consistency flag, removing
+/// self-report credit where the claim is contradicted by other evidence.
+fn voided_ocean_dims(flags: &[&str]) -> (bool, bool) {
+    let mut void_a = false;
+    let mut void_n = false;
+    for &k in flags {
+        match k {
+            "flag_warmth_cold"
+            | "flag_warmth_blunt"
+            | "flag_warmth_selfish"
+            | "flag_pattern_warmth_dismissive" => void_a = true,
+            "flag_claims_calm_reactive" | "flag_pattern_claimed_calm_volatile" => void_n = true,
+            _ => {}
+        }
+    }
+    (void_a, void_n)
+}
+
+/// True when a recorded pattern contradicts the declared profile.
+fn has_pattern_contradiction(flags: &[&str]) -> bool {
+    flags.iter().any(|k| k.starts_with("flag_pattern_"))
+}
+
+/// True when a declared style is contradicted by the recorded profile.
+fn has_style_contradiction(flags: &[&str]) -> bool {
+    flags.iter().any(|k| k.starts_with("flag_style_"))
+}
+
 pub fn compute_person_profile(person: &Person) -> PersonProfile {
-    let mot_active = !person.motivations.is_empty();
     let pat_active = !person.behavioral_patterns.is_empty();
 
+    let flags = crate::validation::all_person_flags(person);
+    let invalidated = invalidated_motivations(&flags);
+    let credited: Vec<Motivation> = person
+        .motivations
+        .iter()
+        .filter(|m| !invalidated.contains(&m.r#type))
+        .cloned()
+        .collect();
+    let mot_active = !credited.is_empty();
+
     let base_mot = if mot_active {
-        motivation_synergy_score(&person.motivations, &person.motivations)
+        motivation_synergy_score(&credited, &credited)
     } else {
         0.5
     };
-    let virtue = virtue_adjustment(&person.motivations);
-    let count_penalty = motivation_count_penalty(person.motivations.len());
+    let virtue = virtue_adjustment(&credited);
+    let count_penalty = motivation_count_penalty(credited.len());
     let motivation = (base_mot + virtue - count_penalty).clamp(0.0, 1.0);
 
     let raw_pat = if pat_active {
@@ -730,13 +857,25 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     } else {
         0.5
     };
-    let pat = (raw_pat + pattern_adjustment(&person.behavioral_patterns)).clamp(0.0, 1.0);
+    let mut pat = (raw_pat + pattern_adjustment(&person.behavioral_patterns)).clamp(0.0, 1.0);
+    if has_pattern_contradiction(&flags) {
+        pat = pat.min(0.5);
+    }
 
-    let a_s = person.ocean.agreeableness.map_or(0.5, |v| v as f64 / 10.0);
-    let n_s = person
-        .ocean
-        .neuroticism
-        .map_or(0.5, |v| (10.0 - v as f64) / 10.0);
+    let (void_a, void_n) = voided_ocean_dims(&flags);
+    let a_s = if void_a {
+        0.5
+    } else {
+        person.ocean.agreeableness.map_or(0.5, |v| v as f64 / 10.0)
+    };
+    let n_s = if void_n {
+        0.5
+    } else {
+        person
+            .ocean
+            .neuroticism
+            .map_or(0.5, |v| (10.0 - v as f64) / 10.0)
+    };
     let mut ocean_penalty = 0.0;
     if person.ocean.neuroticism.is_some_and(|n| n >= 7)
         && person.ocean.agreeableness.is_some_and(|a| a <= 4)
@@ -757,7 +896,8 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let raw_ocean = (a_s + n_s) / 2.0;
     let ocean = (raw_ocean - ocean_penalty).max(0.0);
 
-    let rep = (base_rep_quality(person) + rep_adjustment(&person.rep_scores)).clamp(0.0, 1.0);
+    let mut rep = (base_rep_quality(person) + rep_adjustment(&person.rep_scores)).clamp(0.0, 1.0);
+    rep = (rep - consistency_malus(&flags)).max(0.0);
 
     let bias_adj = bias_adjustment(&person.biases);
     let absent_count = BiasType::ALL.len() - person.biases.len();
@@ -768,11 +908,14 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let count_bonus = bias_count_bonus(present_bias_count);
     let bias = (base_bias + bias_adj + count_bonus).clamp(0.0, 1.0);
 
-    let raw_style = if !person.styles.is_empty() {
+    let mut raw_style = if !person.styles.is_empty() {
         style_synergy(&person.styles, &person.styles)
     } else {
         0.5
     };
+    if has_style_contradiction(&flags) {
+        raw_style = raw_style.min(0.5);
+    }
 
     const W_MOT: f64 = 0.19;
     const W_PAT: f64 = 0.14;
@@ -2708,6 +2851,399 @@ mod tests {
         ];
         let pf = compute_person_profile(&p);
         assert!(pf.bias < 0.7, "4 biases reduce bias score: {}", pf.bias);
+    }
+
+    #[test]
+    fn test_profile_consistency_malus() {
+        // Fairness rhetoric gap → reputation penalized by 0.30 (rhetoric tier)
+        let rep = RepScores {
+            fair_favoritism: Some(2),
+            hardworker_lazy: Some(8),
+            reliable_flaky: Some(8),
+            empathetic_detached: Some(8),
+            adaptable_rigid: Some(7),
+            calm_reactive: Some(5),
+            honest_deceitful: Some(5),
+            ..Default::default()
+        };
+        let mut flagged = make_person(Some(5), Some(5), Some(5), Some(7), Some(3));
+        flagged.motivations = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        flagged.rep_scores = rep.clone();
+        assert_eq!(
+            crate::validation::all_person_flags(&flagged),
+            vec!["flag_fairness_rhetoric"]
+        );
+
+        let mut clean = make_person(Some(5), Some(5), Some(5), Some(7), Some(3));
+        clean.rep_scores = rep;
+        assert!(crate::validation::all_person_flags(&clean).is_empty());
+
+        let clean_rep = compute_person_profile(&clean).reputation;
+        let flagged_rep = compute_person_profile(&flagged).reputation;
+        let expected = (clean_rep - 0.30).max(0.0);
+        assert!(
+            (flagged_rep - expected).abs() < 0.001,
+            "reputation malus: expected {expected}, got {flagged_rep}"
+        );
+    }
+
+    #[test]
+    fn test_consistency_malus() {
+        assert_eq!(consistency_malus(&[]), 0.0);
+        assert!((flag_weight("flag_high_e_low_a") - 0.20).abs() < 1e-9);
+        assert!((flag_weight("flag_fairness_rhetoric") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_calm_volatile") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_generous_exploiter") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_helping_exploiter") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_claimed_calm_volatile") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_extravert_quiet") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_open_resister") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_availability_calm") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_style_virtuebased_deceitful") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_anchoring_open") - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_style_competing_passive") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_learning_arrogant") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_warmth_selfish") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_unknown_future") - 0.30).abs() < 1e-9);
+        assert!((consistency_malus(&["flag_high_e_low_a"]) - 0.20).abs() < 1e-9);
+        assert!((consistency_malus(&["flag_fairness_rhetoric"]) - 0.30).abs() < 1e-9);
+        assert!((consistency_malus(&["flag_pattern_calm_volatile"]) - 0.40).abs() < 1e-9);
+        assert!(
+            (consistency_malus(&["flag_high_e_low_a", "flag_fairness_rhetoric"]) - 0.50).abs()
+                < 1e-9
+        );
+        assert!(
+            (consistency_malus(&[
+                "flag_pattern_calm_volatile",
+                "flag_pattern_fair_exploiter",
+                "flag_fairness_rhetoric"
+            ]) - 0.50)
+                .abs()
+                < 1e-9
+        );
+    }
+
+    #[test]
+    fn test_profile_consistency_malus_scales() {
+        // Identical rep basis; only ocean flags differ (ocean doesn't affect reputation).
+        // Twin A: 3 flags (high_e_low_a 0.20 + high_n_low_c 0.20 + honest_selfish 0.20
+        //   = 0.60 → capped 0.50)
+        // Twin B: 1 flag (honest_selfish 0.20) → exactly 0.30 lower.
+        let rep = RepScores {
+            honest_deceitful: Some(9),
+            generous_selfish: Some(2),
+            hardworker_lazy: Some(8),
+            reliable_flaky: Some(8),
+            empathetic_detached: Some(8),
+            fair_favoritism: Some(7),
+            adaptable_rigid: Some(7),
+            calm_reactive: Some(5),
+            ..Default::default()
+        };
+        let mut many = make_person(Some(3), Some(2), Some(9), Some(2), Some(9));
+        many.rep_scores = rep.clone();
+        assert_eq!(crate::validation::all_person_flags(&many).len(), 3);
+
+        let mut few = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        few.rep_scores = rep;
+        assert_eq!(crate::validation::all_person_flags(&few).len(), 1);
+
+        let many_rep = compute_person_profile(&many).reputation;
+        let few_rep = compute_person_profile(&few).reputation;
+        let expected = (few_rep - 0.30).max(0.0);
+        assert!(
+            (many_rep - expected).abs() < 0.001,
+            "weighted malus: expected {expected}, got {many_rep}"
+        );
+    }
+
+    #[test]
+    fn test_profile_no_consistency_malus_when_consistent() {
+        // High Fairness motivation AND fair reputation → no malus
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(7), Some(3));
+        p.motivations = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        p.rep_scores = RepScores {
+            fair_favoritism: Some(8),
+            ..Default::default()
+        };
+        let pf = compute_person_profile(&p);
+        assert!(
+            pf.reputation > 0.0 && pf.total >= 30,
+            "consistent profile should not be crushed: {}",
+            pf.total
+        );
+    }
+
+    #[test]
+    fn test_invalidated_motivations_helper() {
+        let v = invalidated_motivations(&[
+            "flag_pattern_helping_exploiter",
+            "flag_fairness_rhetoric",
+            "flag_bias_favoritism_fairness",
+        ]);
+        assert_eq!(v.len(), 2, "dedup: {v:?}");
+        assert!(v.contains(&MotivationType::Helping));
+        assert!(v.contains(&MotivationType::Fairness));
+        assert_eq!(invalidated_motivations(&["flag_ambition_lazy"]).len(), 3);
+        assert!(invalidated_motivations(&["flag_high_e_low_a"]).is_empty());
+    }
+
+    #[test]
+    fn test_voided_ocean_dims_helper() {
+        assert_eq!(voided_ocean_dims(&["flag_warmth_selfish"]), (true, false));
+        assert_eq!(
+            voided_ocean_dims(&["flag_pattern_claimed_calm_volatile"]),
+            (false, true)
+        );
+        assert_eq!(
+            voided_ocean_dims(&["flag_claims_calm_reactive", "flag_warmth_cold"]),
+            (true, true)
+        );
+        assert_eq!(
+            voided_ocean_dims(&["flag_fairness_rhetoric"]),
+            (false, false)
+        );
+    }
+
+    #[test]
+    fn test_contradiction_detectors() {
+        assert!(has_pattern_contradiction(&[
+            "flag_pattern_fairness_exploiter"
+        ]));
+        assert!(!has_pattern_contradiction(&["flag_fairness_rhetoric"]));
+        assert!(has_style_contradiction(&[
+            "flag_style_rulebased_favoritist"
+        ]));
+        assert!(!has_style_contradiction(&["flag_fairness_rhetoric"]));
+    }
+
+    #[test]
+    fn test_profile_motivation_discount() {
+        // Fairness + Helping claimed, but recorded patterns exploit injustice
+        // under both → both motivations invalidated, no credit banked.
+        let mut flagged = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        flagged.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Fairness,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Helping,
+                intensity: 8,
+                notes: String::new(),
+            },
+        ];
+        flagged.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Injustice,
+            predicted_behavior: BehaviorResponse::ExploitsOpportunistically,
+            notes: String::new(),
+        }];
+        let flags = crate::validation::all_person_flags(&flagged);
+        assert_eq!(flags.len(), 2);
+        let pf = compute_person_profile(&flagged);
+        // 0.5 + virtue over empty (Fairness −0.08, Helping −0.06)
+        // − count_penalty(0) = 0.5 − 0.14 − 0.09 = 0.27
+        assert!(
+            (pf.motivation - 0.27).abs() < 0.001,
+            "invalidated mot: {}",
+            pf.motivation
+        );
+
+        let mut clean = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        clean.motivations = flagged.motivations.clone();
+        assert!(crate::validation::all_person_flags(&clean).is_empty());
+        let cp = compute_person_profile(&clean);
+        assert!(
+            cp.motivation > pf.motivation,
+            "clean {} vs flagged {}",
+            cp.motivation,
+            pf.motivation
+        );
+    }
+
+    #[test]
+    fn test_profile_ocean_void() {
+        // A=9 warmth claim contradicted by Success→DismissesOthers → A voided.
+        let mut void_a = make_person(Some(5), Some(5), Some(5), Some(9), Some(8));
+        void_a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Success,
+            predicted_behavior: BehaviorResponse::DismissesOthers,
+            notes: String::new(),
+        }];
+        let flags = crate::validation::all_person_flags(&void_a);
+        assert_eq!(flags, vec!["flag_pattern_warmth_dismissive"]);
+        let pf = compute_person_profile(&void_a);
+        assert!((pf.ocean - 0.35).abs() < 0.001, "voided A: {}", pf.ocean);
+        let clean_a = make_person(Some(5), Some(5), Some(5), Some(9), Some(8));
+        let cp = compute_person_profile(&clean_a);
+        assert!((cp.ocean - 0.55).abs() < 0.001, "clean A: {}", cp.ocean);
+        assert!(pf.ocean < cp.ocean);
+
+        // N=2 calm claim contradicted by Stress→Escalates → N voided.
+        let mut void_n = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
+        void_n.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        let flags = crate::validation::all_person_flags(&void_n);
+        assert_eq!(flags, vec!["flag_pattern_claimed_calm_volatile"]);
+        let pf_n = compute_person_profile(&void_n);
+        assert!(
+            (pf_n.ocean - 0.70).abs() < 0.001,
+            "voided N: {}",
+            pf_n.ocean
+        );
+    }
+
+    #[test]
+    fn test_profile_pattern_style_cap() {
+        // Pattern contradiction (C=9 discipline + shirker pattern) caps the
+        // pattern bucket at 0.5, while a flag-free twin keeps full coherence.
+        let mut clean = make_person(Some(5), Some(9), Some(5), Some(5), Some(5));
+        clean.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        assert!(crate::validation::all_person_flags(&clean).is_empty());
+        let cp = compute_person_profile(&clean);
+        assert!(cp.patterns > 0.70, "clean patterns: {}", cp.patterns);
+
+        let mut flagged = make_person(Some(5), Some(9), Some(5), Some(5), Some(5));
+        flagged.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::RemainsCalm,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Uncertainty,
+                predicted_behavior: BehaviorResponse::DeflectsResponsibility,
+                notes: String::new(),
+            },
+        ];
+        let flags = crate::validation::all_person_flags(&flagged);
+        assert_eq!(flags, vec!["flag_pattern_discipline_shirker"]);
+        let fp = compute_person_profile(&flagged);
+        assert!(
+            fp.patterns <= 0.5 + 1e-9,
+            "capped patterns: {}",
+            fp.patterns
+        );
+
+        // Style contradiction (RuleBased + favoritist rep) caps the style bucket.
+        let mut s = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        s.styles = vec![PersonalStyle {
+            r#type: StyleType::RuleBased,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        s.rep_scores.fair_favoritism = Some(3);
+        let s_flags = crate::validation::all_person_flags(&s);
+        assert!(s_flags.contains(&"flag_style_rulebased_favoritist"));
+        let sp = compute_person_profile(&s);
+        assert!(
+            (sp.styles - 0.5).abs() < 0.001,
+            "capped styles: {}",
+            sp.styles
+        );
+    }
+
+    #[test]
+    fn test_profile_manipulator_vs_genuine() {
+        // All-good claims contradicted by recorded behavior across the board:
+        // motivation credit invalidated, OCEAN voided, patterns capped.
+        let mut manipulator = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
+        manipulator.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Fairness,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Helping,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 8,
+                notes: String::new(),
+            },
+        ];
+        manipulator.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Injustice,
+                predicted_behavior: BehaviorResponse::ExploitsOpportunistically,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Success,
+                predicted_behavior: BehaviorResponse::BecomesComplacent,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Success,
+                predicted_behavior: BehaviorResponse::DismissesOthers,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::Escalates,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Feedback,
+                predicted_behavior: BehaviorResponse::RejectsFeedback,
+                notes: String::new(),
+            },
+        ];
+        let flags = crate::validation::all_person_flags(&manipulator);
+        assert_eq!(flags.len(), 6, "flags: {flags:?}");
+        let mp = compute_person_profile(&manipulator);
+        assert!(
+            (mp.motivation - 0.27).abs() < 0.001,
+            "mot: {}",
+            mp.motivation
+        );
+        assert!((mp.ocean - 0.5).abs() < 0.001, "ocean: {}", mp.ocean);
+        assert!(mp.patterns <= 0.5 + 1e-9, "patterns: {}", mp.patterns);
+        assert!(
+            mp.total <= 60,
+            "manipulator should be pushed down, got {}",
+            mp.total
+        );
+
+        let mut genuine = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
+        genuine.motivations = manipulator.motivations.clone();
+        assert!(crate::validation::all_person_flags(&genuine).is_empty());
+        let gp = compute_person_profile(&genuine);
+        assert!(
+            gp.total >= 45,
+            "genuine should keep mid-band credit, got {}",
+            gp.total
+        );
+        assert!(
+            gp.total - mp.total >= 15,
+            "manipulator {} vs genuine {}: gap too small",
+            mp.total,
+            gp.total
+        );
     }
 
     #[test]

@@ -142,8 +142,167 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let patterns = use_signal(|| p.behavioral_patterns.clone());
     let styles = use_signal(|| p.styles.clone());
 
-    let ocean_rep_flags =
-        use_memo(move || peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores()));
+    let ocean_rep_flags = use_memo(move || {
+        let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
+        flags.extend(peoplemodeler_core::validation::rhetoric_gap_flags(
+            &ocean(),
+            &rep_scores(),
+            &motivations(),
+        ));
+        if peoplemodeler_core::validation::pattern_calm_volatile_gap(&patterns(), &rep_scores()) {
+            flags.push("flag_pattern_calm_volatile");
+        }
+        if peoplemodeler_core::validation::pattern_honest_exploiter_gap(&patterns(), &rep_scores())
+        {
+            flags.push("flag_pattern_honest_exploiter");
+        }
+        if peoplemodeler_core::validation::bias_confirmation_open_gap(&biases(), &ocean()) {
+            flags.push("flag_bias_confirmation_open");
+        }
+        if peoplemodeler_core::validation::bias_favoritism_fairness_gap(&biases(), &motivations()) {
+            flags.push("flag_bias_favoritism_fairness");
+        }
+        if peoplemodeler_core::validation::authority_dominant_gap(&biases(), &rep_scores()) {
+            flags.push("flag_authority_dominant");
+        }
+        if peoplemodeler_core::validation::social_proof_open_gap(&biases(), &ocean()) {
+            flags.push("flag_social_proof_open");
+        }
+        if peoplemodeler_core::validation::sunk_cost_flexible_gap(&biases(), &rep_scores()) {
+            flags.push("flag_sunk_cost_flexible");
+        }
+        if peoplemodeler_core::validation::loss_aversion_risky_gap(&biases(), Some(risk_appetite()))
+        {
+            flags.push("flag_loss_aversion_risky");
+        }
+        if peoplemodeler_core::validation::dunning_kruger_humble_gap(&biases(), &rep_scores()) {
+            flags.push("flag_dunning_kruger_humble");
+        }
+        if peoplemodeler_core::validation::recency_reliable_gap(&biases(), &rep_scores()) {
+            flags.push("flag_recency_reliable");
+        }
+        if peoplemodeler_core::validation::pattern_diplomat_escalator_gap(
+            &patterns(),
+            &rep_scores(),
+        ) {
+            flags.push("flag_pattern_diplomat_escalator");
+        }
+        if peoplemodeler_core::validation::pattern_fair_exploiter_gap(&patterns(), &rep_scores()) {
+            flags.push("flag_pattern_fair_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_humble_dismissive_gap(&patterns(), &rep_scores())
+        {
+            flags.push("flag_pattern_humble_dismissive");
+        }
+        if peoplemodeler_core::validation::pattern_trusting_paranoid_gap(&patterns(), &rep_scores())
+        {
+            flags.push("flag_pattern_trusting_paranoid");
+        }
+        if peoplemodeler_core::validation::pattern_reliable_shirker_gap(&patterns(), &rep_scores())
+        {
+            flags.push("flag_pattern_reliable_shirker");
+        }
+        if peoplemodeler_core::validation::pattern_hardworker_complacent_gap(
+            &patterns(),
+            &rep_scores(),
+        ) {
+            flags.push("flag_pattern_hardworker_complacent");
+        }
+        if peoplemodeler_core::validation::pattern_passive_blowup_gap(&patterns(), &rep_scores()) {
+            flags.push("flag_pattern_passive_blowup");
+        }
+        if peoplemodeler_core::validation::pattern_assertive_quiet_gap(&patterns(), &rep_scores()) {
+            flags.push("flag_pattern_assertive_quiet");
+        }
+        if peoplemodeler_core::validation::security_risky_gap(&motivations(), Some(risk_appetite()))
+        {
+            flags.push("flag_security_risky");
+        }
+        if peoplemodeler_core::validation::resilient_reactive_gap(Some(resilience()), &rep_scores())
+        {
+            flags.push("flag_resilient_reactive");
+        }
+        if peoplemodeler_core::validation::risk_appetite_ambition_gap(
+            &motivations(),
+            Some(risk_appetite()),
+        ) {
+            flags.push("flag_risk_appetite_ambition");
+        }
+        if peoplemodeler_core::validation::resilient_hides_gap(Some(resilience()), &rep_scores()) {
+            flags.push("flag_resilient_hides");
+        }
+        if peoplemodeler_core::validation::pattern_generous_exploiter_gap(
+            &patterns(),
+            &rep_scores(),
+        ) {
+            flags.push("flag_pattern_generous_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_empath_dismissive_gap(&patterns(), &rep_scores())
+        {
+            flags.push("flag_pattern_empath_dismissive");
+        }
+        if peoplemodeler_core::validation::pattern_flexible_resister_gap(&patterns(), &rep_scores())
+        {
+            flags.push("flag_pattern_flexible_resister");
+        }
+        if peoplemodeler_core::validation::anchoring_open_gap(&biases(), &ocean()) {
+            flags.push("flag_anchoring_open");
+        }
+        if peoplemodeler_core::validation::pattern_helping_exploiter_gap(
+            &patterns(),
+            &motivations(),
+        ) {
+            flags.push("flag_pattern_helping_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_warmth_dismissive_gap(&patterns(), &ocean()) {
+            flags.push("flag_pattern_warmth_dismissive");
+        }
+        if peoplemodeler_core::validation::pattern_discipline_shirker_gap(&patterns(), &ocean()) {
+            flags.push("flag_pattern_discipline_shirker");
+        }
+        if peoplemodeler_core::validation::pattern_claimed_calm_volatile_gap(&patterns(), &ocean())
+        {
+            flags.push("flag_pattern_claimed_calm_volatile");
+        }
+        if peoplemodeler_core::validation::pattern_fairness_exploiter_gap(
+            &patterns(),
+            &motivations(),
+        ) {
+            flags.push("flag_pattern_fairness_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_achievement_complacent_gap(
+            &patterns(),
+            &motivations(),
+        ) {
+            flags.push("flag_pattern_achievement_complacent");
+        }
+        if peoplemodeler_core::validation::pattern_learning_resister_gap(
+            &patterns(),
+            &motivations(),
+        ) {
+            flags.push("flag_pattern_learning_resister");
+        }
+        if peoplemodeler_core::validation::pattern_extravert_quiet_gap(&patterns(), &ocean()) {
+            flags.push("flag_pattern_extravert_quiet");
+        }
+        if peoplemodeler_core::validation::pattern_open_resister_gap(&patterns(), &ocean()) {
+            flags.push("flag_pattern_open_resister");
+        }
+        if peoplemodeler_core::validation::pattern_recognition_dismissive_gap(
+            &patterns(),
+            &motivations(),
+        ) {
+            flags.push("flag_pattern_recognition_dismissive");
+        }
+        if peoplemodeler_core::validation::availability_calm_gap(&biases(), &rep_scores()) {
+            flags.push("flag_availability_calm");
+        }
+        flags.extend(peoplemodeler_core::validation::style_gap_flags(
+            &styles(),
+            &rep_scores(),
+        ));
+        flags
+    });
 
     let pers_id = p.id.clone();
 

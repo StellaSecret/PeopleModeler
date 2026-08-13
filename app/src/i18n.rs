@@ -180,6 +180,163 @@ fn en(key: &'static str) -> &'static str {
         "flag_honest_selfish" => {
             "Principled honesty paired with low generosity — may indicate a rigid moral stance."
         }
+        "flag_fairness_rhetoric" => {
+            "Talks about fairness and justice but practices favoritism — do as I say, not as I do."
+        }
+        "flag_helping_selfish" => {
+            "Preaches helpfulness but is perceived as selfish — do as I say, not as I do."
+        }
+        "flag_affiliation_cold" => {
+            "Values closeness but is perceived as cold and detached — do as I say, not as I do."
+        }
+        "flag_ambition_lazy" => {
+            "Aspires to power, success, or recognition but is perceived as lazy — do as I say, not as I do."
+        }
+        "flag_security_gullible" => {
+            "Claims to value security yet is perceived as gullibly trusting — do as I say, not as I do."
+        }
+        "flag_discipline_lazy" => {
+            "Self-image of discipline contradicted by a lazy reputation — they don't know themselves."
+        }
+        "flag_warmth_blunt" => {
+            "Self-image of warmth contradicted by a blunt reputation — they don't know themselves."
+        }
+        "flag_open_rigid" => {
+            "Thinks they're open-minded but comes across as rigid — they don't know themselves."
+        }
+        "flag_claims_calm_reactive" => {
+            "Claims to be calm and stable but is perceived as reactive — they don't know themselves."
+        }
+        "flag_honest_favoritist" => {
+            "Principled honesty paired with perceived favoritism — may enforce fairness only for some."
+        }
+        "flag_affiliation_distrustful" => {
+            "Values closeness but is perceived as suspicious — do as I say, not as I do."
+        }
+        "flag_warmth_cold" => {
+            "Thinks they're warm-hearted but comes across cold — they don't know themselves."
+        }
+        "flag_discipline_flaky" => {
+            "Sees themselves as disciplined but comes across as flaky — they don't know themselves."
+        }
+        "flag_pattern_calm_volatile" => {
+            "Perceived as calm under pressure, but recorded patterns show volatility — the calm may be an act."
+        }
+        "flag_pattern_honest_exploiter" => {
+            "Perceived as honest, but recorded patterns show exploitation or blame-shifting — do as I say, not as I do."
+        }
+        "flag_bias_confirmation_open" => {
+            "Claims open-mindedness yet shows confirmation bias — they don't know themselves."
+        }
+        "flag_bias_favoritism_fairness" => {
+            "Preaches fairness yet shows favoritism or in-group bias — do as I say, not as I do."
+        }
+        "flag_security_risky" => {
+            "Preaches caution and security yet self-reports a taste for risk — do as I say, not as I do."
+        }
+        "flag_resilient_reactive" => {
+            "Claims high resilience but is perceived as reactive — they don't know themselves."
+        }
+        "flag_autonomy_submissive" => {
+            "Preaches independence yet is perceived as submissive — do as I say, not as I do."
+        }
+        "flag_learning_rigid" => {
+            "Preaches growth and learning yet is perceived as rigid — do as I say, not as I do."
+        }
+        "flag_creativity_closed" => {
+            "Preaches creativity yet self-reports little openness to novelty."
+        }
+        "flag_creativity_rigid" => {
+            "Preaches creativity yet is perceived as rigid — do as I say, not as I do."
+        }
+        "flag_authority_dominant" => "Perceived as a leader yet blindly defers to authority.",
+        "flag_social_proof_open" => {
+            "Claims independent thinking yet follows the herd — do as I say, not as I do."
+        }
+        "flag_sunk_cost_flexible" => "Perceived as flexible yet clings to sunk costs.",
+        "flag_pattern_diplomat_escalator" => "Perceived as diplomatic yet escalates conflict.",
+        "flag_pattern_fair_exploiter" => {
+            "Perceived as fair yet exploits injustice for personal gain."
+        }
+        "flag_pattern_humble_dismissive" => "Perceived as humble yet puts others down.",
+        "flag_pattern_trusting_paranoid" => {
+            "Perceived as trusting yet turns paranoid under threat."
+        }
+        "flag_pattern_reliable_shirker" => "Perceived as reliable yet dodges accountability.",
+        "flag_pattern_hardworker_complacent" => {
+            "Perceived as hardworking yet rests on past laurels."
+        }
+        "flag_risk_appetite_ambition" => "Aspires to power or achievement yet avoids all risk.",
+        "flag_power_passive" => "Aspires to power yet is perceived as a pushover.",
+        "flag_helping_cold" => "Preaches helpfulness yet reads as emotionally cold.",
+        "flag_pattern_passive_blowup" => "Perceived as passive yet blows up under pressure.",
+        "flag_pattern_assertive_quiet" => "Perceived as assertive yet goes quiet when it counts.",
+        "flag_loss_aversion_risky" => "Claims a taste for risk yet is loss-averse.",
+        "flag_dunning_kruger_humble" => "Overestimates their competence yet is seen as humble.",
+        "flag_recency_reliable" => "Perceived as steady yet swings with the latest news.",
+        "flag_resilient_hides" => "Admits fragility yet appears unflappable — they hide it.",
+        "flag_pattern_generous_exploiter" => "Perceived as generous yet exploits others.",
+        "flag_pattern_empath_dismissive" => "Perceived as empathetic yet puts others down.",
+        "flag_pattern_flexible_resister" => {
+            "Perceived as flexible yet resists change and feedback."
+        }
+        "flag_anchoring_open" => "Claims open-mindedness yet clings to first impressions.",
+        "flag_learning_arrogant" => "Preaches growth yet is too arrogant to take advice.",
+        "flag_warmth_selfish" => "Claims warmth yet is perceived as selfish.",
+        "flag_style_direct_diplomatic" => "Claims to be direct yet comes across as diplomatic.",
+        "flag_style_diplomatic_blunt" => "Claims a diplomatic style yet comes across as blunt.",
+        "flag_style_competing_passive" => "Claims a competitive style yet comes across as passive.",
+        "flag_style_dominant_submissive" => {
+            "Claims an autocratic style yet comes across as submissive."
+        }
+        "flag_style_manipulative_honest" => "Claims to play dirty yet comes across as honest.",
+        "flag_style_empathetic_cold" => "Claims empathy yet comes across as cold.",
+        "flag_style_guarded_trusting" => "Claims to be guarded yet comes across as trusting.",
+        "flag_pattern_helping_exploiter" => {
+            "Preaches helpfulness yet recorded patterns show exploitation."
+        }
+        "flag_pattern_warmth_dismissive" => {
+            "Self-image of warmth yet recorded patterns put others down."
+        }
+        "flag_pattern_discipline_shirker" => {
+            "Self-image of discipline yet recorded patterns dodge accountability."
+        }
+        "flag_pattern_claimed_calm_volatile" => {
+            "Self-reports calm yet recorded patterns show volatility."
+        }
+        "flag_style_servant_authoritative" => {
+            "Claims servant leadership yet comes across as a commander."
+        }
+        "flag_style_consensus_authoritative" => {
+            "Claims consensus-driven yet comes across as a dictator."
+        }
+        "flag_style_trusts_freely_suspicious" => {
+            "Claims to trust freely yet comes across as suspicious."
+        }
+        "flag_style_repairs_trust_deceitful" => {
+            "Claims to repair trust yet comes across as deceitful."
+        }
+        "flag_style_rulebased_favoritist" => "Claims a rules-based approach yet plays favorites.",
+        "flag_pattern_fairness_exploiter" => {
+            "Preaches fairness yet recorded patterns exploit injustice."
+        }
+        "flag_pattern_achievement_complacent" => {
+            "Aspires to achievement yet recorded patterns rest on laurels."
+        }
+        "flag_pattern_learning_resister" => {
+            "Preaches learning yet recorded patterns reject feedback."
+        }
+        "flag_pattern_extravert_quiet" => {
+            "Self-image of extraversion yet recorded patterns go quiet."
+        }
+        "flag_style_virtuebased_deceitful" => {
+            "Claims a virtue-based approach yet comes across as deceitful."
+        }
+        "flag_availability_calm" => "Perceived as unflappable yet overweights dramatic events.",
+        "flag_pattern_open_resister" => "Claims openness yet recorded patterns resist change.",
+        "flag_pattern_recognition_dismissive" => {
+            "Seeks recognition yet puts others down to win it."
+        }
 
         // Edit form sections
         "edit_motivations" => "Motivations",
@@ -299,6 +456,12 @@ fn en(key: &'static str) -> &'static str {
         }
         "strategy_stress_power" => "Power-driven — let them regain control in one domain.",
         "strategy_stress_security" => "Security-driven — reinforce stability and routine.",
+        "strategy_stress_ambition_rhetoric" => {
+            "They talk ambition but are perceived as lazy — don't reward the rhetoric; focus on effort and follow-through."
+        }
+        "strategy_stress_security_rhetoric" => {
+            "They claim to value security yet are gullibly trusting — don't rely on their stated caution; verify safeguards yourself."
+        }
         "strategy_stress_fallback" => "Monitor stress signals and adjust environment.",
 
         "strategy_conflict_low_a" => "Low agreeableness — address conflict directly with facts.",
@@ -316,6 +479,12 @@ fn en(key: &'static str) -> &'static str {
             "Low extraversion — may withdraw or stonewall instead of engaging."
         }
         "strategy_conflict_fallback" => "Mediate with balanced communication.",
+        "strategy_conflict_affiliation_rhetoric" => {
+            "They value closeness yet come across cold — don't appeal to their stated need for connection; address the detachment directly."
+        }
+        "strategy_conflict_affiliation_trust_rhetoric" => {
+            "They value closeness yet come across distrustful — don't appeal to their stated need for connection; earn credibility before seeking rapport."
+        }
 
         "strategy_success_high_o" => {
             "High openness — channel success into new creative challenges."
@@ -331,6 +500,9 @@ fn en(key: &'static str) -> &'static str {
             "Recognition-driven — publicly acknowledge their achievement."
         }
         "strategy_success_power" => "Power-driven — give them ownership of the next initiative.",
+        "strategy_success_ambition_rhetoric" => {
+            "They talk ambition but are perceived as lazy — don't celebrate their plans; require delivery."
+        }
         "strategy_success_fallback" => "Celebrate success and identify growth areas.",
 
         "strategy_uncertainty_high_n" => {
@@ -388,6 +560,9 @@ fn en(key: &'static str) -> &'static str {
             "High openness — embrace change; give them a role in shaping it."
         }
         "strategy_change_fallback" => "Communicate the why and involve them in the transition.",
+        "strategy_change_discipline_rhetoric" => {
+            "They see themselves as disciplined yet are perceived as lazy — don't appeal to their organized self-image; check actual output."
+        }
 
         "strategy_feedback_high_n" => {
             "High neuroticism — may take feedback personally; use gentle framing."
@@ -401,6 +576,12 @@ fn en(key: &'static str) -> &'static str {
         "strategy_feedback_fallback" => {
             "Balance praise and constructive input with specific examples."
         }
+        "strategy_feedback_helping_rhetoric" => {
+            "They preach helpfulness yet are perceived as selfish — don't frame feedback around helping others; name the self-interest behind the advice."
+        }
+        "strategy_feedback_warmth_rhetoric" => {
+            "They see themselves as warm yet are perceived as blunt — don't rely on soft delivery; be clear and specific about the behavior."
+        }
 
         "strategy_injustice_label" => "Facing injustice",
         "strategy_injustice_high_a" => {
@@ -412,8 +593,14 @@ fn en(key: &'static str) -> &'static str {
         "strategy_injustice_fairness" => {
             "Fairness-driven — will fight for what they believe is right, even at personal cost."
         }
+        "strategy_injustice_fairness_rhetoric" => {
+            "Speaks of fairness but acts with favoritism — don't appeal to their justice rhetoric; address the real driver instead."
+        }
         "strategy_injustice_power" => {
             "Power-driven — may leverage authority to correct the perceived wrong."
+        }
+        "strategy_injustice_ambition_rhetoric" => {
+            "They talk ambition but are perceived as lazy — don't expect them to fight for the cause; frame the outcome as serving their status instead."
         }
         "strategy_injustice_fallback" => {
             "Acknowledge their concern and clarify the path to resolution."
@@ -650,6 +837,159 @@ fn fr(key: &'static str) -> &'static str {
         "flag_honest_selfish" => {
             "Honnêteté de principe associée à une faible générosité — peut indiquer une position morale rigide."
         }
+        "flag_fairness_rhetoric" => {
+            "Parle d'équité et de justice mais pratique le favoritisme — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_helping_selfish" => {
+            "Prêche l'entraide mais est perçu comme égoïste — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_affiliation_cold" => {
+            "Revendique la proximité mais est perçu comme froid et distant — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_ambition_lazy" => {
+            "Aspire au pouvoir, au succès ou à la reconnaissance mais est perçu comme paresseux — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_security_gullible" => {
+            "Revendique un besoin de sécurité mais est perçu comme naïvement confiant — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_discipline_lazy" => {
+            "Image de soi disciplinée contredite par une réputation de paresse — ne se connaît pas."
+        }
+        "flag_warmth_blunt" => {
+            "Image de soi chaleureuse contredite par une réputation de franchise brutale — ne se connaît pas."
+        }
+        "flag_open_rigid" => "Se croit ouvert d'esprit mais paraît rigide — ne se connaît pas.",
+        "flag_claims_calm_reactive" => {
+            "Se prétend calme et stable mais est perçu comme réactif — ne se connaît pas."
+        }
+        "flag_honest_favoritist" => {
+            "Honnêteté de principe associée à un favoritisme perçu — l'équité ne vaut peut-être que pour certains."
+        }
+        "flag_affiliation_distrustful" => {
+            "Revendique la proximité mais est perçu comme méfiant — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_warmth_cold" => "Se croit chaleureux mais paraît froid — ne se connaît pas.",
+        "flag_discipline_flaky" => "Se voit discipliné mais paraît inconstant — ne se connaît pas.",
+        "flag_pattern_calm_volatile" => {
+            "Perçu comme calme sous pression, mais les schémas enregistrés montrent de la volatilité — ce calme n'est peut-être qu'un masque."
+        }
+        "flag_pattern_honest_exploiter" => {
+            "Perçu comme honnête, mais les schémas montrent de l'exploitation ou des rejets de responsabilité — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_bias_confirmation_open" => {
+            "Se dit ouvert d'esprit mais présente un biais de confirmation — ne se connaît pas."
+        }
+        "flag_bias_favoritism_fairness" => {
+            "Prêche l'équité mais montre un biais de favoritisme ou de groupe — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_security_risky" => {
+            "Prêche la prudence et la sécurité mais déclare aimer le risque — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_resilient_reactive" => {
+            "Se dit très résilient mais est perçu comme réactif — ne se connaît pas."
+        }
+        "flag_autonomy_submissive" => {
+            "Prêche l'indépendance mais est perçu comme soumis — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_learning_rigid" => {
+            "Prêche l'apprentissage et la croissance mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_creativity_closed" => "Prêche la créativité mais se dit peu ouvert à la nouveauté.",
+        "flag_creativity_rigid" => {
+            "Prêche la créativité mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_authority_dominant" => {
+            "Perçu comme un leader mais se soumet aveuglément à l'autorité."
+        }
+        "flag_social_proof_open" => {
+            "Se dit indépendant d'esprit mais suit le troupeau — fait ce que je dis, pas ce que je fais."
+        }
+        "flag_sunk_cost_flexible" => {
+            "Perçu comme flexible mais s'accroche aux coûts irrécupérables."
+        }
+        "flag_pattern_diplomat_escalator" => "Perçu comme diplomate mais escalade les conflits.",
+        "flag_pattern_fair_exploiter" => {
+            "Perçu comme équitable mais exploite l'injustice à son profit."
+        }
+        "flag_pattern_humble_dismissive" => "Perçu comme humble mais rabaisse les autres.",
+        "flag_pattern_trusting_paranoid" => {
+            "Perçu comme confiant mais devient paranoïaque sous la menace."
+        }
+        "flag_pattern_reliable_shirker" => "Perçu comme fiable mais esquive ses responsabilités.",
+        "flag_pattern_hardworker_complacent" => {
+            "Perçu comme travailleur mais se repose sur ses lauriers."
+        }
+        "flag_risk_appetite_ambition" => {
+            "Aspire au pouvoir ou à la réussite mais évite tout risque."
+        }
+        "flag_power_passive" => "Aspire au pouvoir mais est perçu comme une carpette.",
+        "flag_helping_cold" => "Prêche l'aide aux autres mais paraît émotionnellement froid.",
+        "flag_pattern_passive_blowup" => "Perçu comme passif mais explose sous la pression.",
+        "flag_pattern_assertive_quiet" => "Perçu comme affirmé mais se tait quand il le faut.",
+        "flag_loss_aversion_risky" => "Se dit amateur de risque mais est averse à la perte.",
+        "flag_dunning_kruger_humble" => "Surestime ses compétences mais paraît humble.",
+        "flag_recency_reliable" => "Perçu comme stable mais ballotté par l'actualité.",
+        "flag_resilient_hides" => "Admet sa fragilité mais paraît imperturbable — il la cache.",
+        "flag_pattern_generous_exploiter" => "Perçu comme généreux mais exploite les autres.",
+        "flag_pattern_empath_dismissive" => "Perçu comme empathique mais rabaisse les autres.",
+        "flag_pattern_flexible_resister" => {
+            "Perçu comme flexible mais résiste au changement et au feedback."
+        }
+        "flag_anchoring_open" => {
+            "Se dit ouvert d'esprit mais s'accroche aux premières impressions."
+        }
+        "flag_learning_arrogant" => {
+            "Prêche la croissance mais est trop arrogant pour écouter les conseils."
+        }
+        "flag_warmth_selfish" => "Se dit chaleureux mais est perçu comme égoïste.",
+        "flag_style_direct_diplomatic" => "Se dit direct mais passe pour un diplomate.",
+        "flag_style_diplomatic_blunt" => "Se dit diplomate mais passe pour brutal.",
+        "flag_style_competing_passive" => "Se dit compétitif mais passe pour passif.",
+        "flag_style_dominant_submissive" => "Se dit autocratique mais passe pour soumis.",
+        "flag_style_manipulative_honest" => "Se dit roublard mais passe pour honnête.",
+        "flag_style_empathetic_cold" => "Se dit empathique mais paraît froid.",
+        "flag_style_guarded_trusting" => "Se dit méfiant mais paraît confiant.",
+        "flag_pattern_helping_exploiter" => {
+            "Prêche l'aide aux autres mais les patterns montrent l'exploitation."
+        }
+        "flag_pattern_warmth_dismissive" => {
+            "Image de chaleur mais les patterns rabaissent les autres."
+        }
+        "flag_pattern_discipline_shirker" => {
+            "Image de discipline mais les patterns esquivent les responsabilités."
+        }
+        "flag_pattern_claimed_calm_volatile" => {
+            "Se dit calme mais les patterns montrent de la volatilité."
+        }
+        "flag_style_servant_authoritative" => {
+            "Se dit leader serviteur mais passe pour un commandant."
+        }
+        "flag_style_consensus_authoritative" => {
+            "Se dit axé consensus mais passe pour un dictateur."
+        }
+        "flag_style_trusts_freely_suspicious" => "Se dit confiant mais passe pour méfiant.",
+        "flag_style_repairs_trust_deceitful" => {
+            "Se dit réparateur de confiance mais passe pour trompeur."
+        }
+        "flag_style_rulebased_favoritist" => "Se dit basé sur des règles mais joue les favoris.",
+        "flag_pattern_fairness_exploiter" => {
+            "Prêche l'équité mais les patterns exploitent l'injustice."
+        }
+        "flag_pattern_achievement_complacent" => {
+            "Aspire à la réussite mais les patterns se reposent sur les lauriers."
+        }
+        "flag_pattern_learning_resister" => {
+            "Prêche l'apprentissage mais les patterns rejettent le feedback."
+        }
+        "flag_pattern_extravert_quiet" => "Image d'extraversion mais les patterns se taisent.",
+        "flag_style_virtuebased_deceitful" => "Se dit basé sur la vertu mais passe pour trompeur.",
+        "flag_availability_calm" => {
+            "Perçu comme imperturbable mais surpondère les événements dramatiques."
+        }
+        "flag_pattern_open_resister" => "Se dit ouvert mais les patterns résistent au changement.",
+        "flag_pattern_recognition_dismissive" => {
+            "Cherche la reconnaissance mais rabaisse les autres pour la gagner."
+        }
 
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biais",
@@ -772,6 +1112,12 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_stress_security" => {
             "Motivé par la sécurité — renforcez la stabilité et la routine."
         }
+        "strategy_stress_ambition_rhetoric" => {
+            "Il parle d'ambition mais est perçu comme paresseux — ne récompensez pas le discours ; concentrez-vous sur l'effort et la concrétisation."
+        }
+        "strategy_stress_security_rhetoric" => {
+            "Il revendique la sécurité mais est naïvement confiant — ne vous fiez pas à sa prudence affichée ; vérifiez vous-même les garde-fous."
+        }
         "strategy_stress_fallback" => {
             "Surveillez les signaux de stress et ajustez l'environnement."
         }
@@ -791,6 +1137,12 @@ fn fr(key: &'static str) -> &'static str {
         }
         "strategy_conflict_low_e" => "Faible extraversion — peut se retirer au lieu de s'engager.",
         "strategy_conflict_fallback" => "Médiateur avec une communication équilibrée.",
+        "strategy_conflict_affiliation_rhetoric" => {
+            "Il revendique la proximité mais paraît froid — ne faites pas appel à son besoin déclaré de connexion ; traitez directement la distance."
+        }
+        "strategy_conflict_affiliation_trust_rhetoric" => {
+            "Il revendique la proximité mais se montre méfiant — ne faites pas appel à son besoin déclaré de connexion ; gagnez sa confiance avant de chercher la complicité."
+        }
 
         "strategy_success_high_o" => {
             "Haute ouverture — canalisez le succès vers de nouveaux défis créatifs."
@@ -809,6 +1161,9 @@ fn fr(key: &'static str) -> &'static str {
         }
         "strategy_success_power" => {
             "Motivé par le pouvoir — donnez-leur la propriété de la prochaine initiative."
+        }
+        "strategy_success_ambition_rhetoric" => {
+            "Il parle d'ambition mais est perçu comme paresseux — ne célébrez pas ses plans ; exigez des résultats."
         }
         "strategy_success_fallback" => "Célébrez le succès et identifiez les axes de croissance.",
 
@@ -883,6 +1238,9 @@ fn fr(key: &'static str) -> &'static str {
             "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif."
         }
         "strategy_change_fallback" => "Expliquez le pourquoi et impliquez-les dans la transition.",
+        "strategy_change_discipline_rhetoric" => {
+            "Il se voit discipliné mais est perçu comme paresseux — ne faites pas appel à son image organisée ; vérifiez la production réelle."
+        }
 
         "strategy_feedback_high_n" => {
             "Névrosisme élevé — peut prendre le feedback personnellement ; utilisez un ton doux."
@@ -898,6 +1256,12 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_feedback_fallback" => {
             "Équilibrez éloges et critiques constructives avec des exemples précis."
         }
+        "strategy_feedback_helping_rhetoric" => {
+            "Il prêche l'entraide mais est perçu comme égoïste — ne formulez pas le retour autour de l'aide aux autres ; nommez l'intérêt personnel derrière le conseil."
+        }
+        "strategy_feedback_warmth_rhetoric" => {
+            "Il se voit chaleureux mais est perçu comme brutal — ne comptez pas sur un ton doux ; soyez clair et précis sur le comportement."
+        }
 
         "strategy_injustice_label" => "Face à l'injustice",
         "strategy_injustice_high_a" => {
@@ -909,8 +1273,14 @@ fn fr(key: &'static str) -> &'static str {
         "strategy_injustice_fairness" => {
             "Motivé par l'équité — se battra pour ce qu'il croit juste, même à titre personnel."
         }
+        "strategy_injustice_fairness_rhetoric" => {
+            "Parle d'équité mais agit avec favoritisme — ne faites pas appel à son discours sur la justice ; adressez-vous au vrai moteur."
+        }
         "strategy_injustice_power" => {
             "Motivé par le pouvoir — peut utiliser son autorité pour corriger le tort perçu."
+        }
+        "strategy_injustice_ambition_rhetoric" => {
+            "Il parle d'ambition mais est perçu comme paresseux — n'attendez pas qu'il se batte pour la cause ; présentez l'issue comme servant son statut."
         }
         "strategy_injustice_fallback" => {
             "Reconnaissez leur préoccupation et clarifiez la voie vers la résolution."

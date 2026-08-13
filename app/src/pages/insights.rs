@@ -137,10 +137,19 @@ fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if let Some(m) = p.top_motivation() {
         match m.r#type {
             peoplemodeler_core::models::MotivationType::Power => {
-                s.push(crate::i18n::tr("strategy_stress_power", lang).into())
+                if peoplemodeler_core::validation::ambition_lazy_gap(&p.motivations, &p.rep_scores) {
+                    s.push(crate::i18n::tr("strategy_stress_ambition_rhetoric", lang).into())
+                } else {
+                    s.push(crate::i18n::tr("strategy_stress_power", lang).into())
+                }
             }
             peoplemodeler_core::models::MotivationType::Security => {
-                s.push(crate::i18n::tr("strategy_stress_security", lang).into())
+                if peoplemodeler_core::validation::security_gullible_gap(&p.motivations, &p.rep_scores)
+                {
+                    s.push(crate::i18n::tr("strategy_stress_security_rhetoric", lang).into())
+                } else {
+                    s.push(crate::i18n::tr("strategy_stress_security", lang).into())
+                }
             }
             _ => {}
         }
@@ -171,6 +180,12 @@ fn conflict_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if p.ocean.extraversion.is_some_and(|v| v <= 4) {
         s.push(crate::i18n::tr("strategy_conflict_low_e", lang).into());
     }
+    if peoplemodeler_core::validation::affiliation_cold_gap(&p.motivations, &p.rep_scores) {
+        s.push(crate::i18n::tr("strategy_conflict_affiliation_rhetoric", lang).into());
+    }
+    if peoplemodeler_core::validation::affiliation_distrustful_gap(&p.motivations, &p.rep_scores) {
+        s.push(crate::i18n::tr("strategy_conflict_affiliation_trust_rhetoric", lang).into());
+    }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_conflict_fallback", lang).into());
     }
@@ -193,10 +208,18 @@ fn success_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     if let Some(m) = p.top_motivation() {
         if m.r#type == peoplemodeler_core::models::MotivationType::Recognition && m.intensity >= 7 {
-            s.push(crate::i18n::tr("strategy_success_recognition", lang).into());
+            if peoplemodeler_core::validation::ambition_lazy_gap(&p.motivations, &p.rep_scores) {
+                s.push(crate::i18n::tr("strategy_success_ambition_rhetoric", lang).into());
+            } else {
+                s.push(crate::i18n::tr("strategy_success_recognition", lang).into());
+            }
         }
         if m.r#type == peoplemodeler_core::models::MotivationType::Power && m.intensity >= 7 {
-            s.push(crate::i18n::tr("strategy_success_power", lang).into());
+            if peoplemodeler_core::validation::ambition_lazy_gap(&p.motivations, &p.rep_scores) {
+                s.push(crate::i18n::tr("strategy_success_ambition_rhetoric", lang).into());
+            } else {
+                s.push(crate::i18n::tr("strategy_success_power", lang).into());
+            }
         }
     }
     if s.is_empty() {
@@ -294,6 +317,9 @@ fn change_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if p.ocean.openness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_change_high_o", lang).into());
     }
+    if peoplemodeler_core::validation::discipline_lazy_gap(&p.ocean, &p.rep_scores) {
+        s.push(crate::i18n::tr("strategy_change_discipline_rhetoric", lang).into());
+    }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_change_fallback", lang).into());
     }
@@ -317,6 +343,12 @@ fn feedback_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if p.ocean.conscientiousness.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_feedback_high_c", lang).into());
     }
+    if peoplemodeler_core::validation::helping_selfish_gap(&p.motivations, &p.rep_scores) {
+        s.push(crate::i18n::tr("strategy_feedback_helping_rhetoric", lang).into());
+    }
+    if peoplemodeler_core::validation::warmth_blunt_gap(&p.ocean, &p.rep_scores) {
+        s.push(crate::i18n::tr("strategy_feedback_warmth_rhetoric", lang).into());
+    }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_feedback_fallback", lang).into());
     }
@@ -331,7 +363,9 @@ fn injustice_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if p.ocean.neuroticism.is_some_and(|v| v >= 7) {
         s.push(crate::i18n::tr("strategy_injustice_high_n", lang).into());
     }
-    if let Some(m) = p.top_motivation()
+    if peoplemodeler_core::validation::fairness_rhetoric_gap(&p.motivations, &p.rep_scores) {
+        s.push(crate::i18n::tr("strategy_injustice_fairness_rhetoric", lang).into());
+    } else if let Some(m) = p.top_motivation()
         && m.r#type == peoplemodeler_core::models::MotivationType::Fairness
         && m.intensity >= 6
     {
@@ -341,7 +375,11 @@ fn injustice_strategy(p: &Person, lang: Lang) -> Vec<String> {
         && m.r#type == peoplemodeler_core::models::MotivationType::Power
         && m.intensity >= 7
     {
-        s.push(crate::i18n::tr("strategy_injustice_power", lang).into());
+        if peoplemodeler_core::validation::ambition_lazy_gap(&p.motivations, &p.rep_scores) {
+            s.push(crate::i18n::tr("strategy_injustice_ambition_rhetoric", lang).into());
+        } else {
+            s.push(crate::i18n::tr("strategy_injustice_power", lang).into());
+        }
     }
     if s.is_empty() {
         s.push(crate::i18n::tr("strategy_injustice_fallback", lang).into());

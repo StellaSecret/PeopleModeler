@@ -26,6 +26,8 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
     match (p1(), p2()) {
         (Some(a), Some(b)) => {
+            let a_flags = peoplemodeler_core::validation::all_person_flags(&a);
+            let b_flags = peoplemodeler_core::validation::all_person_flags(&b);
             let a_preds = db::predictions_for_person(&a.id);
             let b_preds = db::predictions_for_person(&b.id);
             let brk = compute_synergy_score_with_preds(&a, &b, &a_preds, &b_preds);
@@ -135,6 +137,18 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     a.ocean.neuroticism,
                                 ] }
                             }
+                            {if a_flags.is_empty() {
+                                rsx! {}
+                            } else {
+                                rsx! {
+                                    div { class: "flag-chips",
+                                        {a_flags.iter().map(|k| {
+                                            let txt = crate::i18n::tr(k, lang());
+                                            rsx! { div { class: "danger-warning", title: "{txt}", "⚠ {txt}" } }
+                                        })}
+                                    }
+                                }
+                            }}
                         }
 
                         div { class: "vs-divider",
@@ -232,6 +246,18 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     b.ocean.neuroticism,
                                 ] }
                             }
+                            {if b_flags.is_empty() {
+                                rsx! {}
+                            } else {
+                                rsx! {
+                                    div { class: "flag-chips",
+                                        {b_flags.iter().map(|k| {
+                                            let txt = crate::i18n::tr(k, lang());
+                                            rsx! { div { class: "danger-warning", title: "{txt}", "⚠ {txt}" } }
+                                        })}
+                                    }
+                                }
+                            }}
                         }
                     }
 
