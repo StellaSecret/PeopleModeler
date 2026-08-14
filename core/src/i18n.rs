@@ -129,7 +129,11 @@ impl BiasType {
                 },
                 Self::DunningKruger => BiasI18n {
                     label: "Dunning-Kruger",
-                    desc: "Les incompétents surestiment leurs compétences, les experts les sous-estiment",
+                    desc: "Les incompétents surestiment leurs compétences",
+                },
+                Self::Impostor => BiasI18n {
+                    label: "Imposteur",
+                    desc: "Sous-estime sa propre compétence dans un domaine",
                 },
                 Self::LossAversion => BiasI18n {
                     label: "Aversion aux pertes",
@@ -175,7 +179,11 @@ impl BiasType {
                 },
                 Self::DunningKruger => BiasI18n {
                     label: "Dunning-Kruger",
-                    desc: "Incompetent overestimate skill, experts underestimate",
+                    desc: "Incompetent overestimate their skill",
+                },
+                Self::Impostor => BiasI18n {
+                    label: "Impostor",
+                    desc: "Underestimates own competence in a domain",
                 },
                 Self::LossAversion => BiasI18n {
                     label: "Loss aversion",

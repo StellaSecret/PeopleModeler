@@ -68,6 +68,10 @@ fn bias_modifier(ty: BiasType) -> Option<Modulation> {
             target: BiasTarget::Ocean,
             coefficient: -0.10,
         }),
+        Impostor => Some(Modulation {
+            target: BiasTarget::Ocean,
+            coefficient: 0.10,
+        }),
         LossAversion => Some(Modulation {
             target: BiasTarget::Patterns,
             coefficient: -0.10,
@@ -753,6 +757,7 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_sunk_cost_flexible"
         | "flag_loss_aversion_risky"
         | "flag_dunning_kruger_humble"
+        | "flag_impostor_arrogant"
         | "flag_recency_reliable"
         | "flag_availability_calm" => 0.40,
         _ => 0.30,
@@ -1737,6 +1742,13 @@ mod tests {
     }
 
     #[test]
+    fn test_bias_modifier_impostor_ocean_positive() {
+        let m = bias_modifier(BiasType::Impostor).unwrap();
+        assert!(matches!(m.target, BiasTarget::Ocean));
+        assert!((m.coefficient - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
     fn test_bias_modifier_lossaversion_patterns_negative() {
         let m = bias_modifier(BiasType::LossAversion).unwrap();
         assert!(matches!(m.target, BiasTarget::Patterns));
@@ -1845,6 +1857,28 @@ mod tests {
         assert!(
             (brk.ocean - 0.72).abs() < 0.001,
             "ocean should be dampened by DunningKruger: {}",
+            brk.ocean
+        );
+    }
+
+    #[test]
+    fn test_bias_modulation_impostor_boosts_ocean() {
+        let mut a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        a.biases = vec![Bias {
+            r#type: BiasType::Impostor,
+            intensity: 10,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Impostor,
+            intensity: 10,
+            evidence: String::new(),
+        }];
+        let brk = compute_synergy_score(&a, &b);
+        assert!(
+            (brk.ocean - 0.88).abs() < 0.001,
+            "ocean should be boosted by Impostor: {}",
             brk.ocean
         );
     }

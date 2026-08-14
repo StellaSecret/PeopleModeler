@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoNewPerson, clearStorage, addPattern, addMotivation, enableAndSetRep, setOcean } from './helpers';
+import { gotoNewPerson, clearStorage, addPattern, addMotivation, addBias, enableAndSetRep, setOcean } from './helpers';
 
 test.describe('Person Page — Dioxus', () => {
   let personId: string;
@@ -90,5 +90,15 @@ test.describe('Person Page — Dioxus', () => {
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
     await expect(page.locator('.danger-warning')).toContainText(/calm/i);
+  });
+
+  test('impostor self-image gap surfaces consistency warning', async ({ page }) => {
+    await page.goto(`/PeopleModeler/person/${personId}/edit`);
+    await page.waitForTimeout(200);
+    await addBias(page, 'Impostor', 7);
+    await enableAndSetRep(page, 4, 8); // HumbleArrogant → Arrogant (≥ 8)
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await expect(page.locator('.danger-warning')).toContainText(/arrogant/i);
   });
 });

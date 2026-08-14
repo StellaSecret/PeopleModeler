@@ -317,6 +317,8 @@ pub enum BiasType {
     SunkCost,
     #[serde(alias = "DUNNING_KRUGER")]
     DunningKruger,
+    #[serde(alias = "IMPOSTOR")]
+    Impostor,
     #[serde(alias = "LOSS_AVERSION")]
     LossAversion,
     #[serde(alias = "SOCIAL_PROOF")]
@@ -338,12 +340,13 @@ impl std::fmt::Display for BiasType {
 }
 
 impl BiasType {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
         Self::Confirmation,
         Self::Anchoring,
         Self::Availability,
         Self::SunkCost,
         Self::DunningKruger,
+        Self::Impostor,
         Self::LossAversion,
         Self::SocialProof,
         Self::Authority,
@@ -359,6 +362,7 @@ impl BiasType {
             Self::Availability => "📱",
             Self::SunkCost => "💸",
             Self::DunningKruger => "🎭",
+            Self::Impostor => "🫥",
             Self::LossAversion => "😰",
             Self::SocialProof => "👥",
             Self::Authority => "🎖️",

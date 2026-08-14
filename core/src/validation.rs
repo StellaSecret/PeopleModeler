@@ -442,6 +442,11 @@ pub fn dunning_kruger_humble_gap(biases: &[Bias], rep: &RepScores) -> bool {
     bias_high(biases, BiasType::DunningKruger, 7) && rep.humble_arrogant.is_some_and(|v| v <= 3)
 }
 
+/// Underestimates their competence yet is perceived as arrogant.
+pub fn impostor_arrogant_gap(biases: &[Bias], rep: &RepScores) -> bool {
+    bias_high(biases, BiasType::Impostor, 7) && rep.humble_arrogant.is_some_and(|v| v >= 8)
+}
+
 /// Perceived as steady yet swings with the latest news.
 pub fn recency_reliable_gap(biases: &[Bias], rep: &RepScores) -> bool {
     bias_high(biases, BiasType::Recency, 7) && rep.reliable_flaky.is_some_and(|v| v >= 8)
@@ -606,6 +611,9 @@ pub fn evidence_flags(person: &Person) -> Vec<&'static str> {
     }
     if dunning_kruger_humble_gap(&person.biases, &person.rep_scores) {
         flags.push("flag_dunning_kruger_humble");
+    }
+    if impostor_arrogant_gap(&person.biases, &person.rep_scores) {
+        flags.push("flag_impostor_arrogant");
     }
     if recency_reliable_gap(&person.biases, &person.rep_scores) {
         flags.push("flag_recency_reliable");
@@ -1985,6 +1993,26 @@ mod tests {
         assert!(!dunning_kruger_humble_gap(
             &[mk_bias(BiasType::Recency, 8)],
             &r
+        ));
+    }
+
+    #[test]
+    fn test_impostor_arrogant_gap() {
+        let b = vec![mk_bias(BiasType::Impostor, 8)];
+        let arrogant = RepScores {
+            humble_arrogant: Some(9),
+            ..Default::default()
+        };
+        assert!(impostor_arrogant_gap(&b, &arrogant));
+        let humble = RepScores {
+            humble_arrogant: Some(2),
+            ..Default::default()
+        };
+        assert!(!impostor_arrogant_gap(&b, &humble));
+        assert!(!impostor_arrogant_gap(&b, &RepScores::default()));
+        assert!(!impostor_arrogant_gap(
+            &[mk_bias(BiasType::DunningKruger, 8)],
+            &arrogant
         ));
     }
 

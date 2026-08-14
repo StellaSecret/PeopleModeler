@@ -394,6 +394,7 @@ a genuine person with 1–2 honest flags keeps most credit.
 | `flag_pattern_assertive_quiet` | Reputation Assertive-Passive ≥ 8 but recorded patterns go quiet when it counts |
 | `flag_loss_aversion_risky` | Loss-aversion bias ≥ 7 but Risk appetite ≥ 8 |
 | `flag_dunning_kruger_humble` | Dunning-Kruger bias ≥ 7 but Reputation Humble-Arrogant ≤ 3 |
+| `flag_impostor_arrogant` | Impostor bias ≥ 7 but Reputation Humble-Arrogant ≥ 8 |
 | `flag_recency_reliable` | Recency bias ≥ 7 but Reputation Reliable-Flaky ≥ 8 |
 | `flag_resilient_hides` | Resilience ≤ 3 but Reputation Calm-Reactive ≥ 8 |
 | `flag_pattern_generous_exploiter` | Reputation Generous ≥ 8 but recorded patterns exploit injustice/recognition/threat |
@@ -588,6 +589,7 @@ Confirmation  → Reputation  +0.10  (confirmation seeking)
 Availability  → Patterns    +0.10  (weight of recent events)
 SunkCost      → Motivation  +0.10  (past investment)
 DunningKruger → OCEAN       -0.10  (distorted self-assessment)
+Impostor      → OCEAN       +0.10  (understated self-assessment)
 LossAversion  → Patterns    -0.10  (excessive weight on negatives)
 SocialProof   → Reputation  +0.08  (group influence)
 Authority     → Motivation  +0.08  (deference to authority)
@@ -614,7 +616,7 @@ The **present bias count** includes:
 Types with intensity **0** (explicitly absent) or **≤ 3** (mild) are
 not counted as present.
 
-1. **Base**: `1.0 - present_bias_count / 11`
+1. **Base**: `1.0 - present_bias_count / 12`
 2. **Intensity adjustment** (`bias_adjustment`):
 
    | Status | Adjustment |
@@ -662,7 +664,7 @@ The profile is 100% complete when all following fields are filled:
 |---|---|---|
 | OCEAN | 5 | 5 Big Five traits filled |
 | Motivations | 3 | capped at 3 (beyond doesn't help) |
-| Biases | 11 | 11 bias types in the vector |
+| Biases | 12 | 12 bias types in the vector |
 | Reputation | 13 | 13 bipolar dimensions enabled |
 | Styles | 8 | 8 style categories (1 per category) |
 | Patterns | 5 | capped at 5 behavioral patterns |

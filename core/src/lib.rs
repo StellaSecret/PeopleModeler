@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_bias_enum_all() {
-        assert_eq!(BiasType::ALL.len(), 11);
+        assert_eq!(BiasType::ALL.len(), 12);
     }
 
     #[test]

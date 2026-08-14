@@ -178,6 +178,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         if peoplemodeler_core::validation::dunning_kruger_humble_gap(&biases(), &rep_scores()) {
             flags.push("flag_dunning_kruger_humble");
         }
+        if peoplemodeler_core::validation::impostor_arrogant_gap(&biases(), &rep_scores()) {
+            flags.push("flag_impostor_arrogant");
+        }
         if peoplemodeler_core::validation::recency_reliable_gap(&biases(), &rep_scores()) {
             flags.push("flag_recency_reliable");
         }
@@ -904,6 +907,7 @@ fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
         BiasType::Availability => crate::i18n::tr("bias_helper_availability", lang),
         BiasType::SunkCost => crate::i18n::tr("bias_helper_sunk_cost", lang),
         BiasType::DunningKruger => crate::i18n::tr("bias_helper_dunning_kruger", lang),
+        BiasType::Impostor => crate::i18n::tr("bias_helper_impostor", lang),
         BiasType::LossAversion => crate::i18n::tr("bias_helper_loss_aversion", lang),
         BiasType::SocialProof => crate::i18n::tr("bias_helper_social_proof", lang),
         BiasType::Authority => crate::i18n::tr("bias_helper_authority", lang),
@@ -959,6 +963,7 @@ fn parse_bias_type(s: &str) -> BiasType {
         "Availability" => BiasType::Availability,
         "SunkCost" => BiasType::SunkCost,
         "DunningKruger" => BiasType::DunningKruger,
+        "Impostor" => BiasType::Impostor,
         "LossAversion" => BiasType::LossAversion,
         "SocialProof" => BiasType::SocialProof,
         "Authority" => BiasType::Authority,
