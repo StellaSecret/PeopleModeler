@@ -663,6 +663,32 @@ fieldset.ocean-inputs legend{
 .log-entry-header{display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
 .log-entry .btn-icon{background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--text-muted);transition:color 0.15s,border-color 0.15s;padding:0;line-height:1}
 .log-entry .btn-icon:hover{color:var(--primary);border-color:var(--primary)}
+/* Log head + trend chip (Phase 3) */
+.log-head{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem}
+.log-head h2{margin:0}
+.trend-chip{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.7rem;font-weight:700;letter-spacing:0.03em;border-radius:99px;padding:0.2rem 0.55rem;border:1px solid var(--border);width:max-content}
+.trend-chip.trend-up{color:var(--green);border-color:rgba(46,204,113,0.35);background:rgba(46,204,113,0.08)}
+.trend-chip.trend-flat{color:var(--text-muted);border-color:var(--border);background:var(--surface2)}
+.trend-chip.trend-down{color:var(--orange);border-color:rgba(249,115,22,0.35);background:rgba(249,115,22,0.08)}
+.trend-arrow{font-family:var(--font-mono);font-size:0.85rem}
+.trend-text{font-family:var(--font-mono)}
+/* Valence row + buttons (Phase 3) */
+.valence-row{display:flex;gap:0.3rem;align-items:center}
+.valence-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;width:2.2rem;height:2.2rem;font-family:var(--font-mono);font-size:0.85rem;color:var(--text-muted);transition:all 0.15s;line-height:1}
+.valence-btn:hover{border-color:var(--cyan);color:var(--text)}
+.valence-btn.selected.v-neg{background:rgba(249,115,22,0.15);border-color:var(--orange);color:var(--orange)}
+.valence-btn.selected.v-zero{background:var(--surface2);border-color:var(--text-muted);color:var(--text)}
+.valence-btn.selected.v-pos{background:rgba(46,204,113,0.15);border-color:var(--green);color:var(--green)}
+.log-meta-row{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap}
+.log-trigger-select,.log-target-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0.4rem 0.5rem;font-size:0.85rem;max-width:100%}
+.log-trigger-select:focus,.log-target-select:focus{border-color:var(--cyan);outline:none}
+/* Entry badges (Phase 3) */
+.log-entry-header small{display:inline-flex;align-items:center;gap:0.4rem;margin-bottom:0}
+.log-valence{display:inline-block;font-family:var(--font-mono);font-size:0.7rem;font-weight:700;border-radius:99px;padding:0.1rem 0.45rem;border:1px solid var(--border)}
+.log-valence.v-neg{color:var(--orange);border-color:rgba(249,115,22,0.35);background:rgba(249,115,22,0.08)}
+.log-valence.v-zero{color:var(--text-muted);background:var(--surface2)}
+.log-valence.v-pos{color:var(--green);border-color:rgba(46,204,113,0.35);background:rgba(46,204,113,0.08)}
+.log-trigger,.log-target{display:inline-flex;align-items:center;font-size:0.7rem;color:var(--text-muted);background:var(--surface2);border-radius:99px;padding:0.1rem 0.45rem;border:1px solid var(--border);white-space:nowrap}
 
 /* Tutorial modal */
 .tut-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:1rem}

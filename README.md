@@ -753,6 +753,32 @@ score itself — only the band around it.
 The compare page exposes a relationship selector (type + strength) and pre-fills
 from an existing `Relationship` row between the two ids.
 
+#### 7c. Temporal layer (Phase 3)
+
+`Person.log[]` entries are now typed events with optional `valence` (−3…+3),
+`trigger` (`BehaviorTrigger`), and `target_id` (another person). Legacy free-text
+entries stay valid (`#[serde(default)]`), so no data migration is needed. The
+log tab lets you pick all three; per-entry badges show them back.
+
+Two trajectory signals are derived, both recency-weighted with a 30-day
+half-life:
+
+```
+trajectory_from(log)       → Trajectory { delta: i8, trend, sample, level }
+pair_trajectory(a, b, log) → same, filtered to entries whose target_id is b
+personal_trajectory(p)     → same, over the person's whole log
+```
+
+With ≥ 4 entries the trend splits the log into early/recent halves
+(momentum, weighted 0.55) combined with the overall mean level (0.45);
+fewer entries use the level alone. `trend` is Improving / Stable / Deteriorating.
+
+`SynergyBreakdown` carries `trajectory_delta`, `trajectory_trend`, and
+`trajectory_sample`, and the Compare page renders a trend chip (↑ / → / ↓)
+whenever at least one dated entry exists. **The static point score is never
+changed by the log** — the trend is a separate directional signal, exactly as
+designed.
+
 #### Final Aggregation (dynamic weights)
 
 The base score (compatibility categories) and asymmetric scores use

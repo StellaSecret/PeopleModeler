@@ -71,6 +71,12 @@ pub fn PersonDetail(id: String) -> Element {
             let log_placeholder = crate::i18n::tr("log_placeholder", lang());
             let log_add = crate::i18n::tr("log_add", lang());
             let log_empty = crate::i18n::tr("log_empty", lang());
+            let log_valence = crate::i18n::tr("log_valence", lang());
+            let log_trigger = crate::i18n::tr("log_trigger", lang());
+            let log_target = crate::i18n::tr("log_target", lang());
+            let log_no_trigger = crate::i18n::tr("log_no_trigger", lang());
+            let log_no_target = crate::i18n::tr("log_no_target", lang());
+            let trend_hint = crate::i18n::tr("trend_hint", lang());
             let rel_person_rel = crate::i18n::tr("rel_person_rel", lang());
             let rel_none = crate::i18n::tr("rel_none", lang());
             let rel_title = crate::i18n::tr("rel_title", lang());
@@ -96,6 +102,9 @@ pub fn PersonDetail(id: String) -> Element {
             let mut comparing = use_signal(|| false);
             let other_persons = use_signal(db::all_persons);
             let mut log_text = use_signal(String::new);
+            let mut new_valence = use_signal(|| 0i8);
+            let mut new_trigger = use_signal(|| None::<BehaviorTrigger>);
+            let mut new_target = use_signal(|| None::<String>);
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
             let observed_label = crate::i18n::tr("insights_observed", lang());
@@ -495,66 +504,187 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Log {
-                        div { class: "card",
-                            h2 { "{log_title}" }
-                            div { class: "form-row",
-                                input { placeholder: "{log_placeholder}", aria_label: "New log entry", value: "{log_text}",
-                                    oninput: move |e| log_text.set(e.value()) }
-                                button { class: "btn btn-primary", aria_label: "{log_add}", onclick: {
-                                    let pid = id.clone();
-                                    move |_| {
-                                        let t = log_text();
-                                        if t.is_empty() { return; }
-                                        let mut p = person_sig.write().clone();
-                                        if let Some(ref mut p) = p {
-                                            p.log.push(peoplemodeler_core::models::InteractionEntry {
-                                                id: uuid::Uuid::new_v4().to_string(),
-                                                timestamp: chrono::Utc::now().timestamp_millis(),
-                                                text: t,
-                                            });
-                                            if let Err(e) = db::save_person(p) {
-                                                toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
-                                                return;
-                                            }
-                                            person_sig.set(db::person(&pid));
-                                        }
-                                        log_text.set(String::new());
-                                    }
-                                }, "{log_add}" }
+                        {
+                        let ptraj = peoplemodeler_core::synergy::personal_trajectory(person);
+                        let trend_label = match ptraj.trend {
+                            peoplemodeler_core::synergy::Trend::Improving => {
+                                crate::i18n::tr("trend_improving", lang())
                             }
-                        }
-                        if person.log.is_empty() {
-                            p { "{log_empty}" }
+                            peoplemodeler_core::synergy::Trend::Stable => {
+                                crate::i18n::tr("trend_stable", lang())
+                            }
+                            peoplemodeler_core::synergy::Trend::Deteriorating => {
+                                crate::i18n::tr("trend_deteriorating", lang())
+                            }
+                        };
+                        let trend_cls = match ptraj.trend {
+                            peoplemodeler_core::synergy::Trend::Improving => "trend-up",
+                            peoplemodeler_core::synergy::Trend::Stable => "trend-flat",
+                            peoplemodeler_core::synergy::Trend::Deteriorating => "trend-down",
+                        };
+                        let trend_arrow = match ptraj.trend {
+                            peoplemodeler_core::synergy::Trend::Improving => "↑",
+                            peoplemodeler_core::synergy::Trend::Stable => "→",
+                            peoplemodeler_core::synergy::Trend::Deteriorating => "↓",
+                        };
+                        let trend_delta = if ptraj.delta > 0 {
+                            format!("+{}", ptraj.delta)
+                        } else if ptraj.delta < 0 {
+                            format!("{}", ptraj.delta)
                         } else {
-                            div { class: "log-list",
-                                for entry in person.log.iter().rev() {
-                                    div { class: "log-entry",
-                                        div { class: "log-entry-header",
-                                            small { class: "log-date", "{format_date(entry.timestamp)}" }
+                            String::new()
+                        };
+                        let trig_opts = peoplemodeler_core::models::BehaviorTrigger::ALL;
+                        let others = other_persons();
+                        rsx! {
+                            div { class: "card",
+                                div { class: "log-head",
+                                    h2 { "{log_title}" }
+                                    if ptraj.sample > 0 {
+                                        div { class: "trend-chip {trend_cls}", title: "{trend_hint}",
+                                            span { class: "trend-arrow", "{trend_arrow}" }
+                                            span { class: "trend-text", "{trend_label}"
+                                                if !trend_delta.is_empty() {
+                                                    " {trend_delta}"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                div { class: "form-row",
+                                    div { class: "valence-row", role: "radiogroup", aria_label: "{log_valence}",
+                                        for v in [-3i8, -2, -1, 0, 1, 2, 3] {
                                             button {
-                                                class: "btn-icon btn-danger",
-                                                onclick: {
-                                                    let eid = entry.id.clone();
-                                                    let pid = id.clone();
-                                                    move |_| {
-                                                        let mut p = person_sig.write().clone();
-                                                        if let Some(ref mut p) = p {
-                                                            p.log.retain(|e| e.id != eid);
-                                                            if let Err(e) = db::save_person(p) {
-                                                                toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
-                                                                return;
-                                                            }
-                                                            person_sig.set(db::person(&pid));
+                                                class: if new_valence() == v {
+                                                    "valence-btn selected {valence_cls(v)}"
+                                                } else {
+                                                    "valence-btn {valence_cls(v)}"
+                                                },
+                                                role: "radio",
+                                                aria_checked: if new_valence() == v { "true" } else { "false" },
+                                                onclick: move |_| new_valence.set(v),
+                                                {fmt_valence(v)}
+                                            }
+                                        }
+                                    }
+                                }
+                                div { class: "form-row log-meta-row",
+                                    select {
+                                        class: "log-trigger-select",
+                                        aria_label: "{log_trigger}",
+                                        value: if let Some(t) = new_trigger() {
+                                            format!("{t:?}")
+                                        } else {
+                                            "none".into()
+                                        },
+                                        onchange: move |e| {
+                                            let v = e.value();
+                                            if v == "none" {
+                                                new_trigger.set(None);
+                                            } else {
+                                                new_trigger.set(
+                                                    trig_opts.iter().find(|t| format!("{t:?}") == v).copied(),
+                                                );
+                                            }
+                                        },
+                                        option { value: "none", "{log_no_trigger}" }
+                                        {trig_opts.iter().map(|t| {
+                                            rsx! { option { value: "{t:?}", "{t.emoji()} {t}" } }
+                                        })}
+                                    }
+                                    select {
+                                        class: "log-target-select",
+                                        aria_label: "{log_target}",
+                                        value: if let Some(t) = new_target() { t.clone() } else { "none".into() },
+                                        onchange: move |e| {
+                                            let v = e.value();
+                                            if v == "none" {
+                                                new_target.set(None);
+                                            } else {
+                                                new_target.set(Some(v));
+                                            }
+                                        },
+                                        option { value: "none", "{log_no_target}" }
+                                        {others.iter().map(|p| {
+                                            rsx! { option { value: "{p.id}", "{p.avatar_emoji} {p.name}" } }
+                                        })}
+                                    }
+                                    input { placeholder: "{log_placeholder}", aria_label: "New log entry", value: "{log_text}",
+                                        oninput: move |e| log_text.set(e.value()) }
+                                    button { class: "btn btn-primary", aria_label: "{log_add}", onclick: {
+                                        let pid = id.clone();
+                                        move |_| {
+                                            let t = log_text();
+                                            if t.is_empty() { return; }
+                                            let mut p = person_sig.write().clone();
+                                            if let Some(ref mut p) = p {
+                                                p.log.push(peoplemodeler_core::models::InteractionEntry {
+                                                    id: uuid::Uuid::new_v4().to_string(),
+                                                    timestamp: chrono::Utc::now().timestamp_millis(),
+                                                    text: t,
+                                                    valence: Some(new_valence()),
+                                                    trigger: new_trigger(),
+                                                    target_id: new_target(),
+                                                });
+                                                if let Err(e) = db::save_person(p) {
+                                                    toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                    return;
+                                                }
+                                                person_sig.set(db::person(&pid));
+                                            }
+                                            log_text.set(String::new());
+                                            new_valence.set(0);
+                                            new_trigger.set(None);
+                                            new_target.set(None);
+                                        }
+                                    }, "{log_add}" }
+                                }
+                                if person.log.is_empty() {
+                                    p { "{log_empty}" }
+                                } else {
+                                    div { class: "log-list",
+                                        for entry in person.log.iter().rev() {
+                                            div { class: "log-entry",
+                                                div { class: "log-entry-header",
+                                                    small { class: "log-date", "{format_date(entry.timestamp)}" }
+                                                    if let Some(v) = entry.valence {
+                                                        span { class: "log-valence {valence_cls(v)}", "{fmt_valence(v)}" }
+                                                    }
+                                                    if let Some(t) = entry.trigger {
+                                                        span { class: "log-trigger", title: "{t}", "{t.emoji()} {t}" }
+                                                    }
+                                                    if let Some(tid) = &entry.target_id {
+                                                        if let Some(tp) = others.iter().find(|p| &p.id == tid) {
+                                                            span { class: "log-target", "{tp.avatar_emoji} {tp.name}" }
                                                         }
                                                     }
-                                                },
-                                                "✕"
+                                                    button {
+                                                        class: "btn-icon btn-danger",
+                                                        onclick: {
+                                                            let eid = entry.id.clone();
+                                                            let pid = id.clone();
+                                                            move |_| {
+                                                                let mut p = person_sig.write().clone();
+                                                                if let Some(ref mut p) = p {
+                                                                    p.log.retain(|e| e.id != eid);
+                                                                    if let Err(e) = db::save_person(p) {
+                                                                        toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                                        return;
+                                                                    }
+                                                                    person_sig.set(db::person(&pid));
+                                                                }
+                                                            }
+                                                        },
+                                                        "✕"
+                                                    }
+                                                }
+                                                p { "{entry.text}" }
                                             }
                                         }
-                                        p { "{entry.text}" }
                                     }
                                 }
                             }
+                        }
                         }
                     }
 
@@ -566,6 +696,24 @@ pub fn PersonDetail(id: String) -> Element {
                 }
             }
         }
+    }
+}
+
+fn valence_cls(v: i8) -> &'static str {
+    if v < 0 {
+        "v-neg"
+    } else if v > 0 {
+        "v-pos"
+    } else {
+        "v-zero"
+    }
+}
+
+fn fmt_valence(v: i8) -> String {
+    if v > 0 {
+        format!("+{v}")
+    } else {
+        v.to_string()
     }
 }
 

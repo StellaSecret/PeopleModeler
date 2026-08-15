@@ -292,11 +292,40 @@ mod tests {
             id: "e1".into(),
             timestamp: 1000,
             text: "Discussed project goals".into(),
+            valence: Some(2),
+            trigger: Some(BehaviorTrigger::Success),
+            target_id: Some("p2".into()),
         };
         let json = serde_json::to_string(&entry).unwrap();
         let back: InteractionEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(entry.id, back.id);
         assert_eq!(entry.text, back.text);
+        assert_eq!(entry.valence, back.valence);
+        assert_eq!(entry.trigger, back.trigger);
+        assert_eq!(entry.target_id, back.target_id);
+    }
+
+    #[test]
+    fn test_interaction_entry_backcompat() {
+        let json = r#"{"id":"e1","timestamp":1000,"text":"old entry"}"#;
+        let e: InteractionEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(e.valence, None);
+        assert_eq!(e.trigger, None);
+        assert_eq!(e.target_id, None);
+        assert_eq!(e.text, "old entry");
+    }
+
+    #[test]
+    fn test_interaction_entry_valence_clamped() {
+        let json = r#"{"id":"e1","timestamp":1000,"text":"t","valence":99,"trigger":"Success","target_id":"p2"}"#;
+        let e: InteractionEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(e.valence, Some(3));
+        assert_eq!(e.trigger, Some(BehaviorTrigger::Success));
+        assert_eq!(e.target_id.as_deref(), Some("p2"));
+
+        let json = r#"{"id":"e2","timestamp":1000,"text":"t","valence":-99}"#;
+        let e: InteractionEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(e.valence, Some(-3));
     }
 
     #[test]

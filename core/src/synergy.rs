@@ -22,6 +22,32 @@ pub struct SynergyBreakdown {
     /// Width of the confidence band (± points) from relationship strength or
     /// profile confidence. 0 = no banding (legacy behavior).
     pub band: u8,
+    /// Directional delta (± points) from the interaction trajectory.
+    pub trajectory_delta: i8,
+    /// Trajectory trend from logged interactions.
+    pub trajectory_trend: Trend,
+    /// Number of logged interactions that fed the trajectory (0 = no signal).
+    pub trajectory_sample: usize,
+}
+
+/// Direction of the interaction trajectory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub enum Trend {
+    Improving,
+    Stable,
+    Deteriorating,
+}
+
+/// Interaction trajectory of a pair (or of a single person).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Trajectory {
+    /// Directional delta in ±points (level * 10, clamped to ±10).
+    pub delta: i8,
+    pub trend: Trend,
+    /// Number of valence-tagged entries that fed the trajectory.
+    pub sample: usize,
+    /// Recency-weighted recent balance in [-1, 1].
+    pub level: f64,
 }
 
 /// Relationship context that makes the synergy score relationship-aware.
@@ -64,6 +90,105 @@ pub fn confidence_band(conf: u8) -> u8 {
         5..=7 => 8,
         _ => 4,
     }
+}
+
+/// Valence decay half-life for trajectory recency weighting (30 days).
+const TRAJ_HALF_LIFE_MS: f64 = 30.0 * 24.0 * 3600.0 * 1000.0;
+
+fn trajectory_from(entries: &[&crate::models::InteractionEntry]) -> Trajectory {
+    let dated: Vec<&crate::models::InteractionEntry> = entries
+        .iter()
+        .filter(|e| e.valence.is_some())
+        .copied()
+        .collect();
+    let sample = dated.len();
+    if sample == 0 {
+        return Trajectory {
+            delta: 0,
+            trend: Trend::Stable,
+            sample: 0,
+            level: 0.0,
+        };
+    }
+
+    let t_max = dated.iter().map(|e| e.timestamp).max().unwrap_or(0) as f64;
+    let mut w_sum = 0.0;
+    let mut v_sum = 0.0;
+    for e in &dated {
+        let v = e.valence.unwrap() as f64 / 3.0;
+        let age = (t_max - e.timestamp as f64).max(0.0);
+        let w = (-age / TRAJ_HALF_LIFE_MS).exp();
+        v_sum += v * w;
+        w_sum += w;
+    }
+    let level = if w_sum > 0.0 {
+        (v_sum / w_sum).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    };
+
+    let trend = if sample >= 4 {
+        let mut sorted: Vec<&crate::models::InteractionEntry> = dated.clone();
+        sorted.sort_by_key(|e| e.timestamp);
+        let mid = sorted.len() / 2;
+        let early: f64 = sorted[..mid]
+            .iter()
+            .map(|e| e.valence.unwrap() as f64 / 3.0)
+            .sum::<f64>()
+            / mid as f64;
+        let recent: f64 = sorted[mid..]
+            .iter()
+            .map(|e| e.valence.unwrap() as f64 / 3.0)
+            .sum::<f64>()
+            / (sorted.len() - mid) as f64;
+        let momentum = recent - early;
+        if momentum > 0.25 {
+            Trend::Improving
+        } else if momentum < -0.25 {
+            Trend::Deteriorating
+        } else if level > 0.5 {
+            Trend::Improving
+        } else if level < -0.5 {
+            Trend::Deteriorating
+        } else {
+            Trend::Stable
+        }
+    } else if level > 0.5 {
+        Trend::Improving
+    } else if level < -0.5 {
+        Trend::Deteriorating
+    } else {
+        Trend::Stable
+    };
+
+    Trajectory {
+        delta: ((level * 10.0).round() as i8).clamp(-10, 10),
+        trend,
+        sample,
+        level,
+    }
+}
+
+/// Pair trajectory: only interactions between the two persons count.
+pub fn pair_trajectory(a: &Person, b: &Person) -> Trajectory {
+    let mut entries: Vec<&crate::models::InteractionEntry> = Vec::new();
+    entries.extend(
+        a.log
+            .iter()
+            .filter(|e| e.target_id.as_deref() == Some(&*b.id)),
+    );
+    entries.extend(
+        b.log
+            .iter()
+            .filter(|e| e.target_id.as_deref() == Some(&*a.id)),
+    );
+    trajectory_from(&entries)
+}
+
+/// Personal trajectory: all of the person's own logged interactions.
+pub fn personal_trajectory(p: &Person) -> Trajectory {
+    let entries: Vec<&crate::models::InteractionEntry> = p.log.iter().collect();
+    trajectory_from(&entries)
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -800,6 +925,8 @@ fn compute_synergy_score_inner(
         None => 0,
     };
 
+    let traj = pair_trajectory(a, b);
+
     SynergyBreakdown {
         total: mutual,
         a_score,
@@ -814,6 +941,9 @@ fn compute_synergy_score_inner(
         bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
         danger_details,
         band,
+        trajectory_delta: traj.delta,
+        trajectory_trend: traj.trend,
+        trajectory_sample: traj.sample,
     }
 }
 
@@ -4483,6 +4613,138 @@ mod tests {
         let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
         let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
         assert_eq!(brk.band, 0, "no relationship context keeps legacy band 0");
+    }
+
+    fn log_entry(ts: i64, valence: i8, target: Option<&str>) -> InteractionEntry {
+        InteractionEntry {
+            id: format!("e{ts}-{valence}"),
+            timestamp: ts,
+            text: String::new(),
+            valence: Some(valence),
+            trigger: None,
+            target_id: target.map(|s| s.to_string()),
+        }
+    }
+
+    #[test]
+    fn test_trajectory_empty() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        let mut b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        b.id = "b".into();
+        let t = pair_trajectory(&a, &b);
+        assert_eq!(t.sample, 0);
+        assert_eq!(t.delta, 0);
+        assert_eq!(t.trend, Trend::Stable);
+    }
+
+    #[test]
+    fn test_trajectory_positive_improving() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        a.log = vec![
+            log_entry(1000, 3, None),
+            log_entry(2000, 2, None),
+            log_entry(3000, 1, None),
+        ];
+        let t = personal_trajectory(&a);
+        assert_eq!(t.sample, 3);
+        assert_eq!(t.trend, Trend::Improving);
+        assert!(t.delta > 0, "positive log must yield a positive delta");
+        assert!(t.level > 0.5);
+    }
+
+    #[test]
+    fn test_trajectory_negative_deteriorating() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        a.log = vec![
+            log_entry(1000, -1, None),
+            log_entry(2000, -2, None),
+            log_entry(3000, -3, None),
+        ];
+        let t = personal_trajectory(&a);
+        assert_eq!(t.trend, Trend::Deteriorating);
+        assert!(t.delta < 0, "negative log must yield a negative delta");
+    }
+
+    #[test]
+    fn test_trajectory_recency_dominates() {
+        let day = 86_400_000i64;
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        a.log = vec![
+            log_entry(0, -3, None),
+            log_entry(30 * day, -3, None),
+            log_entry(59 * day, 2, None),
+            log_entry(60 * day, 3, None),
+        ];
+        let t = personal_trajectory(&a);
+        assert_eq!(
+            t.trend,
+            Trend::Improving,
+            "recent positives dominate stale negatives"
+        );
+        assert!(t.level > 0.0);
+    }
+
+    #[test]
+    fn test_trajectory_momentum_flips_trend() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        a.log = vec![
+            log_entry(1000, 3, None),
+            log_entry(2000, 3, None),
+            log_entry(3000, -3, None),
+            log_entry(4000, -3, None),
+        ];
+        let t = personal_trajectory(&a);
+        assert_eq!(
+            t.trend,
+            Trend::Deteriorating,
+            "recent half flips an earlier-good run"
+        );
+    }
+
+    #[test]
+    fn test_pair_trajectory_filters_by_target() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        let mut b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        b.id = "b".into();
+        a.log = vec![
+            log_entry(1000, 2, Some("b")),
+            log_entry(2000, 3, Some("b")),
+            log_entry(3000, -3, Some("c")),
+        ];
+        b.log = vec![log_entry(1500, 1, Some("a"))];
+        let t = pair_trajectory(&a, &b);
+        assert_eq!(t.sample, 3, "only entries targeting the other person count");
+        assert!(t.delta > 0, "pair trajectory should be positive");
+    }
+
+    #[test]
+    fn test_breakdown_carries_trajectory_without_moving_total() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        let mut b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        b.id = "b".into();
+
+        let baseline = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+
+        a.log = vec![
+            log_entry(1000, 2, Some("b")),
+            log_entry(2000, 3, Some("b")),
+            log_entry(3000, 1, Some("b")),
+        ];
+        let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        assert_eq!(
+            brk.total, baseline.total,
+            "logged interactions must not move the static point score"
+        );
+        assert_eq!(brk.trajectory_sample, 3);
+        assert_eq!(brk.trajectory_trend, Trend::Improving);
+        assert!(brk.trajectory_delta > 0);
     }
 
     #[test]

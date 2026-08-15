@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person, RelationType};
 
 use peoplemodeler_core::synergy::{
-    compute_synergy_score_ctx, compute_synergy_score_with_preds, RelContext, synergy_bands,
+    compute_synergy_score_ctx, compute_synergy_score_with_preds, RelContext, Trend, synergy_bands,
 };
 
 use crate::db;
@@ -121,6 +121,30 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             };
             let rel_cl = core_lang(lang());
 
+            let trend_label = match brk.trajectory_trend {
+                Trend::Improving => crate::i18n::tr("trend_improving", lang()),
+                Trend::Stable => crate::i18n::tr("trend_stable", lang()),
+                Trend::Deteriorating => crate::i18n::tr("trend_deteriorating", lang()),
+            };
+            let trend_cls = match brk.trajectory_trend {
+                Trend::Improving => "trend-up",
+                Trend::Stable => "trend-flat",
+                Trend::Deteriorating => "trend-down",
+            };
+            let trend_arrow = match brk.trajectory_trend {
+                Trend::Improving => "↑",
+                Trend::Stable => "→",
+                Trend::Deteriorating => "↓",
+            };
+            let trend_delta = if brk.trajectory_delta > 0 {
+                format!("+{}", brk.trajectory_delta)
+            } else if brk.trajectory_delta < 0 {
+                format!("{}", brk.trajectory_delta)
+            } else {
+                String::new()
+            };
+            let trend_hint = crate::i18n::tr("trend_hint", lang());
+
             // Scale ruler — thresholds dynamically derived from sim formula
             let band_ranges = synergy_bands();
             let band_meta: [(&str, &str); 5] = [
@@ -236,6 +260,16 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                         }
                                         if !band_label.is_empty() {
                                             div { class: "scale-band-hint", "{band_label}" }
+                                        }
+                                        if brk.trajectory_sample > 0 {
+                                            div { class: "trend-chip {trend_cls}", title: "{trend_hint}",
+                                                span { class: "trend-arrow", "{trend_arrow}" }
+                                                span { class: "trend-text", "{trend_label}"
+                                                    if !trend_delta.is_empty() {
+                                                        " {trend_delta}"
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }

@@ -127,3 +127,28 @@ export async function setConfidence(page: Page, conf: number) {
   const fieldset = page.locator('fieldset.reliability');
   await fieldset.locator('input[type="range"]').fill(String(conf));
 }
+
+export async function openLogTab(page: Page) {
+  await page.getByRole('tab', { name: /Log/ }).click();
+  await page.waitForTimeout(300);
+}
+
+export async function addLogEntry(
+  page: Page,
+  text: string,
+  opts: { valence?: number; trigger?: string; target?: string } = {},
+) {
+  if (opts.valence !== undefined) {
+    const label = opts.valence > 0 ? `+${opts.valence}` : String(opts.valence);
+    await page.locator(`.valence-btn:text-is("${label}")`).click();
+  }
+  if (opts.trigger !== undefined) {
+    await page.locator('.log-trigger-select').selectOption(opts.trigger);
+  }
+  if (opts.target !== undefined) {
+    await page.locator('.log-target-select').selectOption(opts.target);
+  }
+  await page.getByLabel('New log entry').fill(text);
+  await page.getByRole('button', { name: 'Add entry' }).click();
+  await page.waitForTimeout(300);
+}

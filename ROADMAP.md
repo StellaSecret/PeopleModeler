@@ -94,20 +94,22 @@ years of evidence. The 0–100 scalar invites false precision.
 
 ---
 
-## Phase 3 — Temporal layer
+## Phase 3 — Temporal layer ✅ DONE
 
 **Goal:** the model says *how good the fit is now and which way it's moving*.
 
-**Why:** `Person.log[]` (`InteractionEntry { id, timestamp, text }`) is append-only
-free text — stored, never analyzed. Nothing models escalation, drift, or recovery.
+**Why:** `Person.log[]` (`InteractionEntry { id, timestamp, text }`) was append-only
+free text — stored, never analyzed. Nothing modeled escalation, drift, or recovery.
 
-**Steps**
-- Restructure `InteractionEntry` into a typed event: `{ timestamp, event_type, valence: -3..+3, trigger? }` with serde back-compat to old free-text.
-- New per-pair score `trajectory(a, b, log)` → `[-1, +1]`: recent weighted valence (recency-decayed), slope over time.
-- Fold into Phase 1 output as a directional delta: `total ± trajectory_delta`, plus a `Trend` chip (↑ improving / → stable / ↓ deteriorating).
-- Keep `resolved_at` predictions as an independent calibration signal.
+**Shipped**
+- `InteractionEntry` now a typed event: `{ id, timestamp, text, valence: Option<i8> (-3..+3), trigger: Option<BehaviorTrigger>, target_id: Option<String> }` with `#[serde(default)]` back-compat (legacy free-text entries load unchanged, no migration).
+- `trajectory_from(log, t)` → recency-decayed (30-day half-life) `Trajectory { delta: i8, trend: Trend, sample: usize, level: f32 }`. With ≥4 samples, momentum = recent-half minus early-half mean, clamped to `[-1, 1]`, weighted 0.55/0.45 vs level; `<4` samples use level alone.
+- Per-pair `pair_trajectory(a, b, log)` — entries routed via `target_id` — and `personal_trajectory(p)`.
+- Folded into Phase 1 output as a directional delta: `SynergyBreakdown` gains `trajectory_delta: i8`, `trajectory_trend: Trend`, `trajectory_sample: usize`. **The static point total does not move.**
+- `Trend` chip (↑ improving / → stable / ↓ deteriorating) on Compare page (when `trajectory_sample > 0`) and a personal trend chip in the Log tab header.
+- Log tab input: valence button row (−3…+3), trigger select (BehaviorTrigger + emoji), target select (other persons); per-entry valence/trigger/target badges.
 
-**Acceptance:** entering a few logged interactions shifts the displayed trend without changing the static point score.
+**Acceptance (passes):** entering a few logged interactions shifts the displayed trend without changing the static point score. Verified by `test_trajectory_*`, `test_pair_trajectory_filters_by_target`, `test_breakdown_carries_trajectory_without_moving_total`, `test_interaction_entry_backcompat`.
 
 ---
 
@@ -218,10 +220,11 @@ exists — insights "team" context is a single-person template.
 ## Suggested sequencing
 
 ```
-v1.x  Phase 1 (relationship context)          ← do first
-v1.y  Phase 2 (confidence bands)              ← depends on 1.5, small
-v1.z  Phase 9a (config extraction)            ← pure refactor, unblocks tuning
-v2.x  Phase 4 (context output) + Phase 3 (time)
+v1.x  Phase 1 (relationship context)          ✅ done
+v1.y  Phase 2 (confidence bands)              ✅ done
+v1.z  Phase 3 (temporal layer)                ✅ done
+v2.0  Phase 9a (config extraction)            ← next, pure refactor, unblocks tuning
+v2.x  Phase 4 (context output)
 v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)
 v3.x  Phase 6 (values) + Phase 7 (coaching)
 v3.y  Phase 9b (team aggregation)

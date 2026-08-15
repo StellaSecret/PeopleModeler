@@ -38,6 +38,11 @@ pub fn clamp_u8_opt_1_10<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u8>, 
     Ok(v.map(|x| x.clamp(1, 10)))
 }
 
+pub fn clamp_i8_opt_neg3_3<'de, D: Deserializer<'de>>(d: D) -> Result<Option<i8>, D::Error> {
+    let v = Option::<i8>::deserialize(d)?;
+    Ok(v.map(|x| x.clamp(-3, 3)))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RepDim {
     #[serde(alias = "HARDWORKER_LAZY")]
@@ -784,7 +789,21 @@ pub struct Prediction {
 pub struct InteractionEntry {
     pub id: String,
     pub timestamp: i64,
+    #[serde(default)]
     pub text: String,
+    /// Valence of the interaction on -3..+3. `None` for legacy free-text entries.
+    #[serde(
+        default,
+        deserialize_with = "clamp_i8_opt_neg3_3",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub valence: Option<i8>,
+    /// Trigger context of the interaction.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trigger: Option<BehaviorTrigger>,
+    /// The other person this interaction is about. `None` = self-observation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
