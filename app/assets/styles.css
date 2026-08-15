@@ -561,6 +561,14 @@ fieldset.ocean-inputs legend{
 .scale-band-hero.scale-strong{color:var(--score-strong)}
 .scale-score{font-size:2rem;font-weight:800;font-family:var(--font-display);color:var(--text);line-height:1}
 .scale-range{font-size:0.55rem;color:var(--text-muted);font-family:var(--font-mono);text-align:center;margin-top:0.05rem}
+.scale-band-hint{font-size:0.62rem;color:var(--text-muted);font-family:var(--font-mono);text-align:center;margin-top:0.1rem;border:1px dashed var(--border);border-radius:99px;padding:0.1rem 0.4rem;width:max-content;align-self:center}
+.rel-context-box{margin:0.4rem 0 0.6rem;padding:0.5rem 0.6rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);display:flex;flex-direction:column;gap:0.35rem}
+.rel-context-title{font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)}
+.rel-context-row{display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap}
+.rel-context-row select{flex:1;min-width:120px;padding:0.35rem 0.5rem;border:1px solid var(--border);border-radius:var(--radius);font-size:0.75rem;font-family:var(--font-body);background:var(--bg);color:var(--text);outline:none}
+.rel-context-row select:focus{border-color:var(--cyan)}
+.rel-strength{font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap}
+.rel-context-row input[type="range"]{flex:1;min-width:80px;accent-color:var(--cyan)}
 .scale-ruler{width:100%;margin-top:0.1rem}
 .scale-bar{position:relative;display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--surface)}
 .scale-band.active{filter:brightness(1.4)}
@@ -707,6 +715,9 @@ fieldset.ocean-inputs legend{
 .rel-edit-row select{flex:1;min-width:80px}
 .rel-edit-row input{flex:1;min-width:100px}
 .rel-direction{color:var(--text-muted);font-size:0.82rem;font-weight:600}
+.rel-strength-label{font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap}
+.rel-strength-slider{flex:1;min-width:100px;accent-color:var(--cyan)}
+.rel-strength-badge{font-size:0.68rem;color:var(--text-muted);font-family:var(--font-mono);border:1px solid var(--border);border-radius:99px;padding:0.05rem 0.45rem;white-space:nowrap}
 .rel-confirm-delete{display:flex;align-items:center;gap:0.35rem}
 .rel-person-actions{display:flex;align-items:center;gap:0.25rem;margin-left:auto}
 

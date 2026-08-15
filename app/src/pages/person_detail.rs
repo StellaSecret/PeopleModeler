@@ -72,6 +72,7 @@ pub fn PersonDetail(id: String) -> Element {
             let rel_none = crate::i18n::tr("rel_none", lang());
             let rel_title = crate::i18n::tr("rel_title", lang());
             let rel_notes = crate::i18n::tr("rel_notes", lang());
+            let rel_strength = crate::i18n::tr("rel_strength", lang());
             let rel_confirm_delete = crate::i18n::tr("rel_confirm_delete", lang());
             let rel_open_add = crate::i18n::tr("rel_open_add", lang());
             let rel_close_add = crate::i18n::tr("rel_close_add", lang());
@@ -547,7 +548,7 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     if tab() == Tab::Relationships {
-                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title, rel_notes, rel_confirm_delete, rel_open_add, rel_close_add, rel_search_placeholder, common_add, common_save, common_cancel, common_edit, common_delete }
+                        RelationshipSection { person: person.clone(), person_id: id.clone(), rel_person_rel, rel_none, rel_title, rel_notes, rel_strength, rel_confirm_delete, rel_open_add, rel_close_add, rel_search_placeholder, common_add, common_save, common_cancel, common_edit, common_delete }
                     }
 
                     Link { to: Route::PersonEdit { id: id.clone() }, class: "fab", aria_label: "{common_edit}", "✏" }
@@ -736,6 +737,7 @@ fn RelationshipSection(
     rel_none: String,
     rel_title: String,
     rel_notes: String,
+    rel_strength: String,
     rel_confirm_delete: String,
     rel_open_add: String,
     rel_close_add: String,
@@ -767,11 +769,13 @@ fn RelationshipSection(
     let mut selected_ids = use_signal(std::collections::HashSet::<String>::new);
     let mut new_type = use_signal(|| RelationType::WorksWith);
     let mut new_notes = use_signal(String::new);
+    let mut new_strength = use_signal(|| 5u8);
 
     // Edit
     let mut editing_id = use_signal(String::new);
     let mut edit_type = use_signal(|| RelationType::WorksWith);
     let mut edit_notes = use_signal(String::new);
+    let mut edit_strength = use_signal(|| 5u8);
 
     // Delete
     let mut confirm_del = use_signal(String::new);
@@ -793,6 +797,7 @@ fn RelationshipSection(
                 source_id: pid.clone(),
                 target_id: target,
                 r#type: rel_type,
+                strength: new_strength(),
                 notes: notes.clone(),
                 created_at: chrono::Utc::now().timestamp_millis(),
             };
@@ -807,6 +812,7 @@ fn RelationshipSection(
         selected_ids.set(std::collections::HashSet::new());
         new_type.set(RelationType::WorksWith);
         new_notes.set(String::new());
+        new_strength.set(5);
         adding.set(false);
     };
 
@@ -815,6 +821,7 @@ fn RelationshipSection(
             editing_id.set(rel_id);
             edit_type.set(rel.r#type);
             edit_notes.set(rel.notes.clone());
+            edit_strength.set(rel.strength);
         }
     };
 
@@ -827,6 +834,7 @@ fn RelationshipSection(
             let mut updated = rel.clone();
             updated.r#type = edit_type();
             updated.notes = edit_notes();
+            updated.strength = edit_strength();
             db::save_relationship(&updated).unwrap_or_else(|e| {
                 toast_sig.set(Some(format!(
                     "{}: {e}",
@@ -922,6 +930,17 @@ fn RelationshipSection(
                                                                 option { value: "{rt:?}", "{rt.label(cl)}" }
                                 }
                             }
+                            span { class: "rel-strength-label", "{rel_strength}: {new_strength}/10" }
+                            input {
+                                class: "rel-strength-slider",
+                                r#type: "range", min: "1", max: "10", step: "1",
+                                value: "{new_strength}",
+                                oninput: move |e| {
+                                    if let Ok(v) = e.value().parse::<u8>() {
+                                        new_strength.set(v.clamp(1, 10));
+                                    }
+                                },
+                            }
                             input {
                                 class: "rel-notes-input",
                                 placeholder: "{rel_notes}",
@@ -976,6 +995,15 @@ fn RelationshipSection(
                                                             }
                                                         }
                                                         input {
+                                                            r#type: "range", min: "1", max: "10", step: "1",
+                                                            value: "{edit_strength}",
+                                                            oninput: move |e| {
+                                                                if let Ok(v) = e.value().parse::<u8>() {
+                                                                    edit_strength.set(v.clamp(1, 10));
+                                                                }
+                                                            },
+                                                        }
+                                                        input {
                                                             value: "{edit_notes}",
                                                             oninput: move |e| edit_notes.set(e.value()),
                                                         }
@@ -1002,6 +1030,16 @@ fn RelationshipSection(
                                                     }
 
                                                     span { class: "rel-direction", if *is_outgoing { "→" } else { "←" } }
+
+                                                    {if let Some(rel) = all_rels().iter().find(|r| r.id == rid) {
+                                                        rsx! {
+                                                            span { class: "rel-strength-badge", title: "{rel_strength}",
+                                                                "♥ {rel.strength}/10"
+                                                            }
+                                                        }
+                                                    } else {
+                                                        rsx! {}
+                                                    }}
 
                                                     if confirm_del() == rid {
                                                         span { class: "rel-confirm-delete",
@@ -1067,6 +1105,7 @@ mod tests {
             source_id: source.to_string(),
             target_id: target.to_string(),
             r#type,
+            strength: 5,
             notes: String::new(),
             created_at: 0,
         }

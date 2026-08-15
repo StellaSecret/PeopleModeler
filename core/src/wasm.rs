@@ -1,8 +1,9 @@
 use crate::i18n;
 use crate::insights::{self, InsightContext};
-use crate::models::{OceanScores, Person, Prediction};
+use crate::models::{OceanScores, Person, Prediction, RelationType};
 use crate::ocean;
 use crate::predictions;
+use crate::synergy::{RelContext, compute_synergy_score_ctx};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -42,6 +43,40 @@ pub fn suggest_prediction(person_json: &str, context: &str) -> String {
 pub fn calc_accuracy(predictions_json: &str) -> f64 {
     let preds: Vec<Prediction> = serde_json::from_str(predictions_json).unwrap_or_default();
     crate::predictions::prediction_accuracy_score(&preds)
+}
+
+/// Relationship-aware synergy, JSON in/out. `rel_type` is empty or invalid to
+/// fall back to the relationship-blind score (band = 0).
+#[wasm_bindgen]
+pub fn compute_synergy_with_rel(
+    a_json: &str,
+    b_json: &str,
+    rel_type: &str,
+    strength: u8,
+) -> String {
+    let (Ok(a), Ok(b)) = (
+        serde_json::from_str::<Person>(a_json),
+        serde_json::from_str::<Person>(b_json),
+    ) else {
+        return "Invalid person data".into();
+    };
+    let rel = match rel_type {
+        "WorksWith" => Some(RelationType::WorksWith),
+        "Manages" => Some(RelationType::Manages),
+        "ReportsTo" => Some(RelationType::ReportsTo),
+        "Friends" => Some(RelationType::Friends),
+        "Family" => Some(RelationType::Family),
+        "Partner" => Some(RelationType::Partner),
+        "Mentors" => Some(RelationType::Mentors),
+        "Collaborates" => Some(RelationType::Collaborates),
+        _ => None,
+    };
+    let ctx = rel.map(|rtype| RelContext {
+        rtype,
+        strength: strength.clamp(1, 10),
+    });
+    let brk = compute_synergy_score_ctx(&a, &b, ctx.as_ref(), &[], &[]);
+    serde_json::to_string(&brk).unwrap_or_else(|_| "{}".into())
 }
 
 #[wasm_bindgen]
@@ -453,5 +488,38 @@ mod tests {
             "should return error msg, got: {}",
             result
         );
+    }
+
+    // --- compute_synergy_with_rel ---
+
+    #[test]
+    fn test_compute_synergy_with_rel_invalid_person() {
+        let result = compute_synergy_with_rel("bad", "json", "Friends", 5);
+        assert!(
+            result.contains("Invalid"),
+            "bad person json should be rejected, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_compute_synergy_with_rel_json_output() {
+        let json = demo_person_json();
+        let result = compute_synergy_with_rel(&json, &json, "Manages", 3);
+        let v: serde_json::Value = serde_json::from_str(&result).expect("valid JSON output");
+        assert!(v["total"].is_number(), "total missing");
+        assert_eq!(v["band"], 12, "strength 3 → band 12");
+        assert_eq!(
+            v["a_score"], v["b_score"],
+            "identical persons → equal scores"
+        );
+    }
+
+    #[test]
+    fn test_compute_synergy_with_rel_invalid_type_falls_back() {
+        let json = demo_person_json();
+        let result = compute_synergy_with_rel(&json, &json, "Nonsense", 9);
+        let v: serde_json::Value = serde_json::from_str(&result).expect("valid JSON output");
+        assert_eq!(v["band"], 0, "no recognized type → no banding");
     }
 }

@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import {
   clearStorage,
   createPerson,
+  addRelationship,
   setOcean,
   addPattern,
   addMotivation,
@@ -175,5 +176,61 @@ test.describe('Compare — Advanced Synergy', () => {
     await expect(page.locator('.breakdown-bars')).toBeVisible();
     await expect(page.locator('.analysis-card.synergy')).toBeVisible();
     await expect(page.locator('.compatibility-score')).toBeVisible();
+  });
+
+  test('relationship selector renders, general context shows no band', async ({
+    page,
+  }) => {
+    const id1 = await createPerson(page, 'Alice');
+    const id2 = await createPerson(page, 'Bob');
+
+    await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.rel-context-box')).toBeVisible();
+    await expect(page.locator('.rel-context-row select')).toHaveValue('none');
+    await expect(
+      page.locator('.rel-context-row input[type="range"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('.scale-band-hint')).toHaveCount(0);
+  });
+
+  test('relationship context shows strength slider and widens band at low strength', async ({
+    page,
+  }) => {
+    const id1 = await createPerson(page, 'Alice');
+    const id2 = await createPerson(page, 'Bob');
+
+    await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);
+    await page.waitForTimeout(500);
+
+    await page.locator('.rel-context-row select').selectOption('Friends');
+    await expect(
+      page.locator('.rel-context-row input[type="range"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('.scale-band-hint')).toContainText('±8%');
+
+    await page.locator('.rel-context-row input[type="range"]').fill('2');
+    await expect(page.locator('.scale-band-hint')).toContainText('±12%');
+  });
+
+  test('compare prefills type and strength from an existing relationship', async ({
+    page,
+  }) => {
+    const id1 = await createPerson(page, 'Alice');
+    const id2 = await createPerson(page, 'Bob');
+
+    await page.goto(`/PeopleModeler/person/${id1}`);
+    await page.waitForTimeout(500);
+    await addRelationship(page, 'Bob', 'WorksWith', 2);
+
+    await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.rel-context-row select')).toHaveValue(
+      'WorksWith',
+    );
+    await expect(page.locator('.rel-strength')).toContainText('Strength: 2/10');
+    await expect(page.locator('.scale-band-hint')).toContainText('±12%');
   });
 });

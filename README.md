@@ -713,6 +713,38 @@ historical_penalty =
   0.00 otherwise
 ```
 
+#### 7b. Relationship Context (Phase 1)
+
+The pairwise score is **relationship-blind by default**. Passing a
+`RelContext { rtype, strength }` makes it relationship-aware:
+
+**Per-type weight profiles** — each `RelationType` carries its own 6-bucket
+weights (all rows sum to 1.0, fed through the same dynamic-redistribution path):
+
+| RelationType | OCEAN | Rep | Mot | Patterns | Bias | Styles |
+|---|---|---|---|---|---|---|
+| WorksWith | 0.20 | 0.28 | 0.16 | 0.16 | 0.12 | 0.08 |
+| Collaborates | 0.18 | 0.28 | 0.16 | 0.16 | 0.13 | 0.09 |
+| Manages / ReportsTo | 0.15 | 0.30 | 0.15 | 0.18 | 0.13 | 0.09 |
+| Friends | 0.18 | 0.18 | 0.20 | 0.12 | 0.12 | 0.20 |
+| Family | 0.14 | 0.22 | 0.24 | 0.12 | 0.12 | 0.16 |
+| Partner | 0.16 | 0.20 | 0.22 | 0.14 | 0.10 | 0.18 |
+| Mentors | 0.20 | 0.18 | 0.20 | 0.14 | 0.12 | 0.16 |
+
+**Directional asymmetry** — only for `Manages` / `ReportsTo` / `Mentors`:
+
+```
+Power friction:  subordinate or mentee has Power motivation ≥ 7 → motivation bucket −0.08
+Hierarchy bonus: boss rep Authoritative-Submissive > report's by ≥ 4 → rep bucket +0.04
+```
+
+**Strength banding** — `strength` never moves the point score; it widens the
+reported confidence band (± points): 1–4 → ±12, 5–7 → ±8, 8–10 → ±4. Without a
+context the band is 0 (legacy display).
+
+The compare page exposes a relationship selector (type + strength) and pre-fills
+from an existing `Relationship` row between the two ids.
+
 #### Final Aggregation (dynamic weights)
 
 The base score (compatibility categories) and asymmetric scores use

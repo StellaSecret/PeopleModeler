@@ -647,6 +647,7 @@ mod tests {
             source_id: "src-1".into(),
             target_id: "tgt-1".into(),
             r#type: RelationType::WorksWith,
+            strength: 5,
             notes: String::new(),
             created_at: 400,
         }

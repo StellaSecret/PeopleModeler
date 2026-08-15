@@ -863,8 +863,14 @@ pub struct Relationship {
     pub source_id: String,
     pub target_id: String,
     pub r#type: RelationType,
+    #[serde(default = "default_strength", deserialize_with = "clamp_u8_1_10")]
+    pub strength: u8,
     pub notes: String,
     pub created_at: i64,
+}
+
+fn default_strength() -> u8 {
+    5
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

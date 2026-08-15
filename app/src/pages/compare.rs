@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
-use peoplemodeler_core::models::{BehaviorTrigger, Person};
+use peoplemodeler_core::models::{BehaviorTrigger, Person, RelationType};
 
-use peoplemodeler_core::synergy::{compute_synergy_score_with_preds, synergy_bands};
+use peoplemodeler_core::synergy::{
+    compute_synergy_score_ctx, compute_synergy_score_with_preds, RelContext, synergy_bands,
+};
 
 use crate::db;
 use crate::i18n::Lang;
@@ -13,12 +15,28 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     }
 }
 
+/// Prefill the relationship selector from an existing Relationship row between
+/// the two ids (either direction).
+fn prefill_rel(id1: &str, id2: &str) -> (Option<RelationType>, u8) {
+    for r in db::all_relationships() {
+        if (r.source_id == id1 && r.target_id == id2)
+            || (r.source_id == id2 && r.target_id == id1)
+        {
+            return (Some(r.r#type), r.strength);
+        }
+    }
+    (None, 5)
+}
+
 #[component]
 pub fn ComparePersons(id1: String, id2: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let nav = use_navigator();
     let p1 = use_signal(|| db::person(&id1));
     let p2 = use_signal(|| db::person(&id2));
+    let (prefill_type, prefill_strength) = prefill_rel(&id1, &id2);
+    let mut rel_type: Signal<Option<RelationType>> = use_signal(|| prefill_type);
+    let mut rel_strength: Signal<u8> = use_signal(|| prefill_strength);
     let cl = core_lang(lang());
     let not_found = crate::i18n::tr("person_not_found", lang());
     let compare_title = crate::i18n::tr("compare_title", lang());
@@ -30,7 +48,14 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let b_flags = peoplemodeler_core::validation::all_person_flags(&b);
             let a_preds = db::predictions_for_person(&a.id);
             let b_preds = db::predictions_for_person(&b.id);
-            let brk = compute_synergy_score_with_preds(&a, &b, &a_preds, &b_preds);
+            let ctx = rel_type().map(|rtype| RelContext {
+                rtype,
+                strength: rel_strength().clamp(1, 10),
+            });
+            let brk = match &ctx {
+                Some(rc) => compute_synergy_score_ctx(&a, &b, Some(rc), &a_preds, &b_preds),
+                None => compute_synergy_score_with_preds(&a, &b, &a_preds, &b_preds),
+            };
             let score = brk.total;
             let na = a.name.clone();
             let nb = b.name.clone();
@@ -85,6 +110,16 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let strategy_title = crate::i18n::tr("compare_strategy", lang());
             let ethics = crate::i18n::tr("compare_ethics", lang());
             let has_extra_strategies = all_strategies.len() > 1;
+            let rel_title = crate::i18n::tr("compare_rel_title", lang());
+            let rel_none = crate::i18n::tr("compare_rel_none", lang());
+            let rel_strength_label = crate::i18n::tr("compare_rel_strength", lang());
+            let band_hint = crate::i18n::tr("compare_band_hint", lang());
+            let band_label = if brk.band > 0 {
+                band_hint.replacen("{}", &brk.band.to_string(), 1)
+            } else {
+                String::new()
+            };
+            let rel_cl = core_lang(lang());
 
             // Scale ruler — thresholds dynamically derived from sim formula
             let band_ranges = synergy_bands();
@@ -153,6 +188,42 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
                         div { class: "vs-divider",
                             div { class: "vs-text", "{compare_vs}" }
+                            div { class: "rel-context-box",
+                                div { class: "rel-context-title", "{rel_title}" }
+                                div { class: "rel-context-row",
+                                    select {
+                                        onchange: move |e| {
+                                            let v = e.value();
+                                            if v == "none" {
+                                                rel_type.set(None);
+                                            } else {
+                                                rel_type.set(RelationType::ALL.iter().find(|t| {
+                                                    format!("{t:?}") == v
+                                                }).copied());
+                                            }
+                                        },
+                                        option { value: "none", selected: rel_type().is_none(), "{rel_none}" }
+                                        {RelationType::ALL.iter().map(|rt| {
+                                            let is_sel = rel_type() == Some(*rt);
+                                            rsx! { option { value: "{rt:?}", selected: is_sel, "{rt.label(rel_cl)}" } }
+                                        })}
+                                    }
+                                    if rel_type().is_some() {
+                                        span { class: "rel-strength",
+                                            "{rel_strength_label}: {rel_strength}/10"
+                                        }
+                                        input {
+                                            r#type: "range", min: "1", max: "10", step: "1",
+                                            value: "{rel_strength}",
+                                            oninput: move |e| {
+                                                if let Ok(v) = e.value().parse::<u8>() {
+                                                    rel_strength.set(v.clamp(1, 10));
+                                                }
+                                            },
+                                        }
+                                    }
+                                }
+                            }
                             div { class: "compatibility-score",
                                 div { class: "scale-ruler-hero",
                                     div { class: "scale-band-hero {scale_bands[active_band].3}",
@@ -162,6 +233,9 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                         "{score}%"
                                         div { class: "scale-range",
                                             "{scale_bands[active_band].1}–{scale_bands[active_band].2}%"
+                                        }
+                                        if !band_label.is_empty() {
+                                            div { class: "scale-band-hint", "{band_label}" }
                                         }
                                     }
                                 }

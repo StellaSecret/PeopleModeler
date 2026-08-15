@@ -101,3 +101,20 @@ export async function enableAndSetRep(
   await slider.locator("label.dim-toggle input[type='checkbox']").check();
   await slider.locator('input[type="range"]').fill(String(value));
 }
+
+export async function addRelationship(
+  page: Page,
+  otherName: string,
+  type: string,
+  strength: number,
+) {
+  await page.locator('.rel-controls button').click();
+  await page.locator('.rel-autocomplete-input').fill(otherName);
+  await page
+    .locator(`.rel-person-check-row:has-text("${otherName}")`)
+    .click();
+  await page.locator('.rel-type-select').selectOption(type);
+  await page.locator('.rel-strength-slider').fill(String(strength));
+  await page.locator('.rel-add-actions button.btn-primary').click();
+  await page.waitForTimeout(300);
+}

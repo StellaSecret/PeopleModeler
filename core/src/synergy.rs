@@ -2,9 +2,10 @@ use std::collections::HashSet;
 
 use crate::models::{
     BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
-    Person, PersonalStyle, Prediction, RepDim,
+    Person, PersonalStyle, Prediction, RelationType, RepDim,
 };
 
+#[derive(serde::Serialize)]
 pub struct SynergyBreakdown {
     pub total: u8,
     pub a_score: u8,
@@ -18,6 +19,42 @@ pub struct SynergyBreakdown {
     pub danger: f64,
     pub bias_mod_active: bool,
     pub danger_details: String,
+    /// Width of the confidence band (± points) from relationship strength or
+    /// profile confidence. 0 = no banding (legacy behavior).
+    pub band: u8,
+}
+
+/// Relationship context that makes the synergy score relationship-aware.
+/// `None` preserves the legacy relationship-blind scoring.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RelContext {
+    pub rtype: RelationType,
+    pub strength: u8,
+}
+
+/// Per-relation-type bucket weights. All rows sum to 1.0 so the mutual score is
+/// directly comparable across contexts. The 6 buckets reuse the existing dynamic
+/// redistribution path (only the constants change).
+pub fn rel_weights(t: RelationType) -> (f64, f64, f64, f64, f64, f64) {
+    use RelationType::*;
+    match t {
+        WorksWith => (0.20, 0.28, 0.16, 0.16, 0.12, 0.08),
+        Collaborates => (0.18, 0.28, 0.16, 0.16, 0.13, 0.09),
+        Manages | ReportsTo => (0.15, 0.30, 0.15, 0.18, 0.13, 0.09),
+        Friends => (0.18, 0.18, 0.20, 0.12, 0.12, 0.20),
+        Family => (0.14, 0.22, 0.24, 0.12, 0.12, 0.16),
+        Partner => (0.16, 0.20, 0.22, 0.14, 0.10, 0.18),
+        Mentors => (0.20, 0.18, 0.20, 0.14, 0.12, 0.16),
+    }
+}
+
+/// Confidence band width (± points) from relationship strength (1-10).
+pub fn strength_band(strength: u8) -> u8 {
+    match strength {
+        1..=4 => 12,
+        5..=7 => 8,
+        _ => 4,
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -423,7 +460,7 @@ pub fn synergy_bands() -> [(u8, u8); 5] {
 }
 
 pub fn compute_synergy_score(a: &Person, b: &Person) -> SynergyBreakdown {
-    compute_synergy_score_inner(a, b, &[], &[])
+    compute_synergy_score_inner(a, b, None, &[], &[])
 }
 
 pub fn compute_synergy_score_with_preds(
@@ -432,12 +469,25 @@ pub fn compute_synergy_score_with_preds(
     a_preds: &[Prediction],
     b_preds: &[Prediction],
 ) -> SynergyBreakdown {
-    compute_synergy_score_inner(a, b, a_preds, b_preds)
+    compute_synergy_score_inner(a, b, None, a_preds, b_preds)
+}
+
+/// Relationship-aware synergy. `ctx = None` behaves exactly like the legacy
+/// `compute_synergy_score_with_preds`.
+pub fn compute_synergy_score_ctx(
+    a: &Person,
+    b: &Person,
+    ctx: Option<&RelContext>,
+    a_preds: &[Prediction],
+    b_preds: &[Prediction],
+) -> SynergyBreakdown {
+    compute_synergy_score_inner(a, b, ctx, a_preds, b_preds)
 }
 
 fn compute_synergy_score_inner(
     a: &Person,
     b: &Person,
+    ctx: Option<&RelContext>,
     a_preds: &[Prediction],
     b_preds: &[Prediction],
 ) -> SynergyBreakdown {
@@ -569,23 +619,54 @@ fn compute_synergy_score_inner(
 
     // Apply penalties + modulation
     let ocean = ((raw_ocean - ocean_penalty).max(0.0) * (1.0 + ocean_mod)).clamp(0.0, 1.0);
-    let reputation = ((raw_rep - rep_penalty).max(0.0) * (1.0 + rep_mod)).clamp(0.0, 1.0);
-    let motivation = (raw_mot * (1.0 + mot_mod)).clamp(0.0, 1.0);
+
+    // --- Relationship-aware modulations ---
+    // Power friction: a subordinate/mentee with high Power motivation chafes in
+    // a hierarchy. Hierarchy clarity bonus: a clearly senior authority signal
+    // (boss rep notably above the report's) reduces friction.
+    let mut rel_mot_mod = 0.0;
+    let mut rel_rep_bonus = 0.0;
+    if let Some(rel) = ctx {
+        let directional = match rel.rtype {
+            RelationType::Manages | RelationType::Mentors => Some((b, a)),
+            RelationType::ReportsTo => Some((a, b)),
+            _ => None,
+        };
+        if let Some((sub, boss)) = directional {
+            if sub
+                .motivations
+                .iter()
+                .any(|m| m.r#type == MotivationType::Power && m.intensity >= 7)
+            {
+                rel_mot_mod -= 0.08;
+            }
+            if let (Some(boss_rep), Some(sub_rep)) = (
+                boss.rep_scores.authoritative_submissive,
+                sub.rep_scores.authoritative_submissive,
+            ) && boss_rep as i16 - sub_rep as i16 > 3
+            {
+                rel_rep_bonus += 0.04;
+            }
+        }
+    }
+
+    let reputation =
+        ((raw_rep - rep_penalty).max(0.0) * (1.0 + rep_mod + rel_rep_bonus)).clamp(0.0, 1.0);
+    let motivation = (raw_mot * (1.0 + mot_mod + rel_mot_mod)).clamp(0.0, 1.0);
     let patterns = ((raw_pat - pat_danger_penalty).max(0.0) * (1.0 + pat_mod)).clamp(0.0, 1.0);
 
-    const W_HISTORY: f64 = 0.10;
-    let total_danger = ocean_penalty * W_OCEAN
-        + rep_penalty * W_REP
-        + pat_danger_penalty * W_PAT
-        + history_penalty * W_HISTORY;
+    // Dynamic weight redistribution (shared by mutual total & asymmetric).
+    // Without relationship context, the documented base weights apply.
+    let (w_ocean, w_rep, w_mot, w_pat, w_bias, w_style) = match ctx {
+        Some(rel) => rel_weights(rel.rtype),
+        None => (0.17, 0.26, 0.19, 0.14, 0.13, 0.11),
+    };
 
-    // Dynamic weight redistribution (shared by mutual total & asymmetric)
-    const W_OCEAN: f64 = 0.17;
-    const W_REP: f64 = 0.26;
-    const W_MOT: f64 = 0.19;
-    const W_PAT: f64 = 0.14;
-    const W_BIAS: f64 = 0.13;
-    const W_STYLE: f64 = 0.11;
+    const W_HISTORY: f64 = 0.10;
+    let total_danger = ocean_penalty * w_ocean
+        + rep_penalty * w_rep
+        + pat_danger_penalty * w_pat
+        + history_penalty * W_HISTORY;
 
     // --- Asymmetric individual perspectives ---
     // A's benefit = Σ(A's valuation_i × B's quality_i) via composition of
@@ -633,32 +714,33 @@ fn compute_synergy_score_inner(
     let mut a_raw = 0.0;
     let mut b_raw = 0.0;
     let mut asym_w = 0.0;
-    a_raw += a_ocean * W_OCEAN;
-    b_raw += b_ocean * W_OCEAN;
-    asym_w += W_OCEAN;
+    a_raw += a_ocean * w_ocean;
+    b_raw += b_ocean * w_ocean;
+    asym_w += w_ocean;
     if rep_active {
-        a_raw += b_base_rep * W_REP;
-        b_raw += a_base_rep * W_REP;
-        asym_w += W_REP;
+        let rep_boost = 1.0 + rel_rep_bonus;
+        a_raw += b_base_rep * w_rep * rep_boost;
+        b_raw += a_base_rep * w_rep * rep_boost;
+        asym_w += w_rep;
     }
     if mot_active {
-        a_raw += motivation * W_MOT;
-        b_raw += motivation * W_MOT;
-        asym_w += W_MOT;
+        a_raw += motivation * w_mot;
+        b_raw += motivation * w_mot;
+        asym_w += w_mot;
     }
     if pat_active {
-        a_raw += patterns * W_PAT;
-        b_raw += patterns * W_PAT;
-        asym_w += W_PAT;
+        a_raw += patterns * w_pat;
+        b_raw += patterns * w_pat;
+        asym_w += w_pat;
     }
-    a_raw += b_bias_quality * W_BIAS;
-    b_raw += a_bias_quality * W_BIAS;
-    asym_w += W_BIAS;
+    a_raw += b_bias_quality * w_bias;
+    b_raw += a_bias_quality * w_bias;
+    asym_w += w_bias;
 
     let styles = style_synergy(&a.styles, &b.styles);
-    a_raw += styles * W_STYLE;
-    b_raw += styles * W_STYLE;
-    asym_w += W_STYLE;
+    a_raw += styles * w_style;
+    b_raw += styles * w_style;
+    asym_w += w_style;
 
     let a_score = if asym_w > 0.0 {
         ((a_raw / asym_w * 100.0).round() as u8).min(100)
@@ -700,6 +782,11 @@ fn compute_synergy_score_inner(
         details.join(", ")
     };
 
+    let band = match ctx {
+        Some(rel) => strength_band(rel.strength),
+        None => 0,
+    };
+
     SynergyBreakdown {
         total: mutual,
         a_score,
@@ -713,6 +800,7 @@ fn compute_synergy_score_inner(
         danger: total_danger,
         bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
         danger_details,
+        band,
     }
 }
 
@@ -4160,5 +4248,148 @@ mod tests {
             "all 6 different → 0.5: {}",
             result
         );
+    }
+
+    // --- relationship context (Phase 1) tests ---
+
+    #[test]
+    fn test_rel_weights_sum_to_one() {
+        for rt in RelationType::ALL {
+            let (a, b, c, d, e, f) = rel_weights(rt);
+            let sum = a + b + c + d + e + f;
+            assert!(
+                (sum - 1.0).abs() < 1e-9,
+                "weights for {:?} sum to {} (must be 1.0)",
+                rt,
+                sum
+            );
+        }
+    }
+
+    #[test]
+    fn test_no_ctx_equals_legacy() {
+        let a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        let legacy = compute_synergy_score_with_preds(&a, &b, &[], &[]);
+        let ctx = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        assert_eq!(legacy.total, ctx.total);
+        assert_eq!(legacy.a_score, ctx.a_score);
+        assert_eq!(legacy.b_score, ctx.b_score);
+        assert_eq!(legacy.band, 0);
+        assert!((legacy.ocean - ctx.ocean).abs() < 1e-9);
+        assert!((legacy.reputation - ctx.reputation).abs() < 1e-9);
+        assert!((legacy.motivation - ctx.motivation).abs() < 1e-9);
+        assert!((legacy.patterns - ctx.patterns).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_rel_context_changes_score() {
+        let a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        let friends = RelContext {
+            rtype: RelationType::Friends,
+            strength: 6,
+        };
+        let manages = RelContext {
+            rtype: RelationType::Manages,
+            strength: 6,
+        };
+        let f = compute_synergy_score_ctx(&a, &b, Some(&friends), &[], &[]);
+        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[]);
+        assert_ne!(f.total, m.total, "relation type must change the score");
+        assert_eq!(f.band, 8, "strength 6 → band 8");
+    }
+
+    #[test]
+    fn test_power_subordinate_penalty() {
+        // Both people identical except B (the subordinate) is Power-driven.
+        let mut a = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        let mut b = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Helping,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        let neutral = RelContext {
+            rtype: RelationType::WorksWith,
+            strength: 6,
+        };
+        let manages = RelContext {
+            rtype: RelationType::Manages,
+            strength: 6,
+        };
+        let n = compute_synergy_score_ctx(&a, &b, Some(&neutral), &[], &[]);
+        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[]);
+        assert!(
+            m.total < n.total,
+            "Power-heavy subordinate must lower the Manages score ({} < {})",
+            m.total,
+            n.total
+        );
+    }
+
+    #[test]
+    fn test_hierarchy_clarity_bonus() {
+        // A clearly authoritative boss vs. submissive report → bonus.
+        // Same weight profile (Manages/ReportsTo share it); only direction differs.
+        let mut a = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        let mut b = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        a.rep_scores.authoritative_submissive = Some(9);
+        b.rep_scores.authoritative_submissive = Some(3);
+        let manages = RelContext {
+            rtype: RelationType::Manages,
+            strength: 6,
+        };
+        let reports = RelContext {
+            rtype: RelationType::ReportsTo,
+            strength: 6,
+        };
+        // Manages: a is the boss (9) over submissive b (3) → bonus fires.
+        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[]);
+        // ReportsTo: a reports to b, so b (3) is the "boss" → no bonus.
+        let r = compute_synergy_score_ctx(&a, &b, Some(&reports), &[], &[]);
+        assert!(
+            m.total > r.total,
+            "clear hierarchy should add a small bonus ({} > {})",
+            m.total,
+            r.total
+        );
+    }
+
+    #[test]
+    fn test_strength_band_mapping() {
+        assert_eq!(strength_band(1), 12);
+        assert_eq!(strength_band(4), 12);
+        assert_eq!(strength_band(5), 8);
+        assert_eq!(strength_band(7), 8);
+        assert_eq!(strength_band(8), 4);
+        assert_eq!(strength_band(10), 4);
+    }
+
+    #[test]
+    fn test_rel_context_band_in_breakdown() {
+        let a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        let weak = RelContext {
+            rtype: RelationType::Partner,
+            strength: 2,
+        };
+        let brk = compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[]);
+        assert_eq!(brk.band, 12, "weak relationship → wide band");
+    }
+
+    #[test]
+    fn test_relationship_strength_serde_default() {
+        let json = r#"{"id":"r1","source_id":"a","target_id":"b","type":"Friends","notes":"","created_at":0}"#;
+        let r: Relationship = serde_json::from_str(json).unwrap();
+        assert_eq!(r.strength, 5, "missing strength → default 5");
+        assert_eq!(r.r#type, RelationType::Friends);
+        let out = serde_json::to_string(&r).unwrap();
+        assert!(out.contains("\"strength\":5"));
     }
 }

@@ -1,0 +1,228 @@
+# PeopleModeler — Model Roadmap
+
+> Phased plan to close the gaps between the scoring machinery (world-class) and the
+> inputs it consumes / outputs it produces (narrow). Each phase is independent and
+> ships alone. Phases are ordered by leverage, not effort.
+
+**Global diagnosis:** the synergy engine is a small expert system — continuous
+similarity, dynamic weight redistribution, ~90 consistency flags, contradicted-claim
+discounting, asymmetric scores. But it scores static person snapshots in a vacuum:
+it ignores relationships, confidence, time, context, and never says what to do.
+
+---
+
+## Phase 1 — Relationship Context (highest leverage)
+
+**Goal:** synergy becomes relationship-aware. Scoring a boss–employee pair, two
+rivals, or partners yields *different* numbers. `Person.relationships[]` finally feeds
+the engine.
+
+**Why:** `compute_synergy_score(a, b)` takes two static snapshots. Authority
+asymmetry is modeled per-person (Authoritative/Submissive) but never *relational*.
+This is the difference between a personality analyzer and a relationship modeler.
+
+### Verified current state
+
+- `Relationship { id, source_id, target_id, r#type: RelationType, notes, created_at }` — `core/src/models.rs:861`. **No `strength` field** (README documents one — doc drift).
+- `RelationType` (8 variants, incl. directional `Manages` / `ReportsTo` / `Mentors`) — `core/src/models.rs:804`.
+- `compute_synergy_score(a, b)` / `compute_synergy_score_with_preds(...)` — `core/src/synergy.rs:425/429` — never see relationships.
+- Compare page calls `compute_synergy_score_with_preds` — `app/src/pages/compare.rs:33`.
+- Storage is JSON blobs (SQLite + LocalStorage) — new fields deserialize with `#[serde(default)]`, **no migration needed**.
+
+### Steps
+
+1. **Data (`core/src/models.rs`)**
+   - Add `#[serde(default = "default_strength")] pub strength: u8` to `Relationship` (1–10, default 5), clamped via existing `clamp_u8_opt_1_10`-style deserializer. Old rows load with strength 5.
+
+2. **Core (`core/src/synergy.rs`)**
+   - New struct `RelContext { rtype: RelationType, strength: u8 }`.
+   - New entry `compute_synergy_score_ctx(a, b, ctx: Option<&RelContext>, a_preds, b_preds)`.
+   - Keep `compute_synergy_score` / `compute_synergy_score_with_preds` as thin wrappers (backward compat: `wasm.rs` JNI exports depend on them). **Golden test: no-ctx output is byte-identical to today.**
+
+3. **Relation-type weight profiles** — each `RelationType` maps to its own 6-bucket weights, feeding the *existing* dynamic-redistribution path. Draft table (tune via tests):
+
+   | RelationType | OCEAN | Rep | Mot | Patterns | Bias | Styles | Rationale |
+   |---|---|---|---|---|---|---|---|
+   | WorksWith | 0.20 | 0.28 | 0.16 | 0.16 | 0.12 | 0.08 | predictability > warmth |
+   | Collaborates | 0.18 | 0.28 | 0.16 | 0.16 | 0.13 | 0.09 | task output, conflict density |
+   | Manages / ReportsTo | 0.15 | 0.30 | 0.15 | 0.18 | 0.13 | 0.09 | authority, reliability, reactivity |
+   | Friends | 0.18 | 0.18 | 0.20 | 0.12 | 0.12 | 0.20 | shared temperament |
+   | Family | 0.14 | 0.22 | 0.24 | 0.12 | 0.12 | 0.16 | deep drives, loyalty |
+   | Partner | 0.16 | 0.20 | 0.22 | 0.14 | 0.10 | 0.18 | style fit, emotional reactivity |
+   | Mentors | 0.20 | 0.18 | 0.20 | 0.14 | 0.12 | 0.16 | growth alignment |
+
+4. **Directional asymmetry modulation** (only for `Manages` / `ReportsTo` / `Mentors`)
+   - Subordinate with Power motivation ≥ 7 → motivation bucket penalty (power friction in a hierarchy).
+   - Boss rep `AuthoritativeSubmissive` ≥ report's by > 3 → small complementarity bonus (clear hierarchy, less friction).
+   - Reporting edges are conflict-dense → weight conflict/stress/injustice trigger pairs more within the Patterns bucket.
+
+5. **Strength as score banding** (feeds Phase 2)
+   - `strength` does not move the point score; it widens the *reported band*: 1–4 → ±12, 5–7 → ±8, 8–10 → ±4. UI shows `87 ± 8`, not a naked `87`.
+
+6. **WASM + UI**
+   - `core/src/wasm.rs`: export `compute_synergy_with_rel(a_json, b_json, rel_type, strength)`.
+   - `app/src/pages/compare.rs`: relationship selector (type + strength), prefill from an existing `Relationship` row between the two ids; render `87 ± 8` with per-context chips.
+
+7. **Tests** (existing style in `core/src/synergy.rs`)
+   - weights redistribute (sum ≈ 1, active cats scaled);
+   - Manages asymmetry: Power-heavy subordinate drops vs. neutral context;
+   - no-ctx == old scores exactly;
+   - strength banding monotonic;
+   - serde roundtrip with `strength` missing → 5.
+
+8. **README**: correct the data model (`strength` is now real), document per-context weights.
+
+**Acceptance:** comparing Alice–Bob yields different scores per relation type;
+`Manages` vs `ReportsTo` produce directionally asymmetric scores; no-ctx scores unchanged.
+
+---
+
+## Phase 2 — Confidence-banded scores
+
+**Goal:** `confidence` (1–10) stops being decorative.
+
+**Why:** a profile filled with gut guesses displays the same `87%` as one backed by
+years of evidence. The 0–100 scalar invites false precision.
+
+**Steps**
+- Consume `Person.confidence` in `compute_person_profile` → band width: low → ±12, mid → ±8, high → ±4.
+- Same banding in `compute_synergy_score_ctx`, multiplied by the relationship strength band (Phase 1.5).
+- UI (detail + compare): show `score ± band`, and de-emphasize the number when the band is wide.
+- Display profile completeness next to the band — a low-completeness profile already warns; low confidence should too.
+
+**Acceptance:** two identical profiles differing only in `confidence` render different bands; core exposes the band as a `u8`.
+
+---
+
+## Phase 3 — Temporal layer
+
+**Goal:** the model says *how good the fit is now and which way it's moving*.
+
+**Why:** `Person.log[]` (`InteractionEntry { id, timestamp, text }`) is append-only
+free text — stored, never analyzed. Nothing models escalation, drift, or recovery.
+
+**Steps**
+- Restructure `InteractionEntry` into a typed event: `{ timestamp, event_type, valence: -3..+3, trigger? }` with serde back-compat to old free-text.
+- New per-pair score `trajectory(a, b, log)` → `[-1, +1]`: recent weighted valence (recency-decayed), slope over time.
+- Fold into Phase 1 output as a directional delta: `total ± trajectory_delta`, plus a `Trend` chip (↑ improving / → stable / ↓ deteriorating).
+- Keep `resolved_at` predictions as an independent calibration signal.
+
+**Acceptance:** entering a few logged interactions shifts the displayed trend without changing the static point score.
+
+---
+
+## Phase 4 — Context-specific compatibility output
+
+**Goal:** compatibility per situation, not one number.
+
+**Why:** the trigger matrix (Stress/Conflict/Change/…) is rich, but the pair score
+collapses to a single scalar. A pair can be great for routine execution and toxic
+under crisis — the engine has the raw material, it just doesn't expose it.
+
+**Steps**
+- `SynergyBreakdown` gains `per_context: Vec<(InsightContext, u8)>` (Decision, Team, Stress, Communication, Leadership, Growth) computed by re-weighting the existing per-bucket scores per context.
+- Compare UI: radar/bar of per-context scores next to the headline number.
+- Reuse in Phase 1: relation-type weights and context weights compose (a `Manages` relationship under `Stress` context).
+
+**Acceptance:** user can read "works great in normal ops, collapses under crisis" as data, not prose.
+
+---
+
+## Phase 5 — Reputation weight rebalance
+
+**Goal:** stop the least-falsifiable input from being the biggest lever.
+
+**Why:** Rep carries 26% *and* judges every other bucket (motivations, OCEAN,
+patterns). The malus system compensates but the weighting still leans on the
+most subjective input.
+
+**Steps**
+- Empirical pass: measure score sensitivity per bucket on the existing test fixtures (`core/src/synergy.rs` tests).
+- Rebalance base weights toward behavior-derived buckets (Patterns ↑, Bias ↑, Styles ↑) at the expense of Rep, keeping the documented math intact (just the constants).
+- Guard with a snapshot test asserting the documented "manipulator" scenario still collapses (~53 → ~26, README §Consistency Flags).
+
+**Acceptance:** a documented regression suite pins the new constants; no score in existing tests regresses by more than ±3 points.
+
+---
+
+## Phase 6 — Values alignment dimension
+
+**Goal:** score what actually predicts relationship durability.
+
+**Why:** OCEAN + motivations + biases + styles cover personality *mechanics*; nothing
+covers life-goal/value alignment (career, family, money, risk-in-life, religion,
+geography) — the biggest determinant of long-term fit.
+
+**Steps**
+- New `values: Vec<Value>` on `Person` (enum of ~10 dimensions, intensity 1–10 + priority), EN/FR i18n like the other enums.
+- Pair score: distance-weighted similarity like OCEAN, added as a 7th bucket with its own weight (carve from Rep/Motivation).
+- New consistency flags: `flag_value_*` (e.g., stated Family value ≥ 7 but time-orientation style PastOriented absent → trivial, low-weight).
+- Edit + detail UI sections, completion count +1 category.
+
+**Acceptance:** values bucket appears in completeness, compare breakdown, and i18n; scores shift measurably for value-aligned vs. misaligned fixtures.
+
+---
+
+## Phase 7 — Prescriptive coaching layer
+
+**Goal:** move from "what's contradictory" to "what to do about it" — the stated ethical purpose.
+
+**Why:** `core/src/insights.rs` (161 lines) is templates over top-motivation + top-bias.
+It ignores validation.rs's ~90 flags and the danger penalties. Diagnostic without
+prescription is a report, not a tool.
+
+**Steps**
+- New `core/src/advice.rs`: map each fired flag family (rhetoric/self-image/rep-internal/scalar/evidence/style) to actionable statements (mirror existing i18n pattern).
+- Insights generator consumes `compute_person_profile` + fired flags instead of raw top-motivation.
+- Per-context advice: reuse Phase 4 context weights to prioritize which advice surfaces first.
+- Compare page: "risk + mitigation" panel built from fired danger penalties.
+
+**Acceptance:** every flag in validation.rs has at least one advice string; insights differ between an honest profile and its manipulator twin.
+
+---
+
+## Phase 8 — Opposite-bias modulation
+
+**Goal:** model complementary-bias friction, not just shared-bias amplification.
+
+**Why:** biases currently modulate only when *shared* (same type both persons).
+Opposite biases (optimism vs. catastrophizing, trusting vs. paranoid) are a real
+friction source scored as "no effect."
+
+**Steps**
+- Add a small complementarity table: opposite/adjacent bias pairs with coefficients (mirroring the existing `bias_modifier` table in `core/src/synergy.rs:48`).
+- Modulate the same target buckets, negative direction only, capped (e.g., max −0.15 combined).
+- Tests for each documented pair.
+
+**Acceptance:** a high-Trusting + high-Suspicious pair shows a documented friction penalty; shared-bias behavior unchanged.
+
+---
+
+## Phase 9 — Structural: coefficients as data + team aggregation
+
+**Goal:** make the model tunable without recompiling, and score beyond pairs.
+
+**Why:** `synergy.rs` (4164 lines) + `validation.rs` (2705 lines) hold ~100
+hand-tuned coefficients hardcoded in code. No team-level (N-person) aggregation
+exists — insights "team" context is a single-person template.
+
+**Steps**
+- Extract all weights/penalties/thresholds into one `model_config.rs` (a single const table), loaded by the engine; no behavior change, pure refactor — proves no regression via the existing snapshot tests.
+- (Later, optional) expose the config table over WASM so tuning is a build-time or settings-side concern.
+- New `compute_team_synergy(persons: &[Person], rels: &[Relationship])` returning pair matrix + weakest/strongest links + team-level danger, reusing Phase 1 contexts.
+
+**Acceptance:** moving constants to `model_config.rs` produces zero test diffs; team view computes all-pairs via Phase 1.
+
+---
+
+## Suggested sequencing
+
+```
+v1.x  Phase 1 (relationship context)          ← do first
+v1.y  Phase 2 (confidence bands)              ← depends on 1.5, small
+v1.z  Phase 9a (config extraction)            ← pure refactor, unblocks tuning
+v2.x  Phase 4 (context output) + Phase 3 (time)
+v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)
+v3.x  Phase 6 (values) + Phase 7 (coaching)
+v3.y  Phase 9b (team aggregation)
+```
