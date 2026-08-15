@@ -57,6 +57,15 @@ pub fn strength_band(strength: u8) -> u8 {
     }
 }
 
+/// Confidence band width (± points) from profile confidence (1-10).
+pub fn confidence_band(conf: u8) -> u8 {
+    match conf {
+        1..=4 => 12,
+        5..=7 => 8,
+        _ => 4,
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct PersonProfile {
     pub total: u8,
@@ -67,6 +76,8 @@ pub struct PersonProfile {
     pub bias: f64,
     pub styles: f64,
     pub completeness: u8,
+    /// Width of the confidence band (± points) from profile confidence. 0 = no banding.
+    pub band: u8,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -783,7 +794,9 @@ fn compute_synergy_score_inner(
     };
 
     let band = match ctx {
-        Some(rel) => strength_band(rel.strength),
+        Some(rel) => strength_band(rel.strength)
+            .max(confidence_band(a.confidence))
+            .max(confidence_band(b.confidence)),
         None => 0,
     };
 
@@ -1048,6 +1061,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
         bias,
         styles: raw_style,
         completeness: (profile_completeness(person) * 100.0).round() as u8,
+        band: confidence_band(person.confidence),
     }
 }
 
@@ -4381,6 +4395,94 @@ mod tests {
         };
         let brk = compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[]);
         assert_eq!(brk.band, 12, "weak relationship → wide band");
+    }
+
+    #[test]
+    fn test_confidence_band_mapping() {
+        assert_eq!(confidence_band(1), 12);
+        assert_eq!(confidence_band(4), 12);
+        assert_eq!(confidence_band(5), 8);
+        assert_eq!(confidence_band(7), 8);
+        assert_eq!(confidence_band(8), 4);
+        assert_eq!(confidence_band(10), 4);
+    }
+
+    #[test]
+    fn test_person_profile_band_from_confidence() {
+        let base = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        for (conf, expected) in [(1, 12u8), (5, 8), (10, 4)] {
+            let mut p = base.clone();
+            p.confidence = conf;
+            let profile = compute_person_profile(&p);
+            assert_eq!(
+                profile.band, expected,
+                "confidence {} → band ±{}",
+                conf, expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_person_profile_total_unaffected_by_confidence() {
+        let base = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        let mut low = base.clone();
+        low.confidence = 1;
+        let mut high = base.clone();
+        high.confidence = 10;
+        let pl = compute_person_profile(&low);
+        let ph = compute_person_profile(&high);
+        assert_eq!(
+            pl.total, ph.total,
+            "confidence must not move the raw score, only its band"
+        );
+        assert_eq!(pl.completeness, ph.completeness);
+    }
+
+    #[test]
+    fn test_ctx_band_max_composition() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        let strong = RelContext {
+            rtype: RelationType::Partner,
+            strength: 10,
+        };
+        let weak = RelContext {
+            rtype: RelationType::Partner,
+            strength: 2,
+        };
+
+        a.confidence = 10;
+        b.confidence = 10;
+        assert_eq!(
+            compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[]).band,
+            12,
+            "weak relationship dominates even with high confidence"
+        );
+
+        a.confidence = 1;
+        b.confidence = 10;
+        assert_eq!(
+            compute_synergy_score_ctx(&a, &b, Some(&strong), &[], &[]).band,
+            12,
+            "low profile confidence widens the band despite strong relationship"
+        );
+
+        a.confidence = 10;
+        b.confidence = 9;
+        assert_eq!(
+            compute_synergy_score_ctx(&a, &b, Some(&strong), &[], &[]).band,
+            4,
+            "strong relationship + high confidence → narrow band"
+        );
+    }
+
+    #[test]
+    fn test_no_ctx_band_still_zero() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.confidence = 1;
+        let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        assert_eq!(brk.band, 0, "no relationship context keeps legacy band 0");
     }
 
     #[test]

@@ -108,7 +108,11 @@ export async function addRelationship(
   type: string,
   strength: number,
 ) {
-  await page.locator('.rel-controls button').click();
+  const openButton = page.locator('.rel-controls button');
+  if (!(await openButton.isVisible().catch(() => false))) {
+    await page.getByRole('tab', { name: /Relations/ }).click();
+  }
+  await openButton.click();
   await page.locator('.rel-autocomplete-input').fill(otherName);
   await page
     .locator(`.rel-person-check-row:has-text("${otherName}")`)
@@ -117,4 +121,9 @@ export async function addRelationship(
   await page.locator('.rel-strength-slider').fill(String(strength));
   await page.locator('.rel-add-actions button.btn-primary').click();
   await page.waitForTimeout(300);
+}
+
+export async function setConfidence(page: Page, conf: number) {
+  const fieldset = page.locator('fieldset.reliability');
+  await fieldset.locator('input[type="range"]').fill(String(conf));
 }

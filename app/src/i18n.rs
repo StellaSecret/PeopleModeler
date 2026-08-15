@@ -121,7 +121,12 @@ fn en(key: &'static str) -> &'static str {
         "patterns_title" => "Behavioral Patterns",
         "no_patterns" => "No behavioral patterns recorded.",
         "ocean_title" => "OCEAN Scores",
-        "confidence_label" => "Confidence",
+        "confidence_label" => "Profile confidence",
+        "confidence_hint" => {
+            "How reliable is this profile? 1 = rough sketch, 10 = built from real observations."
+        }
+        "reliability_title" => "Data quality",
+        "score_band" => "±{}",
         "resilience_label" => "Resilience",
         "risk_appetite_label" => "Risk appetite",
         // Person edit form
@@ -135,7 +140,7 @@ fn en(key: &'static str) -> &'static str {
         "form_avatar" => "Avatar",
         "form_tags" => "Tags (comma separated)",
         "form_notes" => "Notes",
-        "form_confidence" => "Assessment confidence (1-10)",
+        "form_confidence" => "Profile confidence (1-10)",
         "form_resilience" => "Resilience (1-10)",
         "form_risk_appetite" => "Risk appetite (1-10)",
         "form_ocean_title" => "OCEAN Scores (1-10)",
@@ -675,7 +680,7 @@ fn en(key: &'static str) -> &'static str {
         "compare_rel_title" => "Relationship Context",
         "compare_rel_none" => "General (no context)",
         "compare_rel_strength" => "Strength",
-        "compare_band_hint" => "±{}% confidence band",
+        "compare_band_hint" => "±{}% (relationship + profile confidence)",
         "person_self_score" => "Profile Score",
         "OCEAN volatility" => "OCEAN volatility",
         "Rep power struggle" => "Rep power struggle",
@@ -787,7 +792,12 @@ fn fr(key: &'static str) -> &'static str {
         "patterns_title" => "Patterns comportementaux",
         "no_patterns" => "Aucun pattern comportemental enregistré.",
         "ocean_title" => "Scores OCEAN",
-        "confidence_label" => "Confiance",
+        "confidence_label" => "Fiabilité du profil",
+        "confidence_hint" => {
+            "À quel point ce profil est fiable ? 1 = ébauche, 10 = fondé sur des observations réelles."
+        }
+        "reliability_title" => "Qualité des données",
+        "score_band" => "±{}",
         "resilience_label" => "Résilience",
         "risk_appetite_label" => "Appétence risque",
         "form_new_title" => "Nouvelle personne",
@@ -800,7 +810,7 @@ fn fr(key: &'static str) -> &'static str {
         "form_avatar" => "Avatar",
         "form_tags" => "Tags (séparés par des virgules)",
         "form_notes" => "Notes",
-        "form_confidence" => "Confiance estimation (1-10)",
+        "form_confidence" => "Fiabilité du profil (1-10)",
         "form_resilience" => "Résilience (1-10)",
         "form_risk_appetite" => "Appétence pour le risque (1-10)",
         "form_ocean_title" => "Scores OCEAN (1-10)",
@@ -1362,7 +1372,7 @@ fn fr(key: &'static str) -> &'static str {
         "compare_rel_title" => "Contexte de relation",
         "compare_rel_none" => "Général (sans contexte)",
         "compare_rel_strength" => "Intensité",
-        "compare_band_hint" => "±{}% marge de confiance",
+        "compare_band_hint" => "±{}% (relation + fiabilité du profil)",
         "person_self_score" => "Score de profil",
         "OCEAN volatility" => "Volatilité OCEAN",
         "Rep power struggle" => "Lutte de pouvoir (réputation)",

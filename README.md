@@ -742,6 +742,14 @@ Hierarchy bonus: boss rep Authoritative-Submissive > report's by ≥ 4 → rep b
 reported confidence band (± points): 1–4 → ±12, 5–7 → ±8, 8–10 → ±4. Without a
 context the band is 0 (legacy display).
 
+**Profile confidence (Phase 2)** — `Person.confidence` (1–10, "how reliable is
+this profile?") widens the same band with the same mapping as relationship
+strength: 1–4 → ±12, 5–7 → ±8, 8–10 → ±4. In a comparison the effective band is
+`max(strength band, profile confidence of A, profile confidence of B)` — the
+widest source of uncertainty dominates, bounded at ±12. On the person page the
+profile score is displayed as `total ± band`. Confidence never moves the point
+score itself — only the band around it.
+
 The compare page exposes a relationship selector (type + strength) and pre-fills
 from an existing `Relationship` row between the two ids.
 

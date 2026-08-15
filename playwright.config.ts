@@ -18,6 +18,7 @@ export default defineConfig({
     baseURL: 'http://localhost:4190',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    reducedMotion: 'reduce',
   },
 
   webServer: {

@@ -358,6 +358,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_tags = crate::i18n::tr("form_tags", lang());
     let form_notes = crate::i18n::tr("form_notes", lang());
     let form_confidence = crate::i18n::tr("form_confidence", lang());
+    let confidence_hint = crate::i18n::tr("confidence_hint", lang());
+    let reliability_title = crate::i18n::tr("reliability_title", lang());
     let form_resilience = crate::i18n::tr("form_resilience", lang());
     let form_risk_appetite = crate::i18n::tr("form_risk_appetite", lang());
     let form_ocean_title = crate::i18n::tr("form_ocean_title", lang());
@@ -399,11 +401,15 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 label { "{form_notes}" }
                 textarea { aria_label: "{form_notes}", value: "{notes}", rows: "4", oninput: move |e| notes.set(e.value()) }
 
-                label { "{form_confidence}" }
-                div { class: "ocean-slider",
-                    span { "{confidence}/10" }
-                    input { r#type: "range", min: "1", max: "10", value: "{confidence}",
-                        oninput: move |e| confidence.set(e.value().parse().unwrap_or(5)),
+                fieldset { class: "reliability",
+                    legend { "{reliability_title}" }
+                    div { class: "reliability-hint", "{confidence_hint}" }
+                    label { "{form_confidence}" }
+                    div { class: "ocean-slider",
+                        span { "{confidence}/10" }
+                        input { r#type: "range", min: "1", max: "10", value: "{confidence}",
+                            oninput: move |e| confidence.set(e.value().parse().unwrap_or(5)),
+                        }
                     }
                 }
 

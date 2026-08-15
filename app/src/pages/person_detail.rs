@@ -59,6 +59,9 @@ pub fn PersonDetail(id: String) -> Element {
             let no_rep = crate::i18n::tr("no_reputation", lang());
             let pat_title = crate::i18n::tr("patterns_title", lang());
             let conf_label = crate::i18n::tr("confidence_label", lang());
+            let conf_hint = crate::i18n::tr("confidence_hint", lang());
+            let reliability_title = crate::i18n::tr("reliability_title", lang());
+            let score_band = crate::i18n::tr("score_band", lang());
             let res_label = crate::i18n::tr("resilience_label", lang());
             let risk_label = crate::i18n::tr("risk_appetite_label", lang());
             let comp_label = crate::i18n::tr("profile_completeness", lang());
@@ -123,6 +126,7 @@ pub fn PersonDetail(id: String) -> Element {
                 "ps-strong",
             ];
             let band_label = crate::i18n::tr(band_keys[active_band], lang());
+            let ps_band_label = score_band.replacen("{}", &profile_score.band.to_string(), 1);
             let ps_breakdown: Vec<(&'static str, u8)> = vec![
                 (
                     crate::i18n::tr("compare_cat_ocean", lang()),
@@ -234,9 +238,6 @@ pub fn PersonDetail(id: String) -> Element {
                                 }
                             }
                         }
-                        div { class: "confidence-badge",
-                            span { "{conf_label}: {person.confidence}/10" }
-                        }
                         if let Some(r) = person.resilience {
                             div { class: "confidence-badge",
                                 span { "{res_label}: {r}/10" }
@@ -247,12 +248,22 @@ pub fn PersonDetail(id: String) -> Element {
                                 span { "{risk_label}: {r}/10" }
                             }
                         }
-                        div { class: "completeness-badge",
-                            span { "{comp_label} {profile_score.completeness}%" }
+                        div { class: "data-quality",
+                            div { class: "data-quality-title", "{reliability_title}" }
+                            div { class: "data-quality-badges",
+                                div { class: "confidence-badge", title: "{conf_hint}",
+                                    span { "{conf_label}: {person.confidence}/10" }
+                                }
+                                div { class: "completeness-badge",
+                                    span { "{comp_label} {profile_score.completeness}%" }
+                                }
+                            }
                         }
                         div { class: "profile-score",
                             div { class: "ps-band {band_cls[active_band]}", "{band_label}" }
-                            div { class: "ps-score", "{profile_score.total}" }
+                            div { class: "ps-score", "{profile_score.total}"
+                                span { class: "ps-band-range", title: "{conf_hint}", "{ps_band_label}" }
+                            }
                             div { class: "ps-range", "{self_score_label} /100" }
                             div { class: "ps-bar-wrap",
                                 div { class: "ps-bar",

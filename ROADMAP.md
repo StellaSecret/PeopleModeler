@@ -77,20 +77,20 @@ This is the difference between a personality analyzer and a relationship modeler
 
 ---
 
-## Phase 2 — Confidence-banded scores
+## Phase 2 — Confidence-banded scores ✅ DONE
 
 **Goal:** `confidence` (1–10) stops being decorative.
 
 **Why:** a profile filled with gut guesses displays the same `87%` as one backed by
 years of evidence. The 0–100 scalar invites false precision.
 
-**Steps**
-- Consume `Person.confidence` in `compute_person_profile` → band width: low → ±12, mid → ±8, high → ±4.
-- Same banding in `compute_synergy_score_ctx`, multiplied by the relationship strength band (Phase 1.5).
-- UI (detail + compare): show `score ± band`, and de-emphasize the number when the band is wide.
-- Display profile completeness next to the band — a low-completeness profile already warns; low confidence should too.
+### Implemented (Data Reliability UX)
 
-**Acceptance:** two identical profiles differing only in `confidence` render different bands; core exposes the band as a `u8`.
+- `core/src/synergy.rs`: new `confidence_band(conf)` (1–4 → ±12, 5–7 → ±8, 8–10 → ±4); `PersonProfile` gained `band: u8`; `compute_person_profile` sets it from `person.confidence`.
+- `compute_synergy_score_ctx` composes bands by **max** — `max(strength band, confidence(A), confidence(B))`, bounded at ±12; `ctx=None` keeps band 0 (byte-identical to legacy).
+- UX clarify: `Person.confidence` relabeled "Profile confidence" / "Fiabilité du profil" with a hint ("1 = rough sketch, 10 = built from real observations"); detail page groups it with completeness in a distinct "Data quality" cluster (dashed-border box); edit form wraps it in a "Data quality" fieldset; profile score renders `total ± band` with a hover tooltip.
+
+**Acceptance:** two identical profiles differing only in `confidence` render different bands; core exposes the band as a `u8`. ✔ (tests: `test_confidence_band_mapping`, `test_person_profile_band_from_confidence`, `test_person_profile_total_unaffected_by_confidence`, `test_ctx_band_max_composition`, `test_no_ctx_band_still_zero`)
 
 ---
 

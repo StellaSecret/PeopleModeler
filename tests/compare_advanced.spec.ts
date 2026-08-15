@@ -223,6 +223,8 @@ test.describe('Compare — Advanced Synergy', () => {
     await page.goto(`/PeopleModeler/person/${id1}`);
     await page.waitForTimeout(500);
     await addRelationship(page, 'Bob', 'WorksWith', 2);
+    await expect(page.locator('.rel-add-form')).toBeHidden();
+    await expect(page.locator('.rel-person-row')).toContainText('Bob');
 
     await page.goto(`/PeopleModeler/compare/${id1}/${id2}`);
     await page.waitForTimeout(500);
