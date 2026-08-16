@@ -145,6 +145,18 @@ most subjective input.
 
 **Acceptance:** a documented regression suite pins the new constants; no score in existing tests regresses by more than ±3 points.
 
+**✅ DONE** — implemented in `84f95bc…`+1. Base weights rebalanced
+`Rep 0.26 → 0.22`, `Patterns 0.14 → 0.16`, `Bias 0.13 → 0.14`, `Styles 0.11 → 0.12`
+(OCEAN 0.17 / Motivation 0.19 unchanged, sum stays 1.00; `history` 0.10
+untouched). Empirical pass measured per-bucket sensitivity on the
+manipulator/genuine and rep-heavy fixtures; the ±3 acceptance caps how far Rep
+can drop (the `good-rep`/`baseline` person-profile fixtures are Rep-driven, so
+a Rep weight below 0.22 pushes them past −3). Snapshot assertions now guard the
+manipulator collapse (`mp.total ≤ 30`, `gp.total ≥ 50`) and two phase-4
+thresholds were relaxed to the measured post-rebalance values (crisis-pair
+`≥ 75 → ≥ 72`, good-rep `≥ 45 → ≥ 42`). README weight math updated (Rep now the
+largest single weight but down from 26%; behavior buckets net +4%).
+
 ---
 
 ## Phase 6 — Values alignment dimension
@@ -198,6 +210,18 @@ friction source scored as "no effect."
 
 **Acceptance:** a high-Trusting + high-Suspicious pair shows a documented friction penalty; shared-bias behavior unchanged.
 
+**✅ DONE** — implemented in `84f95bc…`+1. `BiasConfig` gains
+`complementary_pairs` (order-insensitive, negative-only) + `opposite_cap: 0.15`,
+resolved via `ModelConfig::bias_complementarity()`; the shared-type modulation
+loop in `synergy.rs` now applies the opposite pair, scaling the combined
+magnitude down to the cap when exceeded. The "Trusting/Suspicious" acceptance
+example names a Reputation dimension (not a `BiasType`), so the table uses the
+three genuine opposite/adjacent pairs from the existing 12 bias types:
+`DunningKruger ↔ Impostor → OCEAN −0.10`, `Anchoring ↔ Recency → Patterns −0.08`,
+`Authority ↔ SocialProof → Reputation −0.08`. 7 new tests cover each pair, the
+order-insensitive lookup, the −0.15 combined cap, and the shared-bias
+unchanged guarantee; README §5 documents the table.
+
 ---
 
 ## Phase 9 — Structural: coefficients as data + team aggregation
@@ -225,7 +249,7 @@ v1.y  Phase 2 (confidence bands)              ✅ done
 v1.z  Phase 3 (temporal layer)                ✅ done
 v2.0  Phase 9a (config extraction)            ✅ done — `core/src/model_config.rs` const table
 v2.x  Phase 4 (context output)                ✅ done
-v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)   ← next
+v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)  ✅ done
 v3.x  Phase 6 (values) + Phase 7 (coaching)
 v3.y  Phase 9b (team aggregation)
 ```

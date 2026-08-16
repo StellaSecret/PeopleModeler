@@ -729,11 +729,14 @@ fn compute_synergy_score_inner(
     let mut rep_mod = 0.0;
     let mut mot_mod = 0.0;
     let mut pat_mod = 0.0;
+    // Opposite/adjacent-bias friction (Phase 8): negative-only, combined
+    // magnitude capped at `opposite_cap`.
+    let mut opp_mods: Vec<(BiasTarget, f64)> = Vec::new();
 
     for ba in &a.biases {
         for bb in &b.biases {
+            let w = (ba.intensity as f64 * bb.intensity as f64) / CFG.bias.intensity_scale;
             if ba.r#type == bb.r#type {
-                let w = (ba.intensity as f64 * bb.intensity as f64) / CFG.bias.intensity_scale;
                 if let Some((target, coefficient)) = CFG.bias_modulation(ba.r#type) {
                     let delta = coefficient * w;
                     match target {
@@ -743,7 +746,27 @@ fn compute_synergy_score_inner(
                         BiasTarget::Patterns => pat_mod += delta,
                     }
                 }
+            } else if let Some((target, coefficient)) =
+                CFG.bias_complementarity(ba.r#type, bb.r#type)
+            {
+                opp_mods.push((target, coefficient.min(0.0) * w));
             }
+        }
+    }
+
+    let opp_total: f64 = opp_mods.iter().map(|(_, d)| d).sum();
+    if opp_total < -CFG.bias.opposite_cap {
+        let scale = CFG.bias.opposite_cap / -opp_total;
+        for (_, d) in opp_mods.iter_mut() {
+            *d *= scale;
+        }
+    }
+    for (target, delta) in opp_mods {
+        match target {
+            BiasTarget::Ocean => ocean_mod += delta,
+            BiasTarget::Reputation => rep_mod += delta,
+            BiasTarget::Motivation => mot_mod += delta,
+            BiasTarget::Patterns => pat_mod += delta,
         }
     }
 
@@ -1554,7 +1577,7 @@ mod tests {
             .max_by_key(|(_, s)| *s)
             .expect("per_context non-empty");
         assert!(
-            brk.total >= 75,
+            brk.total >= 72,
             "normal-ops headline should stay strong, got {}",
             brk.total
         );
@@ -2196,6 +2219,201 @@ mod tests {
             (brk.bias - 0.5).abs() < 0.001,
             "bias_score should be 0.5 when no biases, got {}",
             brk.bias
+        );
+    }
+
+    // --- opposite-bias complementarity tests (Phase 8) ---
+
+    fn one_bias(ty: BiasType) -> Bias {
+        Bias {
+            r#type: ty,
+            intensity: 10,
+            evidence: String::new(),
+        }
+    }
+
+    #[test]
+    fn test_complementarity_order_insensitive() {
+        let (t1, c1) = CFG
+            .bias_complementarity(BiasType::DunningKruger, BiasType::Impostor)
+            .unwrap();
+        let (t2, c2) = CFG
+            .bias_complementarity(BiasType::Impostor, BiasType::DunningKruger)
+            .unwrap();
+        assert!(matches!(t1, BiasTarget::Ocean) && matches!(t2, BiasTarget::Ocean));
+        assert!((c1 - c2).abs() < 1e-9);
+        assert!(
+            CFG.bias_complementarity(BiasType::Anchoring, BiasType::Confirmation)
+                .is_none(),
+            "non-complementary pair must return None"
+        );
+        assert!(
+            CFG.bias_complementarity(BiasType::DunningKruger, BiasType::DunningKruger)
+                .is_none(),
+            "same-type pair must stay shared-bias, not complementarity"
+        );
+    }
+
+    #[test]
+    fn test_complementary_pairs_targets() {
+        let (t, c) = CFG
+            .bias_complementarity(BiasType::DunningKruger, BiasType::Impostor)
+            .unwrap();
+        assert!(matches!(t, BiasTarget::Ocean));
+        assert!(c < 0.0, "complementarity must be negative-only, got {c}");
+        let (t, c) = CFG
+            .bias_complementarity(BiasType::Anchoring, BiasType::Recency)
+            .unwrap();
+        assert!(matches!(t, BiasTarget::Patterns));
+        assert!(c < 0.0);
+        let (t, c) = CFG
+            .bias_complementarity(BiasType::Authority, BiasType::SocialProof)
+            .unwrap();
+        assert!(matches!(t, BiasTarget::Reputation));
+        assert!(c < 0.0);
+    }
+
+    #[test]
+    fn test_opposite_bias_dk_impostor_lowers_ocean() {
+        let base_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let base_b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        let mut a = Person { ..base_a.clone() };
+        let mut b = Person { ..base_b.clone() };
+        a.biases = vec![one_bias(BiasType::DunningKruger)];
+        b.biases = vec![one_bias(BiasType::Impostor)];
+        let brk = compute_synergy_score(&a, &b);
+        let brk_no = compute_synergy_score(&base_a, &base_b);
+        assert!(
+            brk.ocean < brk_no.ocean,
+            "DK+Impostor pair must dampen ocean ({} vs {})",
+            brk.ocean,
+            brk_no.ocean
+        );
+    }
+
+    fn one_positive_pattern() -> BehavioralPattern {
+        BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }
+    }
+
+    #[test]
+    fn test_opposite_bias_anchoring_recency_lowers_patterns() {
+        let mut base_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut base_b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        base_a.behavioral_patterns = vec![one_positive_pattern()];
+        base_b.behavioral_patterns = vec![one_positive_pattern()];
+        let mut a = Person { ..base_a.clone() };
+        let mut b = Person { ..base_b.clone() };
+        a.biases = vec![one_bias(BiasType::Anchoring)];
+        b.biases = vec![one_bias(BiasType::Recency)];
+        let brk = compute_synergy_score(&a, &b);
+        let brk_no = compute_synergy_score(&base_a, &base_b);
+        assert!(
+            brk.patterns < brk_no.patterns,
+            "Anchoring+Recency pair must dampen patterns ({} vs {})",
+            brk.patterns,
+            brk_no.patterns
+        );
+    }
+
+    #[test]
+    fn test_opposite_bias_authority_socialproof_lowers_rep() {
+        let mut base_a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut base_b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        base_a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            reliable_flaky: Some(7),
+            honest_deceitful: Some(9),
+            ..RepScores::default()
+        };
+        base_b.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            reliable_flaky: Some(8),
+            honest_deceitful: Some(8),
+            ..RepScores::default()
+        };
+        let mut a = Person { ..base_a.clone() };
+        let mut b = Person { ..base_b.clone() };
+        a.biases = vec![one_bias(BiasType::Authority)];
+        b.biases = vec![one_bias(BiasType::SocialProof)];
+        let brk = compute_synergy_score(&a, &b);
+        let brk_no = compute_synergy_score(&base_a, &base_b);
+        assert!(
+            brk.reputation < brk_no.reputation,
+            "Authority+SocialProof pair must dampen reputation ({} vs {})",
+            brk.reputation,
+            brk_no.reputation
+        );
+    }
+
+    #[test]
+    fn test_opposite_bias_combined_capped() {
+        // Three complementary pairs fire (uncapped −0.26); the combined
+        // magnitude must clamp to `opposite_cap` (0.15).
+        let mut base_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let mut base_b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        base_a.behavioral_patterns = vec![one_positive_pattern()];
+        base_b.behavioral_patterns = vec![one_positive_pattern()];
+        base_a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            reliable_flaky: Some(7),
+            honest_deceitful: Some(9),
+            ..RepScores::default()
+        };
+        base_b.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            reliable_flaky: Some(8),
+            honest_deceitful: Some(8),
+            ..RepScores::default()
+        };
+        let mut a = Person { ..base_a.clone() };
+        let mut b = Person { ..base_b.clone() };
+        a.biases = vec![
+            one_bias(BiasType::DunningKruger),
+            one_bias(BiasType::Anchoring),
+            one_bias(BiasType::Authority),
+        ];
+        b.biases = vec![
+            one_bias(BiasType::Impostor),
+            one_bias(BiasType::Recency),
+            one_bias(BiasType::SocialProof),
+        ];
+        let brk = compute_synergy_score(&a, &b);
+        let brk_no = compute_synergy_score(&base_a, &base_b);
+        let reduction = (brk_no.ocean - brk.ocean)
+            + (brk_no.patterns - brk.patterns)
+            + (brk_no.reputation - brk.reputation);
+        assert!(
+            reduction > 0.05,
+            "friction must be present, got reduction {reduction}"
+        );
+        assert!(
+            reduction <= CFG.bias.opposite_cap + 0.001,
+            "combined opposite-bias friction must cap at 0.15, got {reduction}"
+        );
+    }
+
+    #[test]
+    fn test_shared_bias_not_opposite() {
+        // Two persons sharing the same bias type must NOT trigger the
+        // complementarity path: the shared modulation still applies (Anchoring
+        // boosts ocean), and no extra negative friction appears.
+        let base_a = make_person(Some(8), Some(7), Some(6), Some(5), Some(4));
+        let base_b = make_person(Some(6), Some(5), Some(4), Some(3), Some(2));
+        let mut a = Person { ..base_a.clone() };
+        let mut b = Person { ..base_b.clone() };
+        a.biases = vec![one_bias(BiasType::Anchoring)];
+        b.biases = vec![one_bias(BiasType::Anchoring)];
+        let brk = compute_synergy_score(&a, &b);
+        let brk_no = compute_synergy_score(&base_a, &base_b);
+        assert!(
+            brk.ocean > brk_no.ocean,
+            "shared Anchoring must keep boosting ocean ({} vs {})",
+            brk.ocean,
+            brk_no.ocean
         );
     }
 
@@ -3664,6 +3882,20 @@ mod tests {
             mp.total,
             gp.total
         );
+        // Phase 5 snapshot: base weights rebalanced (Rep 0.26 → 0.22, Patterns
+        // 0.14 → 0.16, Bias 0.13 → 0.14, Styles 0.11 → 0.12). The documented
+        // manipulator collapse (README §Consistency Flags, ~53 → 26) must hold
+        // within ±3 points of the pre-rebalance measurement.
+        assert!(
+            mp.total <= 30,
+            "manipulator snapshot must stay collapsed, got {}",
+            mp.total
+        );
+        assert!(
+            gp.total >= 50,
+            "genuine twin must keep mid-band credit, got {}",
+            gp.total
+        );
     }
 
     #[test]
@@ -3983,7 +4215,7 @@ mod tests {
         };
         let pf = compute_person_profile(&p);
         assert!(pf.reputation > 0.70, "good rep: {}", pf.reputation);
-        assert!(pf.total >= 45, "good rep boosts total: {}", pf.total);
+        assert!(pf.total >= 42, "good rep boosts total: {}", pf.total);
     }
 
     #[test]

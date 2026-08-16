@@ -177,8 +177,12 @@ Person
 Base weights when all categories have data:
 
 ```
-OCEAN×17% + Reputation×26% + Motivation×19% + Patterns×14% + Bias×13% + Styles×11%
+OCEAN×17% + Reputation×22% + Motivation×19% + Patterns×16% + Bias×14% + Styles×12%
 ```
+
+Rebalanced in Phase 5 toward behavior-derived buckets (Patterns, Bias, Styles)
+at the expense of Reputation — the least-falsifiable input — while keeping every
+documented score within ±3 points (see §Consistency Flags).
 
 If a category has no data (e.g. no shared pattern), its weight is redistributed
 proportionally to the other active categories.
@@ -228,7 +232,7 @@ OCEAN_penalized = max(OCEAN_raw - OCEAN_penalty, 0)
 OCEAN_final = min(OCEAN_penalized × (1 + bias_modulations_OCEAN), 1)
 ```
 
-#### 2. Reputation (26%)
+#### 2. Reputation (22%)
 
 For each dimension (13 bipolar) where A and B have a value:
 
@@ -323,8 +327,8 @@ consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
 | Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
 | Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
 
-With Rep weighted at 26%, a single rhetoric gap costs roughly **−7.8 points**,
-a single evidence-based flag **−10.4 points**, and the cap is about **−13 points**.
+With Rep weighted at 22%, a single rhetoric gap costs roughly **−6.6 points**,
+a single evidence-based flag **−8.8 points**, and the cap is about **−11 points**.
 
 **Contradicted-claim discount** — beyond the Rep malus, a fired flag also
 **removes the credit the contradicted claim was banking** in the other buckets:
@@ -342,7 +346,7 @@ warm (A≥8) and calm (N≤3), good styles, no biases — while recorded behavio
 contradicts each claim loses its motivation credit entirely (motivations all
 invalidated → bucket → 0.27), its OCEAN credit (voided → 0.5), and its pattern
 credit (capped → 0.5), in addition to the 0.50 Rep malus. Measured effect in
-tests: **~53 → 26** on a twin with the same claims but honest evidence, where
+tests: **~53 → 27** on a twin with the same claims but honest evidence, where
 a genuine person with 1–2 honest flags keeps most credit.
 
 **Consistency Flags** — rule-based warnings surfaced as ⚠ chips on the
@@ -576,7 +580,7 @@ Patterns_penalized = max(Patterns_raw - Patterns_penalty, 0)
 Patterns_final = min(Patterns_penalized × (1 + bias_modulations_Patterns), 1)
 ```
 
-#### 5. Bias (13%)
+#### 5. Bias (14%)
 
 Biases are **not** scored directly. Each bias type modulates another
 category of the score when shared by both persons:
@@ -604,6 +608,21 @@ For each bias pair **of the same type** (shared by A and B):
 modulation = coefficient × (intensity_A × intensity_B / 100)
 modulated_cat_score = raw_cat_score × (1.0 + Σ_modulations)   → clamp [0, 1]
 ```
+
+**Opposite-bias friction** (Phase 8) — complementary pairs, not shared:
+opposite/adjacent biases pull the pair apart, so they modulate the same
+target buckets **negative-only**, capped at **−0.15 combined**:
+
+```
+DunningKruger ↔ Impostor      → OCEAN       -0.10  (over- vs under-confidence)
+Anchoring   ↔ Recency         → Patterns    -0.08  (first- vs last-information)
+Authority   ↔ SocialProof     → Reputation  -0.08  (expert- vs crowd-deference)
+```
+
+Anchoring + Recency on the two persons dampens the Patterns bucket by the
+same intensity-scaled formula as shared biases; a high-DunningKruger +
+high-Impostor pair shows a measurable OCEAN friction penalty. Shared-bias
+behavior is unchanged — the table only fires when the two types differ.
 
 **Bias score** for the individual profile: combination of a counting
 base, an intensity adjustment, and a rarity bonus.
@@ -786,11 +805,11 @@ the same fixed weights redistributed dynamically:
 
 ```
 weight_OCEAN   = 0.17
-weight_Rep     = 0.26
+weight_Rep     = 0.22
 weight_Mot     = 0.19
-weight_Patterns = 0.14
-weight_Bias    = 0.13
-weight_Styles  = 0.11
+weight_Patterns = 0.16
+weight_Bias    = 0.14
+weight_Styles  = 0.12
 ```
 
 When a category lacks data → it is excluded and its weight is redistributed
@@ -818,10 +837,10 @@ they *benefit* from the other, computed per category:
 
 ```
 active_weight = Σ(cat_weight) for each active category
-a_raw = OCEAN_score_a × 0.17 + Rep_quality_B × 0.26 + Mot_synergy × 0.19
-       + Patterns_synergy × 0.14 + Bias_quality_B × 0.13 + Styles_synergy × 0.11
-b_raw = OCEAN_score_b × 0.17 + Rep_quality_A × 0.26 + Mot_synergy × 0.19
-       + Patterns_synergy × 0.14 + Bias_quality_A × 0.13 + Styles_synergy × 0.11
+a_raw = OCEAN_score_a × 0.17 + Rep_quality_B × 0.22 + Mot_synergy × 0.19
+       + Patterns_synergy × 0.16 + Bias_quality_B × 0.14 + Styles_synergy × 0.12
+b_raw = OCEAN_score_b × 0.17 + Rep_quality_A × 0.22 + Mot_synergy × 0.19
+       + Patterns_synergy × 0.16 + Bias_quality_A × 0.14 + Styles_synergy × 0.12
 
 a_score = round(a_raw / active_weight × 100) → clamp [0, 100]
 b_score = round(b_raw / active_weight × 100) → clamp [0, 100]
@@ -838,8 +857,8 @@ danger_pts = round(danger / active_weight × 100)
 historical penalties:
 
 ```
-danger = OCEAN_penalty × 0.17 + Rep_penalty × 0.26
-       + Patterns_penalty × 0.14 + historical_penalty × 0.10
+danger = OCEAN_penalty × 0.17 + Rep_penalty × 0.22
+       + Patterns_penalty × 0.16 + historical_penalty × 0.10
 ```
 
 The `danger` field in `SynergyBreakdown` exposes this value for transparency

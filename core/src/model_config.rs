@@ -13,11 +13,11 @@ use crate::models::{BehaviorTrigger, BiasType, MotivationType, RelationType};
 pub const CFG: ModelConfig = ModelConfig {
     base_weights: BaseWeights {
         ocean: 0.17,
-        reputation: 0.26,
+        reputation: 0.22,
         motivation: 0.19,
-        patterns: 0.14,
-        bias: 0.13,
-        style: 0.11,
+        patterns: 0.16,
+        bias: 0.14,
+        style: 0.12,
         history: 0.10,
     },
     contexts: ContextWeights {
@@ -195,6 +195,30 @@ pub const CFG: ModelConfig = ModelConfig {
             Some((BiasTarget::Ocean, 0.08)),       // InGroup
             Some((BiasTarget::Reputation, -0.08)), // Favoritism
         ],
+        // Opposite/adjacent bias pairs (Phase 8). Shared biases amplify the
+        // same target; opposite biases pull the pair apart, so they modulate
+        // negative-only, capped in combined magnitude at `opposite_cap`.
+        complementary_pairs: &[
+            // Over- vs under-confidence calibration friction.
+            (
+                (BiasType::DunningKruger, BiasType::Impostor),
+                BiasTarget::Ocean,
+                -0.10,
+            ),
+            // First- vs last-information heuristics split event evaluation.
+            (
+                (BiasType::Anchoring, BiasType::Recency),
+                BiasTarget::Patterns,
+                -0.08,
+            ),
+            // Expert-vs-crowd deference splits trust signals.
+            (
+                (BiasType::Authority, BiasType::SocialProof),
+                BiasTarget::Reputation,
+                -0.08,
+            ),
+        ],
+        opposite_cap: 0.15,
         intensity_scale: 100.0,
         default: 0.5,
         absent_bonus: 0.02,
@@ -332,6 +356,22 @@ impl ModelConfig {
             .position(|&t| t == ty)
             .expect("unknown bias");
         self.bias.modulation[i]
+    }
+
+    /// Opposite/adjacent-bias friction (Phase 8). Order-insensitive pair lookup;
+    /// returns the target bucket and negative coefficient when the two bias
+    /// types are complementary opposites.
+    pub fn bias_complementarity(&self, a: BiasType, b: BiasType) -> Option<(BiasTarget, f64)> {
+        self.bias
+            .complementary_pairs
+            .iter()
+            .find_map(|((x, y), target, coefficient)| {
+                if (*x == a && *y == b) || (*x == b && *y == a) {
+                    Some((*target, *coefficient))
+                } else {
+                    None
+                }
+            })
     }
 }
 
@@ -486,6 +526,8 @@ pub enum BiasTarget {
 
 pub struct BiasConfig {
     pub modulation: [Option<(BiasTarget, f64)>; 12],
+    pub complementary_pairs: &'static [((BiasType, BiasType), BiasTarget, f64)],
+    pub opposite_cap: f64,
     pub intensity_scale: f64,
     pub default: f64,
     pub absent_bonus: f64,
