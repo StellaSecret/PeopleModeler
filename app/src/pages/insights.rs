@@ -137,15 +137,18 @@ fn stress_strategy(p: &Person, lang: Lang) -> Vec<String> {
     if let Some(m) = p.top_motivation() {
         match m.r#type {
             peoplemodeler_core::models::MotivationType::Power => {
-                if peoplemodeler_core::validation::ambition_lazy_gap(&p.motivations, &p.rep_scores) {
+                if peoplemodeler_core::validation::ambition_lazy_gap(&p.motivations, &p.rep_scores)
+                {
                     s.push(crate::i18n::tr("strategy_stress_ambition_rhetoric", lang).into())
                 } else {
                     s.push(crate::i18n::tr("strategy_stress_power", lang).into())
                 }
             }
             peoplemodeler_core::models::MotivationType::Security => {
-                if peoplemodeler_core::validation::security_gullible_gap(&p.motivations, &p.rep_scores)
-                {
+                if peoplemodeler_core::validation::security_gullible_gap(
+                    &p.motivations,
+                    &p.rep_scores,
+                ) {
                     s.push(crate::i18n::tr("strategy_stress_security_rhetoric", lang).into())
                 } else {
                     s.push(crate::i18n::tr("strategy_stress_security", lang).into())

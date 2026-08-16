@@ -113,7 +113,7 @@ free text — stored, never analyzed. Nothing modeled escalation, drift, or reco
 
 ---
 
-## Phase 4 — Context-specific compatibility output
+## Phase 4 — Context-specific compatibility output ✅ DONE
 
 **Goal:** compatibility per situation, not one number.
 
@@ -121,12 +121,12 @@ free text — stored, never analyzed. Nothing modeled escalation, drift, or reco
 collapses to a single scalar. A pair can be great for routine execution and toxic
 under crisis — the engine has the raw material, it just doesn't expose it.
 
-**Steps**
-- `SynergyBreakdown` gains `per_context: Vec<(InsightContext, u8)>` (Decision, Team, Stress, Communication, Leadership, Growth) computed by re-weighting the existing per-bucket scores per context.
-- Compare UI: radar/bar of per-context scores next to the headline number.
-- Reuse in Phase 1: relation-type weights and context weights compose (a `Manages` relationship under `Stress` context).
+**Implemented**
+- `SynergyBreakdown` gains `per_context: Vec<(InsightContext, u8)>` (Decision, Team, Stress, Communication, Leadership, Growth) computed by re-weighting the existing per-bucket scores (ocean/reputation/motivation/patterns/bias/styles) per context via a new `CFG.contexts` 6×6 weight table (`core/src/model_config.rs`), rows summing to 1.0. `InsightContext` derives `Serialize` so the field flows through the wasm JSON contract.
+- **Phase 1 composition:** when a relationship context is present, the relation-type profile and the context profile compose by element-wise product (renormalized) — a `Manages` relationship under `Stress` emphasizes buckets that matter for both. The danger penalty re-weights with the same composed profile; inactive buckets stay masked exactly like the headline formula.
+- Compare UI: "By situation" bar list under the headline (`app/src/pages/compare.rs` → `ContextBars`), colored per score band (tension→strong), with i18n labels (Decision/Team/Stress/Communication/Leadership/Growth).
 
-**Acceptance:** user can read "works great in normal ops, collapses under crisis" as data, not prose.
+**Acceptance (passes):** a pair that is strong on every bucket except divergent reactive patterns scores ~80 in normal-ops contexts and ~73 under Stress — the "works great in normal ops, collapses under crisis" reading is data, not prose. Verified by `test_context_weights_rows_sum_to_one`, `test_per_context_carries_six_scores`, `test_per_context_collapses_under_stress`, `test_per_context_composes_with_relationship`, plus the wasm `per_context` shape assertion in `test_compute_synergy_with_rel_json_output`.
 
 ---
 
@@ -224,8 +224,8 @@ v1.x  Phase 1 (relationship context)          ✅ done
 v1.y  Phase 2 (confidence bands)              ✅ done
 v1.z  Phase 3 (temporal layer)                ✅ done
 v2.0  Phase 9a (config extraction)            ✅ done — `core/src/model_config.rs` const table
-v2.x  Phase 4 (context output)
-v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)
+v2.x  Phase 4 (context output)                ✅ done
+v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)   ← next
 v3.x  Phase 6 (values) + Phase 7 (coaching)
 v3.y  Phase 9b (team aggregation)
 ```

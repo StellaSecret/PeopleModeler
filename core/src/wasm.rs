@@ -513,6 +513,13 @@ mod tests {
             v["a_score"], v["b_score"],
             "identical persons → equal scores"
         );
+        let ctx = v["per_context"].as_array().expect("per_context array");
+        assert_eq!(ctx.len(), 6, "per_context must carry all 6 contexts");
+        for entry in ctx {
+            let row = entry.as_array().expect("per_context row");
+            assert_eq!(row.len(), 2, "row is (context, score)");
+            assert!(row[1].as_u64().is_some(), "context score is a number");
+        }
     }
 
     #[test]

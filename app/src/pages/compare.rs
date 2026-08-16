@@ -1,8 +1,9 @@
 use dioxus::prelude::*;
+use peoplemodeler_core::insights::InsightContext;
 use peoplemodeler_core::models::{BehaviorTrigger, Person, RelationType};
 
 use peoplemodeler_core::synergy::{
-    compute_synergy_score_ctx, compute_synergy_score_with_preds, RelContext, Trend, synergy_bands,
+    RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds, synergy_bands,
 };
 
 use crate::db;
@@ -15,12 +16,23 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     }
 }
 
+/// i18n key for a per-context compatibility score label.
+fn ctx_key(c: InsightContext) -> &'static str {
+    match c {
+        InsightContext::Decision => "ctx_decision",
+        InsightContext::Team => "ctx_team",
+        InsightContext::Stress => "ctx_stress",
+        InsightContext::Communication => "ctx_communication",
+        InsightContext::Leadership => "ctx_leadership",
+        InsightContext::Growth => "ctx_growth",
+    }
+}
+
 /// Prefill the relationship selector from an existing Relationship row between
 /// the two ids (either direction).
 fn prefill_rel(id1: &str, id2: &str) -> (Option<RelationType>, u8) {
     for r in db::all_relationships() {
-        if (r.source_id == id1 && r.target_id == id2)
-            || (r.source_id == id2 && r.target_id == id1)
+        if (r.source_id == id1 && r.target_id == id2) || (r.source_id == id2 && r.target_id == id1)
         {
             return (Some(r.r#type), r.strength);
         }
@@ -95,6 +107,12 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 )
             };
             let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
+            let compare_ctx_title = crate::i18n::tr("compare_ctx_title", lang());
+            let ctx_rows: Vec<(String, u8)> = brk
+                .per_context
+                .iter()
+                .map(|(c, s)| (crate::i18n::tr(ctx_key(*c), lang()).to_string(), *s))
+                .collect();
             let cat_ocean = crate::i18n::tr("compare_cat_ocean", lang());
             let cat_rep = crate::i18n::tr("compare_cat_reputation", lang());
             let cat_mot = crate::i18n::tr("compare_cat_motivation", lang());
@@ -326,6 +344,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     bias_mod_active: brk.bias_mod_active,
                                 }
                             }
+                            div { class: "ctx-section",
+                                h4 { "{compare_ctx_title}" }
+                                ContextBars { rows: ctx_rows }
+                            }
                         }
 
                         div { class: "compare-card",
@@ -469,6 +491,38 @@ fn BreakdownBars(
                     }
                 }
             }
+        }
+    }
+}
+
+#[component]
+fn ContextBars(rows: Vec<(String, u8)>) -> Element {
+    let bands = synergy_bands();
+    rsx! {
+        div { class: "ctx-bars",
+            {rows.into_iter().map(|(label, score)| {
+                let pct = score as f64 / 101.0 * 100.0;
+                let cls = bands
+                    .iter()
+                    .position(|(lo, hi)| score >= *lo && score <= *hi)
+                    .map(|i| match i {
+                        0 => "scale-tension",
+                        1 => "scale-friction",
+                        2 => "scale-moderate",
+                        3 => "scale-good",
+                        _ => "scale-strong",
+                    })
+                    .unwrap_or("scale-moderate");
+                rsx! {
+                    div { class: "ctx-row",
+                        span { class: "ctx-label", "{label}" }
+                        div { class: "ctx-bar",
+                            div { class: "ctx-fill {cls}", width: "{pct:.0}%" }
+                        }
+                        span { class: "ctx-pct", "{score}%" }
+                    }
+                }
+            })}
         }
     }
 }

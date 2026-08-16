@@ -401,6 +401,11 @@ fn en(key: &'static str) -> &'static str {
 
         // Context labels
         "ctx_stress" => "Stress",
+        "ctx_decision" => "Decision",
+        "ctx_team" => "Team",
+        "ctx_communication" => "Communication",
+        "ctx_leadership" => "Leadership",
+        "ctx_growth" => "Growth",
         "ctx_conflict" => "Conflict",
         "ctx_success" => "Success",
         "ctx_uncertainty" => "Uncertainty",
@@ -680,6 +685,7 @@ fn en(key: &'static str) -> &'static str {
         "compare_friction" => "Friction Points",
         "compare_strategy" => "Interaction Strategy",
         "compare_breakdown" => "Breakdown",
+        "compare_ctx_title" => "By situation",
         "compare_cat_ocean" => "OCEAN",
         "compare_cat_reputation" => "Reputation",
         "compare_cat_motivation" => "Motivation",
@@ -1075,6 +1081,11 @@ fn fr(key: &'static str) -> &'static str {
         }
 
         "ctx_stress" => "Stress",
+        "ctx_decision" => "Décision",
+        "ctx_team" => "Équipe",
+        "ctx_communication" => "Communication",
+        "ctx_leadership" => "Leadership",
+        "ctx_growth" => "Croissance",
         "ctx_conflict" => "Conflit",
         "ctx_success" => "Réussite",
         "ctx_uncertainty" => "Incertitude",
@@ -1381,6 +1392,7 @@ fn fr(key: &'static str) -> &'static str {
         "compare_friction" => "Points de friction",
         "compare_strategy" => "Stratégie d'interaction",
         "compare_breakdown" => "Détail",
+        "compare_ctx_title" => "Par situation",
         "compare_cat_ocean" => "OCÉAN",
         "compare_cat_reputation" => "Réputation",
         "compare_cat_motivation" => "Motivation",

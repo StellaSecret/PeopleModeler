@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::insights::InsightContext;
 use crate::model_config::{BiasTarget, CFG};
 use crate::models::{
     BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
@@ -29,6 +30,11 @@ pub struct SynergyBreakdown {
     pub trajectory_trend: Trend,
     /// Number of logged interactions that fed the trajectory (0 = no signal).
     pub trajectory_sample: usize,
+    /// Per-context compatibility (Decision, Team, Stress, Communication,
+    /// Leadership, Growth): the same pair re-weighted per situation, so
+    /// "works great in normal ops, collapses under crisis" is readable as
+    /// data rather than prose.
+    pub per_context: Vec<(InsightContext, u8)>,
 }
 
 /// Direction of the interaction trajectory.
@@ -537,6 +543,85 @@ pub fn compute_synergy_score_ctx(
     compute_synergy_score_inner(a, b, ctx, a_preds, b_preds)
 }
 
+/// Phase 4: per-context inputs re-weighted from the final bucket scores.
+struct PerContextInputs {
+    /// (ocean, reputation, motivation, patterns, bias, styles).
+    buckets: [f64; 6],
+    /// (ocean_penalty, rep_penalty, pat_danger_penalty, history_penalty).
+    penalties: [f64; 4],
+    rep_active: bool,
+    mot_active: bool,
+    pat_active: bool,
+}
+
+/// Per-context re-weighting of the final per-bucket scores (Phase 4).
+/// Each `InsightContext` uses its own weight profile from `CFG.contexts`;
+/// when a relationship context is present it composes with the relation-type
+/// profile (element-wise product, renormalized) so, e.g., a `Manages`
+/// relationship under `Stress` emphasizes buckets that matter for both.
+/// Mirrors the headline formula: weighted mean over active buckets minus the
+/// context-weighted danger penalty.
+fn per_context_breakdown(
+    inp: &PerContextInputs,
+    ctx: Option<&RelContext>,
+) -> Vec<(InsightContext, u8)> {
+    let rel_w = ctx.map(|r| rel_weights(r.rtype));
+    let mut out = Vec::with_capacity(InsightContext::ALL.len());
+    for c in InsightContext::ALL {
+        let cw = CFG.context_weights(c);
+        let w = match rel_w {
+            Some(rw) => {
+                let p = [
+                    rw.0 * cw[0],
+                    rw.1 * cw[1],
+                    rw.2 * cw[2],
+                    rw.3 * cw[3],
+                    rw.4 * cw[4],
+                    rw.5 * cw[5],
+                ];
+                let s: f64 = p.iter().sum();
+                [p[0] / s, p[1] / s, p[2] / s, p[3] / s, p[4] / s, p[5] / s]
+            }
+            None => cw,
+        };
+        let mut num = 0.0;
+        let mut wsum = 0.0;
+        num += inp.buckets[0] * w[0];
+        wsum += w[0];
+        if inp.rep_active {
+            num += inp.buckets[1] * w[1];
+            wsum += w[1];
+        }
+        if inp.mot_active {
+            num += inp.buckets[2] * w[2];
+            wsum += w[2];
+        }
+        if inp.pat_active {
+            num += inp.buckets[3] * w[3];
+            wsum += w[3];
+        }
+        num += inp.buckets[4] * w[4];
+        wsum += w[4];
+        num += inp.buckets[5] * w[5];
+        wsum += w[5];
+        let raw = if wsum > 0.0 { num / wsum } else { 0.0 };
+        let danger = inp.penalties[0] * w[0]
+            + inp.penalties[1] * w[1]
+            + inp.penalties[2] * w[2]
+            + inp.penalties[3] * CFG.base_weights.history;
+        let penalty = if wsum > 0.0 {
+            (danger / wsum * 100.0).round() as u8
+        } else {
+            0
+        };
+        let score = ((raw * 100.0).round() as u8)
+            .min(100)
+            .saturating_sub(penalty);
+        out.push((c, score));
+    }
+    out
+}
+
 fn compute_synergy_score_inner(
     a: &Person,
     b: &Person,
@@ -890,6 +975,21 @@ fn compute_synergy_score_inner(
         trajectory_delta: traj.delta,
         trajectory_trend: traj.trend,
         trajectory_sample: traj.sample,
+        per_context: per_context_breakdown(
+            &PerContextInputs {
+                buckets: [ocean, reputation, motivation, patterns, bias_score, styles],
+                penalties: [
+                    ocean_penalty,
+                    rep_penalty,
+                    pat_danger_penalty,
+                    history_penalty,
+                ],
+                rep_active,
+                mot_active,
+                pat_active,
+            },
+            ctx,
+        ),
     }
 }
 
@@ -1329,6 +1429,186 @@ mod tests {
             created_at: 0,
             updated_at: 0,
         }
+    }
+
+    // --- per-context compatibility (Phase 4) tests ---
+
+    fn full_profile() -> Person {
+        let mut p = make_person(Some(10), Some(10), Some(10), Some(10), Some(1));
+        p.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 8,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 7,
+                notes: String::new(),
+            },
+            Motivation {
+                r#type: MotivationType::Helping,
+                intensity: 6,
+                notes: String::new(),
+            },
+        ];
+        p.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 3,
+            evidence: String::new(),
+        }];
+        // Full, identical reputation — every dimension filled so the missing
+        // penalty never fires; authoritative stays at 7 to avoid the
+        // "power struggle" danger rule (both >= 8).
+        p.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            authoritative_submissive: Some(7),
+            honest_deceitful: Some(8),
+            reliable_flaky: Some(8),
+            humble_arrogant: Some(8),
+            calm_reactive: Some(8),
+            diplomatic_blunt: Some(8),
+            generous_selfish: Some(8),
+            fair_favoritism: Some(8),
+            trusting_suspicious: Some(8),
+            assertive_passive: Some(8),
+            empathetic_detached: Some(8),
+            adaptable_rigid: Some(8),
+        };
+        p.styles = vec![
+            PersonalStyle {
+                r#type: StyleType::Analytical,
+                intensity: 8,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::DirectCommunicator,
+                intensity: 8,
+                notes: String::new(),
+            },
+            PersonalStyle {
+                r#type: StyleType::Collaborating,
+                intensity: 8,
+                notes: String::new(),
+            },
+        ];
+        p
+    }
+
+    /// A pair that's strong on every bucket except patterns: reactive,
+    /// divergent triggers (Stress→Panics vs Conflict→Escalates) drive the
+    /// patterns bucket to 0 while OCEAN/Rep/Mot/Bias/Styles stay near 1.
+    fn crisis_pair() -> (Person, Person) {
+        let mut a = full_profile();
+        let mut b = full_profile();
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        (a, b)
+    }
+
+    #[test]
+    fn test_context_weights_rows_sum_to_one() {
+        for c in InsightContext::ALL {
+            let w = CFG.context_weights(c);
+            let s: f64 = w.iter().sum();
+            assert!(
+                (s - 1.0).abs() < 1e-9,
+                "{c:?} context weights sum to {s}, expected 1.0"
+            );
+        }
+    }
+
+    #[test]
+    fn test_per_context_carries_six_scores() {
+        let (a, b) = crisis_pair();
+        let brk = compute_synergy_score(&a, &b);
+        assert_eq!(brk.per_context.len(), InsightContext::ALL.len());
+        for (i, (c, s)) in brk.per_context.iter().enumerate() {
+            assert_eq!(*c, InsightContext::ALL[i], "context order mismatch");
+            assert!(*s <= 100, "{c:?} score out of range: {s}");
+        }
+    }
+
+    #[test]
+    fn test_per_context_collapses_under_stress() {
+        let (a, b) = crisis_pair();
+        let brk = compute_synergy_score(&a, &b);
+        assert!(brk.patterns < 0.1, "patterns bucket should be near 0");
+        let stress = brk
+            .per_context
+            .iter()
+            .find(|(c, _)| *c == InsightContext::Stress)
+            .map(|(_, s)| *s)
+            .expect("Stress context missing");
+        let (best_ctx, best) = brk
+            .per_context
+            .iter()
+            .max_by_key(|(_, s)| *s)
+            .expect("per_context non-empty");
+        assert!(
+            brk.total >= 75,
+            "normal-ops headline should stay strong, got {}",
+            brk.total
+        );
+        assert!(
+            *best >= 80,
+            "normal-ops contexts should be strong, best {best_ctx:?} = {best}"
+        );
+        assert!(
+            *best - stress >= 8,
+            "Stress ({stress}) should collapse at least 8 points below the best context ({best_ctx:?} = {best})"
+        );
+        let min_score = brk.per_context.iter().map(|(_, s)| s).min().copied();
+        assert_eq!(
+            min_score,
+            Some(stress),
+            "Stress should be the lowest context"
+        );
+    }
+
+    #[test]
+    fn test_per_context_composes_with_relationship() {
+        // Family de-emphasizes patterns (0.12) vs Stress (0.24). For a pair
+        // with a weak patterns bucket, a Family relationship under Stress
+        // should lift the Stress score above the context-only value: the
+        // composed profile must differ from the pure context profile.
+        let (a, b) = crisis_pair();
+        let none = compute_synergy_score(&a, &b);
+        let family = compute_synergy_score_ctx(
+            &a,
+            &b,
+            Some(&RelContext {
+                rtype: RelationType::Family,
+                strength: 8,
+            }),
+            &[],
+            &[],
+        );
+        let stress_of = |brk: &SynergyBreakdown| {
+            brk.per_context
+                .iter()
+                .find(|(c, _)| *c == InsightContext::Stress)
+                .map(|(_, s)| *s)
+                .unwrap_or(0)
+        };
+        assert!(
+            stress_of(&family) > stress_of(&none),
+            "Family+Stress should compose above context-only Stress ({} vs {})",
+            stress_of(&family),
+            stress_of(&none)
+        );
+        assert_ne!(
+            family.per_context, none.per_context,
+            "relationship context must change the per-context profile"
+        );
     }
 
     // --- trigger_synergy tests ---

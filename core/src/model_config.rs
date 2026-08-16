@@ -6,6 +6,7 @@
 //! verbatim copies of the constants previously inlined across `synergy.rs` and
 //! `validation.rs`.
 
+use crate::insights::InsightContext;
 use crate::models::{BehaviorTrigger, BiasType, MotivationType, RelationType};
 
 /// Everything the model tunes, in one place.
@@ -18,6 +19,22 @@ pub const CFG: ModelConfig = ModelConfig {
         bias: 0.13,
         style: 0.11,
         history: 0.10,
+    },
+    contexts: ContextWeights {
+        // Indexed by InsightContext::ALL order (Decision, Team, Stress,
+        // Communication, Leadership, Growth). Weight order per row:
+        // (ocean, reputation, motivation, patterns, bias, style). Rows sum
+        // to 1.0. Phase 4 re-weights the final per-bucket scores per context;
+        // when a relationship context is present these compose with
+        // `relationship.weights` (element-wise product, renormalized).
+        weights: [
+            [0.22, 0.18, 0.20, 0.16, 0.14, 0.10], // Decision
+            [0.22, 0.16, 0.18, 0.14, 0.14, 0.16], // Team
+            [0.18, 0.18, 0.14, 0.24, 0.18, 0.08], // Stress
+            [0.20, 0.14, 0.16, 0.14, 0.18, 0.18], // Communication
+            [0.16, 0.24, 0.20, 0.16, 0.14, 0.10], // Leadership
+            [0.20, 0.16, 0.22, 0.16, 0.12, 0.14], // Growth
+        ],
     },
     bands: BandConfig {
         narrow_max: 4,
@@ -250,6 +267,7 @@ pub const CFG: ModelConfig = ModelConfig {
 
 pub struct ModelConfig {
     pub base_weights: BaseWeights,
+    pub contexts: ContextWeights,
     pub bands: BandConfig,
     pub trajectory: TrajectoryConfig,
     pub similarity: SimilarityConfig,
@@ -274,6 +292,14 @@ impl ModelConfig {
             .position(|&t| t == rtype)
             .expect("unknown relation type");
         self.relationship.weights[i]
+    }
+
+    pub fn context_weights(&self, ctx: InsightContext) -> [f64; 6] {
+        let i = InsightContext::ALL
+            .iter()
+            .position(|&c| c == ctx)
+            .expect("unknown insight context");
+        self.contexts.weights[i]
     }
 
     pub fn motivation_synergy(&self, a: MotivationType, b: MotivationType) -> f64 {
@@ -318,6 +344,11 @@ pub struct BaseWeights {
     pub style: f64,
     /// Weight of the history (prediction-accuracy) danger factor.
     pub history: f64,
+}
+
+/// Per-`InsightContext` compatibility weight profiles (Phase 4).
+pub struct ContextWeights {
+    pub weights: [[f64; 6]; 6],
 }
 
 pub struct BandConfig {
