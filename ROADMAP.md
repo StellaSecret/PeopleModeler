@@ -209,7 +209,7 @@ hand-tuned coefficients hardcoded in code. No team-level (N-person) aggregation
 exists — insights "team" context is a single-person template.
 
 **Steps**
-- Extract all weights/penalties/thresholds into one `model_config.rs` (a single const table), loaded by the engine; no behavior change, pure refactor — proves no regression via the existing snapshot tests.
+- Extract all weights/penalties/thresholds into one `model_config.rs` (a single const table), loaded by the engine; no behavior change, pure refactor — proves no regression via the existing test suites (315 core + 28 app).
 - (Later, optional) expose the config table over WASM so tuning is a build-time or settings-side concern.
 - New `compute_team_synergy(persons: &[Person], rels: &[Relationship])` returning pair matrix + weakest/strongest links + team-level danger, reusing Phase 1 contexts.
 
@@ -223,7 +223,7 @@ exists — insights "team" context is a single-person template.
 v1.x  Phase 1 (relationship context)          ✅ done
 v1.y  Phase 2 (confidence bands)              ✅ done
 v1.z  Phase 3 (temporal layer)                ✅ done
-v2.0  Phase 9a (config extraction)            ← next, pure refactor, unblocks tuning
+v2.0  Phase 9a (config extraction)            ✅ done — `core/src/model_config.rs` const table
 v2.x  Phase 4 (context output)
 v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)
 v3.x  Phase 6 (values) + Phase 7 (coaching)

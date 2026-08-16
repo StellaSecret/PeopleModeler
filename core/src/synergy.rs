@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::model_config::{BiasTarget, CFG};
 use crate::models::{
     BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, OceanScores,
     Person, PersonalStyle, Prediction, RelationType, RepDim,
@@ -62,38 +63,27 @@ pub struct RelContext {
 /// directly comparable across contexts. The 6 buckets reuse the existing dynamic
 /// redistribution path (only the constants change).
 pub fn rel_weights(t: RelationType) -> (f64, f64, f64, f64, f64, f64) {
-    use RelationType::*;
-    match t {
-        WorksWith => (0.20, 0.28, 0.16, 0.16, 0.12, 0.08),
-        Collaborates => (0.18, 0.28, 0.16, 0.16, 0.13, 0.09),
-        Manages | ReportsTo => (0.15, 0.30, 0.15, 0.18, 0.13, 0.09),
-        Friends => (0.18, 0.18, 0.20, 0.12, 0.12, 0.20),
-        Family => (0.14, 0.22, 0.24, 0.12, 0.12, 0.16),
-        Partner => (0.16, 0.20, 0.22, 0.14, 0.10, 0.18),
-        Mentors => (0.20, 0.18, 0.20, 0.14, 0.12, 0.16),
-    }
+    let w = CFG.relation_weights(t);
+    (w[0], w[1], w[2], w[3], w[4], w[5])
 }
 
 /// Confidence band width (± points) from relationship strength (1-10).
 pub fn strength_band(strength: u8) -> u8 {
     match strength {
-        1..=4 => 12,
-        5..=7 => 8,
-        _ => 4,
+        1..=4 => CFG.bands.wide,
+        5..=7 => CFG.bands.mid,
+        _ => CFG.bands.narrow,
     }
 }
 
 /// Confidence band width (± points) from profile confidence (1-10).
 pub fn confidence_band(conf: u8) -> u8 {
     match conf {
-        1..=4 => 12,
-        5..=7 => 8,
-        _ => 4,
+        1..=4 => CFG.bands.wide,
+        5..=7 => CFG.bands.mid,
+        _ => CFG.bands.narrow,
     }
 }
-
-/// Valence decay half-life for trajectory recency weighting (30 days).
-const TRAJ_HALF_LIFE_MS: f64 = 30.0 * 24.0 * 3600.0 * 1000.0;
 
 fn trajectory_from(entries: &[&crate::models::InteractionEntry]) -> Trajectory {
     let dated: Vec<&crate::models::InteractionEntry> = entries
@@ -115,9 +105,9 @@ fn trajectory_from(entries: &[&crate::models::InteractionEntry]) -> Trajectory {
     let mut w_sum = 0.0;
     let mut v_sum = 0.0;
     for e in &dated {
-        let v = e.valence.unwrap() as f64 / 3.0;
+        let v = e.valence.unwrap() as f64 / CFG.trajectory.valence_scale;
         let age = (t_max - e.timestamp as f64).max(0.0);
-        let w = (-age / TRAJ_HALF_LIFE_MS).exp();
+        let w = (-age / CFG.trajectory.half_life_ms).exp();
         v_sum += v * w;
         w_sum += w;
     }
@@ -127,42 +117,43 @@ fn trajectory_from(entries: &[&crate::models::InteractionEntry]) -> Trajectory {
         0.0
     };
 
-    let trend = if sample >= 4 {
+    let trend = if sample >= CFG.trajectory.min_samples {
         let mut sorted: Vec<&crate::models::InteractionEntry> = dated.clone();
         sorted.sort_by_key(|e| e.timestamp);
         let mid = sorted.len() / 2;
         let early: f64 = sorted[..mid]
             .iter()
-            .map(|e| e.valence.unwrap() as f64 / 3.0)
+            .map(|e| e.valence.unwrap() as f64 / CFG.trajectory.valence_scale)
             .sum::<f64>()
             / mid as f64;
         let recent: f64 = sorted[mid..]
             .iter()
-            .map(|e| e.valence.unwrap() as f64 / 3.0)
+            .map(|e| e.valence.unwrap() as f64 / CFG.trajectory.valence_scale)
             .sum::<f64>()
             / (sorted.len() - mid) as f64;
         let momentum = recent - early;
-        if momentum > 0.25 {
+        if momentum > CFG.trajectory.momentum_threshold {
             Trend::Improving
-        } else if momentum < -0.25 {
+        } else if momentum < -CFG.trajectory.momentum_threshold {
             Trend::Deteriorating
-        } else if level > 0.5 {
+        } else if level > CFG.trajectory.level_threshold {
             Trend::Improving
-        } else if level < -0.5 {
+        } else if level < -CFG.trajectory.level_threshold {
             Trend::Deteriorating
         } else {
             Trend::Stable
         }
-    } else if level > 0.5 {
+    } else if level > CFG.trajectory.level_threshold {
         Trend::Improving
-    } else if level < -0.5 {
+    } else if level < -CFG.trajectory.level_threshold {
         Trend::Deteriorating
     } else {
         Trend::Stable
     };
 
     Trajectory {
-        delta: ((level * 10.0).round() as i8).clamp(-10, 10),
+        delta: ((level * CFG.trajectory.delta_scale).round() as i8)
+            .clamp(-CFG.trajectory.delta_clamp, CFG.trajectory.delta_clamp),
         trend,
         sample,
         level,
@@ -205,107 +196,24 @@ pub struct PersonProfile {
     pub band: u8,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum BiasTarget {
-    Ocean,
-    Reputation,
-    Motivation,
-    Patterns,
-}
-
-struct Modulation {
-    target: BiasTarget,
-    coefficient: f64,
-}
-
-fn bias_modifier(ty: BiasType) -> Option<Modulation> {
-    use BiasType::*;
-    match ty {
-        Anchoring => Some(Modulation {
-            target: BiasTarget::Ocean,
-            coefficient: 0.10,
-        }),
-        Confirmation => Some(Modulation {
-            target: BiasTarget::Reputation,
-            coefficient: 0.10,
-        }),
-        Availability => Some(Modulation {
-            target: BiasTarget::Patterns,
-            coefficient: 0.10,
-        }),
-        SunkCost => Some(Modulation {
-            target: BiasTarget::Motivation,
-            coefficient: 0.10,
-        }),
-        DunningKruger => Some(Modulation {
-            target: BiasTarget::Ocean,
-            coefficient: -0.10,
-        }),
-        Impostor => Some(Modulation {
-            target: BiasTarget::Ocean,
-            coefficient: 0.10,
-        }),
-        LossAversion => Some(Modulation {
-            target: BiasTarget::Patterns,
-            coefficient: -0.10,
-        }),
-        SocialProof => Some(Modulation {
-            target: BiasTarget::Reputation,
-            coefficient: 0.08,
-        }),
-        Authority => Some(Modulation {
-            target: BiasTarget::Motivation,
-            coefficient: 0.08,
-        }),
-        Recency => Some(Modulation {
-            target: BiasTarget::Patterns,
-            coefficient: 0.08,
-        }),
-        InGroup => Some(Modulation {
-            target: BiasTarget::Ocean,
-            coefficient: 0.08,
-        }),
-        Favoritism => Some(Modulation {
-            target: BiasTarget::Reputation,
-            coefficient: -0.08,
-        }),
-    }
-}
-
 fn avg_prediction_accuracy(predictions: &[Prediction]) -> Option<f64> {
     let resolved: Vec<_> = predictions
         .iter()
         .filter(|p| p.resolved && p.accuracy.is_some())
         .collect();
-    if resolved.len() < 3 {
+    if resolved.len() < CFG.history.min_samples {
         return None;
     }
     let sum: f64 = resolved.iter().map(|p| p.accuracy.unwrap() as f64).sum();
     Some(sum / resolved.len() as f64)
 }
 
-const DIM_WEIGHTS: [(RepDim, f64); 13] = [
-    (RepDim::HonestDeceitful, 0.15),
-    (RepDim::ReliableFlaky, 0.12),
-    (RepDim::AuthoritativeSubmissive, 0.12),
-    (RepDim::HumbleArrogant, 0.12),
-    (RepDim::HardworkerLazy, 0.07),
-    (RepDim::CalmReactive, 0.07),
-    (RepDim::DiplomaticBlunt, 0.07),
-    (RepDim::GenerousSelfish, 0.04),
-    (RepDim::FairFavoritism, 0.07),
-    (RepDim::TrustingSuspicious, 0.05),
-    (RepDim::AssertivePassive, 0.05),
-    (RepDim::EmpatheticDetached, 0.05),
-    (RepDim::AdaptableRigid, 0.04),
-];
-
 pub fn base_rep_quality(p: &Person) -> f64 {
     let mut sum = 0.0;
     let mut n = 0.0;
-    for &(dim, weight) in &DIM_WEIGHTS {
-        if let Some(v) = p.rep_scores.score(dim) {
-            sum += (v as f64 / 10.0) * weight;
+    for (dim, weight) in RepDim::ALL.iter().zip(&CFG.reputation.dim_weights) {
+        if let Some(v) = p.rep_scores.score(*dim) {
+            sum += (v as f64 / CFG.similarity.trait_scale) * weight;
             n += weight;
         }
     }
@@ -313,31 +221,32 @@ pub fn base_rep_quality(p: &Person) -> f64 {
 }
 
 pub fn rep_adjustment(rep: &crate::models::RepScores) -> f64 {
-    let mut adj = 0.0;
+    let adj = CFG.reputation.adjust;
+    let mut total = 0.0;
     for &dim in &RepDim::ALL {
         match rep.score(dim) {
             Some(v) => {
                 let v = v.min(10);
                 if dim.is_context_dependent() {
-                    if v <= 2 || v >= 9 {
-                        adj -= 0.04;
-                    } else if (4..=6).contains(&v) {
-                        adj += 0.02;
+                    if v <= adj.extreme_low || v >= adj.extreme_high {
+                        total -= adj.context_extreme;
+                    } else if (adj.mid_low..=adj.mid_high).contains(&v) {
+                        total += adj.context_mid;
                     }
                 } else {
-                    if v <= 2 {
-                        adj -= 0.05;
-                    } else if v >= 9 {
-                        adj += 0.03;
+                    if v <= adj.extreme_low {
+                        total -= adj.non_context_low;
+                    } else if v >= adj.extreme_high {
+                        total += adj.non_context_high;
                     }
                 }
             }
             None => {
-                adj -= 0.02;
+                total -= adj.missing;
             }
         }
     }
-    adj
+    total
 }
 
 pub fn profile_completeness(person: &Person) -> f64 {
@@ -346,8 +255,11 @@ pub fn profile_completeness(person: &Person) -> f64 {
         + person.ocean.extraversion.is_some() as u32
         + person.ocean.agreeableness.is_some() as u32
         + person.ocean.neuroticism.is_some() as u32;
-    let mot = person.motivations.len().min(3) as u32;
-    let biases = person.biases.len().min(11) as u32;
+    let mot = person
+        .motivations
+        .len()
+        .min(CFG.completeness.motivation_cap) as u32;
+    let biases = person.biases.len().min(CFG.completeness.bias_cap) as u32;
     let rep = RepDim::ALL
         .iter()
         .filter(|d| person.rep_scores.score(**d).is_some())
@@ -363,228 +275,233 @@ pub fn profile_completeness(person: &Person) -> f64 {
             acc
         })
         .len()
-        .min(8) as u32;
-    let pat = person.behavioral_patterns.len().min(5) as u32;
+        .min(CFG.completeness.style_cap) as u32;
+    let pat = person
+        .behavioral_patterns
+        .len()
+        .min(CFG.completeness.pattern_cap) as u32;
     let num = ocean + mot + biases + rep + styles + pat;
-    let den = 45.0;
+    let den = CFG.completeness.denominator;
     (num as f64 / den).clamp(0.0, 1.0)
 }
 
 fn ocean_danger_penalty(oa: &crate::models::OceanScores, ob: &crate::models::OceanScores) -> f64 {
+    let d = CFG.ocean.danger;
     let mut p = 0.0;
 
-    // Within-person: volatile (N >= 7 and A <= 4)
-    if oa.neuroticism.is_some_and(|n| n >= 7) && oa.agreeableness.is_some_and(|a| a <= 4) {
-        p += 0.10;
+    // Within-person: volatile (N high and A low)
+    if oa.neuroticism.is_some_and(|n| n >= d.high) && oa.agreeableness.is_some_and(|a| a <= d.low) {
+        p += d.within_volatile;
     }
-    if ob.neuroticism.is_some_and(|n| n >= 7) && ob.agreeableness.is_some_and(|a| a <= 4) {
-        p += 0.10;
-    }
-
-    // Within-person: impulsive (N >= 7 and C <= 4)
-    if oa.neuroticism.is_some_and(|n| n >= 7) && oa.conscientiousness.is_some_and(|c| c <= 4) {
-        p += 0.05;
-    }
-    if ob.neuroticism.is_some_and(|n| n >= 7) && ob.conscientiousness.is_some_and(|c| c <= 4) {
-        p += 0.05;
+    if ob.neuroticism.is_some_and(|n| n >= d.high) && ob.agreeableness.is_some_and(|a| a <= d.low) {
+        p += d.within_volatile;
     }
 
-    // Within-person: rigid anxious (N >= 7 and O <= 4)
-    if oa.neuroticism.is_some_and(|n| n >= 7) && oa.openness.is_some_and(|o| o <= 4) {
-        p += 0.05;
-    }
-    if ob.neuroticism.is_some_and(|n| n >= 7) && ob.openness.is_some_and(|o| o <= 4) {
-        p += 0.05;
-    }
-
-    // Cross-person: emotional contagion (both N >= 7)
-    if oa.neuroticism.is_some_and(|n| n >= 7) && ob.neuroticism.is_some_and(|n| n >= 7) {
-        p += 0.10;
-    }
-
-    // Cross-person: antagonism (both A <= 4)
-    if oa.agreeableness.is_some_and(|a| a <= 4) && ob.agreeableness.is_some_and(|a| a <= 4) {
-        p += 0.15;
-    }
-
-    // Cross-person: mutual unreliability (both C <= 4)
-    if oa.conscientiousness.is_some_and(|c| c <= 4) && ob.conscientiousness.is_some_and(|c| c <= 4)
+    // Within-person: impulsive (N high and C low)
+    if oa.neuroticism.is_some_and(|n| n >= d.high)
+        && oa.conscientiousness.is_some_and(|c| c <= d.low)
     {
-        p += 0.10;
+        p += d.within_impulsive;
+    }
+    if ob.neuroticism.is_some_and(|n| n >= d.high)
+        && ob.conscientiousness.is_some_and(|c| c <= d.low)
+    {
+        p += d.within_impulsive;
     }
 
-    // Cross-person: mutual rigidity (both O <= 4)
-    if oa.openness.is_some_and(|o| o <= 4) && ob.openness.is_some_and(|o| o <= 4) {
-        p += 0.05;
+    // Within-person: rigid anxious (N high and O low)
+    if oa.neuroticism.is_some_and(|n| n >= d.high) && oa.openness.is_some_and(|o| o <= d.low) {
+        p += d.within_rigid;
+    }
+    if ob.neuroticism.is_some_and(|n| n >= d.high) && ob.openness.is_some_and(|o| o <= d.low) {
+        p += d.within_rigid;
+    }
+
+    // Cross-person: emotional contagion (both N high)
+    if oa.neuroticism.is_some_and(|n| n >= d.high) && ob.neuroticism.is_some_and(|n| n >= d.high) {
+        p += d.contagion;
+    }
+
+    // Cross-person: antagonism (both A low)
+    if oa.agreeableness.is_some_and(|a| a <= d.low) && ob.agreeableness.is_some_and(|a| a <= d.low)
+    {
+        p += d.antagonism;
+    }
+
+    // Cross-person: mutual unreliability (both C low)
+    if oa.conscientiousness.is_some_and(|c| c <= d.low)
+        && ob.conscientiousness.is_some_and(|c| c <= d.low)
+    {
+        p += d.unreliability;
+    }
+
+    // Cross-person: mutual rigidity (both O low)
+    if oa.openness.is_some_and(|o| o <= d.low) && ob.openness.is_some_and(|o| o <= d.low) {
+        p += d.rigidity;
     }
 
     p
 }
 
 fn rep_danger_penalty(rep_a: &crate::models::RepScores, rep_b: &crate::models::RepScores) -> f64 {
+    let d = CFG.reputation.danger;
     let mut p = 0.0;
 
-    // Both authoritative >= 8 → power struggle
+    // Both authoritative >= high → power struggle
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::AuthoritativeSubmissive),
         rep_b.score(RepDim::AuthoritativeSubmissive),
-    ) && aa >= 8
-        && ab >= 8
+    ) && aa >= d.high
+        && ab >= d.high
     {
-        p += 0.10;
+        p += d.power_struggle;
     }
 
-    // Both blunt >= 8 → brutal honesty, no diplomacy
+    // Both blunt → brutal honesty, no diplomacy
     // score: 10 = Diplomatic (pole A), 0 = Blunt (pole B)
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::DiplomaticBlunt),
         rep_b.score(RepDim::DiplomaticBlunt),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.10;
+        p += d.brutal;
     }
 
-    // Both reactive >= 8 → mutual escalation
+    // Both reactive → mutual escalation
     // score: 10 = Calm (pole A), 0 = Reactive (pole B)
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::CalmReactive),
         rep_b.score(RepDim::CalmReactive),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.10;
+        p += d.escalation;
     }
 
-    // Both arrogant >= 8 → neither concedes
+    // Both arrogant → neither concedes
     // score: 10 = Humble (pole A), 0 = Arrogant (pole B)
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::HumbleArrogant),
         rep_b.score(RepDim::HumbleArrogant),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.10;
+        p += d.no_concede;
     }
 
-    // Both lazy <= 3 → mutual passivity
+    // Both lazy → mutual passivity
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::HardworkerLazy),
         rep_b.score(RepDim::HardworkerLazy),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.05;
+        p += d.passivity;
     }
 
-    // Both untrusting <= 3 → mutual suspicion
+    // Both untrusting → mutual suspicion
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::TrustingSuspicious),
         rep_b.score(RepDim::TrustingSuspicious),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.08;
+        p += d.suspicion;
     }
 
-    // Both detached <= 3 → mutual coldness
+    // Both detached → mutual coldness
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::EmpatheticDetached),
         rep_b.score(RepDim::EmpatheticDetached),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.08;
+        p += d.coldness;
     }
 
-    // Both deceitful <= 3 → trust collapse
+    // Both deceitful → trust collapse
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::HonestDeceitful),
         rep_b.score(RepDim::HonestDeceitful),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.10;
+        p += d.trust_collapse;
     }
 
-    // Both flaky <= 3 → mutual unreliability
+    // Both flaky → mutual unreliability
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::ReliableFlaky),
         rep_b.score(RepDim::ReliableFlaky),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.08;
+        p += d.unreliability;
     }
 
-    // Both unfair <= 3 → cronyism
+    // Both unfair → cronyism
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::FairFavoritism),
         rep_b.score(RepDim::FairFavoritism),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.08;
+        p += d.cronyism;
     }
 
-    // Both selfish <= 3 → mutual hoarding
+    // Both selfish → mutual hoarding
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::GenerousSelfish),
         rep_b.score(RepDim::GenerousSelfish),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.05;
+        p += d.hoarding;
     }
 
-    // Both passive <= 3 → decision paralysis
+    // Both passive → decision paralysis
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::AssertivePassive),
         rep_b.score(RepDim::AssertivePassive),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.05;
+        p += d.paralysis;
     }
 
-    // Both rigid <= 3 → gridlock
+    // Both rigid → gridlock
     if let (Some(aa), Some(ab)) = (
         rep_a.score(RepDim::AdaptableRigid),
         rep_b.score(RepDim::AdaptableRigid),
-    ) && aa <= 3
-        && ab <= 3
+    ) && aa <= d.low
+        && ab <= d.low
     {
-        p += 0.05;
+        p += d.gridlock;
     }
 
     p
 }
 
 /// Similarity score between two OCEAN trait values (1-10 scale).
-/// Formula: `1 - |a-b|/10`, clamped to [0.0, 1.0].
-/// Returns 0.5 when either value is missing.
+/// Formula: `1 - |a-b|/trait_scale`, clamped to [0.0, 1.0].
+/// Returns the neutral value when either value is missing.
 pub fn sim(a: Option<u8>, b: Option<u8>) -> f64 {
     match (a, b) {
-        (Some(a), Some(b)) => 1.0 - (a.abs_diff(b) as f64) / 10.0,
-        _ => 0.5,
+        (Some(a), Some(b)) => 1.0 - (a.abs_diff(b) as f64) / CFG.similarity.trait_scale,
+        _ => CFG.similarity.neutral,
     }
 }
 
 /// Scale band thresholds derived from the [`sim`] formula.
 ///
-/// `score = sim * 100 = (1 - |a-b|/10) * 100`.
-/// Trait-diff boundaries `[3, 5, 7, 8.5]` map to score thresholds:
-/// - Strong:   ≥70  (diff ≤3)
-/// - Good:     ≥50  (diff ≤5)
-/// - Moderate: ≥30  (diff ≤7)
-/// - Friction: ≥15  (diff ≤8.5)
-/// - Tension:  0-14 (diff >8.5)
+/// `score = sim * 100 = (1 - |a-b|/trait_scale) * 100`.
+/// Trait-diff boundaries map to score thresholds via the same formula.
 pub fn synergy_bands() -> [(u8, u8); 5] {
     // Trait-diff boundaries mapped through sim formula → score thresholds
-    const DIFF_BOUNDS: [f64; 4] = [3.0, 5.0, 7.0, 8.5];
     let mut thresh = [0u8; 4];
-    for (i, &d) in DIFF_BOUNDS.iter().enumerate() {
-        thresh[i] = ((1.0 - d / 10.0) * 100.0).round() as u8;
+    for (i, &d) in CFG.similarity.diff_bounds.iter().enumerate() {
+        thresh[i] = ((1.0 - d / CFG.similarity.trait_scale) * 100.0).round() as u8;
     }
     [
         (0, thresh[3] - 1),         // Tension
@@ -637,16 +554,28 @@ fn compute_synergy_score_inner(
     let n = sim(oa.neuroticism, ob.neuroticism);
 
     let oc_bonus = match (oa.openness, ob.conscientiousness) {
-        (Some(o), Some(c)) if o >= 7 && c >= 7 => 0.15,
+        (Some(o), Some(c)) if o >= CFG.ocean.complement_min && c >= CFG.ocean.complement_min => {
+            CFG.ocean.complement_bonus
+        }
         _ => match (ob.openness, oa.conscientiousness) {
-            (Some(o), Some(c)) if o >= 7 && c >= 7 => 0.15,
+            (Some(o), Some(c))
+                if o >= CFG.ocean.complement_min && c >= CFG.ocean.complement_min =>
+            {
+                CFG.ocean.complement_bonus
+            }
             _ => 0.0,
         },
     };
     let ea_bonus = match (oa.extraversion, ob.agreeableness) {
-        (Some(e), Some(a)) if e >= 7 && a >= 7 => 0.15,
+        (Some(e), Some(a)) if e >= CFG.ocean.complement_min && a >= CFG.ocean.complement_min => {
+            CFG.ocean.complement_bonus
+        }
         _ => match (ob.extraversion, oa.agreeableness) {
-            (Some(e), Some(a)) if e >= 7 && a >= 7 => 0.15,
+            (Some(e), Some(a))
+                if e >= CFG.ocean.complement_min && a >= CFG.ocean.complement_min =>
+            {
+                CFG.ocean.complement_bonus
+            }
             _ => 0.0,
         },
     };
@@ -656,10 +585,10 @@ fn compute_synergy_score_inner(
     // Reputation: weighted distance per shared dimension
     let mut rep_sum = 0.0;
     let mut total_active_w = 0.0;
-    for &(dim, weight) in &DIM_WEIGHTS {
-        if let (Some(va), Some(vb)) = (a.rep_scores.score(dim), b.rep_scores.score(dim)) {
+    for (dim, weight) in RepDim::ALL.iter().zip(&CFG.reputation.dim_weights) {
+        if let (Some(va), Some(vb)) = (a.rep_scores.score(*dim), b.rep_scores.score(*dim)) {
             let dist = va.abs_diff(vb);
-            rep_sum += (1.0 - dist as f64 / 10.0) * weight;
+            rep_sum += (1.0 - dist as f64 / CFG.similarity.trait_scale) * weight;
             total_active_w += weight;
         }
     }
@@ -694,7 +623,7 @@ fn compute_synergy_score_inner(
         && has_negative_only(&a.behavioral_patterns)
         && has_negative_only(&b.behavioral_patterns)
     {
-        0.05
+        CFG.patterns.only_negative_penalty
     } else {
         0.0
     };
@@ -708,7 +637,7 @@ fn compute_synergy_score_inner(
     let bias_score = if max_unique > 0 {
         shared_count as f64 / max_unique as f64
     } else {
-        0.5
+        CFG.bias.default
     };
 
     let mut ocean_mod = 0.0;
@@ -719,10 +648,10 @@ fn compute_synergy_score_inner(
     for ba in &a.biases {
         for bb in &b.biases {
             if ba.r#type == bb.r#type {
-                let w = (ba.intensity as f64 * bb.intensity as f64) / 100.0;
-                if let Some(m) = bias_modifier(ba.r#type) {
-                    let delta = m.coefficient * w;
-                    match m.target {
+                let w = (ba.intensity as f64 * bb.intensity as f64) / CFG.bias.intensity_scale;
+                if let Some((target, coefficient)) = CFG.bias_modulation(ba.r#type) {
+                    let delta = coefficient * w;
+                    match target {
                         BiasTarget::Ocean => ocean_mod += delta,
                         BiasTarget::Reputation => rep_mod += delta,
                         BiasTarget::Motivation => mot_mod += delta,
@@ -747,9 +676,11 @@ fn compute_synergy_score_inner(
     let a_accuracy = avg_prediction_accuracy(a_preds);
     let b_accuracy = avg_prediction_accuracy(b_preds);
     let history_penalty = match (a_accuracy, b_accuracy) {
-        (Some(pa), Some(pb)) if pa < 5.0 && pb < 5.0 => 0.05,
-        (Some(pa), Some(_)) if pa < 5.0 => 0.03,
-        (Some(_), Some(pb)) if pb < 5.0 => 0.03,
+        (Some(pa), Some(pb)) if pa < CFG.history.low_accuracy && pb < CFG.history.low_accuracy => {
+            CFG.history.both_low_penalty
+        }
+        (Some(pa), Some(_)) if pa < CFG.history.low_accuracy => CFG.history.single_low_penalty,
+        (Some(_), Some(pb)) if pb < CFG.history.low_accuracy => CFG.history.single_low_penalty,
         _ => 0.0,
     };
 
@@ -769,19 +700,18 @@ fn compute_synergy_score_inner(
             _ => None,
         };
         if let Some((sub, boss)) = directional {
-            if sub
-                .motivations
-                .iter()
-                .any(|m| m.r#type == MotivationType::Power && m.intensity >= 7)
-            {
-                rel_mot_mod -= 0.08;
+            if sub.motivations.iter().any(|m| {
+                m.r#type == MotivationType::Power
+                    && m.intensity >= CFG.relationship.power_intensity_min
+            }) {
+                rel_mot_mod += CFG.relationship.power_friction_mod;
             }
             if let (Some(boss_rep), Some(sub_rep)) = (
                 boss.rep_scores.authoritative_submissive,
                 sub.rep_scores.authoritative_submissive,
-            ) && boss_rep as i16 - sub_rep as i16 > 3
+            ) && boss_rep as i16 - sub_rep as i16 > CFG.relationship.hierarchy_rep_diff_min
             {
-                rel_rep_bonus += 0.04;
+                rel_rep_bonus += CFG.relationship.hierarchy_bonus;
             }
         }
     }
@@ -795,14 +725,20 @@ fn compute_synergy_score_inner(
     // Without relationship context, the documented base weights apply.
     let (w_ocean, w_rep, w_mot, w_pat, w_bias, w_style) = match ctx {
         Some(rel) => rel_weights(rel.rtype),
-        None => (0.17, 0.26, 0.19, 0.14, 0.13, 0.11),
+        None => (
+            CFG.base_weights.ocean,
+            CFG.base_weights.reputation,
+            CFG.base_weights.motivation,
+            CFG.base_weights.patterns,
+            CFG.base_weights.bias,
+            CFG.base_weights.style,
+        ),
     };
 
-    const W_HISTORY: f64 = 0.10;
     let total_danger = ocean_penalty * w_ocean
         + rep_penalty * w_rep
         + pat_danger_penalty * w_pat
-        + history_penalty * W_HISTORY;
+        + history_penalty * CFG.base_weights.history;
 
     // --- Asymmetric individual perspectives ---
     // A's benefit = Σ(A's valuation_i × B's quality_i) via composition of
@@ -816,14 +752,24 @@ fn compute_synergy_score_inner(
     let a_bias_quality = 1.0 - (a.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64);
     let b_bias_quality = 1.0 - (b.biases.len() as f64 / crate::models::BiasType::ALL.len() as f64);
 
-    // OCEAN vector for each person (trait value / 10, stability = 1 - N/10)
+    // OCEAN vector for each person (trait value / trait_scale, stability = 1 - N/trait_scale)
     let ovec = |o: &OceanScores| -> [f64; 5] {
         [
-            o.openness.map_or(0.5, |v| v as f64 / 10.0),
-            o.conscientiousness.map_or(0.5, |v| v as f64 / 10.0),
-            o.extraversion.map_or(0.5, |v| v as f64 / 10.0),
-            o.agreeableness.map_or(0.5, |v| v as f64 / 10.0),
-            o.neuroticism.map_or(0.5, |v| (10.0 - v as f64) / 10.0),
+            o.openness.map_or(CFG.similarity.neutral, |v| {
+                v as f64 / CFG.similarity.trait_scale
+            }),
+            o.conscientiousness.map_or(CFG.similarity.neutral, |v| {
+                v as f64 / CFG.similarity.trait_scale
+            }),
+            o.extraversion.map_or(CFG.similarity.neutral, |v| {
+                v as f64 / CFG.similarity.trait_scale
+            }),
+            o.agreeableness.map_or(CFG.similarity.neutral, |v| {
+                v as f64 / CFG.similarity.trait_scale
+            }),
+            o.neuroticism.map_or(CFG.similarity.neutral, |v| {
+                (CFG.similarity.trait_scale - v as f64) / CFG.similarity.trait_scale
+            }),
         ]
     };
     let av = ovec(oa);
@@ -839,7 +785,7 @@ fn compute_synergy_score_inner(
             + (1.0 - (v[2] - t[2]).abs()) * t[2]
             + (1.0 - (v[3] - t[3]).abs()) * t[3]
             + (1.0 - (v[4] - t[4]).abs()) * t[4])
-            / 5.0
+            / CFG.similarity.asym_dimensions
     };
 
     // A's perspective: B's traits × similarity(A traits, B traits)
@@ -948,15 +894,15 @@ fn compute_synergy_score_inner(
 }
 
 /// Severity weight per consistency flag, by evidence strength:
-/// 0.20 self-report inconsistencies, 0.30 stated-vs-perceived,
-/// 0.40 evidence-based (recorded patterns or biases).
+/// self-report inconsistencies, stated-vs-perceived, evidence-based
+/// (recorded patterns or biases).
 pub fn flag_weight(key: &str) -> f64 {
     match key {
         "flag_high_e_low_a"
         | "flag_high_n_low_c"
         | "flag_high_o_low_c"
         | "flag_honest_selfish"
-        | "flag_honest_favoritist" => 0.20,
+        | "flag_honest_favoritist" => CFG.flags.self_report,
         "flag_pattern_calm_volatile"
         | "flag_pattern_honest_exploiter"
         | "flag_pattern_diplomat_escalator"
@@ -990,15 +936,19 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_dunning_kruger_humble"
         | "flag_impostor_arrogant"
         | "flag_recency_reliable"
-        | "flag_availability_calm" => 0.40,
-        _ => 0.30,
+        | "flag_availability_calm" => CFG.flags.evidence,
+        _ => CFG.flags.stated_perceived,
     }
 }
 
 /// Reputation penalty from consistency flags: weighted sum of each flag's
-/// severity, capped at 0.50.
+/// severity, capped at the configured maximum.
 pub fn consistency_malus(flags: &[&str]) -> f64 {
-    flags.iter().map(|k| flag_weight(k)).sum::<f64>().min(0.50)
+    flags
+        .iter()
+        .map(|k| flag_weight(k))
+        .sum::<f64>()
+        .min(CFG.flags.malus_cap)
 }
 
 /// Motivations whose claimed credit is invalidated by a firing consistency flag.
@@ -1082,7 +1032,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let base_mot = if mot_active {
         motivation_synergy_score(&credited, &credited)
     } else {
-        0.5
+        CFG.profile.default_motivation
     };
     let virtue = virtue_adjustment(&credited);
     let count_penalty = motivation_count_penalty(credited.len());
@@ -1091,42 +1041,46 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let raw_pat = if pat_active {
         pattern_synergy(&person.behavioral_patterns, &person.behavioral_patterns)
     } else {
-        0.5
+        CFG.profile.default_patterns
     };
     let mut pat = (raw_pat + pattern_adjustment(&person.behavioral_patterns)).clamp(0.0, 1.0);
     if has_pattern_contradiction(&flags) {
-        pat = pat.min(0.5);
+        pat = pat.min(CFG.profile.contradiction_cap);
     }
 
     let (void_a, void_n) = voided_ocean_dims(&flags);
+    let neutral = CFG.similarity.neutral;
     let a_s = if void_a {
-        0.5
-    } else {
-        person.ocean.agreeableness.map_or(0.5, |v| v as f64 / 10.0)
-    };
-    let n_s = if void_n {
-        0.5
+        neutral
     } else {
         person
             .ocean
-            .neuroticism
-            .map_or(0.5, |v| (10.0 - v as f64) / 10.0)
+            .agreeableness
+            .map_or(neutral, |v| v as f64 / CFG.similarity.trait_scale)
     };
+    let n_s = if void_n {
+        neutral
+    } else {
+        person.ocean.neuroticism.map_or(neutral, |v| {
+            (CFG.similarity.trait_scale - v as f64) / CFG.similarity.trait_scale
+        })
+    };
+    let d = CFG.ocean.danger;
     let mut ocean_penalty = 0.0;
-    if person.ocean.neuroticism.is_some_and(|n| n >= 7)
-        && person.ocean.agreeableness.is_some_and(|a| a <= 4)
+    if person.ocean.neuroticism.is_some_and(|n| n >= d.high)
+        && person.ocean.agreeableness.is_some_and(|a| a <= d.low)
     {
-        ocean_penalty += 0.10;
+        ocean_penalty += d.within_volatile;
     }
-    if person.ocean.neuroticism.is_some_and(|n| n >= 7)
-        && person.ocean.conscientiousness.is_some_and(|c| c <= 4)
+    if person.ocean.neuroticism.is_some_and(|n| n >= d.high)
+        && person.ocean.conscientiousness.is_some_and(|c| c <= d.low)
     {
-        ocean_penalty += 0.05;
+        ocean_penalty += d.within_impulsive;
     }
-    if person.ocean.neuroticism.is_some_and(|n| n >= 7)
-        && person.ocean.openness.is_some_and(|o| o <= 4)
+    if person.ocean.neuroticism.is_some_and(|n| n >= d.high)
+        && person.ocean.openness.is_some_and(|o| o <= d.low)
     {
-        ocean_penalty += 0.05;
+        ocean_penalty += d.within_rigid;
     }
 
     let raw_ocean = (a_s + n_s) / 2.0;
@@ -1137,7 +1091,11 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
 
     let bias_adj = bias_adjustment(&person.biases);
     let absent_count = BiasType::ALL.len() - person.biases.len();
-    let moderate_plus = person.biases.iter().filter(|b| b.intensity >= 4).count();
+    let moderate_plus = person
+        .biases
+        .iter()
+        .filter(|b| b.intensity >= CFG.bias.moderate_min)
+        .count();
     let present_bias_count = absent_count + moderate_plus;
     let base_bias =
         1.0 - (present_bias_count as f64 / crate::models::BiasType::ALL.len() as f64).min(1.0);
@@ -1147,39 +1105,33 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let mut raw_style = if !person.styles.is_empty() {
         style_synergy(&person.styles, &person.styles)
     } else {
-        0.5
+        CFG.profile.default_style
     };
     if has_style_contradiction(&flags) {
-        raw_style = raw_style.min(0.5);
+        raw_style = raw_style.min(CFG.profile.contradiction_cap);
     }
 
-    const W_MOT: f64 = 0.19;
-    const W_PAT: f64 = 0.14;
-    const W_OCEAN: f64 = 0.17;
-    const W_REP: f64 = 0.26;
-    const W_BIAS: f64 = 0.13;
-    const W_STYLE: f64 = 0.11;
     let mut total_w = 0.0;
     let mut raw = 0.0;
-    raw += motivation * W_MOT;
-    total_w += W_MOT;
+    raw += motivation * CFG.base_weights.motivation;
+    total_w += CFG.base_weights.motivation;
     if pat_active {
-        raw += pat * W_PAT;
-        total_w += W_PAT;
+        raw += pat * CFG.base_weights.patterns;
+        total_w += CFG.base_weights.patterns;
     }
-    raw += ocean * W_OCEAN;
-    total_w += W_OCEAN;
-    raw += rep * W_REP;
-    total_w += W_REP;
-    raw += bias * W_BIAS;
-    total_w += W_BIAS;
-    raw += raw_style * W_STYLE;
-    total_w += W_STYLE;
+    raw += ocean * CFG.base_weights.ocean;
+    total_w += CFG.base_weights.ocean;
+    raw += rep * CFG.base_weights.reputation;
+    total_w += CFG.base_weights.reputation;
+    raw += bias * CFG.base_weights.bias;
+    total_w += CFG.base_weights.bias;
+    raw += raw_style * CFG.base_weights.style;
+    total_w += CFG.base_weights.style;
 
     let total = if total_w > 0.0 {
         ((raw / total_w * 100.0).round() as u8).min(100)
     } else {
-        50
+        CFG.profile.default_total
     };
 
     PersonProfile {
@@ -1196,66 +1148,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
 }
 
 pub fn motivation_synergy(a: MotivationType, b: MotivationType) -> f64 {
-    use MotivationType::*;
-    match (a, b) {
-        // Self-pairs
-        (Power, Power) => -0.2,
-        (Recognition, Recognition) => -0.1,
-        (Autonomy, Autonomy) => 0.0,
-        (Security, Security) => 0.0,
-        (Creativity, Creativity) => 0.2,
-        (Fairness, Fairness) => 0.2,
-        (Achievement, Achievement)
-        | (Affiliation, Affiliation)
-        | (Helping, Helping)
-        | (Learning, Learning) => 0.2,
-        // Cross-pairs
-        (Power, Achievement) | (Achievement, Power) => 0.3,
-        (Power, Helping) | (Helping, Power) => 0.1,
-        (Achievement, Affiliation) | (Affiliation, Achievement) => 0.1,
-        (Power, Autonomy) | (Autonomy, Power) => 0.2,
-        (Achievement, Autonomy) | (Autonomy, Achievement) => 0.2,
-        (Affiliation, Helping) | (Helping, Affiliation) => 0.3,
-        (Achievement, Learning) | (Learning, Achievement) => 0.3,
-        (Autonomy, Learning) | (Learning, Autonomy) => 0.2,
-        (Learning, Helping) | (Helping, Learning) => 0.2,
-        (Power, Recognition) | (Recognition, Power) => 0.2,
-        (Achievement, Recognition) | (Recognition, Achievement) => 0.3,
-        (Affiliation, Security) | (Security, Affiliation) => 0.2,
-        (Helping, Security) | (Security, Helping) => 0.2,
-        (Power, Affiliation) | (Affiliation, Power) => -0.2,
-        (Power, Security) | (Security, Power) => -0.1,
-        (Achievement, Security) | (Security, Achievement) => -0.2,
-        (Autonomy, Affiliation) | (Affiliation, Autonomy) => -0.1,
-        (Autonomy, Security) | (Security, Autonomy) => -0.3,
-        (Recognition, Affiliation) | (Affiliation, Recognition) => -0.1,
-        (Creativity, Learning) | (Learning, Creativity) => 0.3,
-        (Creativity, Autonomy) | (Autonomy, Creativity) => 0.2,
-        (Creativity, Achievement) | (Achievement, Creativity) => 0.2,
-        (Creativity, Helping) | (Helping, Creativity) => -0.1,
-        (Fairness, Helping) | (Helping, Fairness) => 0.3,
-        (Fairness, Affiliation) | (Affiliation, Fairness) => 0.2,
-        (Fairness, Power) | (Power, Fairness) => -0.2,
-        (Fairness, Recognition) | (Recognition, Fairness) => -0.1,
-        (Power, Learning) | (Learning, Power) => 0.0,
-        (Power, Creativity) | (Creativity, Power) => -0.1,
-        (Achievement, Helping) | (Helping, Achievement) => 0.2,
-        (Achievement, Fairness) | (Fairness, Achievement) => 0.2,
-        (Affiliation, Learning) | (Learning, Affiliation) => 0.2,
-        (Affiliation, Creativity) | (Creativity, Affiliation) => 0.2,
-        (Helping, Autonomy) | (Autonomy, Helping) => 0.0,
-        (Helping, Recognition) | (Recognition, Helping) => 0.0,
-        (Autonomy, Recognition) | (Recognition, Autonomy) => 0.0,
-        (Autonomy, Fairness) | (Fairness, Autonomy) => 0.2,
-        (Learning, Recognition) | (Recognition, Learning) => 0.3,
-        (Learning, Security) | (Security, Learning) => 0.2,
-        (Learning, Fairness) | (Fairness, Learning) => 0.2,
-        (Recognition, Security) | (Security, Recognition) => 0.0,
-        (Recognition, Creativity) | (Creativity, Recognition) => 0.3,
-        (Security, Creativity) | (Creativity, Security) => -0.2,
-        (Security, Fairness) | (Fairness, Security) => 0.2,
-        (Creativity, Fairness) | (Fairness, Creativity) => 0.2,
-    }
+    CFG.motivation_synergy(a, b)
 }
 
 pub fn motivation_synergy_score(ma: &[Motivation], mb: &[Motivation]) -> f64 {
@@ -1267,36 +1160,37 @@ pub fn motivation_synergy_score(ma: &[Motivation], mb: &[Motivation]) -> f64 {
             if syn == 0.0 {
                 continue;
             }
-            let w = (a.intensity as f64 * b.intensity as f64) / 100.0;
+            let w = (a.intensity as f64 * b.intensity as f64) / CFG.motivation.intensity_scale;
             sum += syn * w;
             total_w += w;
         }
     }
     if total_w == 0.0 {
-        0.5
+        CFG.motivation.default
     } else {
-        ((sum / total_w + 0.3) / 0.6).clamp(0.0, 1.0)
+        ((sum / total_w + CFG.motivation.norm_offset) / CFG.motivation.norm_scale).clamp(0.0, 1.0)
     }
 }
 
 pub fn virtue_adjustment(motivations: &[Motivation]) -> f64 {
     use crate::models::MotivationType::*;
+    let v = CFG.motivation.virtue;
     let mut sum = 0.0;
     for &t in &MotivationType::ALL {
         let mot = motivations.iter().find(|m| m.r#type == t);
         let intensity = mot.map(|m| m.intensity);
         match (t, intensity) {
-            (Fairness, Some(i)) if i >= 7 => sum += 0.08,
-            (Fairness, Some(i)) if i <= 3 => sum -= 0.08,
-            (Fairness, None) => sum -= 0.08,
-            (Helping, Some(i)) if i >= 7 => sum += 0.06,
-            (Helping, Some(i)) if i <= 3 => sum -= 0.06,
-            (Helping, None) => sum -= 0.06,
-            (Learning, Some(i)) if i >= 7 => sum += 0.04,
-            (Creativity, Some(i)) if i >= 7 => sum += 0.04,
-            (Power, Some(i)) if i >= 7 => sum -= 0.08,
-            (Security, Some(i)) if i >= 7 => sum -= 0.05,
-            (Recognition, Some(i)) if i >= 9 => sum -= 0.03,
+            (Fairness, Some(i)) if i >= v.high => sum += v.fairness,
+            (Fairness, Some(i)) if i <= v.low => sum -= v.fairness,
+            (Fairness, None) => sum -= v.fairness,
+            (Helping, Some(i)) if i >= v.high => sum += v.helping,
+            (Helping, Some(i)) if i <= v.low => sum -= v.helping,
+            (Helping, None) => sum -= v.helping,
+            (Learning, Some(i)) if i >= v.high => sum += v.learning,
+            (Creativity, Some(i)) if i >= v.high => sum += v.creativity,
+            (Power, Some(i)) if i >= v.high => sum -= v.power,
+            (Security, Some(i)) if i >= v.high => sum -= v.security,
+            (Recognition, Some(i)) if i >= v.recognition_high => sum -= v.recognition,
             _ => {}
         }
     }
@@ -1304,29 +1198,29 @@ pub fn virtue_adjustment(motivations: &[Motivation]) -> f64 {
 }
 
 fn motivation_count_penalty(n: usize) -> f64 {
-    if n >= 3 { 0.0 } else { (3 - n) as f64 * 0.03 }
+    if n >= CFG.motivation.count.min {
+        0.0
+    } else {
+        (CFG.motivation.count.min - n) as f64 * CFG.motivation.count.per_missing
+    }
 }
 
 pub fn bias_adjustment(biases: &[Bias]) -> f64 {
+    let b = CFG.bias;
     let mut sum = 0.0;
     for &t in &BiasType::ALL {
         match biases.iter().find(|b| b.r#type == t).map(|b| b.intensity) {
-            Some(0) => sum += 0.02,           // explicitly absent → bonus
-            Some(i) if i <= 3 => sum += 0.01, // mild → small bonus
-            Some(i) if i >= 7 => sum -= 0.03, // strong → penalty
-            _ => {}                           // moderate (4-6) or undefined → neutral
+            Some(0) => sum += b.absent_bonus, // explicitly absent → bonus
+            Some(i) if i <= b.mild_max => sum += b.mild_bonus, // mild → small bonus
+            Some(i) if i >= b.strong_min => sum -= b.strong_penalty, // strong → penalty
+            _ => {}                           // moderate or undefined → neutral
         }
     }
     sum
 }
 
 fn bias_count_bonus(n: usize) -> f64 {
-    match n {
-        0 => 0.09,
-        1 => 0.06,
-        2 => 0.03,
-        _ => 0.0,
-    }
+    CFG.bias.count_bonus.get(n).copied().unwrap_or(0.0)
 }
 
 pub fn pattern_adjustment(patterns: &[BehavioralPattern]) -> f64 {
@@ -1338,38 +1232,14 @@ pub fn pattern_adjustment(patterns: &[BehavioralPattern]) -> f64 {
     }
     for t in BehaviorTrigger::ALL {
         if !defined.contains(&t) {
-            adj -= 0.02;
+            adj -= CFG.patterns.undefined_penalty;
         }
     }
     adj
 }
 
 pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
-    match (a, b) {
-        (BehaviorTrigger::Change, BehaviorTrigger::Change) => 0.3,
-        (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => 0.3,
-        (BehaviorTrigger::Feedback, BehaviorTrigger::Change)
-        | (BehaviorTrigger::Change, BehaviorTrigger::Feedback) => 0.3,
-        (BehaviorTrigger::Success, BehaviorTrigger::Success) => 0.3,
-        (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => -0.3,
-        (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => -0.2,
-        (BehaviorTrigger::Stress, BehaviorTrigger::Conflict)
-        | (BehaviorTrigger::Conflict, BehaviorTrigger::Stress) => -0.3,
-        (BehaviorTrigger::Change, BehaviorTrigger::Stress)
-        | (BehaviorTrigger::Stress, BehaviorTrigger::Change) => -0.2,
-        (BehaviorTrigger::Conflict, BehaviorTrigger::Uncertainty)
-        | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) => -0.2,
-        (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition)
-        | (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) => 0.2,
-        (BehaviorTrigger::Injustice, BehaviorTrigger::Stress)
-        | (BehaviorTrigger::Stress, BehaviorTrigger::Injustice) => -0.1,
-        (BehaviorTrigger::Injustice, BehaviorTrigger::Conflict)
-        | (BehaviorTrigger::Conflict, BehaviorTrigger::Injustice) => -0.1,
-        (BehaviorTrigger::Injustice, BehaviorTrigger::Uncertainty)
-        | (BehaviorTrigger::Uncertainty, BehaviorTrigger::Injustice) => -0.1,
-        (BehaviorTrigger::Injustice, BehaviorTrigger::Injustice) => -0.2,
-        _ => 0.0,
-    }
+    CFG.trigger_synergy(a, b)
 }
 
 pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f64 {
@@ -1381,21 +1251,21 @@ pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f6
             if syn == 0.0 {
                 continue;
             }
-            let w = 1.0;
+            let w = CFG.patterns.pair_weight;
             sum += syn * w;
             total_w += w;
         }
     }
     if total_w == 0.0 {
-        0.5
+        CFG.patterns.default
     } else {
-        ((sum / total_w + 0.3) / 0.6).clamp(0.0, 1.0)
+        ((sum / total_w + CFG.patterns.norm_offset) / CFG.patterns.norm_scale).clamp(0.0, 1.0)
     }
 }
 
 /// Style synergy: for each of the 6 style categories, if both persons have a
-/// style in that category, score 1.0 if same choice, 0.5 if different.
-/// Average over categories where both have data. Returns 0.5 if no overlap.
+/// style in that category, score same if identical choice, different otherwise.
+/// Average over categories where both have data. Returns default if no overlap.
 pub fn style_synergy(a: &[PersonalStyle], b: &[PersonalStyle]) -> f64 {
     use crate::models::StyleCategory;
     let cats = StyleCategory::ALL;
@@ -1406,14 +1276,18 @@ pub fn style_synergy(a: &[PersonalStyle], b: &[PersonalStyle]) -> f64 {
         let b_style = b.iter().find(|s| s.r#type.category() == *cat);
         if let (Some(sa), Some(sb)) = (a_style, b_style) {
             if sa.r#type == sb.r#type {
-                sum += 1.0;
+                sum += CFG.styles.same_score;
             } else {
-                sum += 0.5;
+                sum += CFG.styles.different_score;
             }
             n += 1;
         }
     }
-    if n == 0 { 0.5 } else { sum / n as f64 }
+    if n == 0 {
+        CFG.styles.default
+    } else {
+        sum / n as f64
+    }
 }
 
 #[cfg(test)]
@@ -1931,8 +1805,8 @@ mod tests {
     fn test_bias_modifier_all_types_have_mapping() {
         for ty in &BiasType::ALL {
             assert!(
-                bias_modifier(*ty).is_some(),
-                "bias_modifier missing for {:?}",
+                CFG.bias_modulation(*ty).is_some(),
+                "bias_modulation missing for {:?}",
                 ty
             );
         }
@@ -1940,51 +1814,51 @@ mod tests {
 
     #[test]
     fn test_bias_modifier_anchoring_ocean() {
-        let m = bias_modifier(BiasType::Anchoring).unwrap();
-        assert!(matches!(m.target, BiasTarget::Ocean));
-        assert!((m.coefficient - 0.10).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::Anchoring).unwrap();
+        assert!(matches!(target, BiasTarget::Ocean));
+        assert!((coefficient - 0.10).abs() < 1e-9);
     }
 
     #[test]
     fn test_bias_modifier_confirmation_rep() {
-        let m = bias_modifier(BiasType::Confirmation).unwrap();
-        assert!(matches!(m.target, BiasTarget::Reputation));
-        assert!((m.coefficient - 0.10).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::Confirmation).unwrap();
+        assert!(matches!(target, BiasTarget::Reputation));
+        assert!((coefficient - 0.10).abs() < 1e-9);
     }
 
     #[test]
     fn test_bias_modifier_availability_patterns() {
-        let m = bias_modifier(BiasType::Availability).unwrap();
-        assert!(matches!(m.target, BiasTarget::Patterns));
-        assert!((m.coefficient - 0.10).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::Availability).unwrap();
+        assert!(matches!(target, BiasTarget::Patterns));
+        assert!((coefficient - 0.10).abs() < 1e-9);
     }
 
     #[test]
     fn test_bias_modifier_sunkcost_motivation() {
-        let m = bias_modifier(BiasType::SunkCost).unwrap();
-        assert!(matches!(m.target, BiasTarget::Motivation));
-        assert!((m.coefficient - 0.10).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::SunkCost).unwrap();
+        assert!(matches!(target, BiasTarget::Motivation));
+        assert!((coefficient - 0.10).abs() < 1e-9);
     }
 
     #[test]
     fn test_bias_modifier_dunningkruger_ocean_negative() {
-        let m = bias_modifier(BiasType::DunningKruger).unwrap();
-        assert!(matches!(m.target, BiasTarget::Ocean));
-        assert!((m.coefficient - (-0.10)).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::DunningKruger).unwrap();
+        assert!(matches!(target, BiasTarget::Ocean));
+        assert!((coefficient - (-0.10)).abs() < 1e-9);
     }
 
     #[test]
     fn test_bias_modifier_impostor_ocean_positive() {
-        let m = bias_modifier(BiasType::Impostor).unwrap();
-        assert!(matches!(m.target, BiasTarget::Ocean));
-        assert!((m.coefficient - 0.10).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::Impostor).unwrap();
+        assert!(matches!(target, BiasTarget::Ocean));
+        assert!((coefficient - 0.10).abs() < 1e-9);
     }
 
     #[test]
     fn test_bias_modifier_lossaversion_patterns_negative() {
-        let m = bias_modifier(BiasType::LossAversion).unwrap();
-        assert!(matches!(m.target, BiasTarget::Patterns));
-        assert!((m.coefficient - (-0.10)).abs() < 1e-9);
+        let (target, coefficient) = CFG.bias_modulation(BiasType::LossAversion).unwrap();
+        assert!(matches!(target, BiasTarget::Patterns));
+        assert!((coefficient - (-0.10)).abs() < 1e-9);
     }
 
     // --- bias modulation end-to-end tests ---

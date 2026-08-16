@@ -1,39 +1,46 @@
+use crate::model_config::CFG;
 use crate::models::{
     BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation,
     MotivationType, OceanScores, Person, PersonalStyle, RepScores, StyleType,
 };
 
+const HIGH: u8 = CFG.validation.high;
+const LOW: u8 = CFG.validation.low;
+const MOTIVATION_HIGH: u8 = CFG.validation.motivation_high;
+const BIAS_HIGH: u8 = CFG.validation.bias_high;
+const STYLE_HIGH: u8 = CFG.validation.style_high;
+
 pub fn ocean_rep_flags(ocean: &OceanScores, rep: &RepScores) -> Vec<&'static str> {
     let mut flags = Vec::new();
 
-    if ocean.extraversion >= Some(8) && ocean.agreeableness.is_some_and(|a| a <= 3) {
+    if ocean.extraversion >= Some(HIGH) && ocean.agreeableness.is_some_and(|a| a <= LOW) {
         flags.push("flag_high_e_low_a");
     }
-    if ocean.neuroticism >= Some(8) && ocean.conscientiousness.is_some_and(|c| c <= 3) {
+    if ocean.neuroticism >= Some(HIGH) && ocean.conscientiousness.is_some_and(|c| c <= LOW) {
         flags.push("flag_high_n_low_c");
     }
-    if ocean.openness >= Some(8) && ocean.conscientiousness.is_some_and(|c| c <= 3) {
+    if ocean.openness >= Some(HIGH) && ocean.conscientiousness.is_some_and(|c| c <= LOW) {
         flags.push("flag_high_o_low_c");
     }
-    if rep.calm_reactive >= Some(8) && ocean.neuroticism >= Some(8) {
+    if rep.calm_reactive >= Some(HIGH) && ocean.neuroticism >= Some(HIGH) {
         flags.push("flag_calm_neurotic");
     }
-    if rep.honest_deceitful >= Some(8) && rep.generous_selfish.is_some_and(|g| g <= 3) {
+    if rep.honest_deceitful >= Some(HIGH) && rep.generous_selfish.is_some_and(|g| g <= LOW) {
         flags.push("flag_honest_selfish");
     }
-    if ocean.openness >= Some(8) && rep.adaptable_rigid.is_some_and(|v| v <= 3) {
+    if ocean.openness >= Some(HIGH) && rep.adaptable_rigid.is_some_and(|v| v <= LOW) {
         flags.push("flag_open_rigid");
     }
-    if ocean.neuroticism.is_some_and(|v| v <= 3) && rep.calm_reactive.is_some_and(|v| v <= 3) {
+    if ocean.neuroticism.is_some_and(|v| v <= LOW) && rep.calm_reactive.is_some_and(|v| v <= LOW) {
         flags.push("flag_claims_calm_reactive");
     }
-    if rep.honest_deceitful >= Some(8) && rep.fair_favoritism.is_some_and(|v| v <= 3) {
+    if rep.honest_deceitful >= Some(HIGH) && rep.fair_favoritism.is_some_and(|v| v <= LOW) {
         flags.push("flag_honest_favoritist");
     }
-    if ocean.agreeableness >= Some(8) && rep.empathetic_detached.is_some_and(|v| v <= 3) {
+    if ocean.agreeableness >= Some(HIGH) && rep.empathetic_detached.is_some_and(|v| v <= LOW) {
         flags.push("flag_warmth_cold");
     }
-    if ocean.conscientiousness >= Some(8) && rep.reliable_flaky.is_some_and(|v| v <= 3) {
+    if ocean.conscientiousness >= Some(HIGH) && rep.reliable_flaky.is_some_and(|v| v <= LOW) {
         flags.push("flag_discipline_flaky");
     }
 
@@ -45,8 +52,8 @@ pub fn ocean_rep_flags(ocean: &OceanScores, rep: &RepScores) -> Vec<&'static str
 pub fn fairness_rhetoric_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     motivations
         .iter()
-        .any(|m| m.r#type == MotivationType::Fairness && m.intensity >= 6)
-        && rep.fair_favoritism.is_some_and(|v| v <= 3)
+        .any(|m| m.r#type == MotivationType::Fairness && m.intensity >= MOTIVATION_HIGH)
+        && rep.fair_favoritism.is_some_and(|v| v <= LOW)
 }
 
 pub fn fairness_rhetoric_flag(motivations: &[Motivation], rep: &RepScores) -> Option<&'static str> {
@@ -56,18 +63,18 @@ pub fn fairness_rhetoric_flag(motivations: &[Motivation], rep: &RepScores) -> Op
 fn mot_high(motivations: &[Motivation], t: MotivationType) -> bool {
     motivations
         .iter()
-        .any(|m| m.r#type == t && m.intensity >= 6)
+        .any(|m| m.r#type == t && m.intensity >= MOTIVATION_HIGH)
 }
 
 /// Preaches helpfulness but is perceived as selfish.
 pub fn helping_selfish_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
-    mot_high(motivations, MotivationType::Helping) && rep.generous_selfish.is_some_and(|v| v <= 3)
+    mot_high(motivations, MotivationType::Helping) && rep.generous_selfish.is_some_and(|v| v <= LOW)
 }
 
 /// Values closeness but is perceived as cold and detached.
 pub fn affiliation_cold_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     mot_high(motivations, MotivationType::Affiliation)
-        && rep.empathetic_detached.is_some_and(|v| v <= 3)
+        && rep.empathetic_detached.is_some_and(|v| v <= LOW)
 }
 
 /// Aspires to power, success, or recognition but is perceived as lazy.
@@ -79,29 +86,29 @@ pub fn ambition_lazy_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     ]
     .iter()
     .any(|t| mot_high(motivations, *t))
-        && rep.hardworker_lazy.is_some_and(|v| v <= 3)
+        && rep.hardworker_lazy.is_some_and(|v| v <= LOW)
 }
 
 /// Claims to value security yet is perceived as gullibly trusting.
 pub fn security_gullible_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     mot_high(motivations, MotivationType::Security)
-        && rep.trusting_suspicious.is_some_and(|v| v >= 8)
+        && rep.trusting_suspicious.is_some_and(|v| v >= HIGH)
 }
 
 /// Self-image of discipline (OCEAN C) contradicted by a lazy reputation.
 pub fn discipline_lazy_gap(ocean: &OceanScores, rep: &RepScores) -> bool {
-    ocean.conscientiousness >= Some(8) && rep.hardworker_lazy.is_some_and(|v| v <= 3)
+    ocean.conscientiousness >= Some(HIGH) && rep.hardworker_lazy.is_some_and(|v| v <= LOW)
 }
 
 /// Self-image of warmth (OCEAN A) contradicted by a blunt reputation.
 pub fn warmth_blunt_gap(ocean: &OceanScores, rep: &RepScores) -> bool {
-    ocean.agreeableness >= Some(8) && rep.diplomatic_blunt.is_some_and(|v| v <= 3)
+    ocean.agreeableness >= Some(HIGH) && rep.diplomatic_blunt.is_some_and(|v| v <= LOW)
 }
 
 /// Values belonging but is perceived as suspicious and distrustful.
 pub fn affiliation_distrustful_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     mot_high(motivations, MotivationType::Affiliation)
-        && rep.trusting_suspicious.is_some_and(|v| v <= 3)
+        && rep.trusting_suspicious.is_some_and(|v| v <= LOW)
 }
 
 const VOLATILE_TRIGGERS: [BehaviorTrigger; 3] = [
@@ -139,13 +146,13 @@ fn has_pattern_with_outcome(
 
 /// Reputation says calm, but recorded patterns show volatility under pressure.
 pub fn pattern_calm_volatile_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.calm_reactive >= Some(8)
+    rep.calm_reactive >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &VOLATILE_TRIGGERS, &VOLATILE_OUTCOMES)
 }
 
 /// Reputation says honest, but recorded patterns show exploitation.
 pub fn pattern_honest_exploiter_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.honest_deceitful >= Some(8)
+    rep.honest_deceitful >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &BehaviorTrigger::ALL, &EXPLOIT_OUTCOMES)
 }
 
@@ -157,7 +164,7 @@ const CONFLICT_ESCALATION_OUTCOMES: [BehaviorResponse; 3] = [
 
 /// Reputation says diplomatic, but recorded patterns escalate conflict.
 pub fn pattern_diplomat_escalator_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.diplomatic_blunt >= Some(8)
+    rep.diplomatic_blunt >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &[BehaviorTrigger::Conflict],
@@ -167,7 +174,7 @@ pub fn pattern_diplomat_escalator_gap(patterns: &[BehavioralPattern], rep: &RepS
 
 /// Reputation says fair, but recorded patterns exploit injustice.
 pub fn pattern_fair_exploiter_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.fair_favoritism >= Some(8)
+    rep.fair_favoritism >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &[BehaviorTrigger::Injustice],
@@ -190,7 +197,7 @@ const HUMBLE_DISMISSIVE_OUTCOMES: [BehaviorResponse; 4] = [
 
 /// Reputation says humble, but recorded patterns put others down.
 pub fn pattern_humble_dismissive_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.humble_arrogant >= Some(8)
+    rep.humble_arrogant >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &HUMBLE_DISMISSIVE_TRIGGERS,
@@ -200,7 +207,7 @@ pub fn pattern_humble_dismissive_gap(patterns: &[BehavioralPattern], rep: &RepSc
 
 /// Reputation says trusting, but recorded patterns turn paranoid under threat.
 pub fn pattern_trusting_paranoid_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.trusting_suspicious >= Some(8)
+    rep.trusting_suspicious >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &[BehaviorTrigger::Threatened],
@@ -222,7 +229,7 @@ const SHIRK_TRIGGERS: [BehaviorTrigger; 3] = [
 
 /// Reputation says reliable, but recorded patterns dodge accountability.
 pub fn pattern_reliable_shirker_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.reliable_flaky >= Some(8)
+    rep.reliable_flaky >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &SHIRK_TRIGGERS, &SHIRK_OUTCOMES)
 }
 
@@ -233,7 +240,7 @@ const COMPLACENT_OUTCOMES: [BehaviorResponse; 2] = [
 
 /// Reputation says hardworking, but recorded patterns rest on past laurels.
 pub fn pattern_hardworker_complacent_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.hardworker_lazy >= Some(8)
+    rep.hardworker_lazy >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &[BehaviorTrigger::Success], &COMPLACENT_OUTCOMES)
 }
 
@@ -254,7 +261,7 @@ const BLOWUP_OUTCOMES: [BehaviorResponse; 6] = [
 
 /// Reputation says passive, but recorded patterns blow up under pressure.
 pub fn pattern_passive_blowup_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.assertive_passive.is_some_and(|v| v <= 3)
+    rep.assertive_passive.is_some_and(|v| v <= LOW)
         && has_pattern_with_outcome(patterns, &BLOWUP_TRIGGERS, &BLOWUP_OUTCOMES)
 }
 
@@ -274,7 +281,7 @@ const QUIET_OUTCOMES: [BehaviorResponse; 4] = [
 
 /// Reputation says assertive, but recorded patterns go quiet when it counts.
 pub fn pattern_assertive_quiet_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.assertive_passive >= Some(8)
+    rep.assertive_passive >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &QUIET_TRIGGERS, &QUIET_OUTCOMES)
 }
 
@@ -292,7 +299,7 @@ const GENEROUS_EXPLOIT_OUTCOMES: [BehaviorResponse; 3] = [
 
 /// Reputation says generous, but recorded patterns exploit or deflect blame.
 pub fn pattern_generous_exploiter_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.generous_selfish >= Some(8)
+    rep.generous_selfish >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &GENEROUS_EXPLOIT_TRIGGERS,
@@ -315,7 +322,7 @@ const EMPATH_DISMISSIVE_OUTCOMES: [BehaviorResponse; 4] = [
 
 /// Reputation says empathetic, but recorded patterns put others down.
 pub fn pattern_empath_dismissive_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.empathetic_detached >= Some(8)
+    rep.empathetic_detached >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &EMPATH_DISMISSIVE_TRIGGERS,
@@ -334,7 +341,7 @@ const RESIST_OUTCOMES: [BehaviorResponse; 4] = [
 
 /// Reputation says flexible, but recorded patterns resist change and feedback.
 pub fn pattern_flexible_resister_gap(patterns: &[BehavioralPattern], rep: &RepScores) -> bool {
-    rep.adaptable_rigid >= Some(8)
+    rep.adaptable_rigid >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &RESIST_TRIGGERS, &RESIST_OUTCOMES)
 }
 
@@ -353,7 +360,7 @@ pub fn pattern_helping_exploiter_gap(
 
 /// Self-image of warmth (OCEAN A) yet recorded patterns put others down.
 pub fn pattern_warmth_dismissive_gap(patterns: &[BehavioralPattern], ocean: &OceanScores) -> bool {
-    ocean.agreeableness >= Some(8)
+    ocean.agreeableness >= Some(HIGH)
         && has_pattern_with_outcome(
             patterns,
             &EMPATH_DISMISSIVE_TRIGGERS,
@@ -363,7 +370,7 @@ pub fn pattern_warmth_dismissive_gap(patterns: &[BehavioralPattern], ocean: &Oce
 
 /// Self-image of discipline (OCEAN C) yet recorded patterns dodge accountability.
 pub fn pattern_discipline_shirker_gap(patterns: &[BehavioralPattern], ocean: &OceanScores) -> bool {
-    ocean.conscientiousness >= Some(8)
+    ocean.conscientiousness >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &SHIRK_TRIGGERS, &SHIRK_OUTCOMES)
 }
 
@@ -372,7 +379,7 @@ pub fn pattern_claimed_calm_volatile_gap(
     patterns: &[BehavioralPattern],
     ocean: &OceanScores,
 ) -> bool {
-    ocean.neuroticism.is_some_and(|n| n <= 3)
+    ocean.neuroticism.is_some_and(|n| n <= LOW)
         && has_pattern_with_outcome(patterns, &VOLATILE_TRIGGERS, &VOLATILE_OUTCOMES)
 }
 
@@ -409,13 +416,13 @@ pub fn pattern_learning_resister_gap(
 
 /// Self-image of extraversion yet recorded patterns go quiet when it counts.
 pub fn pattern_extravert_quiet_gap(patterns: &[BehavioralPattern], ocean: &OceanScores) -> bool {
-    ocean.extraversion >= Some(8)
+    ocean.extraversion >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &QUIET_TRIGGERS, &QUIET_OUTCOMES)
 }
 
 /// Self-image of openness yet recorded patterns resist change and feedback.
 pub fn pattern_open_resister_gap(patterns: &[BehavioralPattern], ocean: &OceanScores) -> bool {
-    ocean.openness >= Some(8)
+    ocean.openness >= Some(HIGH)
         && has_pattern_with_outcome(patterns, &RESIST_TRIGGERS, &RESIST_OUTCOMES)
 }
 
@@ -434,32 +441,35 @@ pub fn pattern_recognition_dismissive_gap(
 
 /// Claims a taste for risk yet is loss-averse.
 pub fn loss_aversion_risky_gap(biases: &[Bias], risk_appetite: Option<u8>) -> bool {
-    bias_high(biases, BiasType::LossAversion, 7) && risk_appetite.is_some_and(|v| v >= 8)
+    bias_high(biases, BiasType::LossAversion, BIAS_HIGH) && risk_appetite.is_some_and(|v| v >= HIGH)
 }
 
 /// Overestimates their competence yet is perceived as humble.
 pub fn dunning_kruger_humble_gap(biases: &[Bias], rep: &RepScores) -> bool {
-    bias_high(biases, BiasType::DunningKruger, 7) && rep.humble_arrogant.is_some_and(|v| v <= 3)
+    bias_high(biases, BiasType::DunningKruger, BIAS_HIGH)
+        && rep.humble_arrogant.is_some_and(|v| v <= LOW)
 }
 
 /// Underestimates their competence yet is perceived as arrogant.
 pub fn impostor_arrogant_gap(biases: &[Bias], rep: &RepScores) -> bool {
-    bias_high(biases, BiasType::Impostor, 7) && rep.humble_arrogant.is_some_and(|v| v >= 8)
+    bias_high(biases, BiasType::Impostor, BIAS_HIGH)
+        && rep.humble_arrogant.is_some_and(|v| v >= HIGH)
 }
 
 /// Perceived as steady yet swings with the latest news.
 pub fn recency_reliable_gap(biases: &[Bias], rep: &RepScores) -> bool {
-    bias_high(biases, BiasType::Recency, 7) && rep.reliable_flaky.is_some_and(|v| v >= 8)
+    bias_high(biases, BiasType::Recency, BIAS_HIGH) && rep.reliable_flaky.is_some_and(|v| v >= HIGH)
 }
 
 /// Perceived as unflappable yet overweights dramatic recent events.
 pub fn availability_calm_gap(biases: &[Bias], rep: &RepScores) -> bool {
-    bias_high(biases, BiasType::Availability, 7) && rep.calm_reactive.is_some_and(|v| v >= 8)
+    bias_high(biases, BiasType::Availability, BIAS_HIGH)
+        && rep.calm_reactive.is_some_and(|v| v >= HIGH)
 }
 
 /// Admits fragility yet appears unflappable — hides it well.
 pub fn resilient_hides_gap(resilience: Option<u8>, rep: &RepScores) -> bool {
-    resilience.is_some_and(|v| v <= 3) && rep.calm_reactive.is_some_and(|v| v >= 8)
+    resilience.is_some_and(|v| v <= LOW) && rep.calm_reactive.is_some_and(|v| v >= HIGH)
 }
 
 fn bias_high(biases: &[Bias], t: BiasType, min: u8) -> bool {
@@ -468,44 +478,46 @@ fn bias_high(biases: &[Bias], t: BiasType, min: u8) -> bool {
 
 /// Claims open-mindedness (OCEAN O) yet shows confirmation bias.
 pub fn bias_confirmation_open_gap(biases: &[Bias], ocean: &OceanScores) -> bool {
-    bias_high(biases, BiasType::Confirmation, 7) && ocean.openness >= Some(8)
+    bias_high(biases, BiasType::Confirmation, BIAS_HIGH) && ocean.openness >= Some(HIGH)
 }
 
 /// Preaches fairness yet shows favoritism or in-group bias.
 pub fn bias_favoritism_fairness_gap(biases: &[Bias], motivations: &[Motivation]) -> bool {
-    (bias_high(biases, BiasType::Favoritism, 7) || bias_high(biases, BiasType::InGroup, 7))
+    (bias_high(biases, BiasType::Favoritism, BIAS_HIGH)
+        || bias_high(biases, BiasType::InGroup, BIAS_HIGH))
         && mot_high(motivations, MotivationType::Fairness)
 }
 
 /// Perceived as a leader yet blindly defers to authority figures.
 pub fn authority_dominant_gap(biases: &[Bias], rep: &RepScores) -> bool {
-    bias_high(biases, BiasType::Authority, 7)
-        && rep.authoritative_submissive.is_some_and(|v| v >= 8)
+    bias_high(biases, BiasType::Authority, BIAS_HIGH)
+        && rep.authoritative_submissive.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims independent thinking yet follows the herd.
 pub fn social_proof_open_gap(biases: &[Bias], ocean: &OceanScores) -> bool {
-    bias_high(biases, BiasType::SocialProof, 7) && ocean.openness >= Some(8)
+    bias_high(biases, BiasType::SocialProof, BIAS_HIGH) && ocean.openness >= Some(HIGH)
 }
 
 /// Claims open-mindedness yet clings to first impressions.
 pub fn anchoring_open_gap(biases: &[Bias], ocean: &OceanScores) -> bool {
-    bias_high(biases, BiasType::Anchoring, 7) && ocean.openness >= Some(8)
+    bias_high(biases, BiasType::Anchoring, BIAS_HIGH) && ocean.openness >= Some(HIGH)
 }
 
 /// Perceived as flexible yet clings to sunk costs.
 pub fn sunk_cost_flexible_gap(biases: &[Bias], rep: &RepScores) -> bool {
-    bias_high(biases, BiasType::SunkCost, 7) && rep.adaptable_rigid.is_some_and(|v| v >= 8)
+    bias_high(biases, BiasType::SunkCost, BIAS_HIGH)
+        && rep.adaptable_rigid.is_some_and(|v| v >= HIGH)
 }
 
 /// Preaches caution and security yet self-reports a taste for risk.
 pub fn security_risky_gap(motivations: &[Motivation], risk_appetite: Option<u8>) -> bool {
-    mot_high(motivations, MotivationType::Security) && risk_appetite.is_some_and(|v| v >= 8)
+    mot_high(motivations, MotivationType::Security) && risk_appetite.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims high resilience yet is perceived as reactive.
 pub fn resilient_reactive_gap(resilience: Option<u8>, rep: &RepScores) -> bool {
-    resilience.is_some_and(|v| v >= 8) && rep.calm_reactive.is_some_and(|v| v <= 3)
+    resilience.is_some_and(|v| v >= HIGH) && rep.calm_reactive.is_some_and(|v| v <= LOW)
 }
 
 /// Aspires to power or achievement yet self-reports avoiding all risk.
@@ -513,7 +525,7 @@ pub fn risk_appetite_ambition_gap(motivations: &[Motivation], risk_appetite: Opt
     [MotivationType::Power, MotivationType::Achievement]
         .iter()
         .any(|t| mot_high(motivations, *t))
-        && risk_appetite.is_some_and(|v| v <= 3)
+        && risk_appetite.is_some_and(|v| v <= LOW)
 }
 
 /// Flags from recorded behavioral/cognitive evidence contradicting stated traits.
@@ -639,43 +651,44 @@ pub fn evidence_flags(person: &Person) -> Vec<&'static str> {
 /// Values independence yet is perceived as submissive.
 pub fn autonomy_submissive_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     mot_high(motivations, MotivationType::Autonomy)
-        && rep.authoritative_submissive.is_some_and(|v| v <= 3)
+        && rep.authoritative_submissive.is_some_and(|v| v <= LOW)
 }
 
 /// Values growth and learning yet is perceived as rigid.
 pub fn learning_rigid_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
-    mot_high(motivations, MotivationType::Learning) && rep.adaptable_rigid.is_some_and(|v| v <= 3)
+    mot_high(motivations, MotivationType::Learning) && rep.adaptable_rigid.is_some_and(|v| v <= LOW)
 }
 
 /// Values creativity yet self-reports little openness to novelty.
 pub fn creativity_closed_gap(motivations: &[Motivation], ocean: &OceanScores) -> bool {
-    mot_high(motivations, MotivationType::Creativity) && ocean.openness.is_some_and(|v| v <= 3)
+    mot_high(motivations, MotivationType::Creativity) && ocean.openness.is_some_and(|v| v <= LOW)
 }
 
 /// Values creativity yet is perceived as rigid.
 pub fn creativity_rigid_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
-    mot_high(motivations, MotivationType::Creativity) && rep.adaptable_rigid.is_some_and(|v| v <= 3)
+    mot_high(motivations, MotivationType::Creativity)
+        && rep.adaptable_rigid.is_some_and(|v| v <= LOW)
 }
 
 /// Aspires to power yet is perceived as passive.
 pub fn power_passive_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
-    mot_high(motivations, MotivationType::Power) && rep.assertive_passive.is_some_and(|v| v <= 3)
+    mot_high(motivations, MotivationType::Power) && rep.assertive_passive.is_some_and(|v| v <= LOW)
 }
 
 /// Preaches helpfulness yet is perceived as emotionally cold and detached.
 pub fn helping_cold_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
     mot_high(motivations, MotivationType::Helping)
-        && rep.empathetic_detached.is_some_and(|v| v <= 3)
+        && rep.empathetic_detached.is_some_and(|v| v <= LOW)
 }
 
 /// Preaches growth and learning yet is perceived as too arrogant to take advice.
 pub fn learning_arrogant_gap(motivations: &[Motivation], rep: &RepScores) -> bool {
-    mot_high(motivations, MotivationType::Learning) && rep.humble_arrogant.is_some_and(|v| v <= 3)
+    mot_high(motivations, MotivationType::Learning) && rep.humble_arrogant.is_some_and(|v| v <= LOW)
 }
 
 /// Self-image of warmth (OCEAN A) contradicted by a selfish reputation.
 pub fn warmth_selfish_gap(ocean: &OceanScores, rep: &RepScores) -> bool {
-    ocean.agreeableness >= Some(8) && rep.generous_selfish.is_some_and(|v| v <= 3)
+    ocean.agreeableness >= Some(HIGH) && rep.generous_selfish.is_some_and(|v| v <= LOW)
 }
 
 fn style_high(styles: &[PersonalStyle], types: &[StyleType], min: u8) -> bool {
@@ -686,25 +699,29 @@ fn style_high(styles: &[PersonalStyle], types: &[StyleType], min: u8) -> bool {
 
 /// Claims to communicate directly yet is perceived as diplomatic.
 pub fn style_direct_diplomatic_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::DirectCommunicator], 6)
-        && rep.diplomatic_blunt.is_some_and(|v| v >= 8)
+    style_high(styles, &[StyleType::DirectCommunicator], STYLE_HIGH)
+        && rep.diplomatic_blunt.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims a diplomatic style yet is perceived as blunt.
 pub fn style_diplomatic_blunt_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::DiplomaticCommunicator], 6)
-        && rep.diplomatic_blunt.is_some_and(|v| v <= 3)
+    style_high(styles, &[StyleType::DiplomaticCommunicator], STYLE_HIGH)
+        && rep.diplomatic_blunt.is_some_and(|v| v <= LOW)
 }
 
 /// Claims a competitive conflict style yet is perceived as passive.
 pub fn style_competing_passive_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::Competing], 6) && rep.assertive_passive.is_some_and(|v| v <= 3)
+    style_high(styles, &[StyleType::Competing], STYLE_HIGH)
+        && rep.assertive_passive.is_some_and(|v| v <= LOW)
 }
 
 /// Claims an autocratic or controlling style yet is perceived as submissive.
 pub fn style_dominant_submissive_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::Autocratic, StyleType::Controlling], 6)
-        && rep.authoritative_submissive.is_some_and(|v| v <= 3)
+    style_high(
+        styles,
+        &[StyleType::Autocratic, StyleType::Controlling],
+        STYLE_HIGH,
+    ) && rep.authoritative_submissive.is_some_and(|v| v <= LOW)
 }
 
 /// Claims to operate opportunistically yet is perceived as honest.
@@ -716,8 +733,8 @@ pub fn style_manipulative_honest_gap(styles: &[PersonalStyle], rep: &RepScores) 
             StyleType::Manipulative,
             StyleType::Intrusive,
         ],
-        6,
-    ) && rep.honest_deceitful.is_some_and(|v| v >= 8)
+        STYLE_HIGH,
+    ) && rep.honest_deceitful.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims an empathetic, respectful, supportive, or nurturing conduct style yet
@@ -731,20 +748,23 @@ pub fn style_empathetic_cold_gap(styles: &[PersonalStyle], rep: &RepScores) -> b
             StyleType::Supportive,
             StyleType::Nurturing,
         ],
-        6,
-    ) && rep.empathetic_detached.is_some_and(|v| v <= 3)
+        STYLE_HIGH,
+    ) && rep.empathetic_detached.is_some_and(|v| v <= LOW)
 }
 
 /// Claims a guarded or verifying trust style yet is perceived as trusting.
 pub fn style_guarded_trusting_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::Guarded, StyleType::VerifiesTrust], 6)
-        && rep.trusting_suspicious.is_some_and(|v| v >= 8)
+    style_high(
+        styles,
+        &[StyleType::Guarded, StyleType::VerifiesTrust],
+        STYLE_HIGH,
+    ) && rep.trusting_suspicious.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims a servant leadership style yet is perceived as authoritative.
 pub fn style_servant_authoritative_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::Servant], 6)
-        && rep.authoritative_submissive.is_some_and(|v| v >= 8)
+    style_high(styles, &[StyleType::Servant], STYLE_HIGH)
+        && rep.authoritative_submissive.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims a consensus-driven style yet is perceived as authoritative.
@@ -752,30 +772,32 @@ pub fn style_consensus_authoritative_gap(styles: &[PersonalStyle], rep: &RepScor
     style_high(
         styles,
         &[StyleType::Participatory, StyleType::ConsensusDriven],
-        6,
-    ) && rep.authoritative_submissive.is_some_and(|v| v >= 8)
+        STYLE_HIGH,
+    ) && rep.authoritative_submissive.is_some_and(|v| v >= HIGH)
 }
 
 /// Claims to trust freely yet is perceived as suspicious.
 pub fn style_trusts_freely_suspicious_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::ExtendsTrustFreely], 6)
-        && rep.trusting_suspicious.is_some_and(|v| v <= 3)
+    style_high(styles, &[StyleType::ExtendsTrustFreely], STYLE_HIGH)
+        && rep.trusting_suspicious.is_some_and(|v| v <= LOW)
 }
 
 /// Claims to repair trust yet is perceived as deceitful.
 pub fn style_repairs_trust_deceitful_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::RepairsTrustActively], 6)
-        && rep.honest_deceitful.is_some_and(|v| v <= 3)
+    style_high(styles, &[StyleType::RepairsTrustActively], STYLE_HIGH)
+        && rep.honest_deceitful.is_some_and(|v| v <= LOW)
 }
 
 /// Claims a rules-based approach yet is perceived as playing favorites.
 pub fn style_rulebased_favoritist_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::RuleBased], 6) && rep.fair_favoritism.is_some_and(|v| v <= 3)
+    style_high(styles, &[StyleType::RuleBased], STYLE_HIGH)
+        && rep.fair_favoritism.is_some_and(|v| v <= LOW)
 }
 
 /// Claims a virtue-based approach yet is perceived as deceitful.
 pub fn style_virtuebased_deceitful_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
-    style_high(styles, &[StyleType::VirtueBased], 6) && rep.honest_deceitful.is_some_and(|v| v <= 3)
+    style_high(styles, &[StyleType::VirtueBased], STYLE_HIGH)
+        && rep.honest_deceitful.is_some_and(|v| v <= LOW)
 }
 
 /// All "declared style vs perceived" gaps: a self-described work or conduct

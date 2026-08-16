@@ -1,5 +1,6 @@
 pub mod i18n;
 pub mod insights;
+pub mod model_config;
 pub mod models;
 pub mod ocean;
 pub mod predictions;
