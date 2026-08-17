@@ -251,5 +251,5 @@ v2.0  Phase 9a (config extraction)            ✅ done — `core/src/model_confi
 v2.x  Phase 4 (context output)                ✅ done
 v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)  ✅ done
 v3.x  Phase 6 (values) + Phase 7 (coaching)
-v3.y  Phase 9b (team aggregation)
+v3.y  Phase 9b (team aggregation)                   ✅ done — `compute_team_synergy` in synergy.rs
 ```
