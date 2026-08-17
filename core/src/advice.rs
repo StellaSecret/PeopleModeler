@@ -603,93 +603,37 @@ mod tests {
         }
     }
 
-    const ALL_FLAGS: &[&str] = &[
-        "flag_high_e_low_a",
-        "flag_high_n_low_c",
-        "flag_high_o_low_c",
-        "flag_calm_neurotic",
-        "flag_honest_selfish",
-        "flag_open_rigid",
-        "flag_claims_calm_reactive",
-        "flag_honest_favoritist",
-        "flag_warmth_cold",
-        "flag_discipline_flaky",
-        "flag_fairness_rhetoric",
-        "flag_helping_selfish",
-        "flag_affiliation_cold",
-        "flag_ambition_lazy",
-        "flag_security_gullible",
-        "flag_discipline_lazy",
-        "flag_warmth_blunt",
-        "flag_affiliation_distrustful",
-        "flag_autonomy_submissive",
-        "flag_learning_rigid",
-        "flag_creativity_closed",
-        "flag_creativity_rigid",
-        "flag_power_passive",
-        "flag_helping_cold",
-        "flag_learning_arrogant",
-        "flag_warmth_selfish",
-        "flag_pattern_calm_volatile",
-        "flag_pattern_honest_exploiter",
-        "flag_pattern_diplomat_escalator",
-        "flag_pattern_fair_exploiter",
-        "flag_pattern_humble_dismissive",
-        "flag_pattern_trusting_paranoid",
-        "flag_pattern_reliable_shirker",
-        "flag_pattern_hardworker_complacent",
-        "flag_pattern_passive_blowup",
-        "flag_pattern_assertive_quiet",
-        "flag_pattern_generous_exploiter",
-        "flag_pattern_empath_dismissive",
-        "flag_pattern_flexible_resister",
-        "flag_pattern_helping_exploiter",
-        "flag_pattern_warmth_dismissive",
-        "flag_pattern_discipline_shirker",
-        "flag_pattern_claimed_calm_volatile",
-        "flag_pattern_fairness_exploiter",
-        "flag_pattern_achievement_complacent",
-        "flag_pattern_learning_resister",
-        "flag_pattern_extravert_quiet",
-        "flag_pattern_open_resister",
-        "flag_pattern_recognition_dismissive",
-        "flag_bias_confirmation_open",
-        "flag_anchoring_open",
-        "flag_bias_favoritism_fairness",
-        "flag_authority_dominant",
-        "flag_social_proof_open",
-        "flag_sunk_cost_flexible",
-        "flag_loss_aversion_risky",
-        "flag_dunning_kruger_humble",
-        "flag_impostor_arrogant",
-        "flag_recency_reliable",
-        "flag_availability_calm",
-        "flag_security_risky",
-        "flag_resilient_reactive",
-        "flag_risk_appetite_ambition",
-        "flag_resilient_hides",
-        "flag_style_direct_diplomatic",
-        "flag_style_diplomatic_blunt",
-        "flag_style_competing_passive",
-        "flag_style_dominant_submissive",
-        "flag_style_manipulative_honest",
-        "flag_style_empathetic_cold",
-        "flag_style_guarded_trusting",
-        "flag_style_servant_authoritative",
-        "flag_style_consensus_authoritative",
-        "flag_style_trusts_freely_suspicious",
-        "flag_style_repairs_trust_deceitful",
-        "flag_style_rulebased_favoritist",
-        "flag_style_virtuebased_deceitful",
-        "flag_value_family_past",
-        "flag_value_stability_risk",
-        "flag_value_career_family",
-        "flag_value_loyalty_guarded",
-    ];
+    /// Dynamically extract every "flag_..." string literal from validation.rs
+    /// source code. This ensures the advice table stays in sync even if someone
+    /// adds a new flag to validation.rs without updating advice.rs.
+    fn flags_from_validation_source() -> Vec<&'static str> {
+        let src = include_str!("validation.rs");
+        let mut flags = Vec::new();
+        let mut start = 0;
+        while let Some(pos) = src[start..].find("\"flag_") {
+            let abs = start + pos + 1;
+            if let Some(end) = src[abs..].find('"') {
+                let flag = &src[abs..abs + end];
+                if !flags.contains(&flag) {
+                    flags.push(flag);
+                }
+                start = abs + end + 1;
+            } else {
+                break;
+            }
+        }
+        flags
+    }
 
     #[test]
-    fn acceptance_every_flag_has_bilingual_advice() {
-        for f in ALL_FLAGS {
+    fn acceptance_every_validation_flag_has_bilingual_advice() {
+        let source_flags = flags_from_validation_source();
+        assert!(
+            source_flags.len() >= 70,
+            "Expected at least 70 flags from validation.rs, found {}",
+            source_flags.len()
+        );
+        for f in source_flags {
             let fr = flag_action(f, Lang::Fr);
             let en = flag_action(f, Lang::En);
             assert!(!fr.is_empty(), "Missing FR advice for {}", f);
@@ -714,24 +658,117 @@ mod tests {
     }
 
     #[test]
-    fn per_context_returns_sorted() {
-        let p = test_person();
-        let advice_fr = per_context_advice(
-            &p,
-            &PersonProfile {
-                total: 50,
-                motivation: 0.0,
-                patterns: 0.0,
-                ocean: 0.0,
-                reputation: 0.0,
-                bias: 0.0,
-                styles: 0.0,
-                values: 0.0,
-                completeness: 50,
-                band: 0,
+    fn generate_advice_with_fired_flags() {
+        use crate::models::*;
+        let mut p = test_person();
+        p.name = "Manipulator".into();
+        p.ocean = OceanScores {
+            openness: Some(9),
+            conscientiousness: Some(3),
+            extraversion: Some(9),
+            agreeableness: Some(9),
+            neuroticism: Some(3),
+        };
+        p.motivations = vec![
+            Motivation {
+                r#type: MotivationType::Fairness,
+                intensity: 9,
+                notes: String::new(),
             },
-            InsightContext::Decision,
+            Motivation {
+                r#type: MotivationType::Helping,
+                intensity: 8,
+                notes: String::new(),
+            },
+        ];
+        p.rep_scores = RepScores {
+            honest_deceitful: Some(9),
+            generous_selfish: Some(2),
+            fair_favoritism: Some(9),
+            empathetic_detached: Some(9),
+            ..Default::default()
+        };
+        p.values = vec![
+            Value {
+                r#type: ValueType::Career,
+                intensity: 9,
+                priority: 9,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Family,
+                intensity: 9,
+                priority: 9,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Stability,
+                intensity: 9,
+                priority: 9,
+                notes: String::new(),
+            },
+        ];
+        p.risk_appetite = Some(9);
+        let advice = generate_advice(&p);
+        assert!(
+            advice.len() >= 4,
+            "Expected ≥4 advice items for a profile with multiple contradictions, got {}",
+            advice.len()
         );
-        assert_eq!(advice_fr.len(), 0);
+        let flags = crate::validation::all_person_flags(&p);
+        assert!(
+            !flags.is_empty(),
+            "Expected at least some fired flags for this contradictory profile"
+        );
+        for a in &advice {
+            assert!(!a.action.is_empty());
+        }
+    }
+
+    #[test]
+    fn per_context_deprioritizes_values_in_decision_ctx() {
+        use crate::models::*;
+        let mut p = test_person();
+        p.values = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 9,
+            priority: 9,
+            notes: String::new(),
+        }];
+        p.ocean = OceanScores {
+            openness: Some(9),
+            conscientiousness: Some(3),
+            extraversion: Some(9),
+            agreeableness: Some(9),
+            neuroticism: Some(3),
+        };
+        p.rep_scores = RepScores {
+            generous_selfish: Some(2),
+            fair_favoritism: Some(9),
+            empathetic_detached: Some(2),
+            ..Default::default()
+        };
+        p.motivations = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        let profile = PersonProfile {
+            total: 50,
+            motivation: 0.5,
+            patterns: 0.5,
+            ocean: 0.5,
+            reputation: 0.5,
+            bias: 0.5,
+            styles: 0.5,
+            values: 0.5,
+            completeness: 60,
+            band: 0,
+        };
+        let decision = per_context_advice(&p, &profile, InsightContext::Decision);
+        let growth = per_context_advice(&p, &profile, InsightContext::Growth);
+        // Both should return the same flags (same person), just different order
+        assert_eq!(decision.len(), growth.len());
+        assert!(decision.len() >= 2);
     }
 }

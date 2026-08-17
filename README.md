@@ -19,18 +19,19 @@
 
 ```
 PeopleModeler/
-├── core/                       # Rust engine (WASM + JNI)
+├── core/                       # Rust engine (WASM)
 │   ├── src/
 │   │   ├── lib.rs              # Entry point, WASM exports
-│   │   ├── models.rs           # Types: Person, Motivation, Bias, BehaviorPattern, StyleType...
-│   │   ├── synergy.rs          # Synergy scoring (OCEAN, Rep, Mot, Pat, Bias, Style)
-│   │   ├── insights.rs         # Behavioral insight generation
+│   │   ├── models.rs           # Types: Person, Motivation, Bias, BehaviorPattern, StyleType, Value...
+│   │   ├── model_config.rs     # Central config: weights, thresholds, formulas
+│   │   ├── synergy.rs          # Synergy scoring (OCEAN, Rep, Mot, Pat, Bias, Style, Values)
+│   │   ├── insights.rs         # Behavioral insight generation (profile-aware)
+│   │   ├── advice.rs           # Prescriptive coaching: flag→actionable advice (EN/FR)
 │   │   ├── predictions.rs      # Prediction logic
 │   │   ├── ocean.rs            # OCEAN interpretation
 │   │   ├── i18n.rs             # Internationalization (EN/FR)
-│   │   ├── validation.rs       # Consistency warnings
-│   │   ├── wasm.rs             # WebAssembly exports (JS)
-│   │   └── android.rs          # JNI exports (Kotlin, legacy)
+│   │   ├── validation.rs       # Consistency warnings (~80 flags)
+│   │   └── wasm.rs             # WebAssembly exports (JS)
 │   └── Cargo.toml
 │
 ├── app/                        # Dioxus app (Web WASM)
@@ -103,7 +104,7 @@ Features have been migrated to the Dioxus Web/WASM app.
 
 ### Pages
 1. **List** — Search, cards with OCEAN/motivations/biases chips
-2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Predictions, Insights, Journal, Relationships, Personal Styles
+2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Values, Predictions, Insights, Journal, Relationships, Personal Styles
 3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10)
 4. **Compare** — Synergy score with per-category breakdown
 5. **Predictions** — Feedback and accuracy
@@ -153,6 +154,7 @@ Person
 ├── biases[]             # type (enum 11), intensity (1-10), evidence
 ├── behavioralPatterns[] # trigger (enum 9), predictedBehavior (enum 55), notes
 ├── styles[]             # type (enum 41), intensity (1-10), notes
+├── values[]             # type (enum 10), intensity (1-10), priority (1-10), notes
 ├── ocean                # O, C, E, A, N (Option<u8>, 1-10)
 ├── resilience           # Option<u8> 1-10, recovery capacity
 ├── risk_appetite        # Option<u8> 1-10, comfort with uncertainty
@@ -177,12 +179,13 @@ Person
 Base weights when all categories have data:
 
 ```
-OCEAN×17% + Reputation×22% + Motivation×19% + Patterns×16% + Bias×14% + Styles×12%
+OCEAN×17% + Reputation×18% + Motivation×15% + Patterns×16% + Bias×14% + Styles×12% + Values×8%
 ```
 
 Rebalanced in Phase 5 toward behavior-derived buckets (Patterns, Bias, Styles)
 at the expense of Reputation — the least-falsifiable input — while keeping every
-documented score within ±3 points (see §Consistency Flags).
+documented score within ±3 points (see §Consistency Flags). Phase 6 added Values
+(8%) carved from Rep and Motivation.
 
 If a category has no data (e.g. no shared pattern), its weight is redistributed
 proportionally to the other active categories.
@@ -232,7 +235,7 @@ OCEAN_penalized = max(OCEAN_raw - OCEAN_penalty, 0)
 OCEAN_final = min(OCEAN_penalized × (1 + bias_modulations_OCEAN), 1)
 ```
 
-#### 2. Reputation (22%)
+#### 2. Reputation (18%)
 
 For each dimension (13 bipolar) where A and B have a value:
 
@@ -323,12 +326,12 @@ consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
 
 | Tier | Weight | Flags |
 |---|---|---|
-| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist` |
+| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded` |
 | Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
 | Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
 
-With Rep weighted at 22%, a single rhetoric gap costs roughly **−6.6 points**,
-a single evidence-based flag **−8.8 points**, and the cap is about **−11 points**.
+With Rep weighted at 18%, a single rhetoric gap costs roughly **−5.4 points**,
+a single evidence-based flag **−7.2 points**, and the cap is about **−9 points**.
 
 **Contradicted-claim discount** — beyond the Rep malus, a fired flag also
 **removes the credit the contradicted claim was banking** in the other buckets:
@@ -431,8 +434,12 @@ a genuine person with 1–2 honest flags keeps most credit.
 | `flag_availability_calm` | Availability bias ≥ 7 but Reputation Calm-Reactive ≥ 8 |
 | `flag_pattern_open_resister` | OCEAN O ≥ 8 but recorded patterns resist change or feedback |
 | `flag_pattern_recognition_dismissive` | Recognition motivation ≥ 6 but recorded patterns put others down |
+| `flag_value_family_past` | Family value ≥ 7 but no PastOriented style |
+| `flag_value_stability_risk` | Stability value ≥ 8 and Risk appetite ≥ 8 |
+| `flag_value_career_family` | Career value ≥ 8 and Family value ≥ 8 |
+| `flag_value_loyalty_guarded` | Loyalty value ≥ 8 and Guarded trust style |
 
-Flags split into six families: **rhetoric gaps** (stated motivation contradicts
+Flags split into seven families: **rhetoric gaps** (stated motivation contradicts
 perceived behavior — the *"do as I say, not as I do"* cluster: fairness, helping,
 affiliation, ambition, security, autonomy, learning, creativity), **self-image
 gaps** (OCEAN self-report contradicts reputation — discipline, warmth, openness,
@@ -442,10 +449,12 @@ selfishness or favoritism), **scalar gaps** (self-rated sliders contradict state
 motivations or reputation — risk appetite vs. security/ambition, resilience vs.
 reputation), **evidence-based gaps** (recorded behavioral
 patterns or cognitive biases contradicting reputation or self-image — calm
-volatility, honest exploitation, confirmation bias, favoritism bias), and
-**style gaps** (a declared `StyleType` work/conduct style contradicts reputation —
+volatility, honest exploitation, confirmation bias, favoritism bias), **style gaps**
+(a declared `StyleType` work/conduct style contradicts reputation —
 directness vs. diplomatic reputation, competitive vs. passive, autocratic vs.
-submissive, etc.). Each
+submissive, etc.), and **value gaps** (value ratings contradict style, scalar
+sliders, or other values — family value without past orientation, stability
+with high risk appetite). Each
 rhetoric gap also inverts the matching insight strategy: the app stops appealing
 to the stated value and points at the real driver instead (e.g. under Success,
 Stress, Conflict, Change, Feedback, Injustice triggers).
@@ -453,7 +462,7 @@ Stress, Conflict, Change, Feedback, Injustice triggers).
 > Only **defined** values trigger flags: an unset trait is never treated as "low".
 > Use `is_some_and`-style checks (see `core/src/validation.rs`).
 
-#### 3. Motivation (19%)
+#### 3. Motivation (15%)
 
 Pairs weighted by `intensity_A × intensity_B / 100`. Neutral pairs
 (synergy = 0.0) are skipped to avoid dilution bias. The resulting
@@ -687,15 +696,16 @@ The profile is 100% complete when all following fields are filled:
 | Reputation | 13 | 13 bipolar dimensions enabled |
 | Styles | 8 | 8 style categories (1 per category) |
 | Patterns | 5 | capped at 5 behavioral patterns |
-| **Total** | **45** | |
+| Values | 3 | capped at 3 value types |
+| **Total** | **48** | |
 
 ```rust
-completion = filled / 45   → [0, 1]
+completion = filled / 48   → [0, 1]
 ```
 
 Displayed as a percentage in the detail page and the person list.
 
-#### 6. Personal Styles (11%)
+#### 6. Personal Styles (12%)
 
 Personal styles measure the compatibility of preferred working
 modes across 8 categories:
@@ -720,6 +730,33 @@ styles_raw = average of sim_style over shared categories
              0.5 if no categories in common
 ```
 
+#### 6b. Values Alignment (8%)
+
+Values measure what a person considers important across 10 life dimensions:
+
+| Value | Emoji |
+|---|---|
+| Career | 💼 |
+| Family | 👨‍👩‍👧 |
+| Health | ❤️ |
+| Wealth | 💰 |
+| Stability | 🛡️ |
+| Adventure | 🧗 |
+| Community | 🌍 |
+| Knowledge | 📚 |
+| Faith | 🙏 |
+| Loyalty | 🤝 |
+
+Each value has an **intensity** (1-10, how much they care) and a **priority**
+(1-10, how much it drives decisions). Only values with intensity ≥ 4 count.
+
+**Cross-person scoring**: value similarity per dimension using
+`1.0 - |intensity_A - intensity_B| / 10`, averaged over shared values.
+
+**Self-score**: high-intensity values with high priority receive a virtue
+adjustment; contradictory value pairs (e.g. Career ≥8 + Family ≥8, Stability
+≥8 + RiskAppetite ≥8) trigger consistency flags.
+
 #### 7. Historical Factor (blind-spot tracking)
 
 If both persons have ≥ 3 resolved predictions, their **average accuracy**
@@ -737,18 +774,18 @@ historical_penalty =
 The pairwise score is **relationship-blind by default**. Passing a
 `RelContext { rtype, strength }` makes it relationship-aware:
 
-**Per-type weight profiles** — each `RelationType` carries its own 6-bucket
+**Per-type weight profiles** — each `RelationType` carries its own 7-bucket
 weights (all rows sum to 1.0, fed through the same dynamic-redistribution path):
 
-| RelationType | OCEAN | Rep | Mot | Patterns | Bias | Styles |
-|---|---|---|---|---|---|---|
-| WorksWith | 0.20 | 0.28 | 0.16 | 0.16 | 0.12 | 0.08 |
-| Collaborates | 0.18 | 0.28 | 0.16 | 0.16 | 0.13 | 0.09 |
-| Manages / ReportsTo | 0.15 | 0.30 | 0.15 | 0.18 | 0.13 | 0.09 |
-| Friends | 0.18 | 0.18 | 0.20 | 0.12 | 0.12 | 0.20 |
-| Family | 0.14 | 0.22 | 0.24 | 0.12 | 0.12 | 0.16 |
-| Partner | 0.16 | 0.20 | 0.22 | 0.14 | 0.10 | 0.18 |
-| Mentors | 0.20 | 0.18 | 0.20 | 0.14 | 0.12 | 0.16 |
+| RelationType | OCEAN | Rep | Mot | Patterns | Bias | Styles | Values |
+|---|---|---|---|---|---|---|---|
+| WorksWith | 0.20 | 0.26 | 0.16 | 0.16 | 0.12 | 0.08 | 0.02 |
+| Manages / ReportsTo | 0.15 | 0.28 | 0.15 | 0.18 | 0.13 | 0.09 | 0.02 |
+| Friends | 0.18 | 0.16 | 0.16 | 0.12 | 0.12 | 0.20 | 0.06 |
+| Family | 0.14 | 0.19 | 0.19 | 0.12 | 0.12 | 0.16 | 0.08 |
+| Partner | 0.16 | 0.17 | 0.17 | 0.14 | 0.10 | 0.18 | 0.08 |
+| Mentors | 0.20 | 0.16 | 0.18 | 0.14 | 0.12 | 0.16 | 0.04 |
+| Collaborates | 0.18 | 0.26 | 0.16 | 0.16 | 0.13 | 0.09 | 0.02 |
 
 **Directional asymmetry** — only for `Manages` / `ReportsTo` / `Mentors`:
 
@@ -804,17 +841,18 @@ The base score (compatibility categories) and asymmetric scores use
 the same fixed weights redistributed dynamically:
 
 ```
-weight_OCEAN   = 0.17
-weight_Rep     = 0.22
-weight_Mot     = 0.19
+weight_OCEAN    = 0.17
+weight_Rep      = 0.18
+weight_Mot      = 0.15
 weight_Patterns = 0.16
-weight_Bias    = 0.14
-weight_Styles  = 0.12
+weight_Bias     = 0.14
+weight_Styles   = 0.12
+weight_Values   = 0.08
 ```
 
 When a category lacks data → it is excluded and its weight is redistributed
-proportionally to the remaining categories. Motivation (weight 0.19) is
-**always active** — even without data, the 0.19 weight is kept (a scarcity
+proportionally to the remaining categories. Motivation (weight 0.15) is
+**always active** — even without data, the 0.15 weight is kept (a scarcity
 penalty applies instead, see §3).
 
 #### Asymmetric Score (individual benefit)
@@ -837,10 +875,12 @@ they *benefit* from the other, computed per category:
 
 ```
 active_weight = Σ(cat_weight) for each active category
-a_raw = OCEAN_score_a × 0.17 + Rep_quality_B × 0.22 + Mot_synergy × 0.19
+a_raw = OCEAN_score_a × 0.17 + Rep_quality_B × 0.18 + Mot_synergy × 0.15
        + Patterns_synergy × 0.16 + Bias_quality_B × 0.14 + Styles_synergy × 0.12
-b_raw = OCEAN_score_b × 0.17 + Rep_quality_A × 0.22 + Mot_synergy × 0.19
+       + Values_synergy × 0.08
+b_raw = OCEAN_score_b × 0.17 + Rep_quality_A × 0.18 + Mot_synergy × 0.15
        + Patterns_synergy × 0.16 + Bias_quality_A × 0.14 + Styles_synergy × 0.12
+       + Values_synergy × 0.08
 
 a_score = round(a_raw / active_weight × 100) → clamp [0, 100]
 b_score = round(b_raw / active_weight × 100) → clamp [0, 100]
@@ -857,7 +897,7 @@ danger_pts = round(danger / active_weight × 100)
 historical penalties:
 
 ```
-danger = OCEAN_penalty × 0.17 + Rep_penalty × 0.22
+danger = OCEAN_penalty × 0.17 + Rep_penalty × 0.18
        + Patterns_penalty × 0.16 + historical_penalty × 0.10
 ```
 
@@ -866,6 +906,23 @@ The `danger` field in `SynergyBreakdown` exposes this value for transparency
 
 The UI displays three scores: `{A}% – {total}% – {B}%` with directional
 arrows showing who benefits more.
+
+---
+
+## 🧭 Prescriptive Coaching (Phase 7)
+
+Fired consistency flags are mapped to **actionable advice** in `core/src/advice.rs`.
+Each of the ~80 flags has a bilingual (EN/FR) coaching statement — the *"what to
+do about it"* rather than just the *"what's wrong"*.
+
+- **`flag_action(flag, lang)`** — returns the actionable advice for a single flag
+- **`generate_advice(person)`** — all fired flags → categorized advice
+- **`per_context_advice(person, profile, ctx)`** — reorders advice by Phase 4 context weights (e.g. Decision vs. Growth)
+- **Compare page** "Risks & Mitigations" panel — shows each person's fired flags alongside their mitigation step
+
+Insights (`core/src/insights.rs`) now consume `compute_person_profile` + fired
+flags instead of raw top-motivation/bias, so the same profile produces different
+text when flags fire — an honest profile and its manipulator twin diverge.
 
 ---
 
