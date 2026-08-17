@@ -48,8 +48,8 @@ test.describe('People Modeler Dioxus App', () => {
     await page.locator('label:has-text("Name") + input').fill('To Delete');
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
-    page.once('dialog', d => d.accept());
     await page.click('button:has-text("Delete")');
+    await page.click('button:has-text("Delete this person")');
     await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
   });
 
@@ -95,11 +95,12 @@ test.describe('People Modeler Dioxus App', () => {
     await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
     const headers = page.locator('.people-table th');
     await expect(headers).toHaveCount(8);
-    for (let i = 0; i < 8; i++) {
-      await expect(headers.nth(i)).toBeVisible();
+    // Name + score visible, detail columns hidden on mobile
+    await expect(headers.nth(0)).toBeVisible();
+    await expect(headers.nth(1)).toBeVisible();
+    for (let i = 2; i < 8; i++) {
+      await expect(headers.nth(i)).not.toBeVisible();
     }
-    const cells = page.locator('.people-table td.pt-sub');
-    await expect(cells).not.toHaveCount(0);
   });
 
   test('people table search filters by name', async ({ page }) => {
@@ -188,6 +189,7 @@ test.describe('People Modeler Dioxus App', () => {
     await expect(page.locator('.prediction-card')).toHaveCount(1);
 
     await page.locator('.prediction-card').locator('button:has-text("Delete")').click();
+    await page.locator('.prediction-card').locator('button:has-text("Delete this prediction")').click();
     await expect(page.locator('.prediction-card')).toHaveCount(0);
   });
 

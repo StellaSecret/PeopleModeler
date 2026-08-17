@@ -874,6 +874,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     };
 
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
     let add_btn = crate::i18n::tr("add_btn", lang);
     let update_btn = crate::i18n::tr("edit_update_btn", lang);
     let trigger_label = |t: BehaviorTrigger| -> &'static str {
@@ -914,7 +915,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 }
                 input {
                     r#type: "text",
-                    placeholder: "Notes...",
+                    placeholder: "{notes_pl}",
                     value: "{sel_notes()}",
                     oninput: move |e| sel_notes.set(e.value()),
                 }

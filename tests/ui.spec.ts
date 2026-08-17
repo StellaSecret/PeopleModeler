@@ -31,6 +31,7 @@ test.describe('UI Features', () => {
     await page.waitForURL(/\/person\//);
 
     await page.click('button:has-text("Delete")');
+    await page.click('button:has-text("Delete this person")');
     await expect(page.locator('.toast')).toBeVisible({ timeout: 3000 });
     await expect(page.locator('.toast')).toContainText('Deleted');
   });

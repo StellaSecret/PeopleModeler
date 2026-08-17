@@ -32,10 +32,9 @@ body:has(.app[data-theme="light"]),
   --bg: #F7F3EE;
   --surface: #FFFFFF;
   --surface2: #EFEBE5;
-  --border: rgba(0,0,0,0.08);
+  --border: rgba(0,0,0,0.12);
   --text: #2C2C2C;
   --text-muted: #6B6B6B;
-  --border: rgba(0,0,0,0.12);
   --nav-bg: rgba(255,255,255,0.85);
   --score-tension: #b71c1c;
   --score-friction: #e65100;
@@ -55,6 +54,8 @@ body{
 }
 
 ::selection{background:rgba(233,69,96,0.3);color:var(--text)}
+
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
 /* noise overlay removed — a11y concern (visual sensitivity) */
 
@@ -330,7 +331,7 @@ fieldset.section legend{
   border-radius:var(--radius);font-size:0.88rem;font-family:var(--font-body);
   background:var(--surface);color:var(--text);outline:none;transition:border-color 0.2s
 }
-.form input:focus,.form textarea:focus{border-color:var(--cyan)}
+.form input:focus,.form textarea:focus,.form select:focus{border-color:var(--cyan)}
 .form textarea{font-family:var(--font-body);resize:vertical}
 .form input::placeholder,.form textarea::placeholder{color:var(--text-muted)}
 .form-actions{display:flex;gap:0.75rem;margin-top:1.5rem;justify-content:flex-end}
@@ -796,6 +797,10 @@ fieldset.ocean-inputs legend{
 .pt-sub{font-family:var(--font-mono);text-align:center;color:var(--text-muted);font-size:0.8rem}
 .pt-col-score{text-align:center}
 .pt-col-sub{text-align:center}
+@media(max-width:520px){
+  .pt-col-sub{display:none}
+  .people-table{font-size:0.82rem}
+}
 /* Risk + Mitigation panel (Phase 7) */
 .risk-mit-row{display:flex;align-items:baseline;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.4rem}
 .risk-text{color:var(--orange);font-weight:600}

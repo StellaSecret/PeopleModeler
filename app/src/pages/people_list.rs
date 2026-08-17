@@ -28,6 +28,7 @@ pub fn PeopleList() -> Element {
 
     let search_placeholder = crate::i18n::tr("search_placeholder", lang());
     let no_people = crate::i18n::tr("no_people_yet", lang());
+    let no_search_results = crate::i18n::tr("no_search_results", lang());
     let name_hdr = crate::i18n::tr("pl_name", lang());
     let ps_hdr = crate::i18n::tr("person_self_score", lang());
     let ocean_hdr = crate::i18n::tr("compare_cat_ocean", lang());
@@ -59,10 +60,15 @@ pub fn PeopleList() -> Element {
             rows.sort_by_key(|(_, _, _, b)| std::cmp::Reverse(b.total));
 
             if rows.is_empty() {
+                let empty_msg = if q.is_empty() {
+                    no_people.to_string()
+                } else {
+                    no_search_results.replace("{0}", &search())
+                };
                 rsx! {
                     div { class: "empty-state",
                         span { class: "empty-icon", "🧩" }
-                        p { "{no_people}" }
+                        p { "{empty_msg}" }
                     }
                 }
             } else {

@@ -148,6 +148,8 @@ fn PredictionCard(
     let mut show_form = use_signal(|| false);
     let mut actual = use_signal(String::new);
     let mut accuracy = use_signal(|| 5u8);
+    let mut confirming_delete = use_signal(|| false);
+    let confirm_delete_pred = crate::i18n::tr("confirm_delete_pred", lang());
 
     let outcome_str = prediction
         .actual_outcome
@@ -207,7 +209,14 @@ fn PredictionCard(
             if !resolved && !show_form() {
                 button { class: "btn btn-small", onclick: move |_| show_form.set(true), "{resolve_btn}" }
             }
-            button { class: "btn btn-small btn-danger", onclick: move |_| delete(), "{delete_btn}" }
+            if confirming_delete() {
+                div { class: "pred-confirm-row",
+                    button { class: "btn btn-small btn-danger", onclick: move |_| delete(), "{confirm_delete_pred}" }
+                    button { class: "btn btn-small", onclick: move |_| confirming_delete.set(false), "{cancel_btn}" }
+                }
+            } else {
+                button { class: "btn btn-small btn-danger", onclick: move |_| confirming_delete.set(true), "{delete_btn}" }
+            }
             if !resolved && show_form() {
                 div { class: "resolve-form",
                     input { placeholder: "{actual_pl}", value: "{actual}",

@@ -742,6 +742,10 @@ fn en(key: &'static str) -> &'static str {
         "rel_close_add" => "− Cancel",
         "rel_search_placeholder" => "Search person…",
         "rel_confirm_delete" => "Delete this relationship?",
+        "confirm_delete" => "Delete this person?",
+        "confirm_delete_log" => "Delete this entry?",
+        "confirm_delete_pred" => "Delete this prediction?",
+        "no_search_results" => "No results for \"{0}\".",
         "rel_person_rel" => "Relationships",
 
         // Timeline
@@ -1481,6 +1485,10 @@ fn fr(key: &'static str) -> &'static str {
         "rel_close_add" => "− Annuler",
         "rel_search_placeholder" => "Rechercher une personne…",
         "rel_confirm_delete" => "Supprimer cette relation ?",
+        "confirm_delete" => "Supprimer cette personne ?",
+        "confirm_delete_log" => "Supprimer cette entrée ?",
+        "confirm_delete_pred" => "Supprimer cette prédiction ?",
+        "no_search_results" => "Aucun résultat pour «{0}».",
         "rel_person_rel" => "Relations",
 
         // Timeline

@@ -67,6 +67,8 @@ pub fn PersonDetail(id: String) -> Element {
             let risk_label = crate::i18n::tr("risk_appetite_label", lang());
             let comp_label = crate::i18n::tr("profile_completeness", lang());
             let compare_btn = crate::i18n::tr("compare_btn", lang());
+            let confirm_delete_person = crate::i18n::tr("confirm_delete", lang());
+            let confirm_delete_log = crate::i18n::tr("confirm_delete_log", lang());
             let no_pat = crate::i18n::tr("no_patterns", lang());
             let log_title = crate::i18n::tr("log_title", lang());
             let log_placeholder = crate::i18n::tr("log_placeholder", lang());
@@ -94,6 +96,8 @@ pub fn PersonDetail(id: String) -> Element {
             let common_delete = crate::i18n::tr("common_delete", lang());
 
             let mut preds = use_signal(|| db::predictions_for_person(&id));
+            let mut confirming_delete = use_signal(|| false);
+            let mut confirming_log_del: Signal<Option<String>> = use_signal(|| None);
             let mut ctx = use_signal(String::new);
             let mut predicted = use_signal(String::new);
             let ctx_pl = crate::i18n::tr("pred_context_placeholder", lang());
@@ -206,18 +210,34 @@ pub fn PersonDetail(id: String) -> Element {
                     div { class: "toolbar",
                         Link { to: Route::PersonEdit { id: id.clone() }, class: "btn", "{edit_btn}" }
                         button { class: "btn", onclick: move |_| comparing.set(!comparing()), "{compare_btn}" }
-                        button {
-                            class: "btn btn-danger",
-                            onclick: move |_| {
-                                match db::delete_person(&id) {
-                                    Ok(()) => {
-                                        toast_sig.set(Some(crate::i18n::tr("toast_deleted", lang()).into()));
-                                        navigator().push(Route::PeopleList {});
+                        if confirming_delete() {
+                            button {
+                                class: "btn btn-danger",
+                                onclick: {
+                                    let del_id = id.clone();
+                                    move |_| {
+                                        match db::delete_person(&del_id) {
+                                            Ok(()) => {
+                                                toast_sig.set(Some(crate::i18n::tr("toast_deleted", lang()).into()));
+                                                navigator().push(Route::PeopleList {});
+                                            }
+                                            Err(e) => toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang())))),
+                                        }
                                     }
-                                    Err(e) => toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang())))),
-                                }
-                            },
-                            "{delete_btn}"
+                                },
+                                "{confirm_delete_person}"
+                            }
+                            button {
+                                class: "btn",
+                                onclick: move |_| confirming_delete.set(false),
+                                "{common_cancel}"
+                            }
+                        } else {
+                            button {
+                                class: "btn btn-danger",
+                                onclick: move |_| confirming_delete.set(true),
+                                "{delete_btn}"
+                            }
                         }
                     }
                     if comparing() {
@@ -692,24 +712,43 @@ pub fn PersonDetail(id: String) -> Element {
                                                             span { class: "log-target", "{tp.avatar_emoji} {tp.name}" }
                                                         }
                                                     }
-                                                    button {
-                                                        class: "btn-icon btn-danger",
-                                                        onclick: {
-                                                            let eid = entry.id.clone();
-                                                            let pid = id.clone();
-                                                            move |_| {
-                                                                let mut p = person_sig.write().clone();
-                                                                if let Some(ref mut p) = p {
-                                                                    p.log.retain(|e| e.id != eid);
-                                                                    if let Err(e) = db::save_person(p) {
-                                                                        toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
-                                                                        return;
+                                                    if confirming_log_del() == Some(entry.id.clone()) {
+                                                        span { class: "rel-confirm-delete",
+                                                            button {
+                                                                class: "btn btn-small btn-danger",
+                                                                onclick: {
+                                                                    let eid = entry.id.clone();
+                                                                    let pid = id.clone();
+                                                                    move |_| {
+                                                                        let mut p = person_sig.write().clone();
+                                                                        if let Some(ref mut p) = p {
+                                                                            p.log.retain(|e| e.id != eid);
+                                                                            if let Err(e) = db::save_person(p) {
+                                                                                toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                                                return;
+                                                                            }
+                                                                            person_sig.set(db::person(&pid));
+                                                                        }
+                                                                        confirming_log_del.set(None);
                                                                     }
-                                                                    person_sig.set(db::person(&pid));
-                                                                }
+                                                                },
+                                                                "{confirm_delete_log}"
                                                             }
-                                                        },
-                                                        "✕"
+                                                            button {
+                                                                class: "btn btn-small",
+                                                                onclick: move |_| confirming_log_del.set(None),
+                                                                "{common_cancel}"
+                                                            }
+                                                        }
+                                                    } else {
+                                                        button {
+                                                            class: "btn-icon btn-danger",
+                                                            onclick: {
+                                                                let eid = entry.id.clone();
+                                                                move |_| confirming_log_del.set(Some(eid.clone()))
+                                                            },
+                                                            "✕"
+                                                        }
                                                     }
                                                 }
                                                 p { "{entry.text}" }
