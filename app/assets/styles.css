@@ -801,3 +801,34 @@ fieldset.ocean-inputs legend{
 .risk-text{color:var(--orange);font-weight:600}
 .mit-arrow{color:var(--text-muted)}
 .mit-text{color:var(--text)}
+
+/* ── TEAM PAGE ── */
+.team-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.5rem}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;display:flex;flex-direction:column;gap:0.25rem}
+.summary-value{font-size:1.5rem;font-weight:700;font-family:var(--font-mono);color:var(--text)}
+.summary-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600}
+.summary-detail{font-size:0.78rem;color:var(--text-muted);margin-top:0.15rem}
+.summary-card.highlight-good{border-color:var(--green);background:rgba(46,204,113,0.06)}
+.summary-card.highlight-good .summary-value{color:var(--green)}
+.summary-card.highlight-warn{border-color:var(--orange);background:rgba(249,115,22,0.06)}
+.summary-card.highlight-warn .summary-value{color:var(--orange)}
+.danger-val{color:var(--orange)!important}
+.team-section{margin-bottom:1.5rem}
+.team-section h3{font-size:0.95rem;margin-bottom:0.75rem;color:var(--text-muted)}
+.team-pairs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:0.6rem}
+.team-pair-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem}
+.pair-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem}
+.pair-names{font-size:0.85rem;font-weight:600;color:var(--text)}
+.pair-score{font-family:var(--font-mono);font-weight:700;font-size:0.9rem;padding:0.15rem 0.5rem;border-radius:6px;background:var(--surface2)}
+.pair-score.ps-tension{color:var(--score-tension)}
+.pair-score.ps-friction{color:var(--score-friction)}
+.pair-score.ps-moderate{color:var(--score-moderate)}
+.pair-score.ps-good{color:var(--score-good)}
+.pair-score.ps-strong{color:var(--score-strong)}
+.pair-danger{font-size:0.75rem;color:var(--orange);margin-bottom:0.3rem}
+.pair-breakdown-mini{display:flex;flex-wrap:wrap;gap:0.3rem;font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono)}
+.pair-breakdown-mini span{background:var(--surface2);padding:0.1rem 0.35rem;border-radius:4px}
+@media(max-width:480px){
+  .team-summary{grid-template-columns:repeat(2,1fr)}
+  .team-pairs-grid{grid-template-columns:1fr}
+}

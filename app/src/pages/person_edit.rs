@@ -337,7 +337,11 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             risk_appetite: Some(risk_appetite()),
             confidence: confidence(),
             log: p.log.clone(),
-            created_at: chrono::Utc::now().timestamp_millis(),
+            created_at: if is_new {
+                chrono::Utc::now().timestamp_millis()
+            } else {
+                p.created_at
+            },
             updated_at: chrono::Utc::now().timestamp_millis(),
         };
         if let Err(e) = db::save_person(&person) {

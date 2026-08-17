@@ -19,12 +19,13 @@ test.describe('SPA Navigation', () => {
     await expect(links.nth(0)).toHaveAttribute('href', /PeopleModeler\/?$/);
     await expect(links.nth(1)).toHaveAttribute('href', /relationships/);
     await expect(links.nth(2)).toHaveAttribute('href', /timeline/);
-    await expect(links.nth(3)).toHaveAttribute('href', /sync/);
+    await expect(links.nth(3)).toHaveAttribute('href', /team/);
+    await expect(links.nth(4)).toHaveAttribute('href', /sync/);
   });
 
   test('click Sync nav goes to /sync', async ({ page }) => {
     await page.goto('/PeopleModeler/');
-    await page.locator('.nav-links a').nth(3).click();
+    await page.locator('.nav-links a').nth(4).click();
     await expect(page).toHaveURL(/\/sync/);
   });
 

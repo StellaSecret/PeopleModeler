@@ -6,4 +6,5 @@ pub mod person_edit;
 pub mod predictions;
 pub mod relationships;
 pub mod sync;
+pub mod team;
 pub mod timeline;

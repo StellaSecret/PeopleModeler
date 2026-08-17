@@ -52,7 +52,7 @@ class SPAHandler(http.server.SimpleHTTPRequestHandler):
             return False
 
     def log_message(self, format, *args):
-        if len(args) >= 2 and args[0].startswith("Broken pipe"):
+        if len(args) >= 2 and str(args[0]).startswith("Broken pipe"):
             return
         super().log_message(format, *args)
 

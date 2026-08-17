@@ -789,6 +789,20 @@ fn en(key: &'static str) -> &'static str {
             "You can replay this tutorial anytime from the navigation bar.\n\nQuick tips:\n• Create at least two people to unlock comparisons\n• Use the Sync page to back up your data\n• Tag people to organise them by group\n\nGo ahead and start modeling the people in your world!"
         }
 
+        // Team page
+        "nav_team" => "Team",
+        "team_title" => "Team Synergy",
+        "team_empty" => "Add at least 2 people to see team synergy.",
+        "team_size" => "Team size",
+        "team_avg_score" => "Avg score",
+        "team_strongest" => "Strongest link",
+        "team_weakest" => "Weakest link",
+        "team_max_danger" => "Max danger",
+        "team_avg_danger" => "Avg danger",
+        "team_ctx_avg" => "Average by situation",
+        "team_pairs" => "All pairs",
+        "team_no_danger" => "None",
+
         // Common (tutorial)
         "common_next" => "Next →",
         "common_skip" => "Skip",
@@ -1513,6 +1527,20 @@ fn fr(key: &'static str) -> &'static str {
         "tut_done_body" => {
             "Vous pouvez rejouer ce tutoriel à tout moment depuis la barre de navigation.\n\nConseils rapides :\n• Créez au moins deux personnes pour débloquer les comparaisons\n• Utilisez la page Sync pour sauvegarder vos données\n• Utilisez les tags pour organiser les personnes par groupe\n\nAllez-y et commencez à modéliser les personnes de votre monde !"
         }
+
+        // Team page
+        "nav_team" => "Équipe",
+        "team_title" => "Synergie d'équipe",
+        "team_empty" => "Ajoutez au moins 2 personnes pour voir la synergie d'équipe.",
+        "team_size" => "Taille",
+        "team_avg_score" => "Score moyen",
+        "team_strongest" => "Lien le plus fort",
+        "team_weakest" => "Lien le plus faible",
+        "team_max_danger" => "Danger max",
+        "team_avg_danger" => "Danger moyen",
+        "team_ctx_avg" => "Moyenne par situation",
+        "team_pairs" => "Toutes les paires",
+        "team_no_danger" => "Aucun",
 
         // Common (tutorial)
         "common_next" => "Suivant →",

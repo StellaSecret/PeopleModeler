@@ -11,6 +11,7 @@ use crate::pages::person_edit::PersonNew;
 use crate::pages::predictions::Predictions;
 use crate::pages::relationships::Relationships;
 use crate::pages::sync::SyncPage;
+use crate::pages::team::Team;
 use crate::pages::timeline::Timeline;
 use crate::theme::Theme;
 
@@ -54,6 +55,8 @@ enum Route {
     Relationships {},
     #[route("/timeline")]
     Timeline {},
+    #[route("/team")]
+    Team {},
 }
 
 fn main() {
@@ -182,6 +185,7 @@ fn NavLayout() -> Element {
     let nav_people = crate::i18n::tr("nav_people", lang());
     let nav_relationships = crate::i18n::tr("nav_relationships", lang());
     let nav_timeline = crate::i18n::tr("nav_timeline", lang());
+    let nav_team = crate::i18n::tr("nav_team", lang());
     let nav_sync = crate::i18n::tr("nav_sync", lang());
     let toggle_lang = move |_| {
         let mut l = lang();
@@ -214,6 +218,7 @@ fn NavLayout() -> Element {
                     Link { to: Route::PeopleList {}, "{nav_people}" }
                     Link { to: Route::Relationships {}, "{nav_relationships}" }
                     Link { to: Route::Timeline {}, "{nav_timeline}" }
+                    Link { to: Route::Team {}, "{nav_team}" }
                     Link { to: Route::SyncPage {}, "{nav_sync}" }
                 }
                 div { class: "toggle-group",
