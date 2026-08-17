@@ -71,6 +71,7 @@ mod tests {
             ],
             behavioral_patterns: vec![],
             styles: vec![],
+            values: vec![],
             rep_scores: RepScores::default(),
             ocean: OceanScores {
                 openness: Some(8),
@@ -190,6 +191,11 @@ mod tests {
     #[test]
     fn test_bias_enum_all() {
         assert_eq!(BiasType::ALL.len(), 12);
+    }
+
+    #[test]
+    fn test_value_enum_all() {
+        assert_eq!(ValueType::ALL.len(), 10);
     }
 
     #[test]
@@ -355,6 +361,7 @@ mod tests {
                 },
             ],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores::default(),
             resilience: None,
             risk_appetite: None,
@@ -450,6 +457,7 @@ mod tests {
             },
             behavioral_patterns: vec![],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores::default(),
             resilience: None,
             risk_appetite: None,
@@ -583,6 +591,7 @@ mod tests {
             rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores::default(),
             resilience: None,
             risk_appetite: None,

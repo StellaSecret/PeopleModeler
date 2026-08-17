@@ -310,6 +310,78 @@ impl MotivationType {
     }
 }
 
+// ---------- Values (Phase 6) ----------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValueType {
+    #[serde(alias = "CAREER")]
+    Career,
+    #[serde(alias = "FAMILY")]
+    Family,
+    #[serde(alias = "HEALTH")]
+    Health,
+    #[serde(alias = "WEALTH")]
+    Wealth,
+    #[serde(alias = "STABILITY")]
+    Stability,
+    #[serde(alias = "ADVENTURE")]
+    Adventure,
+    #[serde(alias = "COMMUNITY")]
+    Community,
+    #[serde(alias = "KNOWLEDGE")]
+    Knowledge,
+    #[serde(alias = "FAITH")]
+    Faith,
+    #[serde(alias = "LOYALTY")]
+    Loyalty,
+}
+
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl ValueType {
+    pub const ALL: [Self; 10] = [
+        Self::Career,
+        Self::Family,
+        Self::Health,
+        Self::Wealth,
+        Self::Stability,
+        Self::Adventure,
+        Self::Community,
+        Self::Knowledge,
+        Self::Faith,
+        Self::Loyalty,
+    ];
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            Self::Career => "💼",
+            Self::Family => "👨‍👩‍👧",
+            Self::Health => "💪",
+            Self::Wealth => "💰",
+            Self::Stability => "🏠",
+            Self::Adventure => "🧭",
+            Self::Community => "🌍",
+            Self::Knowledge => "🔬",
+            Self::Faith => "🕊️",
+            Self::Loyalty => "🔗",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Value {
+    pub r#type: ValueType,
+    #[serde(deserialize_with = "clamp_u8_1_10")]
+    pub intensity: u8,
+    #[serde(deserialize_with = "clamp_u8_1_10")]
+    pub priority: u8,
+    pub notes: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BiasType {
     #[serde(alias = "CONFIRMATION")]
@@ -922,6 +994,8 @@ pub struct Person {
     pub behavioral_patterns: Vec<BehavioralPattern>,
     #[serde(default)]
     pub styles: Vec<PersonalStyle>,
+    #[serde(default)]
+    pub values: Vec<Value>,
     pub ocean: OceanScores,
     #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
     pub resilience: Option<u8>,

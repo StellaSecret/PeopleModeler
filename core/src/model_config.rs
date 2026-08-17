@@ -13,27 +13,28 @@ use crate::models::{BehaviorTrigger, BiasType, MotivationType, RelationType};
 pub const CFG: ModelConfig = ModelConfig {
     base_weights: BaseWeights {
         ocean: 0.17,
-        reputation: 0.22,
-        motivation: 0.19,
+        reputation: 0.18,
+        motivation: 0.15,
         patterns: 0.16,
         bias: 0.14,
         style: 0.12,
+        values: 0.08,
         history: 0.10,
     },
     contexts: ContextWeights {
         // Indexed by InsightContext::ALL order (Decision, Team, Stress,
         // Communication, Leadership, Growth). Weight order per row:
-        // (ocean, reputation, motivation, patterns, bias, style). Rows sum
-        // to 1.0. Phase 4 re-weights the final per-bucket scores per context;
-        // when a relationship context is present these compose with
-        // `relationship.weights` (element-wise product, renormalized).
+        // (ocean, reputation, motivation, patterns, bias, style, values).
+        // Rows sum to 1.0. Phase 4 re-weights the final per-bucket scores
+        // per context; when a relationship context is present these compose
+        // with `relationship.weights` (element-wise product, renormalized).
         weights: [
-            [0.22, 0.18, 0.20, 0.16, 0.14, 0.10], // Decision
-            [0.22, 0.16, 0.18, 0.14, 0.14, 0.16], // Team
-            [0.18, 0.18, 0.14, 0.24, 0.18, 0.08], // Stress
-            [0.20, 0.14, 0.16, 0.14, 0.18, 0.18], // Communication
-            [0.16, 0.24, 0.20, 0.16, 0.14, 0.10], // Leadership
-            [0.20, 0.16, 0.22, 0.16, 0.12, 0.14], // Growth
+            [0.22, 0.16, 0.18, 0.16, 0.14, 0.10, 0.04], // Decision
+            [0.22, 0.14, 0.16, 0.14, 0.14, 0.16, 0.04], // Team
+            [0.18, 0.16, 0.12, 0.24, 0.18, 0.08, 0.04], // Stress
+            [0.20, 0.12, 0.14, 0.14, 0.18, 0.18, 0.04], // Communication
+            [0.16, 0.22, 0.18, 0.16, 0.14, 0.10, 0.04], // Leadership
+            [0.20, 0.14, 0.20, 0.16, 0.12, 0.14, 0.04], // Growth
         ],
     },
     bands: BandConfig {
@@ -244,16 +245,16 @@ pub const CFG: ModelConfig = ModelConfig {
     relationship: RelationshipConfig {
         // Indexed by RelationType::ALL order:
         // [WorksWith, Manages, ReportsTo, Friends, Family, Partner, Mentors, Collaborates]
-        // weights order: (ocean, reputation, motivation, patterns, bias, style)
+        // weights order: (ocean, reputation, motivation, patterns, bias, style, values)
         weights: [
-            [0.20, 0.28, 0.16, 0.16, 0.12, 0.08], // WorksWith
-            [0.15, 0.30, 0.15, 0.18, 0.13, 0.09], // Manages
-            [0.15, 0.30, 0.15, 0.18, 0.13, 0.09], // ReportsTo
-            [0.18, 0.18, 0.20, 0.12, 0.12, 0.20], // Friends
-            [0.14, 0.22, 0.24, 0.12, 0.12, 0.16], // Family
-            [0.16, 0.20, 0.22, 0.14, 0.10, 0.18], // Partner
-            [0.20, 0.18, 0.20, 0.14, 0.12, 0.16], // Mentors
-            [0.18, 0.28, 0.16, 0.16, 0.13, 0.09], // Collaborates
+            [0.20, 0.26, 0.16, 0.16, 0.12, 0.08, 0.02], // WorksWith
+            [0.15, 0.28, 0.15, 0.18, 0.13, 0.09, 0.02], // Manages
+            [0.15, 0.28, 0.15, 0.18, 0.13, 0.09, 0.02], // ReportsTo
+            [0.18, 0.16, 0.16, 0.12, 0.12, 0.20, 0.06], // Friends
+            [0.14, 0.19, 0.19, 0.12, 0.12, 0.16, 0.08], // Family
+            [0.16, 0.17, 0.17, 0.14, 0.10, 0.18, 0.08], // Partner
+            [0.20, 0.16, 0.18, 0.14, 0.12, 0.16, 0.04], // Mentors
+            [0.18, 0.26, 0.16, 0.16, 0.13, 0.09, 0.02], // Collaborates
         ],
         power_friction_mod: -0.08,
         power_intensity_min: 7,
@@ -265,7 +266,8 @@ pub const CFG: ModelConfig = ModelConfig {
         bias_cap: 11,
         style_cap: 8,
         pattern_cap: 5,
-        denominator: 45.0,
+        values_cap: 3,
+        denominator: 48.0,
     },
     profile: ProfileConfig {
         default_total: 50,
@@ -310,7 +312,7 @@ pub struct ModelConfig {
 }
 
 impl ModelConfig {
-    pub fn relation_weights(&self, rtype: RelationType) -> [f64; 6] {
+    pub fn relation_weights(&self, rtype: RelationType) -> [f64; 7] {
         let i = RelationType::ALL
             .iter()
             .position(|&t| t == rtype)
@@ -318,7 +320,7 @@ impl ModelConfig {
         self.relationship.weights[i]
     }
 
-    pub fn context_weights(&self, ctx: InsightContext) -> [f64; 6] {
+    pub fn context_weights(&self, ctx: InsightContext) -> [f64; 7] {
         let i = InsightContext::ALL
             .iter()
             .position(|&c| c == ctx)
@@ -382,13 +384,14 @@ pub struct BaseWeights {
     pub patterns: f64,
     pub bias: f64,
     pub style: f64,
+    pub values: f64,
     /// Weight of the history (prediction-accuracy) danger factor.
     pub history: f64,
 }
 
 /// Per-`InsightContext` compatibility weight profiles (Phase 4).
 pub struct ContextWeights {
-    pub weights: [[f64; 6]; 6],
+    pub weights: [[f64; 7]; 6],
 }
 
 pub struct BandConfig {
@@ -554,7 +557,7 @@ pub struct HistoryConfig {
 }
 
 pub struct RelationshipConfig {
-    pub weights: [[f64; 6]; 8],
+    pub weights: [[f64; 7]; 8],
     pub power_friction_mod: f64,
     pub power_intensity_min: u8,
     pub hierarchy_bonus: f64,
@@ -566,6 +569,7 @@ pub struct CompletenessConfig {
     pub bias_cap: usize,
     pub style_cap: usize,
     pub pattern_cap: usize,
+    pub values_cap: usize,
     pub denominator: f64,
 }
 

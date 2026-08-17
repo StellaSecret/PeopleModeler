@@ -19,6 +19,7 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
     Motivations,
+    Values,
     Biases,
     Ocean,
     Predictions,
@@ -156,6 +157,10 @@ pub fn PersonDetail(id: String) -> Element {
                 (
                     crate::i18n::tr("compare_cat_bias", lang()),
                     (profile_score.bias * 100.0).round() as u8,
+                ),
+                (
+                    crate::i18n::tr("compare_cat_values", lang()),
+                    (profile_score.values * 100.0).round() as u8,
                 ),
             ];
             let rep_items: Vec<_> = RepDim::ALL
@@ -302,6 +307,7 @@ pub fn PersonDetail(id: String) -> Element {
 
                     div { class: "tab-bar", role: "tablist",
                         button { role: "tab", aria_label: "{mot_title}", aria_selected: tab() == Tab::Motivations, class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }
+                        button { role: "tab", aria_label: "{crate::i18n::tr(\"values_title\", lang())}", aria_selected: tab() == Tab::Values, class: if tab() == Tab::Values { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Values), "🧭 {crate::i18n::tr(\"values_title\", lang())}" }
                         button { role: "tab", aria_label: "{bias_title}", aria_selected: tab() == Tab::Biases, class: if tab() == Tab::Biases { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Biases), "🧠 {bias_title}" }
                         button { role: "tab", aria_label: "{ocean_title}", aria_selected: tab() == Tab::Ocean, class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
                         button { role: "tab", aria_label: "{pred_title}", aria_selected: tab() == Tab::Predictions, class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
@@ -359,6 +365,34 @@ pub fn PersonDetail(id: String) -> Element {
                                 }
                             }
                             if person.styles.is_empty() { div { class: "empty-state", p { "{crate::i18n::tr(\"style_no_styles\", lang())}" } } }
+                        }
+                    }
+
+                    if tab() == Tab::Values {
+                        div { class: "section",
+                            h2 { "{crate::i18n::tr(\"values_title\", lang())}" }
+                            for v in &person.values {
+                                div { class: "motivation-item",
+                                    div { class: "item-icon", "{v.r#type.emoji()}" }
+                                    div { class: "item-info",
+                                        div { class: "item-name", "{v.r#type.i18n(core_lang(lang())).label}" }
+                                        div { class: "item-bar-row",
+                                            div { class: "item-bar",
+                                                div { class: "item-bar-fill cyan", style: "width: {v.intensity * 10}%" }
+                                            }
+                                            div { class: "item-intensity", "I{v.intensity}/10" }
+                                        }
+                                        div { class: "item-bar-row",
+                                            div { class: "item-bar",
+                                                div { class: "item-bar-fill orange", style: "width: {v.priority * 10}%" }
+                                            }
+                                            div { class: "item-intensity", "P{v.priority}/10" }
+                                        }
+                                        if !v.notes.is_empty() { div { class: "item-notes", "{v.notes}" } }
+                                    }
+                                }
+                            }
+                            if person.values.is_empty() { div { class: "empty-state", p { "{crate::i18n::tr(\"no_values\", lang())}" } } }
                         }
                     }
 

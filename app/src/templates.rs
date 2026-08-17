@@ -1,5 +1,5 @@
 use peoplemodeler_core::models::{
-    Bias, BiasType, Motivation, MotivationType, OceanScores, PersonalStyle, RepScores,
+    Bias, BiasType, Motivation, MotivationType, OceanScores, PersonalStyle, RepScores, Value,
 };
 
 #[allow(dead_code)]
@@ -11,6 +11,7 @@ pub struct Archetype {
     pub biases: Vec<Bias>,
     pub rep_scores: RepScores,
     pub styles: Vec<PersonalStyle>,
+    pub values: Vec<Value>,
 }
 
 pub fn all() -> Vec<Archetype> {
@@ -56,6 +57,7 @@ pub fn all() -> Vec<Archetype> {
             ],
             rep_scores: RepScores::default(),
             styles: vec![],
+            values: vec![],
         },
         Archetype {
             name: "The Analyst",
@@ -98,6 +100,7 @@ pub fn all() -> Vec<Archetype> {
             ],
             rep_scores: RepScores::default(),
             styles: vec![],
+            values: vec![],
         },
         Archetype {
             name: "The People Person",
@@ -140,6 +143,7 @@ pub fn all() -> Vec<Archetype> {
             ],
             rep_scores: RepScores::default(),
             styles: vec![],
+            values: vec![],
         },
         Archetype {
             name: "The Creative",
@@ -182,6 +186,7 @@ pub fn all() -> Vec<Archetype> {
             ],
             rep_scores: RepScores::default(),
             styles: vec![],
+            values: vec![],
         },
     ]
 }

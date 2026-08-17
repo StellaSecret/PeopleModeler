@@ -904,6 +904,40 @@ pub fn rhetoric_gap_flags(
     flags
 }
 
+pub fn value_flags(
+    values: &[crate::models::Value],
+    risk_appetite: Option<u8>,
+    styles: &[crate::models::PersonalStyle],
+) -> Vec<&'static str> {
+    use crate::models::{StyleCategory, StyleType, ValueType};
+    let mut flags = Vec::new();
+    let val = |vt: ValueType| -> Option<u8> {
+        values.iter().find(|v| v.r#type == vt).map(|v| v.intensity)
+    };
+    if val(ValueType::Family).is_some_and(|i| i >= 7)
+        && !styles.iter().any(|s| s.r#type == StyleType::PastOriented)
+    {
+        flags.push("flag_value_family_past");
+    }
+    if val(ValueType::Stability).is_some_and(|i| i >= 8) && risk_appetite.is_some_and(|r| r >= 8) {
+        flags.push("flag_value_stability_risk");
+    }
+    if val(ValueType::Career).is_some_and(|i| i >= 8)
+        && val(ValueType::Family).is_some_and(|i| i >= 8)
+    {
+        flags.push("flag_value_career_family");
+    }
+    if val(ValueType::Loyalty).is_some_and(|i| i >= 8)
+        && let Some(trust) = styles
+            .iter()
+            .find(|s| s.r#type.category() == StyleCategory::TrustStyle)
+        && trust.r#type == StyleType::Guarded
+    {
+        flags.push("flag_value_loyalty_guarded");
+    }
+    flags
+}
+
 pub fn all_person_flags(person: &Person) -> Vec<&'static str> {
     let mut flags = ocean_rep_flags(&person.ocean, &person.rep_scores);
     flags.extend(rhetoric_gap_flags(
@@ -913,6 +947,11 @@ pub fn all_person_flags(person: &Person) -> Vec<&'static str> {
     ));
     flags.extend(evidence_flags(person));
     flags.extend(style_gap_flags(&person.styles, &person.rep_scores));
+    flags.extend(value_flags(
+        &person.values,
+        person.risk_appetite,
+        &person.styles,
+    ));
     flags
 }
 
@@ -1532,6 +1571,7 @@ mod tests {
                 BehaviorResponse::BecomesParanoid,
             )],
             styles: Vec::new(),
+            values: Vec::new(),
             ocean: OceanScores {
                 openness: Some(9),
                 ..Default::default()
@@ -2714,6 +2754,7 @@ mod tests {
             },
             behavioral_patterns: Vec::new(),
             styles: vec![mk_style(StyleType::DirectCommunicator, 7)],
+            values: Vec::new(),
             ocean: OceanScores::default(),
             resilience: None,
             risk_appetite: None,

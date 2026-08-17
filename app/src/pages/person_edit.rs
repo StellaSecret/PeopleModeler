@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
     Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores, StyleType,
-    Tag,
+    Tag, Value, ValueType,
 };
 
 use crate::Route;
@@ -40,6 +40,7 @@ pub fn PersonNew() -> Element {
                 rep_scores: RepScores::default(),
                 behavioral_patterns: Vec::new(),
                 styles: Vec::new(),
+                values: Vec::new(),
                 ocean: OceanScores::default(),
                 resilience: None,
                 risk_appetite: None,
@@ -111,6 +112,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         rep_scores: RepScores::default(),
         behavioral_patterns: Vec::new(),
         styles: Vec::new(),
+        values: Vec::new(),
         ocean: OceanScores::default(),
         resilience: None,
         risk_appetite: None,
@@ -141,6 +143,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let rep_scores = use_signal(|| p.rep_scores.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
     let styles = use_signal(|| p.styles.clone());
+    let values = use_signal(|| p.values.clone());
 
     let ocean_rep_flags = use_memo(move || {
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
@@ -328,6 +331,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             rep_scores: rep_scores(),
             behavioral_patterns: patterns(),
             styles: styles(),
+            values: values(),
             ocean: ocean(),
             resilience: Some(resilience()),
             risk_appetite: Some(risk_appetite()),
@@ -476,6 +480,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 RepEditPanel { rep_scores, lang: cl }
                 PatternEditPanel { patterns, lang: lang() }
                 StyleEditPanel { styles, lang: cl }
+                ValEditPanel { values, lang: cl }
 
                 div { class: "form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
@@ -564,6 +569,93 @@ fn mot_move(mut motivations: Signal<Vec<Motivation>>, i: usize, up: bool) {
         motivations.write().swap(i, i - 1);
     } else if !up && i + 1 < len {
         motivations.write().swap(i, i + 1);
+    }
+}
+
+#[component]
+fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+    let app_lang = use_context::<Signal<Lang>>();
+    let mut sel_type = use_signal(|| ValueType::Career);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_priority = use_signal(|| 5u8);
+    let mut sel_notes = use_signal(String::new);
+    let mut edit_idx = use_signal(|| None::<usize>);
+    let edit_values = crate::i18n::tr("edit_values", app_lang());
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
+    let priority_label = crate::i18n::tr("edit_priority", app_lang());
+    let add_btn = crate::i18n::tr("add_btn", app_lang());
+    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+
+    rsx! {
+        fieldset { class: "section",
+            legend { "{edit_values}" }
+            div { class: "add-row",
+                select { value: "{sel_type}",
+                    onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
+                    for t in ValueType::ALL {
+                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                    }
+                }
+                div { class: "dual-range",
+                    span { "{sel_intensity()}" }
+                    input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
+                        oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                    }
+                    span { class: "range-label", "I" }
+                    span { "{sel_priority()}" }
+                    input { r#type: "range", min: "1", max: "10", value: "{sel_priority}",
+                        oninput: move |e| { sel_priority.set(e.value().parse().unwrap_or(5)); }
+                    }
+                    span { class: "range-label", "{priority_label}" }
+                }
+                input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                    oninput: move |e| { sel_notes.set(e.value()); }
+                }
+                button { class: "btn", aria_label: if edit_idx().is_some() { "Update value" } else { "Add value" }, onclick: move |_| {
+                    if let Some(idx) = edit_idx() {
+                        let mut items = values.write();
+                        if idx < items.len() {
+                            items[idx] = Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() };
+                        }
+                        edit_idx.set(None);
+                    } else {
+                        values.write().push(Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() });
+                    }
+                    sel_notes.set(String::new());
+                    sel_intensity.set(5);
+                    sel_priority.set(5);
+                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+            }
+            for (i, v) in values().iter().enumerate() {
+                div { class: "list-item",
+                    button { class: "reorder-btn", aria_label: "Move value up", onclick: move |_| { val_move(values, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move value down", onclick: move |_| { val_move(values, i, false); }, "▼" }
+                    button { class: "btn btn-small", aria_label: "Edit value", onclick: {
+                        let v = v.clone();
+                        move |_| {
+                            sel_type.set(v.r#type);
+                            sel_intensity.set(v.intensity);
+                            sel_priority.set(v.priority);
+                            sel_notes.set(v.notes.clone());
+                            edit_idx.set(Some(i));
+                        }
+                    }, "✏" }
+                    strong { "{v.r#type.emoji()} {v.r#type.i18n(lang).label}" }
+                    span { " I{v.intensity}/10 P{v.priority}/10" }
+                    span { " {v.notes}" }
+                    button { class: "btn btn-small", aria_label: "Delete value", onclick: move |_| { values.write().remove(i); }, "✕" }
+                }
+            }
+        }
+    }
+}
+
+fn val_move(mut values: Signal<Vec<Value>>, i: usize, up: bool) {
+    let len = values.read().len();
+    if up && i > 0 {
+        values.write().swap(i, i - 1);
+    } else if !up && i + 1 < len {
+        values.write().swap(i, i + 1);
     }
 }
 
@@ -959,6 +1051,22 @@ fn parse_mot_type(s: &str) -> MotivationType {
         "Creativity" => MotivationType::Creativity,
         "Fairness" => MotivationType::Fairness,
         _ => MotivationType::Achievement,
+    }
+}
+
+fn parse_val_type(s: &str) -> ValueType {
+    match s {
+        "Career" => ValueType::Career,
+        "Family" => ValueType::Family,
+        "Health" => ValueType::Health,
+        "Wealth" => ValueType::Wealth,
+        "Stability" => ValueType::Stability,
+        "Adventure" => ValueType::Adventure,
+        "Community" => ValueType::Community,
+        "Knowledge" => ValueType::Knowledge,
+        "Faith" => ValueType::Faith,
+        "Loyalty" => ValueType::Loyalty,
+        _ => ValueType::Career,
     }
 }
 

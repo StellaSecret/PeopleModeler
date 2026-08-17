@@ -310,6 +310,7 @@ fieldset.section legend{
 .item-bar-fill.cyan{background:var(--cyan)}
 .item-bar-fill.purple{background:var(--purple)}
 .item-bar-fill.red{background:var(--primary)}
+.item-bar-fill.orange{background:var(--orange)}
 .item-intensity{font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap}
 .motivation-item .item-notes,.bias-item .item-notes{font-size:0.72rem;color:var(--text-muted);margin-top:0.35rem;font-style:italic;overflow-wrap:break-word}
 .motivation-item strong{color:var(--cyan)}
@@ -458,6 +459,9 @@ fieldset.ocean-inputs legend{
 }
 .add-row input:not([type="range"]):focus{border-color:var(--cyan)}
 .add-row span{font-size:0.78rem;font-weight:600;color:var(--cyan);min-width:20px;text-align:center;font-family:var(--font-mono)}
+.dual-range{display:flex;align-items:center;gap:0.3rem;flex-wrap:wrap}
+.dual-range input[type="range"]{flex:1;min-width:80px}
+.dual-range .range-label{font-size:0.65rem;font-weight:700;color:var(--text-dim);font-family:var(--font-mono)}
 
 /* ── EMOJI PICKER ── */
 .emoji-picker{display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem}

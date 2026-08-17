@@ -1,4 +1,6 @@
-use crate::models::{BehaviorResponse, BiasType, MotivationType, RepDim, StyleCategory, StyleType};
+use crate::models::{
+    BehaviorResponse, BiasType, MotivationType, RepDim, StyleCategory, StyleType, ValueType,
+};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -12,6 +14,11 @@ pub struct MotI18n {
 }
 
 pub struct BiasI18n {
+    pub label: &'static str,
+    pub desc: &'static str,
+}
+
+pub struct ValueI18n {
     pub label: &'static str,
     pub desc: &'static str,
 }
@@ -101,6 +108,97 @@ impl MotivationType {
                 Self::Fairness => MotI18n {
                     label: "Fairness",
                     desc: "Justice, equity, and fair treatment of others",
+                },
+            },
+        }
+    }
+}
+
+impl ValueType {
+    pub fn i18n(&self, lang: Lang) -> ValueI18n {
+        match lang {
+            Lang::Fr => match self {
+                Self::Career => ValueI18n {
+                    label: "Carrière",
+                    desc: "Ambition professionnelle et priorités de vie au travail",
+                },
+                Self::Family => ValueI18n {
+                    label: "Famille",
+                    desc: "Priorités familiales et temps avec les proches",
+                },
+                Self::Health => ValueI18n {
+                    label: "Santé",
+                    desc: "Bien-être physique et mental",
+                },
+                Self::Wealth => ValueI18n {
+                    label: "Richesse",
+                    desc: "Sécurité financière et confort matériel",
+                },
+                Self::Stability => ValueI18n {
+                    label: "Stabilité",
+                    desc: "Prévisibilité, routine et faible incertitude",
+                },
+                Self::Adventure => ValueI18n {
+                    label: "Aventure",
+                    desc: "Nouveauté, risque et expériences nouvelles",
+                },
+                Self::Community => ValueI18n {
+                    label: "Communauté",
+                    desc: "Contribution sociale et appartenance à un groupe",
+                },
+                Self::Knowledge => ValueI18n {
+                    label: "Savoir",
+                    desc: "Apprentissage, expertise et compréhension",
+                },
+                Self::Faith => ValueI18n {
+                    label: "Foi",
+                    desc: "Croyances spirituelles et traditions",
+                },
+                Self::Loyalty => ValueI18n {
+                    label: "Loyauté",
+                    desc: "Fidélité, engagement et liens durables",
+                },
+            },
+            Lang::En => match self {
+                Self::Career => ValueI18n {
+                    label: "Career",
+                    desc: "Professional ambition and work-life priorities",
+                },
+                Self::Family => ValueI18n {
+                    label: "Family",
+                    desc: "Family priorities and time with loved ones",
+                },
+                Self::Health => ValueI18n {
+                    label: "Health",
+                    desc: "Physical and mental well-being",
+                },
+                Self::Wealth => ValueI18n {
+                    label: "Wealth",
+                    desc: "Financial security and material comfort",
+                },
+                Self::Stability => ValueI18n {
+                    label: "Stability",
+                    desc: "Predictability, routine and low uncertainty",
+                },
+                Self::Adventure => ValueI18n {
+                    label: "Adventure",
+                    desc: "Novelty, risk and new experiences",
+                },
+                Self::Community => ValueI18n {
+                    label: "Community",
+                    desc: "Social contribution and belonging to a group",
+                },
+                Self::Knowledge => ValueI18n {
+                    label: "Knowledge",
+                    desc: "Learning, expertise and understanding",
+                },
+                Self::Faith => ValueI18n {
+                    label: "Faith",
+                    desc: "Spiritual beliefs and traditions",
+                },
+                Self::Loyalty => ValueI18n {
+                    label: "Loyalty",
+                    desc: "Fidelity, commitment and long-term bonds",
                 },
             },
         }

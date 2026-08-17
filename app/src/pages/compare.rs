@@ -119,6 +119,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let cat_pat = crate::i18n::tr("compare_cat_patterns", lang());
             let cat_bias = crate::i18n::tr("compare_cat_bias", lang());
             let cat_styles = crate::i18n::tr("compare_cat_styles", lang());
+            let cat_values = crate::i18n::tr("compare_cat_values", lang());
             let top_mot_label = crate::i18n::tr("compare_top_mot", lang());
             let bias_label = crate::i18n::tr("compare_bias_main", lang());
             let ocean_label = crate::i18n::tr("compare_ocean", lang());
@@ -337,10 +338,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                             div { class: "breakdown-section",
                                 h4 { "{compare_breakdown}" }
                                 BreakdownBars {
-                                    cat_ocean, cat_rep, cat_mot, cat_pat, cat_bias, cat_styles,
+                                    cat_ocean, cat_rep, cat_mot, cat_pat, cat_bias, cat_styles, cat_values,
                                     s_ocean: brk.ocean, s_rep: brk.reputation,
                                     s_mot: brk.motivation, s_pat: brk.patterns, s_bias: brk.bias,
-                                    s_styles: brk.styles,
+                                    s_styles: brk.styles, s_values: brk.values,
                                     bias_mod_active: brk.bias_mod_active,
                                 }
                             }
@@ -457,12 +458,14 @@ fn BreakdownBars(
     cat_pat: String,
     cat_bias: String,
     cat_styles: String,
+    cat_values: String,
     s_ocean: f64,
     s_rep: f64,
     s_mot: f64,
     s_pat: f64,
     s_bias: f64,
     s_styles: f64,
+    s_values: f64,
     bias_mod_active: bool,
 ) -> Element {
     let cats = [
@@ -472,6 +475,7 @@ fn BreakdownBars(
         (&cat_pat, s_pat, false),
         (&cat_bias, s_bias, bias_mod_active),
         (&cat_styles, s_styles, false),
+        (&cat_values, s_values, false),
     ];
     let pcts: Vec<u8> = cats.iter().map(|(_, v, _)| (*v * 100.0) as u8).collect();
 

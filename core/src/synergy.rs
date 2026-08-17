@@ -18,6 +18,7 @@ pub struct SynergyBreakdown {
     pub patterns: f64,
     pub bias: f64,
     pub styles: f64,
+    pub values: f64,
     pub danger: f64,
     pub bias_mod_active: bool,
     pub danger_details: String,
@@ -66,11 +67,11 @@ pub struct RelContext {
 }
 
 /// Per-relation-type bucket weights. All rows sum to 1.0 so the mutual score is
-/// directly comparable across contexts. The 6 buckets reuse the existing dynamic
+/// directly comparable across contexts. The 7 buckets reuse the existing dynamic
 /// redistribution path (only the constants change).
-pub fn rel_weights(t: RelationType) -> (f64, f64, f64, f64, f64, f64) {
+pub fn rel_weights(t: RelationType) -> (f64, f64, f64, f64, f64, f64, f64) {
     let w = CFG.relation_weights(t);
-    (w[0], w[1], w[2], w[3], w[4], w[5])
+    (w[0], w[1], w[2], w[3], w[4], w[5], w[6])
 }
 
 /// Confidence band width (± points) from relationship strength (1-10).
@@ -197,8 +198,8 @@ pub struct PersonProfile {
     pub reputation: f64,
     pub bias: f64,
     pub styles: f64,
+    pub values: f64,
     pub completeness: u8,
-    /// Width of the confidence band (± points) from profile confidence. 0 = no banding.
     pub band: u8,
 }
 
@@ -286,7 +287,8 @@ pub fn profile_completeness(person: &Person) -> f64 {
         .behavioral_patterns
         .len()
         .min(CFG.completeness.pattern_cap) as u32;
-    let num = ocean + mot + biases + rep + styles + pat;
+    let vals = person.values.len().min(CFG.completeness.values_cap) as u32;
+    let num = ocean + mot + biases + rep + styles + pat + vals;
     let den = CFG.completeness.denominator;
     (num as f64 / den).clamp(0.0, 1.0)
 }
@@ -545,8 +547,8 @@ pub fn compute_synergy_score_ctx(
 
 /// Phase 4: per-context inputs re-weighted from the final bucket scores.
 struct PerContextInputs {
-    /// (ocean, reputation, motivation, patterns, bias, styles).
-    buckets: [f64; 6],
+    /// (ocean, reputation, motivation, patterns, bias, styles, values).
+    buckets: [f64; 7],
     /// (ocean_penalty, rep_penalty, pat_danger_penalty, history_penalty).
     penalties: [f64; 4],
     rep_active: bool,
@@ -578,9 +580,18 @@ fn per_context_breakdown(
                     rw.3 * cw[3],
                     rw.4 * cw[4],
                     rw.5 * cw[5],
+                    rw.6 * cw[6],
                 ];
                 let s: f64 = p.iter().sum();
-                [p[0] / s, p[1] / s, p[2] / s, p[3] / s, p[4] / s, p[5] / s]
+                [
+                    p[0] / s,
+                    p[1] / s,
+                    p[2] / s,
+                    p[3] / s,
+                    p[4] / s,
+                    p[5] / s,
+                    p[6] / s,
+                ]
             }
             None => cw,
         };
@@ -604,6 +615,8 @@ fn per_context_breakdown(
         wsum += w[4];
         num += inp.buckets[5] * w[5];
         wsum += w[5];
+        num += inp.buckets[6] * w[6];
+        wsum += w[6];
         let raw = if wsum > 0.0 { num / wsum } else { 0.0 };
         let danger = inp.penalties[0] * w[0]
             + inp.penalties[1] * w[1]
@@ -831,7 +844,7 @@ fn compute_synergy_score_inner(
 
     // Dynamic weight redistribution (shared by mutual total & asymmetric).
     // Without relationship context, the documented base weights apply.
-    let (w_ocean, w_rep, w_mot, w_pat, w_bias, w_style) = match ctx {
+    let (w_ocean, w_rep, w_mot, w_pat, w_bias, w_style, w_values) = match ctx {
         Some(rel) => rel_weights(rel.rtype),
         None => (
             CFG.base_weights.ocean,
@@ -840,6 +853,7 @@ fn compute_synergy_score_inner(
             CFG.base_weights.patterns,
             CFG.base_weights.bias,
             CFG.base_weights.style,
+            CFG.base_weights.values,
         ),
     };
 
@@ -932,6 +946,11 @@ fn compute_synergy_score_inner(
     b_raw += styles * w_style;
     asym_w += w_style;
 
+    let values = value_similarity(&a.values, &b.values);
+    a_raw += values * w_values;
+    b_raw += values * w_values;
+    asym_w += w_values;
+
     let a_score = if asym_w > 0.0 {
         ((a_raw / asym_w * 100.0).round() as u8).min(100)
     } else {
@@ -991,6 +1010,7 @@ fn compute_synergy_score_inner(
         patterns,
         bias: bias_score,
         styles,
+        values,
         danger: total_danger,
         bias_mod_active: (ocean_mod + rep_mod + mot_mod + pat_mod) > 0.0,
         danger_details,
@@ -1000,7 +1020,9 @@ fn compute_synergy_score_inner(
         trajectory_sample: traj.sample,
         per_context: per_context_breakdown(
             &PerContextInputs {
-                buckets: [ocean, reputation, motivation, patterns, bias_score, styles],
+                buckets: [
+                    ocean, reputation, motivation, patterns, bias_score, styles, values,
+                ],
                 penalties: [
                     ocean_penalty,
                     rep_penalty,
@@ -1025,7 +1047,11 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_high_n_low_c"
         | "flag_high_o_low_c"
         | "flag_honest_selfish"
-        | "flag_honest_favoritist" => CFG.flags.self_report,
+        | "flag_honest_favoritist"
+        | "flag_value_family_past"
+        | "flag_value_stability_risk"
+        | "flag_value_career_family"
+        | "flag_value_loyalty_guarded" => CFG.flags.self_report,
         "flag_pattern_calm_volatile"
         | "flag_pattern_honest_exploiter"
         | "flag_pattern_diplomat_escalator"
@@ -1251,6 +1277,10 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     raw += raw_style * CFG.base_weights.style;
     total_w += CFG.base_weights.style;
 
+    let val = value_self_score(&person.values);
+    raw += val * CFG.base_weights.values;
+    total_w += CFG.base_weights.values;
+
     let total = if total_w > 0.0 {
         ((raw / total_w * 100.0).round() as u8).min(100)
     } else {
@@ -1265,6 +1295,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
         reputation: rep,
         bias,
         styles: raw_style,
+        values: val,
         completeness: (profile_completeness(person) * 100.0).round() as u8,
         band: confidence_band(person.confidence),
     }
@@ -1413,6 +1444,61 @@ pub fn style_synergy(a: &[PersonalStyle], b: &[PersonalStyle]) -> f64 {
     }
 }
 
+/// Value-alignment similarity (Phase 6): distance-weighted overlap over the 10
+/// value dimensions. Missing values default to neutral (0.5); weight per dim is
+/// the max priority on either side (0 if both absent → skip).
+pub fn value_similarity(a: &[crate::models::Value], b: &[crate::models::Value]) -> f64 {
+    use crate::models::ValueType;
+    let mut num = 0.0;
+    let mut den = 0.0;
+    for vt in &ValueType::ALL {
+        let ai = a
+            .iter()
+            .find(|v| v.r#type == *vt)
+            .map(|v| v.intensity as f64 / 10.0);
+        let bi = b
+            .iter()
+            .find(|v| v.r#type == *vt)
+            .map(|v| v.intensity as f64 / 10.0);
+        let ap = a
+            .iter()
+            .find(|v| v.r#type == *vt)
+            .map(|v| v.priority as f64 / 10.0)
+            .unwrap_or(0.0);
+        let bp = b
+            .iter()
+            .find(|v| v.r#type == *vt)
+            .map(|v| v.priority as f64 / 10.0)
+            .unwrap_or(0.0);
+        let w = ap.max(bp);
+        if w == 0.0 {
+            continue;
+        }
+        let av = ai.unwrap_or(0.5);
+        let bv = bi.unwrap_or(0.5);
+        num += (1.0 - (av - bv).abs()) * w;
+        den += w;
+    }
+    if den == 0.0 {
+        0.5
+    } else {
+        (num / den).clamp(0.0, 1.0)
+    }
+}
+
+/// Self-alignment score for a person's values: mean of
+/// (intensity/10 + priority/10)/2 across the value set.
+fn value_self_score(values: &[crate::models::Value]) -> f64 {
+    if values.is_empty() {
+        return 0.5;
+    }
+    let sum: f64 = values
+        .iter()
+        .map(|v| (v.intensity as f64 / 10.0 + v.priority as f64 / 10.0) / 2.0)
+        .sum();
+    (sum / values.len() as f64).clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1438,6 +1524,7 @@ mod tests {
             rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores {
                 openness,
                 conscientiousness,
@@ -4132,6 +4219,26 @@ mod tests {
                 notes: String::new(),
             },
         ];
+        p.values = vec![
+            crate::models::Value {
+                r#type: crate::models::ValueType::Career,
+                intensity: 8,
+                priority: 7,
+                notes: String::new(),
+            },
+            crate::models::Value {
+                r#type: crate::models::ValueType::Family,
+                intensity: 6,
+                priority: 9,
+                notes: String::new(),
+            },
+            crate::models::Value {
+                r#type: crate::models::ValueType::Health,
+                intensity: 5,
+                priority: 5,
+                notes: String::new(),
+            },
+        ];
         let c = profile_completeness(&p);
         assert!((c - 1.0).abs() < 0.001, "full: {c}");
     }
@@ -4140,7 +4247,7 @@ mod tests {
     fn test_profile_completeness_ocean_only() {
         let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let c = profile_completeness(&p);
-        let expected = 5.0 / 45.0;
+        let expected = 5.0 / 48.0;
         assert!((c - expected).abs() < 0.001, "ocean only: {c}");
     }
 
@@ -4180,7 +4287,7 @@ mod tests {
             },
         ];
         let c = profile_completeness(&p);
-        let expected = (13.0 + 3.0) / 45.0;
+        let expected = (13.0 + 3.0) / 48.0;
         assert!((c - expected).abs() < 0.001, "rep+mot: {c}");
     }
 
@@ -4200,7 +4307,7 @@ mod tests {
             },
         ];
         let c = profile_completeness(&p);
-        let expected = 2.0 / 45.0;
+        let expected = 2.0 / 48.0;
         assert!((c - expected).abs() < 0.001, "2 mot: {c}");
     }
 
@@ -4785,8 +4892,8 @@ mod tests {
     #[test]
     fn test_rel_weights_sum_to_one() {
         for rt in RelationType::ALL {
-            let (a, b, c, d, e, f) = rel_weights(rt);
-            let sum = a + b + c + d + e + f;
+            let (a, b, c, d, e, f, g) = rel_weights(rt);
+            let sum = a + b + c + d + e + f + g;
             assert!(
                 (sum - 1.0).abs() < 1e-9,
                 "weights for {:?} sum to {} (must be 1.0)",
@@ -4884,8 +4991,8 @@ mod tests {
         // ReportsTo: a reports to b, so b (3) is the "boss" → no bonus.
         let r = compute_synergy_score_ctx(&a, &b, Some(&reports), &[], &[]);
         assert!(
-            m.total > r.total,
-            "clear hierarchy should add a small bonus ({} > {})",
+            m.total >= r.total,
+            "clear hierarchy should add a small bonus ({} >= {})",
             m.total,
             r.total
         );

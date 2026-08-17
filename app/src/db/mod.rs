@@ -617,6 +617,7 @@ mod tests {
             rep_scores: RepScores::default(),
             behavioral_patterns: vec![],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores::default(),
             resilience: None,
             risk_appetite: None,
@@ -765,6 +766,7 @@ mod tests {
                 notes: String::new(),
             }],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores {
                 openness: Some(8),
                 conscientiousness: Some(7),
@@ -953,6 +955,7 @@ mod tests {
                 notes: String::new(),
             }],
             styles: vec![],
+            values: vec![],
             ocean: OceanScores {
                 openness: Some(9),
                 conscientiousness: Some(8),

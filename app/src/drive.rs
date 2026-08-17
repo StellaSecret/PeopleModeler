@@ -331,6 +331,7 @@ mod tests {
                 rep_scores: RepScores::default(),
                 behavioral_patterns: vec![],
                 styles: vec![],
+                values: vec![],
                 ocean: OceanScores::default(),
                 resilience: None,
                 risk_appetite: None,
