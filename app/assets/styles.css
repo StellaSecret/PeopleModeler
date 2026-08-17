@@ -796,3 +796,8 @@ fieldset.ocean-inputs legend{
 .pt-sub{font-family:var(--font-mono);text-align:center;color:var(--text-muted);font-size:0.8rem}
 .pt-col-score{text-align:center}
 .pt-col-sub{text-align:center}
+/* Risk + Mitigation panel (Phase 7) */
+.risk-mit-row{display:flex;align-items:baseline;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.4rem}
+.risk-text{color:var(--orange);font-weight:600}
+.mit-arrow{color:var(--text-muted)}
+.mit-text{color:var(--text)}

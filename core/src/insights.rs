@@ -1,4 +1,7 @@
+use crate::advice;
 use crate::models::Person;
+use crate::synergy::PersonProfile;
+use crate::validation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum InsightContext {
@@ -55,7 +58,39 @@ fn fmt_biases(p: &Person) -> String {
         .join("\n")
 }
 
+fn fmt_flags(flags: &[&str]) -> String {
+    if flags.is_empty() {
+        return "• Aucun signal d'alerte\n".into();
+    }
+    flags
+        .iter()
+        .map(|f| format!("• ⚠ {}", advice::flag_action(f, crate::i18n::Lang::Fr)))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn fmt_advice(advice_list: &[advice::FlagAdvice]) -> String {
+    if advice_list.is_empty() {
+        return "• Aucune recommandation spécifique\n".into();
+    }
+    advice_list
+        .iter()
+        .take(5)
+        .map(|a| format!("• [{}] {}", a.category, a.action))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
+    let profile = crate::synergy::compute_person_profile(p);
+    generate_insight_with_profile(ctx, p, &profile)
+}
+
+pub fn generate_insight_with_profile(
+    ctx: InsightContext,
+    p: &Person,
+    profile: &PersonProfile,
+) -> String {
     let top_mot = p
         .motivations
         .iter()
@@ -68,95 +103,157 @@ pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
         .max_by_key(|b| b.intensity)
         .map(|b| b.r#type.i18n(crate::i18n::Lang::Fr).label)
         .unwrap_or("—");
+    let flags = validation::all_person_flags(p);
+    let prioritized = advice::per_context_advice(p, profile, ctx);
+    let flag_count = flags.len();
+    let advice_block = fmt_advice(&prioritized);
+    let flag_block = fmt_flags(&flags);
+
+    let completeness_hint = if profile.completeness < 40 {
+        "\n⚠ Profil incomplet — les recommandations sont moins fiables."
+    } else if profile.completeness < 70 {
+        "\n• Profil partiellement complété — complétez pour des conseils plus précis."
+    } else {
+        ""
+    };
+
     match ctx {
         InsightContext::Decision => format!(
             "🧠 Analyse décisionnelle\n\n\
-            Profil décisionnaire de {name}\n\
+            Profil décisionnaire de {name} (complétude {comp}%)\n\
             • Style : influencé par {mot} (motivation principale) avec un biais de {bias}\n\
-            • À tendance à : prendre des décisions alignées sur ses besoins profonds\n\
-            • Recommandation : confronter ses décisions à des données objectives\n\n\
+            • Score profil : {total}/100\n\
+            • Signaux d'alerte : {flag_count}\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
-            Biais cognitif(s) détecté(s) :\n{biases}",
+            Biais cognitif(s) détecté(s) :\n{biases}\n\n\
+            Alertes :\n{flag_block}\n\n\
+            Recommandations prioritaires :\n{advice}{comp_hint}",
             name = p.name,
+            comp = profile.completeness,
             mot = top_mot,
             bias = top_bias,
+            total = profile.total,
+            flag_count = flag_count,
             mots = fmt_motivations(p),
-            biases = fmt_biases(p)
+            biases = fmt_biases(p),
+            flag_block = flag_block,
+            advice = advice_block,
+            comp_hint = completeness_hint,
         ),
         InsightContext::Team => format!(
             "👥 Dynamique d'équipe\n\n\
-            {name} en contexte collectif\n\
+            {name} en contexte collectif (complétude {comp}%)\n\
             • Moteur principal : {mot}\n\
             • Risque relationnel : {bias}\n\
-            • Son apport : complète l'équipe par sa perspective unique\n\
-            • À surveiller : les situations qui activent ses biais\n\n\
+            • Score profil : {total}/100\n\
+            • Signaux d'alerte : {flag_count}\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
-            Biais cognitif(s) détecté(s) :\n{biases}",
+            Biais cognitif(s) détecté(s) :\n{biases}\n\n\
+            Alertes :\n{flag_block}\n\n\
+            Recommandations prioritaires :\n{advice}{comp_hint}",
             name = p.name,
+            comp = profile.completeness,
             mot = top_mot,
             bias = top_bias,
+            total = profile.total,
+            flag_count = flag_count,
             mots = fmt_motivations(p),
-            biases = fmt_biases(p)
+            biases = fmt_biases(p),
+            flag_block = flag_block,
+            advice = advice_block,
+            comp_hint = completeness_hint,
         ),
         InsightContext::Stress => format!(
             "⚡ Gestion du stress\n\n\
-            {name} sous pression\n\
+            {name} sous pression (complétude {comp}%)\n\
             • Déclencheur principal : activation du biais de {bias}\n\
             • Comportement attendu : repli sur ses motivations fondamentales ({mot})\n\
-            • Seuil de stress : basé sur l'intensité de ses drivers\n\
-            • Recommandation : créer un environnement prévisible pour réduire l'anxiété\n\n\
+            • Score profil : {total}/100\n\
+            • Signaux d'alerte : {flag_count}\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
-            Biais cognitif(s) détecté(s) :\n{biases}",
+            Biais cognitif(s) détecté(s) :\n{biases}\n\n\
+            Alertes :\n{flag_block}\n\n\
+            Recommandations prioritaires :\n{advice}{comp_hint}",
             name = p.name,
+            comp = profile.completeness,
             mot = top_mot,
             bias = top_bias,
+            total = profile.total,
+            flag_count = flag_count,
             mots = fmt_motivations(p),
-            biases = fmt_biases(p)
+            biases = fmt_biases(p),
+            flag_block = flag_block,
+            advice = advice_block,
+            comp_hint = completeness_hint,
         ),
         InsightContext::Communication => format!(
             "💬 Style de communication\n\n\
-            Communiquer avec {name}\n\
+            Communiquer avec {name} (complétude {comp}%)\n\
             • Canal privilégié : passer par sa motivation ({mot})\n\
             • Écueil à éviter : activer son biais de {bias}\n\
-            • Approche : utiliser des arguments qui résonnent avec ses drivers\n\
-            • Langage : adapter le niveau de détail à son profil OCEAN\n\n\
+            • Score profil : {total}/100\n\
+            • Signaux d'alerte : {flag_count}\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
-            Biais cognitif(s) détecté(s) :\n{biases}",
+            Biais cognitif(s) détecté(s) :\n{biases}\n\n\
+            Alertes :\n{flag_block}\n\n\
+            Recommandations prioritaires :\n{advice}{comp_hint}",
             name = p.name,
+            comp = profile.completeness,
             mot = top_mot,
             bias = top_bias,
+            total = profile.total,
+            flag_count = flag_count,
             mots = fmt_motivations(p),
-            biases = fmt_biases(p)
+            biases = fmt_biases(p),
+            flag_block = flag_block,
+            advice = advice_block,
+            comp_hint = completeness_hint,
         ),
         InsightContext::Leadership => format!(
             "🎯 Leadership & Management\n\n\
-            Manager {name}\n\
+            Manager {name} (complétude {comp}%)\n\
             • Levier principal : {mot}\n\
             • Piège à éviter : {bias} dans vos feedbacks\n\
-            • Style de management recommandé : adapter votre approche à ses drivers\n\
-            • Objectif : transformer ses biais en forces via la prise de conscience\n\n\
+            • Score profil : {total}/100\n\
+            • Signaux d'alerte : {flag_count}\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
-            Biais cognitif(s) détecté(s) :\n{biases}",
+            Biais cognitif(s) détecté(s) :\n{biases}\n\n\
+            Alertes :\n{flag_block}\n\n\
+            Recommandations prioritaires :\n{advice}{comp_hint}",
             name = p.name,
+            comp = profile.completeness,
             mot = top_mot,
             bias = top_bias,
+            total = profile.total,
+            flag_count = flag_count,
             mots = fmt_motivations(p),
-            biases = fmt_biases(p)
+            biases = fmt_biases(p),
+            flag_block = flag_block,
+            advice = advice_block,
+            comp_hint = completeness_hint,
         ),
         InsightContext::Growth => format!(
             "🌱 Développement personnel\n\n\
-            Plan de progression pour {name}\n\
+            Plan de progression pour {name} (complétude {comp}%)\n\
             • Point d'appui : sa motivation ({mot})\n\
             • Zone de progression : atténuer le biais de {bias}\n\
-            • Piste : des exercices de perspective-taking pour relativiser\n\
-            • Objectif long terme : équilibrer ses drivers pour des décisions plus objectives\n\n\
+            • Score profil : {total}/100\n\
+            • Signaux d'alerte : {flag_count}\n\n\
             Motivation(s) active(s) :\n{mots}\n\n\
-            Biais cognitif(s) détecté(s) :\n{biases}",
+            Biais cognitif(s) détecté(s) :\n{biases}\n\n\
+            Alertes :\n{flag_block}\n\n\
+            Recommandations prioritaires :\n{advice}{comp_hint}",
             name = p.name,
+            comp = profile.completeness,
             mot = top_mot,
             bias = top_bias,
+            total = profile.total,
+            flag_count = flag_count,
             mots = fmt_motivations(p),
-            biases = fmt_biases(p)
+            biases = fmt_biases(p),
+            flag_block = flag_block,
+            advice = advice_block,
+            comp_hint = completeness_hint,
         ),
     }
 }

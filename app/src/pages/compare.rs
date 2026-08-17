@@ -433,6 +433,49 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                         }
                     }
 
+                    {if !a_flags.is_empty() || !b_flags.is_empty() {
+                        let risk_title = crate::i18n::tr("compare_risk_mitigation", lang());
+                        let a_rm = peoplemodeler_core::advice::risk_mitigation_pair(&a);
+                        let b_rm = peoplemodeler_core::advice::risk_mitigation_pair(&b);
+                        rsx! {
+                            div { class: "analysis-section",
+                                h2 { "{risk_title}" }
+                                div { class: "analysis-grid",
+                                    if !a_rm.is_empty() {
+                                        div { class: "analysis-card friction",
+                                            h3 { "{na}" }
+                                            ul {
+                                                for (risk_key, mitigation) in &a_rm {
+                                                    li { class: "risk-mit-row",
+                                                        span { class: "risk-text", "⚠ {crate::i18n::tr(risk_key, lang())}" }
+                                                        span { class: "mit-arrow", " → " }
+                                                        span { class: "mit-text", "{mitigation}" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if !b_rm.is_empty() {
+                                        div { class: "analysis-card friction",
+                                            h3 { "{nb}" }
+                                            ul {
+                                                for (risk_key, mitigation) in &b_rm {
+                                                    li { class: "risk-mit-row",
+                                                        span { class: "risk-text", "⚠ {crate::i18n::tr(risk_key, lang())}" }
+                                                        span { class: "mit-arrow", " → " }
+                                                        span { class: "mit-text", "{mitigation}" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        rsx! {}
+                    }}
+
                     div { class: "ethics-banner", "{ethics}" }
                 }
             }

@@ -1,3 +1,4 @@
+pub mod advice;
 pub mod i18n;
 pub mod insights;
 pub mod model_config;

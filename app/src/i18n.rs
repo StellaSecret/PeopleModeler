@@ -343,6 +343,18 @@ fn en(key: &'static str) -> &'static str {
         "flag_pattern_recognition_dismissive" => {
             "Seeks recognition yet puts others down to win it."
         }
+        "flag_value_family_past" => {
+            "Values family highly yet shows no past-oriented time orientation."
+        }
+        "flag_value_stability_risk" => {
+            "Craves stability yet has a very high risk appetite — contradictory."
+        }
+        "flag_value_career_family" => {
+            "Both career and family rated as top priorities — expect tension."
+        }
+        "flag_value_loyalty_guarded" => {
+            "Values loyalty yet adopts a guarded, distrustful trust style."
+        }
 
         // Edit form sections
         "edit_motivations" => "Motivations",
@@ -693,6 +705,7 @@ fn en(key: &'static str) -> &'static str {
         "compare_cat_bias" => "Bias",
         "compare_cat_styles" => "Styles",
         "compare_cat_values" => "Values",
+        "compare_risk_mitigation" => "Risks & Mitigations",
         "values_title" => "Values",
         "no_values" => "No values defined",
         "edit_values" => "Values",
@@ -1027,6 +1040,18 @@ fn fr(key: &'static str) -> &'static str {
         "flag_pattern_open_resister" => "Se dit ouvert mais les patterns résistent au changement.",
         "flag_pattern_recognition_dismissive" => {
             "Cherche la reconnaissance mais rabaisse les autres pour la gagner."
+        }
+        "flag_value_family_past" => {
+            "Valorise la famille mais n'a aucune orientation temporelle passée."
+        }
+        "flag_value_stability_risk" => {
+            "Aspire à la stabilité mais a un très fort appétit pour le risque — contradictoire."
+        }
+        "flag_value_career_family" => {
+            "Carrière et famille tous deux en priorité — attendez-vous à des tensions."
+        }
+        "flag_value_loyalty_guarded" => {
+            "Valorise la loyauté mais adopte un style de confiance défiant."
         }
 
         "edit_motivations" => "Motivations",
@@ -1405,6 +1430,7 @@ fn fr(key: &'static str) -> &'static str {
         "compare_cat_bias" => "Biais",
         "compare_cat_styles" => "Styles",
         "compare_cat_values" => "Valeurs",
+        "compare_risk_mitigation" => "Risques & Mitigations",
         "values_title" => "Valeurs",
         "no_values" => "Aucune valeur définie",
         "edit_values" => "Valeurs",
