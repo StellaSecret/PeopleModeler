@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use peoplemodeler_core::models::Person;
 use peoplemodeler_core::models::Prediction;
 use peoplemodeler_core::models::Relationship;
+use peoplemodeler_core::models::Team;
 
 use crate::undo;
 
@@ -38,6 +39,10 @@ trait StorageBackend: Send + Sync {
     fn load_all_relationships(&self) -> Vec<Relationship>;
     fn save_relationship(&self, relationship: &Relationship) -> Result<(), String>;
     fn delete_relationship(&self, id: &str) -> Result<(), String>;
+    fn load_all_teams(&self) -> Vec<Team>;
+    fn load_team(&self, id: &str) -> Option<Team>;
+    fn save_team(&self, team: &Team) -> Result<(), String>;
+    fn delete_team(&self, id: &str) -> Result<(), String>;
 }
 
 pub fn all_persons() -> Vec<Person> {
@@ -88,6 +93,18 @@ pub fn delete_relationship(id: &str) -> Result<(), String> {
     undo::push_snapshot();
     db().delete_relationship(id)
 }
+pub fn all_teams() -> Vec<Team> {
+    db().load_all_teams()
+}
+pub fn team(id: &str) -> Option<Team> {
+    db().load_team(id)
+}
+pub fn save_team(team: &Team) -> Result<(), String> {
+    db().save_team(team)
+}
+pub fn delete_team(id: &str) -> Result<(), String> {
+    db().delete_team(id)
+}
 
 #[cfg(target_arch = "wasm32")]
 trait Identifiable {
@@ -107,6 +124,12 @@ impl Identifiable for Prediction {
 }
 #[cfg(target_arch = "wasm32")]
 impl Identifiable for Relationship {
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+#[cfg(target_arch = "wasm32")]
+impl Identifiable for Team {
     fn id(&self) -> &str {
         &self.id
     }
@@ -141,6 +164,11 @@ fn prediction_key(id: &str) -> String {
 #[cfg(target_arch = "wasm32")]
 fn relationship_key(id: &str) -> String {
     format!("rel_{id}")
+}
+
+#[cfg(target_arch = "wasm32")]
+fn team_key(id: &str) -> String {
+    format!("team_{id}")
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -268,6 +296,8 @@ static PERSONS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Person>>>> = OnceLock
 static PREDICTIONS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Prediction>>>> = OnceLock::new();
 #[cfg(target_arch = "wasm32")]
 static RELATIONSHIPS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Relationship>>>> = OnceLock::new();
+#[cfg(target_arch = "wasm32")]
+static TEAMS_CACHE: OnceLock<std::sync::Mutex<Option<Vec<Team>>>> = OnceLock::new();
 
 #[cfg(target_arch = "wasm32")]
 fn with_persons_cache<F, R>(f: F) -> R
@@ -295,6 +325,16 @@ where
     F: FnOnce(&mut Option<Vec<Relationship>>) -> R,
 {
     let lock = RELATIONSHIPS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+    let mut guard = lock.lock().unwrap();
+    f(&mut guard)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn with_teams_cache<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Option<Vec<Team>>) -> R,
+{
+    let lock = TEAMS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
     let mut guard = lock.lock().unwrap();
     f(&mut guard)
 }
@@ -408,6 +448,44 @@ impl StorageBackend for WebStorage {
         });
         Ok(())
     }
+    fn load_all_teams(&self) -> Vec<Team> {
+        with_teams_cache(|cache| {
+            if let Some(ref cached) = *cache {
+                return cached.clone();
+            }
+            let items = load_all_individual::<Team>("team_");
+            let teams: Vec<Team> = items.into_iter().map(|(_, t)| t).collect();
+            *cache = Some(teams.clone());
+            teams
+        })
+    }
+    fn load_team(&self, id: &str) -> Option<Team> {
+        let cached = with_teams_cache(|cache| cache.clone());
+        if let Some(ref teams) = cached {
+            if let Some(t) = teams.iter().find(|t| t.id == id) {
+                return Some(t.clone());
+            }
+        }
+        load_individual(&team_key(id))
+    }
+    fn save_team(&self, team: &Team) -> Result<(), String> {
+        store_individual(&team_key(&team.id), team)?;
+        with_teams_cache(|cache| {
+            let mut all = cache.clone().unwrap_or_default();
+            upsert(&mut all, team);
+            *cache = Some(all);
+        });
+        Ok(())
+    }
+    fn delete_team(&self, id: &str) -> Result<(), String> {
+        remove_individual(&team_key(id));
+        with_teams_cache(|cache| {
+            if let Some(ref mut all) = *cache {
+                all.retain(|t| t.id != id);
+            }
+        });
+        Ok(())
+    }
 }
 
 // ---- SQLite Storage (Native) ----
@@ -431,7 +509,8 @@ impl SqliteStorage {
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS persons (id TEXT PRIMARY KEY, data TEXT NOT NULL);
               CREATE TABLE IF NOT EXISTS predictions (id TEXT PRIMARY KEY, person_id TEXT NOT NULL, data TEXT NOT NULL);
-              CREATE TABLE IF NOT EXISTS relationships (id TEXT PRIMARY KEY, data TEXT NOT NULL);",
+              CREATE TABLE IF NOT EXISTS relationships (id TEXT PRIMARY KEY, data TEXT NOT NULL);
+              CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, data TEXT NOT NULL);",
         )
         .expect("Failed to initialize SQLite schema");
         Self {
@@ -568,6 +647,48 @@ impl StorageBackend for SqliteStorage {
             .map_err(|e| format!("DB write error [delete_relationship {id}]: {e}"))?;
         Ok(())
     }
+    fn load_all_teams(&self) -> Vec<Team> {
+        let Ok(conn) = self.conn.lock() else {
+            return Vec::new();
+        };
+        let Ok(mut stmt) = conn.prepare("SELECT data FROM teams") else {
+            return Vec::new();
+        };
+        let Ok(rows) = stmt.query_map([], |row| {
+            let data: String = row.get(0)?;
+            Ok(serde_json::from_str(&data).ok())
+        }) else {
+            return Vec::new();
+        };
+        rows.filter_map(|r| r.ok().and_then(|x| x)).collect()
+    }
+    fn load_team(&self, id: &str) -> Option<Team> {
+        let Ok(conn) = self.conn.lock() else {
+            return None;
+        };
+        conn.query_row("SELECT data FROM teams WHERE id = ?1", [id], |row| {
+            let data: String = row.get(0)?;
+            serde_json::from_str(&data)
+                .map_err(|_| rusqlite::Error::ToSqlConversionFailure(Box::new(std::fmt::Error)))
+        })
+        .ok()
+    }
+    fn save_team(&self, team: &Team) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let data = serde_json::to_string(team).map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT OR REPLACE INTO teams (id, data) VALUES (?1, ?2)",
+            [&team.id, &data],
+        )
+        .map_err(|e| format!("DB write error [save_team {}]: {e}", team.id))?;
+        Ok(())
+    }
+    fn delete_team(&self, id: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM teams WHERE id = ?1", [id])
+            .map_err(|e| format!("DB write error [delete_team {id}]: {e}"))?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -576,7 +697,7 @@ mod tests {
     use peoplemodeler_core::models::{
         BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation,
         MotivationType, OceanScores, Person, Prediction, RelationType, Relationship, RepScores,
-        Tag,
+        Tag, Team,
     };
 
     fn test_db() -> SqliteStorage {
@@ -584,7 +705,8 @@ mod tests {
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS persons (id TEXT PRIMARY KEY, data TEXT NOT NULL);
               CREATE TABLE IF NOT EXISTS predictions (id TEXT PRIMARY KEY, person_id TEXT NOT NULL, data TEXT NOT NULL);
-              CREATE TABLE IF NOT EXISTS relationships (id TEXT PRIMARY KEY, data TEXT NOT NULL);",
+              CREATE TABLE IF NOT EXISTS relationships (id TEXT PRIMARY KEY, data TEXT NOT NULL);
+              CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, data TEXT NOT NULL);",
         )
         .unwrap();
         SqliteStorage {
@@ -1017,6 +1139,74 @@ mod tests {
         assert_eq!(loaded.len(), 1);
         assert_eq!(
             serde_json::to_value(&r).unwrap(),
+            serde_json::to_value(&loaded[0]).unwrap()
+        );
+    }
+
+    // --- Team CRUD ---
+
+    fn sample_team(id: &str) -> Team {
+        Team {
+            id: id.into(),
+            name: "Test Team".into(),
+            icon: "🎯".into(),
+            member_ids: vec!["p1".into(), "p2".into()],
+            created_at: 500,
+        }
+    }
+
+    #[test]
+    fn test_save_and_load_team() {
+        let db = test_db();
+        let t = sample_team("t1");
+        let _ = db.save_team(&t);
+        let loaded = db.load_team("t1").unwrap();
+        assert_eq!(loaded.name, "Test Team");
+        assert_eq!(loaded.member_ids, vec!["p1", "p2"]);
+    }
+
+    #[test]
+    fn test_update_team() {
+        let db = test_db();
+        let mut t = sample_team("t-upd");
+        let _ = db.save_team(&t);
+        t.name = "Renamed".into();
+        t.member_ids.push("p3".into());
+        let _ = db.save_team(&t);
+        let loaded = db.load_team("t-upd").unwrap();
+        assert_eq!(loaded.name, "Renamed");
+        assert_eq!(loaded.member_ids.len(), 3);
+    }
+
+    #[test]
+    fn test_delete_team() {
+        let db = test_db();
+        let t = sample_team("t-del");
+        let _ = db.save_team(&t);
+        assert!(db.load_team("t-del").is_some());
+        let _ = db.delete_team("t-del");
+        assert!(db.load_team("t-del").is_none());
+    }
+
+    #[test]
+    fn test_all_teams() {
+        let db = test_db();
+        assert!(db.load_all_teams().is_empty());
+        let _ = db.save_team(&sample_team("a"));
+        let _ = db.save_team(&sample_team("b"));
+        let all = db.load_all_teams();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn test_team_roundtrip_json() {
+        let db = test_db();
+        let t = sample_team("t-json");
+        let _ = db.save_team(&t);
+        let loaded = db.load_all_teams();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(
+            serde_json::to_value(&t).unwrap(),
             serde_json::to_value(&loaded[0]).unwrap()
         );
     }

@@ -1279,6 +1279,16 @@ pub struct PersonalStyle {
     pub notes: String,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Team {
+    pub id: String,
+    pub name: String,
+    pub icon: String,
+    pub member_ids: Vec<String>,
+    pub created_at: i64,
+}
+
 pub const AVATAR_EMOJIS: &[&str] = &[
     "🧑", "👩", "👨", "🧠", "🎯", "💼", "🦁", "🦊", "🐺", "🌟", "🔥", "💎", "🎸", "🧬", "🌊", "🏔️",
     // Chinese Zodiac (十二生肖)

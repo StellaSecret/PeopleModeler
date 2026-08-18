@@ -19,7 +19,7 @@ test.describe('SPA Navigation', () => {
     await expect(links.nth(0)).toHaveAttribute('href', /PeopleModeler\/?$/);
     await expect(links.nth(1)).toHaveAttribute('href', /relationships/);
     await expect(links.nth(2)).toHaveAttribute('href', /timeline/);
-    await expect(links.nth(3)).toHaveAttribute('href', /team/);
+    await expect(links.nth(3)).toHaveAttribute('href', /teams/);
     await expect(links.nth(4)).toHaveAttribute('href', /sync/);
   });
 

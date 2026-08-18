@@ -1502,6 +1502,8 @@ fn value_self_score(values: &[crate::models::Value]) -> f64 {
 /// A single pair result inside the team matrix.
 #[derive(serde::Serialize, Clone)]
 pub struct PairResult {
+    pub id_a: String,
+    pub id_b: String,
     pub person_a: String,
     pub person_b: String,
     pub breakdown: SynergyBreakdown,
@@ -1583,6 +1585,8 @@ pub fn compute_team_synergy(
             let breakdown = compute_synergy_score_ctx(a, b, ctx.as_ref(), a_preds, b_preds);
 
             pairs.push(PairResult {
+                id_a: a.id.clone(),
+                id_b: b.id.clone(),
                 person_a: a.name.clone(),
                 person_b: b.name.clone(),
                 breakdown,

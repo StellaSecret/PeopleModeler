@@ -7,4 +7,6 @@ pub mod predictions;
 pub mod relationships;
 pub mod sync;
 pub mod team;
+pub mod team_new;
+pub mod teams_list;
 pub mod timeline;

@@ -46,6 +46,9 @@ PeopleModeler/
 │   │   │   ├── compare.rs          # Compare 2 profiles
 │   │   │   ├── insights.rs         # Global insights
 │   │   │   ├── predictions.rs      # Predictions
+│   │   │   ├── teams_list.rs       # Team list + virtual "All People"
+│   │   │   ├── team_new.rs         # Create new team
+│   │   │   ├── team.rs             # Team detail / synergy view
 │   │   │   └── sync.rs             # Google Drive sync
 │   │   ├── drive.rs            # Google Drive backup
 │   │   ├── templates.rs        # Person archetypes
@@ -107,9 +110,10 @@ Features have been migrated to the Dioxus Web/WASM app.
 2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Values, Predictions, Insights, Journal, Relationships, Personal Styles
 3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10)
 4. **Compare** — Synergy score with per-category breakdown
-5. **Predictions** — Feedback and accuracy
-6. **Insights** — Global analysis and statistics
-7. **Sync** — Google Drive backup
+5. **Teams** — Named teams with create/delete/rename; `/team/all` virtual team shows all persons; `/team/:id` shows synergy grid for team members only
+6. **Predictions** — Feedback and accuracy
+7. **Insights** — Global analysis and statistics
+8. **Sync** — Google Drive backup
 
 ---
 
@@ -172,7 +176,15 @@ Person
 ├── relationships[]      # sourceId, targetId, type, strength
 ├── log[]                # InteractionEntry: type, description, timestamp
 └── confidence           # 1-10, profile reliability
+
+Team (stored separately)
+├── id                   # unique string
+├── name                 # user-chosen label
+├── member_ids[]         # Person IDs belonging to this team
+└── created_at           # unix timestamp (seconds)
 ```
+
+The virtual "All People" team is not stored — it always reflects all persons.
 
 ### Synergy Score (comparing 2 people)
 

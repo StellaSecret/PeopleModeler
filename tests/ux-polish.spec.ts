@@ -69,10 +69,10 @@ test.describe('UX Polish', () => {
     test('team nav link exists and navigates', async ({ page }) => {
       await page.goto('/PeopleModeler/');
       await dismissTutorial(page);
-      const teamLink = page.locator('.nav-links a').filter({ hasText: /Team|Équipe/ });
-      await expect(teamLink).toBeVisible();
-      await teamLink.click();
-      await expect(page).toHaveURL(/\/team/);
+      const teamsLink = page.locator('.nav-links a').filter({ hasText: /Teams|Équipes/ });
+      await expect(teamsLink).toBeVisible();
+      await teamsLink.click();
+      await expect(page).toHaveURL(/\/teams/);
     });
   });
 });

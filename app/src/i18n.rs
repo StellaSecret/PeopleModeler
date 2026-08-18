@@ -794,7 +794,12 @@ fn en(key: &'static str) -> &'static str {
         }
 
         // Team page
-        "nav_team" => "Team",
+        "nav_teams" => "Teams",
+        "teams_title" => "Teams",
+        "teams_all" => "All People",
+        "teams_create" => "New Team",
+        "teams_delete" => "Delete team?",
+        "teams_members" => "{0} members",
         "team_title" => "Team Synergy",
         "team_empty" => "Add at least 2 people to see team synergy.",
         "team_size" => "Team size",
@@ -806,6 +811,14 @@ fn en(key: &'static str) -> &'static str {
         "team_ctx_avg" => "Average by situation",
         "team_pairs" => "All pairs",
         "team_no_danger" => "None",
+        "team_tab_synergy" => "Synergy",
+        "team_tab_members" => "Members",
+        "team_all_no_edit" => "All People includes everyone automatically",
+        "team_members_count" => "{0} members",
+        "confirm_delete_team" => "Delete this team?",
+        "team_rename" => "Rename",
+        "team_icon" => "Icon",
+        "team_edit" => "Edit",
 
         // Common (tutorial)
         "common_next" => "Next →",
@@ -1537,7 +1550,12 @@ fn fr(key: &'static str) -> &'static str {
         }
 
         // Team page
-        "nav_team" => "Équipe",
+        "nav_teams" => "Équipes",
+        "teams_title" => "Équipes",
+        "teams_all" => "Toutes les personnes",
+        "teams_create" => "Nouvelle équipe",
+        "teams_delete" => "Supprimer l'équipe ?",
+        "teams_members" => "{0} membres",
         "team_title" => "Synergie d'équipe",
         "team_empty" => "Ajoutez au moins 2 personnes pour voir la synergie d'équipe.",
         "team_size" => "Taille",
@@ -1549,6 +1567,14 @@ fn fr(key: &'static str) -> &'static str {
         "team_ctx_avg" => "Moyenne par situation",
         "team_pairs" => "Toutes les paires",
         "team_no_danger" => "Aucun",
+        "team_tab_synergy" => "Synergie",
+        "team_tab_members" => "Membres",
+        "team_all_no_edit" => "Toutes les personnes inclut tout le monde automatiquement",
+        "team_members_count" => "{0} membres",
+        "confirm_delete_team" => "Supprimer cette équipe ?",
+        "team_rename" => "Renommer",
+        "team_icon" => "Icône",
+        "team_edit" => "Modifier",
 
         // Common (tutorial)
         "common_next" => "Suivant →",
