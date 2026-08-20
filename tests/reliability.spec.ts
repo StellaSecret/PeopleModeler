@@ -15,7 +15,8 @@ test.describe('Data Reliability UX', () => {
     await expect(fieldset).toBeVisible();
     await setConfidence(page, conf);
     await expect(fieldset).toContainText(`${conf}/10`);
-    await page.getByRole('button', { name: /Save/ }).click();
+    await page.waitForTimeout(300);
+    await page.locator('.form-actions .btn.btn-primary').click();
     await page.waitForURL(/\/person\//);
     return id;
   }
