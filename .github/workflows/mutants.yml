@@ -1,0 +1,129 @@
+name: Mutation Tests
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: mutants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-mutants:
+    name: "Mutation Tests (${{ matrix.name }})"
+    runs-on: ubuntu-latest
+    environment: mutation-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: synergy-rel-weights
+            files: core/src/synergy/rel_weights.rs
+          - name: synergy-components
+            files: core/src/synergy/components.rs
+          - name: synergy-scoring
+            files: core/src/synergy/scoring.rs core/src/synergy/team.rs core/src/synergy/trajectory.rs
+          - name: synergy-rest
+            files: core/src/synergy/mod.rs core/src/synergy/profile.rs
+          - name: validation
+            files: core/src/validation.rs
+          - name: advice
+            files: core/src/advice.rs
+          - name: core-rest
+            files: core/src/model_config.rs core/src/wasm.rs core/src/models.rs core/src/ocean.rs core/src/insights.rs core/src/i18n.rs core/src/predictions.rs
+          - name: app-i18n
+            files: app/src/i18n.rs
+          - name: app-pages
+            files: app/src/pages/compare.rs app/src/pages/person_edit.rs app/src/pages/person_detail.rs app/src/pages/insights.rs
+          - name: app-services
+            files: app/src/db/mod.rs app/src/crypto.rs app/src/drive.rs app/src/pages/sync.rs
+          - name: app-tiny
+            files: app/src/tutorial.rs app/src/auth.rs app/src/toast.rs app/src/theme.rs app/src/undo.rs app/src/main.rs app/src/templates.rs app/src/android_auth.rs app/src/android_share.rs app/src/pages/team.rs app/src/pages/team_new.rs app/src/pages/teams_list.rs app/src/pages/relationships.rs app/src/pages/predictions.rs app/src/pages/timeline.rs app/src/pages/people_list.rs
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+      - name: "Run mutation tests (${{ matrix.name }})"
+        id: mutants
+        run: |
+          set -o pipefail
+          i=0
+          fatal=0
+          for f in ${{ matrix.files }}; do
+            echo "::group::$f"
+            cargo mutants -f "$f" --no-times --in-place -o "work-$i" --timeout 300 && ec=0 || ec=$?
+            echo "::endgroup::"
+            if [ "$ec" -eq 1 ] || [ "$ec" -eq 4 ]; then
+              echo "FATAL: cargo-mutants exited $ec on $f"
+              fatal=$ec
+            else
+              echo "cargo-mutants exited $ec on $f"
+            fi
+            i=$((i + 1))
+          done
+          mkdir -p mutants.out
+          for d in work-*/mutants.out; do
+            [ -f "$d/caught.txt" ] && cat "$d/caught.txt" >> mutants.out/caught.txt
+            [ -f "$d/missed.txt" ] && cat "$d/missed.txt" >> mutants.out/missed.txt
+            [ -f "$d/unviable.txt" ] && cat "$d/unviable.txt" >> mutants.out/unviable.txt
+          done
+          echo "Merged $(wc -l < mutants.out/caught.txt 2>/dev/null || echo 0) caught, $(wc -l < mutants.out/missed.txt 2>/dev/null || echo 0) missed, $(wc -l < mutants.out/unviable.txt 2>/dev/null || echo 0) unviable"
+          echo "fatal=$fatal" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-${{ matrix.name }}
+          path: mutants.out
+          retention-days: 30
+      - name: "Fail if mutations missed"
+        if: steps.mutants.outputs.fatal != '0'
+        run: |
+          echo "cargo-mutants found missed/timeout mutants — exiting"
+          exit ${{ steps.mutants.outputs.fatal }}
+
+  cargo-mutants-summary:
+    name: Mutation Tests Summary
+    if: always()
+    needs: [cargo-mutants]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all mutant artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mutants-*
+          path: mutants/
+          merge-multiple: false
+      - name: Report results
+        run: |
+          echo "## Mutation Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Shard | Caught | Missed | Unviable |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          total_caught=0
+          total_missed=0
+          total_unviable=0
+          for dir in mutants/mutants-*/; do
+            name=$(basename "$dir" | sed 's/^mutants-//')
+            caught=0; missed=0; unviable=0
+            [ -f "$dir/caught.txt" ] && caught=$(wc -l < "$dir/caught.txt")
+            [ -f "$dir/missed.txt" ] && missed=$(wc -l < "$dir/missed.txt")
+            [ -f "$dir/unviable.txt" ] && unviable=$(wc -l < "$dir/unviable.txt")
+            total_caught=$((total_caught + caught))
+            total_missed=$((total_missed + missed))
+            total_unviable=$((total_unviable + unviable))
+            if [ "$missed" -gt 0 ]; then
+              echo "| $name | $caught | **$missed** | $unviable |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $name | $caught | $missed | $unviable |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total: $total_caught caught / $total_missed missed / $total_unviable unviable**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$total_missed" -gt 0 ]; then
+            echo "::warning::Mutation testing found $total_missed missed mutants"
+          fi
