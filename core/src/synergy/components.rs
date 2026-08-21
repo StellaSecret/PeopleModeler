@@ -64,7 +64,7 @@ pub fn motivation_synergy_score(ma: &[Motivation], mb: &[Motivation]) -> f64 {
             if syn == 0.0 {
                 continue;
             }
-            let w = (a.intensity as f64 * b.intensity as f64) / CFG.motivation.intensity_scale;
+            let w = a.intensity as f64 * b.intensity as f64;
             sum += syn * w;
             total_w += w;
         }
@@ -148,22 +148,21 @@ pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
 
 pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f64 {
     let mut sum = 0.0;
-    let mut total_w = 0.0;
+    let mut count = 0.0f64;
     for a in pa {
         for b in pb {
             let syn = trigger_synergy(a.trigger, b.trigger);
             if syn == 0.0 {
                 continue;
             }
-            let w = CFG.patterns.pair_weight;
-            sum += syn * w;
-            total_w += w;
+            sum += syn;
+            count += 1.0;
         }
     }
-    if total_w == 0.0 {
+    if count == 0.0 {
         CFG.patterns.default
     } else {
-        ((sum / total_w + CFG.patterns.norm_offset) / CFG.patterns.norm_scale).clamp(0.0, 1.0)
+        ((sum / count + CFG.patterns.norm_offset) / CFG.patterns.norm_scale).clamp(0.0, 1.0)
     }
 }
 

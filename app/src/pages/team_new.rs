@@ -109,3 +109,60 @@ fn uuid() -> String {
 fn now_ts() -> i64 {
     0
 }
+
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_input_value_nonwasm_returns_empty() {
+        assert_eq!(read_input_value(), String::new());
+    }
+
+    #[test]
+    fn uuid_nonwasm_returns_placeholder() {
+        assert_eq!(uuid(), "team-placeholder");
+    }
+
+    #[test]
+    fn now_ts_nonwasm_returns_zero() {
+        assert_eq!(now_ts(), 0);
+    }
+}
+
+#[cfg(test)]
+#[cfg(target_arch = "wasm32")]
+mod wasm_tests {
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    #[wasm_bindgen_test]
+    fn uuid_wasm_starts_with_team() {
+        let id = super::uuid();
+        assert!(
+            id.starts_with("team-"),
+            "uuid should start with 'team-', got '{id}'"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn now_ts_wasm_positive() {
+        let ts = super::now_ts();
+        assert!(
+            (1_000_000_000..2_000_000_000).contains(&ts),
+            "now_ts should be a recent epoch second, got {ts}"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn read_input_value_wasm_reads_dom() {
+        let doc = web_sys::window().unwrap().document().unwrap();
+        let input = doc.create_element("input").unwrap();
+        input.set_attribute("id", "team-name-input").unwrap();
+        input.set_attribute("value", "Test Team").unwrap();
+        doc.body().unwrap().append_child(&input).unwrap();
+        assert_eq!(super::read_input_value(), "Test Team");
+        let _ = doc.body().unwrap().remove_child(&input);
+    }
+}

@@ -443,3 +443,108 @@ pub fn SyncPage() -> Element {
         }
     }
 }
+
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tr_error_known_returns_translation() {
+        let result = tr_error("sync_wrong_passphrase".into(), Lang::En);
+        assert!(!result.is_empty());
+        assert_ne!(result, "sync_wrong_passphrase");
+    }
+
+    #[test]
+    fn tr_error_unknown_passthrough() {
+        let result = tr_error("some_random_error".into(), Lang::En);
+        assert_eq!(result, "some_random_error");
+    }
+
+    #[test]
+    fn tr_error_empty_string() {
+        let result = tr_error(String::new(), Lang::En);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn mask_token_long_shows_first_last_four() {
+        let result = mask_token("abcdefghijklmnop");
+        assert_eq!(result, "abcd…mnop");
+    }
+
+    #[test]
+    fn mask_token_exactly_8_chars() {
+        let result = mask_token("12345678");
+        assert_eq!(result, "****");
+    }
+
+    #[test]
+    fn mask_token_9_chars_shows_mask() {
+        let result = mask_token("123456789");
+        assert_eq!(result, "1234…6789");
+    }
+
+    #[test]
+    fn mask_token_short_returns_stars() {
+        let result = mask_token("abc");
+        assert_eq!(result, "****");
+    }
+
+    #[test]
+    fn mask_token_empty_returns_stars() {
+        let result = mask_token("");
+        assert_eq!(result, "****");
+    }
+
+    #[test]
+    fn mask_token_exactly_one_char() {
+        let result = mask_token("x");
+        assert_eq!(result, "****");
+    }
+
+    #[test]
+    fn parse_token_from_url_valid_fragment() {
+        let url = "http://example.com/callback#access_token=mytoken123&token_type=Bearer";
+        let result = parse_token_from_url(url);
+        assert_eq!(result.as_deref(), Some("mytoken123"));
+    }
+
+    #[test]
+    fn parse_token_from_url_token_at_end() {
+        let url = "http://example.com/#foo=bar&access_token=tokendefined";
+        let result = parse_token_from_url(url);
+        assert_eq!(result.as_deref(), Some("tokendefined"));
+    }
+
+    #[test]
+    fn parse_token_from_url_no_fragment() {
+        let url = "http://example.com/callback";
+        assert!(parse_token_from_url(url).is_none());
+    }
+
+    #[test]
+    fn parse_token_from_url_fragment_no_token() {
+        let url = "http://example.com/#foo=bar&baz=qux";
+        assert!(parse_token_from_url(url).is_none());
+    }
+
+    #[test]
+    fn parse_token_from_url_empty_fragment() {
+        let url = "http://example.com/#";
+        assert!(parse_token_from_url(url).is_none());
+    }
+
+    #[test]
+    fn parse_token_from_url_value_with_equals() {
+        let url = "http://example.com/#access_token=abc=def";
+        let result = parse_token_from_url(url);
+        assert_eq!(result.as_deref(), Some("abc=def"));
+    }
+
+    #[test]
+    fn drive_client_id_empty_when_env_not_set() {
+        assert!(drive_client_id().is_empty());
+    }
+}

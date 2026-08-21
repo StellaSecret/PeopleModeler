@@ -25,9 +25,7 @@ pub fn deserialize_behavior_response<'de, D: Deserializer<'de>>(
             if v.is_empty() {
                 return Ok(BehaviorResponse::SeeksSupport);
             }
-            // forward to serde's enum visitor
             BehaviorResponse::deserialize(de::value::StrDeserializer::<E>::new(v))
-                .or(Ok(BehaviorResponse::SeeksSupport))
         }
     }
     d.deserialize_str(Brv)
@@ -1295,3 +1293,22 @@ pub const AVATAR_EMOJIS: &[&str] = &[
     "🐀", "🐂", "🐅", "🐇", "🐉", "🐍", "🐎", "🐐", "🐒", "🐓", "🐕", "🐖", // Animals
     "🐶", "🐱", "🐻", "🐼", "🐸", "🦄", "🐧", "🦉", "🐨", "🦋", "🐙", "🦥", "🦜",
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn behavior_pattern_bad_predicted_behavior_error_uses_expecting() {
+        // A wrong-typed `predicted_behavior` reaches the custom visitor's
+        // `expecting`, so its message must be written (models.rs:22). A
+        // mutated `expecting` that returns `Ok(Default::default())` produces
+        // no message and this assertion fails, killing the mutant.
+        let err = serde_json::from_str::<BehavioralPattern>(
+            r#"{"trigger":"SUCCESS","predicted_behavior":42}"#,
+        )
+        .unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("a behavior response variant"), "got: {msg}");
+    }
+}

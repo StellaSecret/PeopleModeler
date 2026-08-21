@@ -64,18 +64,22 @@ async fn check_response(resp: reqwest::Response) -> Result<reqwest::Response, St
     Ok(resp)
 }
 
-pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<String, String> {
-    let backup = build_backup();
-    let client = reqwest::Client::new();
-
-    let (body_bytes, mime_type) = match passphrase.filter(|p| !p.is_empty()) {
+fn prepare_backup_body(backup: &str, passphrase: Option<&str>) -> (Vec<u8>, &'static str) {
+    match passphrase.filter(|p| !p.is_empty()) {
         #[cfg(target_arch = "wasm32")]
         Some(pp) => {
             let enc = crate::crypto::encrypt_with_passphrase(backup.as_bytes(), pp);
             (enc, "application/octet-stream")
         }
-        _ => (backup.into_bytes(), "application/json"),
-    };
+        _ => (backup.as_bytes().to_vec(), "application/json"),
+    }
+}
+
+pub async fn drive_backup(token: &str, passphrase: Option<&str>) -> Result<String, String> {
+    let backup = build_backup();
+    let client = reqwest::Client::new();
+
+    let (body_bytes, mime_type) = prepare_backup_body(&backup, passphrase);
 
     let query =
         "name='people_modeler_backup.json' and 'appDataFolder' in parents and trashed=false";
@@ -183,19 +187,40 @@ pub async fn drive_restore(token: &str, passphrase: Option<&str>) -> Result<Rest
 
     let bytes = resp.bytes().await.map_err(|e| format!("bytes: {e}"))?;
 
-    #[cfg(target_arch = "wasm32")]
-    if let Some(pp) = passphrase.filter(|p| !p.is_empty()) {
-        if !bytes.is_empty() && bytes[0] != b'{' {
-            if let Some(dec) = crate::crypto::decrypt_with_passphrase(&bytes, pp) {
-                let text = String::from_utf8(dec).map_err(|e| format!("utf8: {e}"))?;
-                return restore_from_json(&text);
-            }
-            return Err("sync_wrong_passphrase".into());
-        }
+    if let Some(result) = try_decrypt_restore(&bytes, passphrase) {
+        return result;
     }
 
     let text = String::from_utf8(bytes.to_vec()).map_err(|e| format!("utf8: {e}"))?;
     restore_from_json(&text)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn try_decrypt_restore(
+    bytes: &[u8],
+    passphrase: Option<&str>,
+) -> Option<Result<RestoreCount, String>> {
+    if let Some(pp) = passphrase.filter(|p| !p.is_empty()) {
+        if !bytes.is_empty() && bytes[0] != b'{' {
+            if let Some(dec) = crate::crypto::decrypt_with_passphrase(bytes, pp) {
+                let text = match String::from_utf8(dec) {
+                    Ok(t) => t,
+                    Err(e) => return Some(Err(format!("utf8: {e}"))),
+                };
+                return Some(restore_from_json(&text));
+            }
+            return Some(Err("sync_wrong_passphrase".into()));
+        }
+    }
+    None
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn try_decrypt_restore(
+    _bytes: &[u8],
+    _passphrase: Option<&str>,
+) -> Option<Result<RestoreCount, String>> {
+    None
 }
 
 #[allow(dead_code)]
@@ -426,5 +451,162 @@ mod tests {
             data.persons[0].behavioral_patterns[0].predicted_behavior,
             peoplemodeler_core::models::BehaviorResponse::SeeksSupport,
         );
+    }
+
+    #[test]
+    fn test_build_backup_produces_valid_json_with_version() {
+        use std::sync::Once;
+        static INIT: Once = Once::new();
+        INIT.call_once(crate::db::init);
+        let json = build_backup();
+        assert!(!json.is_empty());
+        let data: BackupData = serde_json::from_str(&json).unwrap();
+        assert_eq!(data.version, 2);
+    }
+
+    #[test]
+    fn test_build_backup_contains_saved_persons() {
+        use std::sync::Once;
+        static INIT: Once = Once::new();
+        INIT.call_once(crate::db::init);
+        let p = Person {
+            id: "backup-test-1".into(),
+            name: "Backup Test".into(),
+            role: "Tester".into(),
+            context: "test".into(),
+            avatar_emoji: "🧪".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
+            confidence: 5,
+            log: vec![],
+            created_at: 100,
+            updated_at: 200,
+        };
+        crate::db::save_person(&p).unwrap();
+        let json = build_backup();
+        let data: BackupData = serde_json::from_str(&json).unwrap();
+        assert!(data.persons.iter().any(|x| x.id == "backup-test-1"));
+    }
+
+    #[test]
+    fn test_prepare_backup_body_no_passphrase_returns_json() {
+        let (body, mime) = prepare_backup_body(r#"{"test":true}"#, None);
+        assert_eq!(mime, "application/json");
+        let s = String::from_utf8(body).unwrap();
+        assert_eq!(s, r#"{"test":true}"#);
+    }
+
+    #[test]
+    fn test_prepare_backup_body_empty_passphrase_returns_json() {
+        let (body, mime) = prepare_backup_body("data", Some(""));
+        assert_eq!(mime, "application/json");
+        let s = String::from_utf8(body).unwrap();
+        assert_eq!(s, "data");
+    }
+
+    #[test]
+    fn test_try_decrypt_restore_no_passphrase_returns_none() {
+        assert!(try_decrypt_restore(b"some bytes", None).is_none());
+    }
+
+    #[test]
+    fn test_try_decrypt_restore_json_bytes_returns_none() {
+        assert!(try_decrypt_restore(b"{\"valid\": true}", Some("pp")).is_none());
+    }
+}
+
+#[cfg(test)]
+#[cfg(target_arch = "wasm32")]
+mod wasm_tests {
+    use super::*;
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    #[wasm_bindgen_test]
+    fn wasm_prepare_backup_body_no_passphrase() {
+        let (body, mime) = prepare_backup_body(r#"{"test":true}"#, None);
+        assert_eq!(mime, "application/json");
+        let s = String::from_utf8(body).unwrap();
+        assert_eq!(s, r#"{"test":true}"#);
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_prepare_backup_body_empty_passphrase() {
+        let (body, mime) = prepare_backup_body("data", Some(""));
+        assert_eq!(mime, "application/json");
+        let s = String::from_utf8(body).unwrap();
+        assert_eq!(s, "data");
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_prepare_backup_body_with_passphrase_encrypts() {
+        let (body, mime) = prepare_backup_body(r#"{"secret":true}"#, Some("mypass"));
+        assert_eq!(mime, "application/octet-stream");
+        assert!(body.len() > 0);
+        let decrypted = crate::crypto::decrypt_with_passphrase(&body, "mypass").unwrap();
+        let s = String::from_utf8(decrypted).unwrap();
+        assert_eq!(s, r#"{"secret":true}"#);
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_prepare_backup_body_wrong_passphrase_fails_decrypt() {
+        let (body, _mime) = prepare_backup_body("data", Some("correct"));
+        let result = crate::crypto::decrypt_with_passphrase(&body, "wrong");
+        assert!(result.is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_try_decrypt_restore_no_passphrase() {
+        assert!(try_decrypt_restore(b"some bytes", None).is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_try_decrypt_restore_json_bytes_passthrough() {
+        assert!(try_decrypt_restore(b"{\"valid\": true}", Some("pp")).is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_try_decrypt_restore_encrypted_valid_passphrase() {
+        let backup = serde_json::json!({
+            "version": 2,
+            "exported_at": 0,
+            "persons": [],
+            "predictions": [],
+            "relationships": [],
+        });
+        let encrypted = crate::crypto::encrypt_with_passphrase(backup.to_string().as_bytes(), "pp");
+        let result = try_decrypt_restore(&encrypted, Some("pp"));
+        assert!(result.is_some());
+        let count = result.unwrap().unwrap();
+        assert_eq!(count.persons, 0);
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_try_decrypt_restore_encrypted_wrong_passphrase() {
+        let encrypted = crate::crypto::encrypt_with_passphrase(b"some data", "correct");
+        let result = try_decrypt_restore(&encrypted, Some("wrong"));
+        assert!(result.is_some());
+        assert!(result.unwrap().is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_try_decrypt_restore_encrypted_empty_passphrase_ignored() {
+        let encrypted = crate::crypto::encrypt_with_passphrase(b"data", "pp");
+        assert!(try_decrypt_restore(&encrypted, Some("")).is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_try_decrypt_restore_empty_bytes_ignored() {
+        let result = try_decrypt_restore(b"", Some("pp"));
+        assert!(result.is_none());
     }
 }

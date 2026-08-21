@@ -121,10 +121,8 @@ pub fn PersonDetail(id: String) -> Element {
             let person_flags = peoplemodeler_core::validation::all_person_flags(person);
             let self_score_label = crate::i18n::tr("person_self_score", lang());
             let bands = synergy_bands();
-            let active_band = bands
-                .iter()
-                .position(|&(lo, hi)| profile_score.total >= lo && profile_score.total <= hi)
-                .unwrap_or(2);
+            let active_band =
+                peoplemodeler_core::ocean::active_band_index(profile_score.total, &bands, 2);
             let band_keys = [
                 "scale_tension",
                 "scale_friction",
@@ -833,15 +831,10 @@ fn OceanChart(person: Person) -> Element {
     let cy = 110.0;
     let r = 80.0;
 
-    use std::f64::consts::PI;
     let pts: Vec<(f64, f64)> = scores
         .iter()
         .enumerate()
-        .map(|(i, s)| {
-            let a = (-90.0 + i as f64 * 72.0) * PI / 180.0;
-            let pr = r * s.unwrap_or(0) as f64 / 10.0;
-            (cx + pr * a.cos(), cy + pr * a.sin())
-        })
+        .map(|(i, s)| peoplemodeler_core::ocean::radar_data_point(i, *s, cx, cy, r))
         .collect();
     let data_poly: String = pts
         .iter()
@@ -850,9 +843,7 @@ fn OceanChart(person: Person) -> Element {
         .join(" ");
     let data_poly = format!("{} {:.1},{:.1}", data_poly, pts[0].0, pts[0].1);
     let label_pos: Vec<(f64, f64)> = (0..5).map(|i| axis_label(cx, cy, r, i)).collect();
-    let total: u8 = scores.iter().filter_map(|s| *s).sum();
-    let count = scores.iter().filter(|s| s.is_some()).count().max(1);
-    let avg_score = total / count as u8;
+    let avg_score = peoplemodeler_core::ocean::avg_ocean_score(&scores);
 
     rsx! {
         div { class: "section ocean-chart",
@@ -961,6 +952,12 @@ fn match_type(s: &str) -> RelationType {
     }
 }
 
+fn filter_person_relationships(rels: Vec<Relationship>, person_id: &str) -> Vec<Relationship> {
+    rels.into_iter()
+        .filter(|r| r.source_id == person_id || r.target_id == person_id)
+        .collect()
+}
+
 #[component]
 fn RelationshipSection(
     person: Person,
@@ -989,10 +986,7 @@ fn RelationshipSection(
 
     let mut refresh = move || all_rels.set(db::all_relationships());
 
-    let filtered = all_rels()
-        .into_iter()
-        .filter(|r| r.source_id == person_id || r.target_id == person_id)
-        .collect::<Vec<_>>();
+    let filtered = filter_person_relationships(all_rels(), &person_id);
     let type_groups = group_relationships(filtered, &person_id);
 
     // Add form
@@ -1407,5 +1401,261 @@ mod tests {
         assert_eq!(format!("{}", g[0].0), "Family");
         assert_eq!(format!("{}", g[1].0), "WorksWith");
         assert_eq!(format!("{}", g[2].0), "Partner");
+    }
+
+    #[test]
+    fn valence_cls_negative() {
+        assert_eq!(valence_cls(-3), "v-neg");
+    }
+
+    #[test]
+    fn valence_cls_positive() {
+        assert_eq!(valence_cls(5), "v-pos");
+    }
+
+    #[test]
+    fn valence_cls_zero() {
+        assert_eq!(valence_cls(0), "v-zero");
+    }
+
+    #[test]
+    fn fmt_valence_positive() {
+        assert_eq!(fmt_valence(3), "+3");
+    }
+
+    #[test]
+    fn fmt_valence_negative() {
+        assert_eq!(fmt_valence(-2), "-2");
+    }
+
+    #[test]
+    fn fmt_valence_zero() {
+        assert_eq!(fmt_valence(0), "0");
+    }
+
+    #[test]
+    fn radar_poly_has_points() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        assert!(!poly.is_empty());
+        assert!(poly.contains(","));
+        let points: Vec<&str> = poly.split(' ').collect();
+        assert_eq!(points.len(), 6);
+    }
+
+    #[test]
+    fn radar_poly_closes() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let points: Vec<&str> = poly.split(' ').collect();
+        assert_eq!(points.first(), points.last());
+    }
+
+    #[test]
+    fn radar_poly_scale() {
+        let p1 = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let p2 = radar_poly(80.0, 110.0, 110.0, 0.5);
+        assert_ne!(p1, p2);
+    }
+
+    fn parse_point(s: &str) -> (f64, f64) {
+        let (xs, ys) = s.split_once(',').unwrap();
+        (xs.parse().unwrap(), ys.parse().unwrap())
+    }
+
+    #[test]
+    fn radar_poly_exact_first_point() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let first = poly.split(' ').next().unwrap();
+        let (x, y) = parse_point(first);
+        assert!((x - 110.0).abs() < 0.1, "first x should be ~110.0, got {x}");
+        assert!((y - 30.0).abs() < 0.1, "first y should be ~30.0, got {y}");
+    }
+
+    #[test]
+    fn radar_poly_exact_second_point() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let second = poly.split(' ').nth(1).unwrap();
+        let (x, y) = parse_point(second);
+        assert!(
+            (x - 186.1).abs() < 0.2,
+            "second x should be ~186.1, got {x}"
+        );
+        assert!((y - 85.3).abs() < 0.2, "second y should be ~85.3, got {y}");
+    }
+
+    #[test]
+    fn radar_poly_symmetric_y() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let pts: Vec<(f64, f64)> = poly.split(' ').map(parse_point).collect();
+        assert!((pts[1].1 - pts[4].1).abs() < 0.1);
+        assert!((pts[2].1 - pts[3].1).abs() < 0.1);
+    }
+
+    #[test]
+    fn radar_poly_scale_half_exact() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 0.5);
+        let first = poly.split(' ').next().unwrap();
+        let (x, y) = parse_point(first);
+        assert!(
+            (x - 110.0).abs() < 0.1,
+            "half-scale first x should be ~110.0, got {x}"
+        );
+        assert!(
+            (y - 70.0).abs() < 0.1,
+            "half-scale first y should be ~70.0, got {y}"
+        );
+    }
+
+    #[test]
+    fn radar_poly_not_all_collinear() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let ys: Vec<f64> = poly.split(' ').map(|p| parse_point(p).1).collect();
+        assert!(ys.iter().any(|&y| y < 50.0), "should have points near top");
+        assert!(
+            ys.iter().any(|&y| y > 150.0),
+            "should have points near bottom"
+        );
+    }
+
+    #[test]
+    fn axis_label_returns_pair() {
+        let (x, y) = axis_label(110.0, 110.0, 80.0, 0);
+        assert!(x > 0.0);
+        assert!(y > 0.0);
+    }
+
+    #[test]
+    fn axis_label_varies_by_index() {
+        let (_, y0) = axis_label(110.0, 110.0, 80.0, 0);
+        let (_, y2) = axis_label(110.0, 110.0, 80.0, 2);
+        assert_ne!(y0, y2);
+    }
+
+    #[test]
+    fn axis_label_exact_i0() {
+        let (x, y) = axis_label(110.0, 110.0, 80.0, 0);
+        // i=0: angle=-90°, r+16=96, cos(-90)=0, sin(-90)=-1
+        assert!((x - 110.0).abs() < 0.1, "i0 x should be ~110.0, got {x}");
+        assert!((y - 14.0).abs() < 0.1, "i0 y should be ~14.0, got {y}");
+    }
+
+    #[test]
+    fn axis_label_exact_i2() {
+        let (x, y) = axis_label(110.0, 110.0, 80.0, 2);
+        // i=2: angle=54°, r+16=96, cos(54)≈0.588, sin(54)≈0.809
+        assert!((x - 166.4).abs() < 0.5, "i2 x should be ~166.4, got {x}");
+        assert!((y - 187.7).abs() < 0.5, "i2 y should be ~187.7, got {y}");
+    }
+
+    #[test]
+    fn axis_label_exact_i4() {
+        let (x, y) = axis_label(110.0, 110.0, 80.0, 4);
+        // i=4: angle=198°, r+16=96, cos(198)≈-0.951, sin(198)≈-0.309
+        assert!((x - 18.7).abs() < 0.5, "i4 x should be ~18.7, got {x}");
+        assert!((y - 80.3).abs() < 0.5, "i4 y should be ~80.3, got {y}");
+    }
+
+    #[test]
+    fn axis_label_symmetric() {
+        let (_x0, _y0) = axis_label(110.0, 110.0, 80.0, 0);
+        let (x2, y2) = axis_label(110.0, 110.0, 80.0, 2);
+        let (x3, y3) = axis_label(110.0, 110.0, 80.0, 3);
+        // i=2 and i=3 are mirror images about vertical axis
+        assert!((y2 - y3).abs() < 0.1, "i2 and i3 should have same y");
+        assert!(
+            (x2 + x3 - 220.0).abs() < 0.5,
+            "i2 and i3 should be symmetric about cx=110"
+        );
+    }
+
+    #[test]
+    fn axis_label_radius_matters() {
+        let (_, y1) = axis_label(110.0, 110.0, 80.0, 0);
+        let (_, y2) = axis_label(110.0, 110.0, 40.0, 0);
+        // With r=80: y = 110 - 96 = 14. With r=40: y = 110 - 56 = 54
+        assert!((y1 - 14.0).abs() < 0.1);
+        assert!((y2 - 54.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn rel_type_color_all_variants() {
+        assert_eq!(rel_type_color(&RelationType::WorksWith), "var(--cyan)");
+        assert_eq!(rel_type_color(&RelationType::Manages), "var(--orange)");
+        assert_eq!(rel_type_color(&RelationType::ReportsTo), "var(--green)");
+        assert_eq!(rel_type_color(&RelationType::Friends), "var(--pink)");
+        assert_eq!(rel_type_color(&RelationType::Family), "var(--purple)");
+        assert_eq!(rel_type_color(&RelationType::Partner), "var(--gold)");
+        assert_eq!(rel_type_color(&RelationType::Mentors), "#C0392B");
+        assert_eq!(rel_type_color(&RelationType::Collaborates), "var(--blue)");
+    }
+
+    #[test]
+    fn match_type_all_variants() {
+        assert_eq!(match_type("Manages"), RelationType::Manages);
+        assert_eq!(match_type("ReportsTo"), RelationType::ReportsTo);
+        assert_eq!(match_type("Friends"), RelationType::Friends);
+        assert_eq!(match_type("Family"), RelationType::Family);
+        assert_eq!(match_type("Partner"), RelationType::Partner);
+        assert_eq!(match_type("Mentors"), RelationType::Mentors);
+        assert_eq!(match_type("Collaborates"), RelationType::Collaborates);
+        assert_eq!(match_type("WorksWith"), RelationType::WorksWith);
+    }
+
+    #[test]
+    fn match_type_unknown_falls_back() {
+        assert_eq!(match_type("bogus"), RelationType::WorksWith);
+    }
+
+    // ── filter_person_relationships ──
+
+    #[test]
+    fn filter_person_relationships_source_match() {
+        let rels = vec![Relationship {
+            id: "r1".into(),
+            source_id: "alice".into(),
+            target_id: "bob".into(),
+            r#type: RelationType::Friends,
+            strength: 5,
+            notes: String::new(),
+            created_at: 0,
+        }];
+        let result = filter_person_relationships(rels, "alice");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, "r1");
+    }
+
+    #[test]
+    fn filter_person_relationships_target_match() {
+        let rels = vec![Relationship {
+            id: "r2".into(),
+            source_id: "bob".into(),
+            target_id: "alice".into(),
+            r#type: RelationType::Mentors,
+            strength: 7,
+            notes: String::new(),
+            created_at: 0,
+        }];
+        let result = filter_person_relationships(rels, "alice");
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn filter_person_relationships_no_match() {
+        let rels = vec![Relationship {
+            id: "r3".into(),
+            source_id: "bob".into(),
+            target_id: "charlie".into(),
+            r#type: RelationType::WorksWith,
+            strength: 5,
+            notes: String::new(),
+            created_at: 0,
+        }];
+        let result = filter_person_relationships(rels, "alice");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn filter_person_relationships_empty() {
+        let result = filter_person_relationships(vec![], "alice");
+        assert!(result.is_empty());
     }
 }

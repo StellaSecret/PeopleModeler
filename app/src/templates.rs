@@ -190,3 +190,44 @@ pub fn all() -> Vec<Archetype> {
         },
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_returns_four_archetypes() {
+        let archetypes = all();
+        assert_eq!(archetypes.len(), 4);
+    }
+
+    #[test]
+    fn all_archetypes_have_names() {
+        for a in all() {
+            assert!(!a.name.is_empty());
+            assert!(!a.emoji.is_empty());
+        }
+    }
+
+    #[test]
+    fn all_archetypes_have_ocean_scores() {
+        for a in all() {
+            assert!(a.ocean.openness.is_some());
+            assert!(a.ocean.conscientiousness.is_some());
+        }
+    }
+
+    #[test]
+    fn all_archetypes_have_motivations() {
+        for a in all() {
+            assert!(!a.motivations.is_empty());
+        }
+    }
+
+    #[test]
+    fn all_archetypes_have_biases() {
+        for a in all() {
+            assert!(!a.biases.is_empty());
+        }
+    }
+}

@@ -541,11 +541,7 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     raw += val * CFG.base_weights.values;
     total_w += CFG.base_weights.values;
 
-    let total = if total_w > 0.0 {
-        ((raw / total_w * 100.0).round() as u8).min(100)
-    } else {
-        CFG.profile.default_total
-    };
+    let total = ((raw / total_w * 100.0).round() as u8).min(100);
 
     PersonProfile {
         total,

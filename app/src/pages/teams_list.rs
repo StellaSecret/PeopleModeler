@@ -103,3 +103,33 @@ fn team_icon(t: &peoplemodeler_core::models::Team) -> String {
         t.icon.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::models::Team;
+
+    #[test]
+    fn team_icon_empty() {
+        let t = Team {
+            id: "1".into(),
+            name: "Test".into(),
+            icon: String::new(),
+            member_ids: vec![],
+            created_at: 0,
+        };
+        assert_eq!(team_icon(&t), "🎯");
+    }
+
+    #[test]
+    fn team_icon_custom() {
+        let t = Team {
+            id: "1".into(),
+            name: "Test".into(),
+            icon: "🚀".into(),
+            member_ids: vec![],
+            created_at: 0,
+        };
+        assert_eq!(team_icon(&t), "🚀");
+    }
+}

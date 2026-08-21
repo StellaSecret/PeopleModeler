@@ -140,7 +140,6 @@ pub const CFG: ModelConfig = ModelConfig {
         norm_offset: 0.3,
         norm_scale: 0.6,
         default: 0.5,
-        intensity_scale: 100.0,
         virtue: VirtueConfig {
             high: 7,
             low: 3,
@@ -176,7 +175,6 @@ pub const CFG: ModelConfig = ModelConfig {
         norm_offset: 0.3,
         norm_scale: 0.6,
         default: 0.5,
-        pair_weight: 1.0,
         undefined_penalty: 0.02,
         only_negative_penalty: 0.05,
     },
@@ -485,7 +483,6 @@ pub struct MotivationConfig {
     pub norm_offset: f64,
     pub norm_scale: f64,
     pub default: f64,
-    pub intensity_scale: f64,
     pub virtue: VirtueConfig,
     pub count: MotivationCountConfig,
 }
@@ -513,7 +510,6 @@ pub struct PatternsConfig {
     pub norm_offset: f64,
     pub norm_scale: f64,
     pub default: f64,
-    pub pair_weight: f64,
     pub undefined_penalty: f64,
     pub only_negative_penalty: f64,
 }

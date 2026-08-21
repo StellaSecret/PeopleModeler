@@ -506,6 +506,8 @@ impl SqliteStorage {
         #[cfg(not(target_os = "android"))]
         let path = "peoplemodeler.db".to_string();
         let conn = rusqlite::Connection::open(&path).expect("Failed to open SQLite database");
+        conn.busy_timeout(std::time::Duration::from_secs(120))
+            .expect("Failed to set SQLite busy timeout");
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS persons (id TEXT PRIMARY KEY, data TEXT NOT NULL);
               CREATE TABLE IF NOT EXISTS predictions (id TEXT PRIMARY KEY, person_id TEXT NOT NULL, data TEXT NOT NULL);
@@ -692,6 +694,7 @@ impl StorageBackend for SqliteStorage {
 }
 
 #[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod tests {
     use super::*;
     use peoplemodeler_core::models::{
@@ -1209,5 +1212,563 @@ mod tests {
             serde_json::to_value(&t).unwrap(),
             serde_json::to_value(&loaded[0]).unwrap()
         );
+    }
+
+    // --- Public dispatch function tests (catches "replace fn -> default" mutants) ---
+
+    fn init_global_db() {
+        use std::sync::Once;
+        static INIT: Once = Once::new();
+        INIT.call_once(|| {
+            if super::DB.get().is_none() {
+                let _ = std::fs::remove_file("peoplemodeler.db");
+                super::init();
+            }
+        });
+    }
+
+    fn cleanup_id(id: &str) {
+        let _ = super::delete_person(id);
+        let _ = super::delete_prediction(id);
+        let _ = super::delete_relationship(id);
+    }
+
+    #[test]
+    fn dispatch_all_persons_returns_saved() {
+        init_global_db();
+        cleanup_id("dsp-ap-1");
+        let p = sample_person("dsp-ap-1");
+        let _ = super::save_person(&p);
+        let all = super::all_persons();
+        assert!(all.iter().any(|x| x.id == "dsp-ap-1"));
+    }
+
+    #[test]
+    fn dispatch_person_returns_saved() {
+        init_global_db();
+        cleanup_id("dsp-p-1");
+        assert!(super::person("dsp-p-1").is_none());
+        let p = sample_person("dsp-p-1");
+        let _ = super::save_person(&p);
+        let loaded = super::person("dsp-p-1");
+        assert!(loaded.is_some());
+        assert_eq!(loaded.unwrap().name, "Test Person");
+    }
+
+    #[test]
+    fn dispatch_person_nonexistent_returns_none() {
+        init_global_db();
+        cleanup_id("no-such-id-dispatch");
+        assert!(super::person("no-such-id-dispatch").is_none());
+    }
+
+    #[test]
+    fn dispatch_delete_person_removes() {
+        init_global_db();
+        cleanup_id("dsp-dp-1");
+        let p = sample_person("dsp-dp-1");
+        let _ = super::save_person(&p);
+        assert!(super::person("dsp-dp-1").is_some());
+        let _ = super::delete_person("dsp-dp-1");
+        assert!(super::person("dsp-dp-1").is_none());
+    }
+
+    #[test]
+    fn dispatch_save_person_quiet_works() {
+        init_global_db();
+        cleanup_id("dsp-spq-1");
+        assert!(super::person("dsp-spq-1").is_none());
+        let p = sample_person("dsp-spq-1");
+        super::save_person_quiet(&p);
+        assert!(super::person("dsp-spq-1").is_some());
+    }
+
+    #[test]
+    fn dispatch_all_predictions_returns_saved() {
+        init_global_db();
+        let _ = super::delete_prediction("dsp-apred-1");
+        let pred = Prediction {
+            id: "dsp-apred-1".into(),
+            person_id: "dsp-apred-p1".into(),
+            context: "dispatch test".into(),
+            predicted_outcome: "will work".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 500,
+            resolved_at: None,
+            resolved: false,
+        };
+        let _ = super::save_prediction(&pred);
+        let all = super::all_predictions();
+        assert!(all.iter().any(|x| x.id == "dsp-apred-1"));
+    }
+
+    #[test]
+    fn dispatch_predictions_for_person_filters() {
+        init_global_db();
+        let _ = super::delete_prediction("dsp-pfp-1");
+        let _ = super::delete_prediction("dsp-pfp-2");
+        let p1 = Prediction {
+            id: "dsp-pfp-1".into(),
+            person_id: "dsp-pfp-person".into(),
+            context: "test".into(),
+            predicted_outcome: "yes".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 600,
+            resolved_at: None,
+            resolved: false,
+        };
+        let p2 = Prediction {
+            id: "dsp-pfp-2".into(),
+            person_id: "dsp-pfp-other".into(),
+            context: "test".into(),
+            predicted_outcome: "no".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 601,
+            resolved_at: None,
+            resolved: false,
+        };
+        let _ = super::save_prediction(&p1);
+        let _ = super::save_prediction(&p2);
+        let filtered = super::predictions_for_person("dsp-pfp-person");
+        assert!(filtered.iter().any(|x| x.id == "dsp-pfp-1"));
+        assert!(!filtered.iter().any(|x| x.id == "dsp-pfp-2"));
+    }
+
+    #[test]
+    fn dispatch_delete_prediction_removes() {
+        init_global_db();
+        let _ = super::delete_prediction("dsp-dpred-1");
+        let pred = Prediction {
+            id: "dsp-dpred-1".into(),
+            person_id: "dsp-dpred-p1".into(),
+            context: "test".into(),
+            predicted_outcome: "y".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 700,
+            resolved_at: None,
+            resolved: false,
+        };
+        let _ = super::save_prediction(&pred);
+        assert!(
+            super::all_predictions()
+                .iter()
+                .any(|x| x.id == "dsp-dpred-1")
+        );
+        let _ = super::delete_prediction("dsp-dpred-1");
+        assert!(
+            !super::all_predictions()
+                .iter()
+                .any(|x| x.id == "dsp-dpred-1")
+        );
+    }
+
+    #[test]
+    fn dispatch_save_prediction_quiet_works() {
+        init_global_db();
+        let _ = super::delete_prediction("dsp-spredq-1");
+        assert!(
+            !super::all_predictions()
+                .iter()
+                .any(|x| x.id == "dsp-spredq-1")
+        );
+        let pred = Prediction {
+            id: "dsp-spredq-1".into(),
+            person_id: "p1".into(),
+            context: "test".into(),
+            predicted_outcome: "y".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 800,
+            resolved_at: None,
+            resolved: false,
+        };
+        super::save_prediction_quiet(&pred);
+        assert!(
+            super::all_predictions()
+                .iter()
+                .any(|x| x.id == "dsp-spredq-1")
+        );
+    }
+
+    #[test]
+    fn dispatch_all_relationships_returns_saved() {
+        init_global_db();
+        let _ = super::delete_relationship("dsp-arel-1");
+        let r = Relationship {
+            id: "dsp-arel-1".into(),
+            source_id: "s1".into(),
+            target_id: "t1".into(),
+            r#type: RelationType::WorksWith,
+            strength: 5,
+            notes: String::new(),
+            created_at: 900,
+        };
+        let _ = super::save_relationship(&r);
+        let all = super::all_relationships();
+        assert!(all.iter().any(|x| x.id == "dsp-arel-1"));
+    }
+
+    #[test]
+    fn dispatch_delete_relationship_removes() {
+        init_global_db();
+        let _ = super::delete_relationship("dsp-drel-1");
+        let r = Relationship {
+            id: "dsp-drel-1".into(),
+            source_id: "s2".into(),
+            target_id: "t2".into(),
+            r#type: RelationType::WorksWith,
+            strength: 3,
+            notes: String::new(),
+            created_at: 1000,
+        };
+        let _ = super::save_relationship(&r);
+        assert!(
+            super::all_relationships()
+                .iter()
+                .any(|x| x.id == "dsp-drel-1")
+        );
+        let _ = super::delete_relationship("dsp-drel-1");
+        assert!(
+            !super::all_relationships()
+                .iter()
+                .any(|x| x.id == "dsp-drel-1")
+        );
+    }
+
+    #[test]
+    fn dispatch_save_relationship_quiet_works() {
+        init_global_db();
+        let _ = super::delete_relationship("dsp-srelq-1");
+        assert!(
+            !super::all_relationships()
+                .iter()
+                .any(|x| x.id == "dsp-srelq-1")
+        );
+        let r = Relationship {
+            id: "dsp-srelq-1".into(),
+            source_id: "s3".into(),
+            target_id: "t3".into(),
+            r#type: RelationType::WorksWith,
+            strength: 4,
+            notes: String::new(),
+            created_at: 1100,
+        };
+        super::save_relationship_quiet(&r);
+        assert!(
+            super::all_relationships()
+                .iter()
+                .any(|x| x.id == "dsp-srelq-1")
+        );
+    }
+
+    #[test]
+    fn dispatch_all_teams_returns_saved() {
+        init_global_db();
+        let t = sample_team("dsp-ateam-1");
+        let _ = super::save_team(&t);
+        let all = super::all_teams();
+        assert!(all.iter().any(|x| x.id == "dsp-ateam-1"));
+    }
+
+    #[test]
+    fn dispatch_team_returns_saved() {
+        init_global_db();
+        let t = sample_team("dsp-team-1");
+        let _ = super::save_team(&t);
+        let loaded = super::team("dsp-team-1");
+        assert!(loaded.is_some());
+        assert_eq!(loaded.unwrap().name, "Test Team");
+    }
+
+    #[test]
+    fn dispatch_team_nonexistent_returns_none() {
+        init_global_db();
+        assert!(super::team("no-such-team-dispatch").is_none());
+    }
+
+    #[test]
+    fn dispatch_delete_team_removes() {
+        init_global_db();
+        let t = sample_team("dsp-dteam-1");
+        let _ = super::save_team(&t);
+        assert!(super::team("dsp-dteam-1").is_some());
+        let _ = super::delete_team("dsp-dteam-1");
+        assert!(super::team("dsp-dteam-1").is_none());
+    }
+}
+
+#[cfg(test)]
+#[cfg(target_arch = "wasm32")]
+mod wasm_dispatch_tests {
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    use peoplemodeler_core::models::{
+        Bias, BiasType, Motivation, MotivationType, OceanScores, Person, Prediction, RelationType,
+        Relationship, RepScores, Tag, Team,
+    };
+
+    fn init_db() {
+        use std::sync::Once;
+        static INIT: Once = Once::new();
+        INIT.call_once(super::init);
+    }
+
+    fn make_person(id: &str) -> Person {
+        Person {
+            id: id.into(),
+            name: format!("Person {id}"),
+            role: "Tester".into(),
+            context: "test".into(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![Tag {
+                name: "tag".into(),
+                color: None,
+            }],
+            notes: String::new(),
+            motivations: vec![Motivation {
+                r#type: MotivationType::Achievement,
+                intensity: 5,
+                notes: String::new(),
+            }],
+            biases: vec![Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 3,
+                evidence: String::new(),
+            }],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
+            confidence: 5,
+            log: vec![],
+            created_at: 100,
+            updated_at: 200,
+        }
+    }
+
+    fn make_prediction(id: &str, person_id: &str) -> Prediction {
+        Prediction {
+            id: id.into(),
+            person_id: person_id.into(),
+            context: "ctx".into(),
+            predicted_outcome: "out".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 300,
+            resolved_at: None,
+            resolved: false,
+        }
+    }
+
+    fn make_relationship(id: &str) -> Relationship {
+        Relationship {
+            id: id.into(),
+            source_id: "s1".into(),
+            target_id: "t1".into(),
+            r#type: RelationType::WorksWith,
+            strength: 5,
+            notes: String::new(),
+            created_at: 400,
+        }
+    }
+
+    fn make_team(id: &str) -> Team {
+        Team {
+            id: id.into(),
+            name: format!("Team {id}"),
+            icon: "🎯".into(),
+            member_ids: vec![],
+            created_at: 500,
+        }
+    }
+
+    // --- Person CRUD via public dispatch ---
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_and_load_person() {
+        init_db();
+        let p = make_person("w1");
+        super::save_person(&p).unwrap();
+        let loaded = super::person("w1").unwrap();
+        assert_eq!(loaded.name, "Person w1");
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_all_persons_contains_saved() {
+        init_db();
+        let p = make_person("w2");
+        super::save_person(&p).unwrap();
+        let all = super::all_persons();
+        assert!(all.iter().any(|x| x.id == "w2"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_person_nonexistent_is_none() {
+        init_db();
+        assert!(super::person("w-no-such").is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_delete_person_removes() {
+        init_db();
+        let p = make_person("w3");
+        super::save_person(&p).unwrap();
+        super::delete_person("w3").unwrap();
+        assert!(super::person("w3").is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_person_quiet_works() {
+        init_db();
+        let p = make_person("w4");
+        super::save_person_quiet(&p);
+        assert!(super::person("w4").is_some());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_person_update_via_save() {
+        init_db();
+        let mut p = make_person("w5");
+        super::save_person(&p).unwrap();
+        p.name = "Updated".into();
+        super::save_person(&p).unwrap();
+        let loaded = super::person("w5").unwrap();
+        assert_eq!(loaded.name, "Updated");
+    }
+
+    // --- Prediction CRUD ---
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_and_load_predictions() {
+        init_db();
+        let pred = make_prediction("wp1", "p1");
+        super::save_prediction(&pred).unwrap();
+        let all = super::all_predictions();
+        assert!(all.iter().any(|x| x.id == "wp1"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_predictions_for_person_filters() {
+        init_db();
+        let p1 = make_prediction("wp2a", "person-a");
+        let p2 = make_prediction("wp2b", "person-b");
+        super::save_prediction(&p1).unwrap();
+        super::save_prediction(&p2).unwrap();
+        let filtered = super::predictions_for_person("person-a");
+        assert!(filtered.iter().any(|x| x.id == "wp2a"));
+        assert!(!filtered.iter().any(|x| x.id == "wp2b"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_delete_prediction_removes() {
+        init_db();
+        let pred = make_prediction("wp3", "p3");
+        super::save_prediction(&pred).unwrap();
+        super::delete_prediction("wp3").unwrap();
+        assert!(!super::all_predictions().iter().any(|x| x.id == "wp3"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_prediction_quiet_works() {
+        init_db();
+        let pred = make_prediction("wp4", "p4");
+        super::save_prediction_quiet(&pred);
+        assert!(super::all_predictions().iter().any(|x| x.id == "wp4"));
+    }
+
+    // --- Relationship CRUD ---
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_and_load_relationship() {
+        init_db();
+        let r = make_relationship("wr1");
+        super::save_relationship(&r).unwrap();
+        let all = super::all_relationships();
+        assert!(all.iter().any(|x| x.id == "wr1"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_delete_relationship_removes() {
+        init_db();
+        let r = make_relationship("wr2");
+        super::save_relationship(&r).unwrap();
+        super::delete_relationship("wr2").unwrap();
+        assert!(!super::all_relationships().iter().any(|x| x.id == "wr2"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_relationship_quiet_works() {
+        init_db();
+        let r = make_relationship("wr3");
+        super::save_relationship_quiet(&r);
+        assert!(super::all_relationships().iter().any(|x| x.id == "wr3"));
+    }
+
+    // --- Team CRUD ---
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_save_and_load_team() {
+        init_db();
+        let t = make_team("wt1");
+        super::save_team(&t).unwrap();
+        let loaded = super::team("wt1").unwrap();
+        assert_eq!(loaded.name, "Team wt1");
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_all_teams_contains_saved() {
+        init_db();
+        let t = make_team("wt2");
+        super::save_team(&t).unwrap();
+        let all = super::all_teams();
+        assert!(all.iter().any(|x| x.id == "wt2"));
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_team_nonexistent_is_none() {
+        init_db();
+        assert!(super::team("wt-no-such").is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_delete_team_removes() {
+        init_db();
+        let t = make_team("wt3");
+        super::save_team(&t).unwrap();
+        super::delete_team("wt3").unwrap();
+        assert!(super::team("wt3").is_none());
+    }
+
+    // --- Upsert behavior (catches upsert → () and == → != mutations) ---
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_upsert_person_does_not_duplicate() {
+        init_db();
+        let mut p = make_person("wu1");
+        super::save_person(&p).unwrap();
+        p.name = "Updated Name".into();
+        super::save_person(&p).unwrap();
+        let all = super::all_persons();
+        assert_eq!(all.iter().filter(|x| x.id == "wu1").count(), 1);
+        assert_eq!(super::person("wu1").unwrap().name, "Updated Name");
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_upsert_prediction_does_not_duplicate() {
+        init_db();
+        let mut pred = make_prediction("wup1", "p1");
+        super::save_prediction(&pred).unwrap();
+        pred.context = "updated".into();
+        super::save_prediction(&pred).unwrap();
+        let all = super::all_predictions();
+        assert_eq!(all.iter().filter(|x| x.id == "wup1").count(), 1);
     }
 }

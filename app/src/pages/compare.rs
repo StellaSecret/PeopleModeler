@@ -31,13 +31,69 @@ fn ctx_key(c: InsightContext) -> &'static str {
 /// Prefill the relationship selector from an existing Relationship row between
 /// the two ids (either direction).
 fn prefill_rel(id1: &str, id2: &str) -> (Option<RelationType>, u8) {
-    for r in db::all_relationships() {
+    prefill_rel_from(&db::all_relationships(), id1, id2)
+}
+
+fn prefill_rel_from(
+    rels: &[peoplemodeler_core::models::Relationship],
+    id1: &str,
+    id2: &str,
+) -> (Option<RelationType>, u8) {
+    for r in rels {
         if (r.source_id == id1 && r.target_id == id2) || (r.source_id == id2 && r.target_id == id1)
         {
             return (Some(r.r#type), r.strength);
         }
     }
     (None, 5)
+}
+
+fn benefit_labels(
+    a_score: u8,
+    b_score: u8,
+    a_name: &str,
+    b_name: &str,
+    more_label: &str,
+    balanced_label: &str,
+) -> (String, String) {
+    if a_score > b_score {
+        (
+            format!("(+{}% — {} {})", a_score - b_score, a_name, more_label),
+            String::new(),
+        )
+    } else if b_score > a_score {
+        (
+            String::new(),
+            format!("(+{}% — {} {})", b_score - a_score, b_name, more_label),
+        )
+    } else {
+        (
+            format!("({})", balanced_label),
+            format!("({})", balanced_label),
+        )
+    }
+}
+
+fn format_band_label(band: u8, hint_template: &str) -> String {
+    if band > 0 {
+        hint_template.replacen("{}", &band.to_string(), 1)
+    } else {
+        String::new()
+    }
+}
+
+fn format_signed_delta(delta: i8) -> String {
+    if delta > 0 {
+        format!("+{}", delta)
+    } else if delta < 0 {
+        format!("{}", delta)
+    } else {
+        String::new()
+    }
+}
+
+fn should_show_extra_strategies(n: usize) -> bool {
+    n > 1
 }
 
 #[component]
@@ -80,32 +136,14 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let compare_balanced = crate::i18n::tr("compare_balanced", lang());
             let a_score = brk.a_score;
             let b_score = brk.b_score;
-            let (a_benefit_label, b_benefit_label) = if a_score > b_score {
-                (
-                    format!(
-                        "(+{}% — {} {})",
-                        a_score - b_score,
-                        na,
-                        compare_benefit_more
-                    ),
-                    String::new(),
-                )
-            } else if b_score > a_score {
-                (
-                    String::new(),
-                    format!(
-                        "(+{}% — {} {})",
-                        b_score - a_score,
-                        nb,
-                        compare_benefit_more
-                    ),
-                )
-            } else {
-                (
-                    format!("({})", compare_balanced),
-                    format!("({})", compare_balanced),
-                )
-            };
+            let (a_benefit_label, b_benefit_label) = benefit_labels(
+                a_score,
+                b_score,
+                &na,
+                &nb,
+                compare_benefit_more,
+                compare_balanced,
+            );
             let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
             let compare_ctx_title = crate::i18n::tr("compare_ctx_title", lang());
             let ctx_rows: Vec<(String, u8)> = brk
@@ -128,16 +166,12 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let friction_title = crate::i18n::tr("compare_friction", lang());
             let strategy_title = crate::i18n::tr("compare_strategy", lang());
             let ethics = crate::i18n::tr("compare_ethics", lang());
-            let has_extra_strategies = all_strategies.len() > 1;
+            let has_extra_strategies = should_show_extra_strategies(all_strategies.len());
             let rel_title = crate::i18n::tr("compare_rel_title", lang());
             let rel_none = crate::i18n::tr("compare_rel_none", lang());
             let rel_strength_label = crate::i18n::tr("compare_rel_strength", lang());
             let band_hint = crate::i18n::tr("compare_band_hint", lang());
-            let band_label = if brk.band > 0 {
-                band_hint.replacen("{}", &brk.band.to_string(), 1)
-            } else {
-                String::new()
-            };
+            let band_label = format_band_label(brk.band, band_hint);
             let rel_cl = core_lang(lang());
 
             let trend_label = match brk.trajectory_trend {
@@ -155,13 +189,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 Trend::Stable => "→",
                 Trend::Deteriorating => "↓",
             };
-            let trend_delta = if brk.trajectory_delta > 0 {
-                format!("+{}", brk.trajectory_delta)
-            } else if brk.trajectory_delta < 0 {
-                format!("{}", brk.trajectory_delta)
-            } else {
-                String::new()
-            };
+            let trend_delta = format_signed_delta(brk.trajectory_delta);
             let trend_hint = crate::i18n::tr("trend_hint", lang());
 
             // Scale ruler — thresholds dynamically derived from sim formula
@@ -177,10 +205,17 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 let (lo, hi) = band_ranges[i];
                 (band_meta[i].0, lo, hi, band_meta[i].1)
             });
-            let active_band = scale_bands
-                .iter()
-                .position(|(_, lo, hi, _)| score >= *lo && score <= *hi)
-                .unwrap_or(2);
+            let active_band = peoplemodeler_core::ocean::active_band_index(
+                score,
+                &[
+                    (band_ranges[0].0, band_ranges[0].1),
+                    (band_ranges[1].0, band_ranges[1].1),
+                    (band_ranges[2].0, band_ranges[2].1),
+                    (band_ranges[3].0, band_ranges[3].1),
+                    (band_ranges[4].0, band_ranges[4].1),
+                ],
+                2,
+            );
 
             rsx! {
                 div { class: "page",
@@ -520,7 +555,9 @@ fn BreakdownBars(
         (&cat_styles, s_styles, false),
         (&cat_values, s_values, false),
     ];
-    let pcts: Vec<u8> = cats.iter().map(|(_, v, _)| (*v * 100.0) as u8).collect();
+    let pcts: Vec<u8> = peoplemodeler_core::ocean::scores_to_percentages(
+        &cats.iter().map(|(_, v, _)| *v).collect::<Vec<_>>(),
+    );
 
     rsx! {
         div { class: "breakdown-bars",
@@ -812,7 +849,7 @@ fn compare_analysis(
                 )
             });
         }
-        (Some(b1), Some(b2)) if b1.r#type == b2.r#type => {
+        (Some(b1), Some(_b2)) => {
             fri.push(if lang == Lang::Fr {
                 format!(
                     "Même biais {} des deux côtés — angles morts renforcés",
@@ -1051,4 +1088,2785 @@ fn compare_analysis(
     };
 
     (syn, fri, (top, str))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::models::*;
+
+    fn p(name: &str) -> Person {
+        Person {
+            id: name.into(),
+            name: name.into(),
+            role: String::new(),
+            context: String::new(),
+            avatar_emoji: "X".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            ocean: OceanScores {
+                openness: None,
+                conscientiousness: None,
+                extraversion: None,
+                agreeableness: None,
+                neuroticism: None,
+            },
+            resilience: None,
+            risk_appetite: None,
+            confidence: 5,
+            log: vec![],
+            created_at: 0,
+            updated_at: 0,
+        }
+    }
+
+    // ── ctx_key ──
+
+    #[test]
+    fn ctx_key_all_variants() {
+        assert_eq!(ctx_key(InsightContext::Decision), "ctx_decision");
+        assert_eq!(ctx_key(InsightContext::Team), "ctx_team");
+        assert_eq!(ctx_key(InsightContext::Stress), "ctx_stress");
+        assert_eq!(ctx_key(InsightContext::Communication), "ctx_communication");
+        assert_eq!(ctx_key(InsightContext::Leadership), "ctx_leadership");
+        assert_eq!(ctx_key(InsightContext::Growth), "ctx_growth");
+    }
+
+    // ── O-C complementarity ──
+
+    #[test]
+    fn oc_complementarity_a_open_b_consc() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(8);
+        b.ocean.conscientiousness = Some(9);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("creative vision")));
+    }
+
+    #[test]
+    fn oc_complementarity_reverse() {
+        let mut a = p("A");
+        let mut b = p("B");
+        b.ocean.openness = Some(8);
+        a.ocean.conscientiousness = Some(9);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("creative vision")));
+    }
+
+    #[test]
+    fn similar_ocean_profiles() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(8);
+        a.ocean.conscientiousness = Some(3);
+        b.ocean.openness = Some(9);
+        b.ocean.conscientiousness = Some(2);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("similar OCEAN")));
+    }
+
+    #[test]
+    fn oc_none_match() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(3);
+        b.ocean.conscientiousness = Some(2);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!syn.iter().any(|s| s.contains("creative vision")));
+        assert!(!syn.iter().any(|s| s.contains("similar OCEAN")));
+    }
+
+    // ── E-A complementarity ──
+
+    #[test]
+    fn ea_complementarity_a_e_high_b_a_high() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(8);
+        b.ocean.agreeableness = Some(9);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("one drives, one harmonizes")));
+    }
+
+    #[test]
+    fn ea_complementarity_reverse() {
+        let mut a = p("A");
+        let mut b = p("B");
+        b.ocean.extraversion = Some(8);
+        a.ocean.agreeableness = Some(9);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("one drives, one harmonizes")));
+    }
+
+    #[test]
+    fn ea_none_match() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(3);
+        b.ocean.agreeableness = Some(3);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!syn.iter().any(|s| s.contains("one drives")));
+    }
+
+    // ── Motivation synergy ──
+
+    #[test]
+    fn motivation_synergy_positive() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("Complementary motivations")));
+    }
+
+    #[test]
+    fn motivation_synergy_negative() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Affiliation,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("Competing motivations")));
+    }
+
+    #[test]
+    fn motivation_same_type() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("Shared Security")));
+    }
+
+    #[test]
+    fn motivation_neutral() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Autonomy,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Autonomy,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (syn, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!syn.iter().any(|s| s.contains("Complementary")));
+        assert!(!fri.iter().any(|s| s.contains("Competing")));
+        assert!(syn.iter().any(|s| s.contains("Shared")));
+    }
+
+    // ── Agreeableness gap ──
+
+    #[test]
+    fn agreeableness_gap_a_high_b_low() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A"))
+        );
+    }
+
+    #[test]
+    fn agreeableness_gap_reverse() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(3);
+        b.ocean.agreeableness = Some(8);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A"))
+        );
+    }
+
+    // ── Neuroticism gap ──
+
+    #[test]
+    fn neuroticism_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(9);
+        b.ocean.neuroticism = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("more reactive to stress")));
+    }
+
+    #[test]
+    fn neuroticism_close() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(5);
+        b.ocean.neuroticism = Some(6);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!fri.iter().any(|s| s.contains("reactive to stress")));
+    }
+
+    // ── Reputation synergy ──
+
+    #[test]
+    fn rep_close_both_high() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("natural affinity")));
+    }
+
+    #[test]
+    fn rep_close_both_low() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(2),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("unexpected camaraderie")));
+    }
+
+    #[test]
+    fn rep_far_a_higher() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("imbalance")));
+    }
+
+    #[test]
+    fn rep_far_b_higher() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("imbalance")));
+    }
+
+    // ── Bias conflict ──
+
+    #[test]
+    fn bias_different_types() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("Bias") && s.contains("vs")));
+    }
+
+    #[test]
+    fn bias_same_type() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("Same") && s.contains("bias")));
+    }
+
+    #[test]
+    fn bias_none() {
+        let a = p("A");
+        let b = p("B");
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!fri.iter().any(|s| s.contains("Bias") || s.contains("bias")));
+    }
+
+    // ── Behavioral patterns ──
+
+    #[test]
+    fn pattern_change_change() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("adapt well to change")));
+    }
+
+    #[test]
+    fn pattern_feedback_feedback() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("continuous improvement")));
+    }
+
+    #[test]
+    fn pattern_conflict_conflict() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("escalation")));
+    }
+
+    #[test]
+    fn pattern_stress_stress() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("contagious anxiety")));
+    }
+
+    #[test]
+    fn pattern_change_feedback() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("One adapts, one learns")));
+    }
+
+    #[test]
+    fn pattern_feedback_change() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("One adapts, one learns")));
+    }
+
+    #[test]
+    fn pattern_no_patterns() {
+        let a = p("A");
+        let b = p("B");
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.is_empty() || syn.iter().all(|s| !s.contains("responds with")));
+    }
+
+    // ── Extraversion gap ──
+
+    #[test]
+    fn extraversion_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(9);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("extraversion")));
+    }
+
+    #[test]
+    fn extraversion_close() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(5);
+        b.ocean.extraversion = Some(7);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!fri.iter().any(|s| s.contains("extraversion")));
+    }
+
+    // ── Strategies: motivation-based ──
+
+    #[test]
+    fn strategy_power() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("take initiative")));
+    }
+
+    #[test]
+    fn strategy_recognition() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("acknowledge")));
+    }
+
+    #[test]
+    fn strategy_security() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("stable frameworks")));
+    }
+
+    // ── Strategies: conscientiousness ──
+
+    #[test]
+    fn strategy_high_conscientiousness() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(8);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("structured")));
+    }
+
+    // ── Strategies: conflict resolution ──
+
+    #[test]
+    fn strategy_both_high_agreeableness() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("mediation")));
+    }
+
+    #[test]
+    fn strategy_both_low_agreeableness() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(2);
+        b.ocean.agreeableness = Some(3);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("straight to the point")));
+    }
+
+    // ── Strategies: OCEAN-gap ──
+
+    #[test]
+    fn strategy_extraversion_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("social pace")));
+    }
+
+    #[test]
+    fn strategy_agreeableness_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(2);
+        b.ocean.agreeableness = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("conflict styles")));
+    }
+
+    #[test]
+    fn strategy_conscientiousness_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(2);
+        b.ocean.conscientiousness = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("organization levels")));
+    }
+
+    // ── Strategies: trigger-pair clash ──
+
+    #[test]
+    fn strategy_trigger_negative() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("mutual triggering")));
+    }
+
+    #[test]
+    fn strategy_trigger_positive() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("complementarity")));
+    }
+
+    #[test]
+    fn strategy_trigger_neutral() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Uncertainty,
+            predicted_behavior: BehaviorResponse::SeeksData,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Success,
+            predicted_behavior: BehaviorResponse::CelebratesWithOthers,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(!str.iter().any(|s| s.contains("mutual triggering")));
+        assert!(!str.iter().any(|s| s.contains("complementarity")));
+    }
+
+    // ── Empty fallbacks ──
+
+    #[test]
+    fn empty_syn_fallback() {
+        let a = p("A");
+        let b = p("B");
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("No obvious synergy")));
+    }
+
+    #[test]
+    fn empty_fri_fallback() {
+        let a = p("A");
+        let b = p("B");
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("No major friction")));
+    }
+
+    #[test]
+    fn empty_str_fallback() {
+        let a = p("A");
+        let b = p("B");
+        let (_, _, (top, _)) = compare_analysis(&a, &b, Lang::En);
+        assert!(top.contains("Communicate openly"));
+    }
+
+    #[test]
+    fn nonempty_str_no_fallback() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(9);
+        let (_, _, (top, _)) = compare_analysis(&a, &b, Lang::En);
+        assert!(!top.contains("Communicate openly"));
+    }
+
+    // ── French language ──
+
+    #[test]
+    fn french_oc_complementarity() {
+        let mut a = p("Alice");
+        let mut b = p("Bob");
+        a.ocean.openness = Some(8);
+        b.ocean.conscientiousness = Some(9);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("vision créative")));
+    }
+
+    #[test]
+    fn french_ea_complementarity() {
+        let mut a = p("Alice");
+        let mut b = p("Bob");
+        a.ocean.extraversion = Some(8);
+        b.ocean.agreeableness = Some(9);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("l'un conduit")));
+    }
+
+    #[test]
+    fn french_empty_syn() {
+        let a = p("A");
+        let b = p("B");
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("Aucune synergie")));
+    }
+
+    #[test]
+    fn french_empty_fri() {
+        let a = p("A");
+        let b = p("B");
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("Aucun point de friction")));
+    }
+
+    #[test]
+    fn french_empty_str() {
+        let a = p("A");
+        let b = p("B");
+        let (_, _, (top, _)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(top.contains("Communiquer ouvertement"));
+    }
+
+    #[test]
+    fn french_bias_different() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("désaccords")));
+    }
+
+    #[test]
+    fn french_bias_same() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("Même biais")));
+    }
+
+    #[test]
+    fn french_motivation_positive() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("complémentaires")));
+    }
+
+    #[test]
+    fn french_motivation_negative() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Affiliation,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("concurrentes")));
+    }
+
+    #[test]
+    fn french_same_motivation() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("partagée")));
+    }
+
+    #[test]
+    fn french_agreeableness_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("faible A")));
+    }
+
+    #[test]
+    fn french_agreeableness_gap_reverse() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(3);
+        b.ocean.agreeableness = Some(8);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("faible A")));
+    }
+
+    #[test]
+    fn french_neuroticism_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(9);
+        b.ocean.neuroticism = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("réactif au stress")));
+    }
+
+    #[test]
+    fn french_rep_close_high() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("affinité naturelle")));
+    }
+
+    #[test]
+    fn french_rep_close_low() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(2),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("complicité inattendue")));
+    }
+
+    #[test]
+    fn french_rep_far_a_higher() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("déséquilibre")));
+    }
+
+    #[test]
+    fn french_rep_far_b_higher() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("déséquilibre")));
+    }
+
+    #[test]
+    fn french_pattern_change_change() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("s'adaptent au changement")));
+    }
+
+    #[test]
+    fn french_pattern_feedback_feedback() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("amélioration continue")));
+    }
+
+    #[test]
+    fn french_pattern_conflict_conflict() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("escalade")));
+    }
+
+    #[test]
+    fn french_pattern_stress_stress() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("anxiété contagieuse")));
+    }
+
+    #[test]
+    fn french_pattern_change_feedback() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksFeedback,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(syn.iter().any(|s| s.contains("évolue ensemble")));
+    }
+
+    #[test]
+    fn french_extraversion_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(9);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(fri.iter().any(|s| s.contains("Écart d'extraversion")));
+    }
+
+    #[test]
+    fn french_strategy_power() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("initiative")));
+    }
+
+    #[test]
+    fn french_strategy_recognition() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("Reconnaître publiquement")));
+    }
+
+    #[test]
+    fn french_strategy_security() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("cadres stables")));
+    }
+
+    #[test]
+    fn french_strategy_high_c() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(8);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("structurée")));
+    }
+
+    #[test]
+    fn french_strategy_both_high_a() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("médiation")));
+    }
+
+    #[test]
+    fn french_strategy_both_low_a() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(2);
+        b.ocean.agreeableness = Some(3);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("droit au fait")));
+    }
+
+    #[test]
+    fn french_strategy_e_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("Rythme social")));
+    }
+
+    #[test]
+    fn french_strategy_a_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(2);
+        b.ocean.agreeableness = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("Styles de conflit")));
+    }
+
+    #[test]
+    fn french_strategy_c_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(2);
+        b.ocean.conscientiousness = Some(9);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("organisation différents")));
+    }
+
+    #[test]
+    fn french_trigger_negative() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(str.iter().any(|s| s.contains("déclenchement mutuel")));
+    }
+
+    #[test]
+    fn french_trigger_positive() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(
+            str.iter()
+                .any(|s| s.contains("Complémentarité comportementale"))
+        );
+    }
+
+    #[test]
+    fn french_trigger_neutral() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Uncertainty,
+            predicted_behavior: BehaviorResponse::SeeksData,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Success,
+            predicted_behavior: BehaviorResponse::CelebratesWithOthers,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(!str.iter().any(|s| s.contains("déclenchement mutuel")));
+        assert!(
+            !str.iter()
+                .any(|s| s.contains("Complémentarité comportementale"))
+        );
+    }
+
+    #[test]
+    fn core_lang_en() {
+        assert!(matches!(
+            core_lang(Lang::En),
+            peoplemodeler_core::i18n::Lang::En
+        ));
+    }
+
+    #[test]
+    fn core_lang_fr() {
+        assert!(matches!(
+            core_lang(Lang::Fr),
+            peoplemodeler_core::i18n::Lang::Fr
+        ));
+    }
+
+    #[test]
+    fn prefill_rel_no_match() {
+        crate::db::init();
+        let (t, s) = prefill_rel("nonexistent_a", "nonexistent_b");
+        assert!(t.is_none());
+        assert_eq!(s, 5);
+    }
+
+    #[test]
+    fn compare_boundary_oc_close_at_2() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(7);
+        a.ocean.conscientiousness = Some(5);
+        b.ocean.openness = Some(9);
+        b.ocean.conscientiousness = Some(5);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("similar OCEAN")));
+    }
+
+    #[test]
+    fn compare_boundary_oc_far_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(7);
+        b.ocean.openness = Some(3);
+        a.ocean.conscientiousness = Some(5);
+        b.ocean.conscientiousness = Some(5);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!syn.iter().any(|s| s.contains("similar OCEAN")));
+    }
+
+    #[test]
+    fn compare_boundary_oc_complement_at_7() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(7);
+        b.ocean.conscientiousness = Some(7);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("creative vision")));
+    }
+
+    #[test]
+    fn compare_boundary_oc_complement_below_7() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(6);
+        b.ocean.conscientiousness = Some(6);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!syn.iter().any(|s| s.contains("creative vision")));
+    }
+
+    #[test]
+    fn compare_boundary_ea_at_7() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(7);
+        b.ocean.agreeableness = Some(7);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("one drives, one harmonizes")));
+    }
+
+    #[test]
+    fn compare_boundary_ea_below_7() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(6);
+        b.ocean.agreeableness = Some(6);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!syn.iter().any(|s| s.contains("one drives")));
+    }
+
+    #[test]
+    fn compare_boundary_agreeableness_high_at_7() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(7);
+        b.ocean.agreeableness = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A"))
+        );
+    }
+
+    #[test]
+    fn compare_boundary_agreeableness_low_at_4() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(4);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A"))
+        );
+    }
+
+    #[test]
+    fn compare_boundary_agreeableness_low_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A"))
+        );
+    }
+
+    #[test]
+    fn compare_boundary_neuroticism_gap_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(8);
+        b.ocean.neuroticism = Some(5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("more reactive to stress")));
+    }
+
+    #[test]
+    fn compare_boundary_neuroticism_gap_below_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(7);
+        b.ocean.neuroticism = Some(5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!fri.iter().any(|s| s.contains("more reactive to stress")));
+    }
+
+    #[test]
+    fn compare_boundary_extraversion_gap_at_4() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(6);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(fri.iter().any(|s| s.contains("extraversion")));
+    }
+
+    #[test]
+    fn compare_boundary_extraversion_gap_below_4() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(3);
+        b.ocean.extraversion = Some(6);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(!fri.iter().any(|s| s.contains("extraversion")));
+    }
+
+    #[test]
+    fn compare_boundary_oc_gap_strat_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("social pace")));
+    }
+
+    #[test]
+    fn compare_boundary_oc_gap_strat_below_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(4);
+        b.ocean.extraversion = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(!str.iter().any(|s| s.contains("social pace")));
+    }
+
+    #[test]
+    fn compare_boundary_agreeableness_strat_gap_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(2);
+        b.ocean.agreeableness = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("conflict styles")));
+    }
+
+    #[test]
+    fn compare_boundary_conscientiousness_strat_at_7() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(7);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("structured")));
+    }
+
+    #[test]
+    fn compare_boundary_conscientiousness_strat_below_7() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(6);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(!str.iter().any(|s| s.contains("structured")));
+    }
+
+    #[test]
+    fn compare_boundary_conflict_res_high_at_7() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(7);
+        b.ocean.agreeableness = Some(7);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("mediation")));
+    }
+
+    #[test]
+    fn compare_boundary_conflict_res_low_at_4() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(4);
+        b.ocean.agreeableness = Some(4);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("straight to the point")));
+    }
+
+    #[test]
+    fn compare_boundary_conflict_res_low_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(3);
+        b.ocean.agreeableness = Some(3);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("straight to the point")));
+    }
+
+    #[test]
+    fn compare_boundary_rep_close_at_2() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("natural affinity")));
+    }
+
+    #[test]
+    fn compare_boundary_rep_far_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(4),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter()
+                .any(|s| s.contains("natural affinity") || s.contains("unexpected camaraderie"))
+        );
+    }
+
+    #[test]
+    fn compare_boundary_c_conscientiousness_gap_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(2);
+        b.ocean.conscientiousness = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("organization levels")));
+    }
+
+    #[test]
+    fn compare_boundary_c_conscientiousness_gap_below_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(4);
+        b.ocean.conscientiousness = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(!str.iter().any(|s| s.contains("organization levels")));
+    }
+
+    #[test]
+    fn compare_boundary_conscientiousness_strategy_high_at_7() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(7);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("structured")));
+    }
+
+    #[test]
+    fn compare_boundary_extraversion_gap_strat_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(7);
+        b.ocean.extraversion = Some(4);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("social pace")));
+    }
+
+    #[test]
+    fn compare_boundary_conflict_strat_gap_at_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(7);
+        b.ocean.agreeableness = Some(4);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(str.iter().any(|s| s.contains("conflict styles")));
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Mutation-killing tests — targeted boundary & directional checks
+    // ══════════════════════════════════════════════════════════════════
+
+    // ── E-A complement: && vs || (lines 655, 659) ──
+
+    #[test]
+    fn mut_ea_first_arm_high_e_low_a_no_synergy() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(8);
+        b.ocean.agreeableness = Some(3);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("one drives")),
+            "E-A synergy must NOT fire when only E is high and A is low"
+        );
+    }
+
+    #[test]
+    fn mut_ea_second_arm_high_e_low_a_no_synergy() {
+        let mut a = p("A");
+        let mut b = p("B");
+        b.ocean.extraversion = Some(8);
+        a.ocean.agreeableness = Some(3);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("one drives")),
+            "E-A synergy must NOT fire when only b.E is high and a.A is low"
+        );
+    }
+
+    #[test]
+    fn mut_ea_both_arms_fires_when_both_high() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(8);
+        b.ocean.agreeableness = Some(8);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("one drives")));
+    }
+
+    // ── Agreeableness gap boundary (line 718: >=7 && <=4) ──
+
+    #[test]
+    fn mut_agreeableness_gap_a7_b4_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(7);
+        b.ocean.agreeableness = Some(4);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("low A")),
+            "Agreeableness gap must trigger at exactly A=7 vs A=4"
+        );
+    }
+
+    #[test]
+    fn mut_agreeableness_gap_a8_b5_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A")),
+            "Agreeableness gap must NOT trigger when b.A=5 (>4)"
+        );
+    }
+
+    #[test]
+    fn mut_agreeableness_gap_reverse_b7_a4_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(4);
+        b.ocean.agreeableness = Some(7);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("low A")),
+            "Agreeableness gap must trigger in reverse at A=4 vs A=7"
+        );
+    }
+
+    #[test]
+    fn mut_agreeableness_gap_reverse_a5_b8_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(5);
+        b.ocean.agreeableness = Some(8);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter()
+                .any(|s| s.contains("low A") && s.contains("high A")),
+            "Agreeableness gap reverse must NOT trigger when a.A=5 (>4)"
+        );
+    }
+
+    // ── Neuroticism gap boundary (line 735: >= 3) ──
+
+    #[test]
+    fn mut_neuroticism_gap_exactly_3_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(8);
+        b.ocean.neuroticism = Some(5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("reactive to stress")),
+            "Neuroticism gap must trigger at diff=3 (>=3)"
+        );
+    }
+
+    #[test]
+    fn mut_neuroticism_gap_exactly_2_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(7);
+        b.ocean.neuroticism = Some(5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter().any(|s| s.contains("reactive to stress")),
+            "Neuroticism gap must NOT trigger at diff=2 (<3)"
+        );
+    }
+
+    #[test]
+    fn mut_neuroticism_gap_higher_is_reactive() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(3);
+        b.ocean.neuroticism = Some(9);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("B more reactive to stress than A")),
+            "Higher-N person must be named as the reactive one"
+        );
+    }
+
+    // ── Rep dimension: close boundary (line 754: <=2) ──
+
+    #[test]
+    fn mut_rep_close_boundary_diff_2() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(10),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            syn.iter().any(|s| s.contains("natural affinity")),
+            "Rep diff=2 must be 'close'"
+        );
+    }
+
+    #[test]
+    fn mut_rep_not_close_boundary_diff_3() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(8),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(5),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter()
+                .any(|s| s.contains("natural affinity") || s.contains("unexpected camaraderie")),
+            "Rep diff=3 must NOT be 'close'"
+        );
+    }
+
+    // ── Rep dimension: both_high / both_low guards (lines 755-756) ──
+
+    #[test]
+    fn mut_rep_close_mixed_not_both_high() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(6),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(7),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("natural affinity")),
+            "Close but A=6 (<7) must NOT trigger both_high"
+        );
+    }
+
+    #[test]
+    fn mut_rep_close_mixed_not_both_low() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(5),
+            ..RepScores::default()
+        };
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("unexpected camaraderie")),
+            "Close but B=5 (>3) must NOT trigger both_low"
+        );
+    }
+
+    // ── Rep dimension: far, direction (lines 769, 781) ──
+
+    #[test]
+    fn mut_rep_far_a_higher_than_b() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("A more") && s.contains("imbalance")),
+            "Far rep where A > B must say 'A more ... than B'"
+        );
+        assert!(
+            !fri.iter()
+                .any(|s| s.contains("A more") && s.contains("B more")),
+            "Only one direction of imbalance should fire"
+        );
+    }
+
+    #[test]
+    fn mut_rep_far_b_higher_than_a() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("A more") && s.contains("B") && s.contains("imbalance")),
+            "Far rep where a < b must say 'A more ... than B'"
+        );
+    }
+
+    #[test]
+    fn mut_rep_far_equal_values_no_far_friction() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(5),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(5),
+            ..RepScores::default()
+        };
+        let (syn, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter().any(|s| s.contains("imbalance")),
+            "Equal rep values (diff=0) must NOT trigger far friction"
+        );
+        assert!(
+            !syn.iter()
+                .any(|s| s.contains("natural affinity") || s.contains("unexpected camaraderie")),
+            "Equal mid-range values (5) are neither both_high nor both_low"
+        );
+    }
+
+    // ── Bias conflict: != and == guards (lines 800, 815) ──
+
+    #[test]
+    fn mut_bias_different_produces_vs_message() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::LossAversion,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("Bias") && s.contains("vs")),
+            "Different biases must produce 'Bias X vs Y' friction"
+        );
+        assert!(
+            !fri.iter().any(|s| s.contains("Same") && s.contains("bias")),
+            "Different biases must NOT produce 'Same bias' message"
+        );
+    }
+
+    #[test]
+    fn mut_bias_same_produces_same_message() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 8,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 7,
+            evidence: String::new(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("Same") && s.contains("bias")),
+            "Same biases must produce 'Same X bias' message"
+        );
+        assert!(
+            !fri.iter().any(|s| s.contains("Bias") && s.contains("vs")),
+            "Same biases must NOT produce 'Bias X vs Y' message"
+        );
+    }
+
+    // ── Strategy: motivation == checks (lines 907, 916, 925) ──
+
+    #[test]
+    fn mut_strategy_power_b_has_power() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("take initiative")),
+            "Strategy must trigger when b has Power motivation (not just a)"
+        );
+    }
+
+    #[test]
+    fn mut_strategy_recognition_b_has_recognition() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("acknowledge")),
+            "Strategy must trigger when b has Recognition motivation"
+        );
+    }
+
+    #[test]
+    fn mut_strategy_security_b_has_security() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("stable frameworks")),
+            "Strategy must trigger when b has Security motivation"
+        );
+    }
+
+    #[test]
+    fn mut_strategy_neither_has_power_no_initiative() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Affiliation,
+            intensity: 7,
+            notes: String::new(),
+        }];
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("take initiative")),
+            "Strategy must NOT trigger when neither has Power"
+        );
+    }
+
+    // ── Conscientiousness strategy threshold (line 936: >= 7) ──
+
+    #[test]
+    fn mut_strategy_c_threshold_at_7() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(7);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("structured")),
+            "C>=7 must trigger structured strategy"
+        );
+    }
+
+    #[test]
+    fn mut_strategy_c_threshold_below_7() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.conscientiousness = Some(6);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("structured")),
+            "C=6 (<7) must NOT trigger structured strategy"
+        );
+    }
+
+    #[test]
+    fn mut_strategy_c_threshold_b_high() {
+        let a = p("A");
+        let mut b = p("B");
+        b.ocean.conscientiousness = Some(8);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("structured")),
+            "Strategy must trigger when b has high C (not just a)"
+        );
+    }
+
+    // ── Conflict resolution: && vs || (line 946, 953) ──
+
+    #[test]
+    fn mut_conflict_mediation_only_one_high_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(3);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("mediation")),
+            "Mediation strategy must NOT trigger when only one A is high (catches &&→||)"
+        );
+    }
+
+    #[test]
+    fn mut_conflict_direct_only_one_low_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(3);
+        b.ocean.agreeableness = Some(7);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("straight to the point")),
+            "Direct strategy must NOT trigger when only one A is low (catches &&→||)"
+        );
+    }
+
+    #[test]
+    fn mut_conflict_mediation_both_high() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(7);
+        b.ocean.agreeableness = Some(8);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("mediation")),
+            "Mediation must trigger when both A >= 7"
+        );
+    }
+
+    #[test]
+    fn mut_conflict_direct_both_low() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(4);
+        b.ocean.agreeableness = Some(3);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("straight to the point")),
+            "Direct must trigger when both A <= 4"
+        );
+    }
+
+    // ── OCEAN-gap strategies: boundary at diff >= 3 ──
+
+    #[test]
+    fn mut_ocean_gap_e_diff_3_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(8);
+        b.ocean.extraversion = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("social pace")),
+            "E gap diff=3 must trigger social pace strategy"
+        );
+    }
+
+    #[test]
+    fn mut_ocean_gap_e_diff_2_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(7);
+        b.ocean.extraversion = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("social pace")),
+            "E gap diff=2 must NOT trigger social pace strategy"
+        );
+    }
+
+    #[test]
+    fn mut_ocean_gap_a_diff_3_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(8);
+        b.ocean.agreeableness = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("conflict styles")),
+            "A gap diff=3 must trigger conflict styles strategy"
+        );
+    }
+
+    #[test]
+    fn mut_ocean_gap_a_diff_2_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.agreeableness = Some(6);
+        b.ocean.agreeableness = Some(4);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("conflict styles")),
+            "A gap diff=2 must NOT trigger conflict styles strategy"
+        );
+    }
+
+    #[test]
+    fn mut_ocean_gap_c_diff_3_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(9);
+        b.ocean.conscientiousness = Some(6);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            str.iter().any(|s| s.contains("organization levels")),
+            "C gap diff=3 must trigger organization levels strategy"
+        );
+    }
+
+    #[test]
+    fn mut_ocean_gap_c_diff_2_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(7);
+        b.ocean.conscientiousness = Some(5);
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("organization levels")),
+            "C gap diff=2 must NOT trigger organization levels strategy"
+        );
+    }
+
+    // ── Extraversion friction: boundary at >= 4 ──
+
+    #[test]
+    fn mut_extraversion_friction_diff_4_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(2);
+        b.ocean.extraversion = Some(6);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("extraversion") || s.contains("social pace")),
+            "E friction diff=4 must trigger"
+        );
+    }
+
+    #[test]
+    fn mut_extraversion_friction_diff_3_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(3);
+        b.ocean.extraversion = Some(6);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter().any(|s| s.contains("Large extraversion gap")),
+            "E friction diff=3 must NOT trigger (threshold is >=4)"
+        );
+    }
+
+    // ── Rep with different dimensions (catches per-dim iteration) ──
+
+    #[test]
+    fn mut_rep_different_dims_not_hardworker() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            honest_deceitful: Some(9),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            honest_deceitful: Some(3),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("imbalance")),
+            "Non-hardworker dim far apart must still produce friction"
+        );
+    }
+
+    #[test]
+    fn mut_rep_multiple_dims_produce_multiple_entries() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores = RepScores {
+            hardworker_lazy: Some(9),
+            honest_deceitful: Some(8),
+            ..RepScores::default()
+        };
+        b.rep_scores = RepScores {
+            hardworker_lazy: Some(3),
+            honest_deceitful: Some(3),
+            ..RepScores::default()
+        };
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        let imbalance_count = fri.iter().filter(|s| s.contains("imbalance")).count();
+        assert!(
+            imbalance_count >= 2,
+            "Multiple far-apart rep dims must produce multiple friction entries"
+        );
+    }
+
+    // ── No OCEAN values → fallback assertions ──
+
+    #[test]
+    fn mut_no_ocean_all_none() {
+        let a = p("A");
+        let b = p("B");
+        let (syn, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("No obvious synergy")));
+        assert!(fri.iter().any(|s| s.contains("No major friction")));
+    }
+
+    // ── Combined: E-A trigger + no agreeableness gap (catches independent conditions) ──
+
+    #[test]
+    fn mut_ea_triggers_but_no_a_gap() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(9);
+        b.ocean.agreeableness = Some(8);
+        a.ocean.agreeableness = Some(6);
+        let (syn, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(syn.iter().any(|s| s.contains("one drives")));
+        assert!(
+            !fri.iter().any(|s| s.contains("low A")),
+            "E-A synergy and agreeableness gap are independent conditions"
+        );
+    }
+
+    // ── Neuroticism: reversed who-is-reactive ──
+
+    #[test]
+    fn mut_neuroticism_reactive_person_correctly_identified() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(2);
+        b.ocean.neuroticism = Some(8);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("B more reactive to stress than A")),
+            "When B has higher N, B must be called more reactive"
+        );
+    }
+
+    #[test]
+    fn mut_neuroticism_swap_reactive_identity() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.neuroticism = Some(8);
+        b.ocean.neuroticism = Some(2);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("A more reactive to stress than B")),
+            "When A has higher N, A must be called more reactive"
+        );
+    }
+
+    // ── Strategy with NO motivation types → no motivation-based strategies ──
+
+    #[test]
+    fn mut_no_motivations_no_power_strategy() {
+        let a = p("A");
+        let b = p("B");
+        let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !str.iter().any(|s| s.contains("take initiative")),
+            "No motivations → no power strategy"
+        );
+        assert!(
+            !str.iter().any(|s| s.contains("acknowledge")),
+            "No motivations → no recognition strategy"
+        );
+        assert!(
+            !str.iter().any(|s| s.contains("stable frameworks")),
+            "No motivations → no security strategy"
+        );
+    }
+
+    // ── E-A boundary: exactly at 7 ──
+
+    #[test]
+    fn mut_ea_boundary_exactly_7_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(7);
+        b.ocean.agreeableness = Some(7);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            syn.iter().any(|s| s.contains("one drives")),
+            "E-A must trigger at exactly E=7, A=7 (>=7 boundary)"
+        );
+    }
+
+    #[test]
+    fn mut_ea_boundary_e7_a6_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(7);
+        b.ocean.agreeableness = Some(6);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("one drives")),
+            "E-A must NOT trigger when A=6 (<7)"
+        );
+    }
+
+    // ── O-C boundary: exactly at 7 ──
+
+    #[test]
+    fn mut_oc_boundary_exactly_7_triggers() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(7);
+        b.ocean.conscientiousness = Some(7);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            syn.iter().any(|s| s.contains("creative vision")),
+            "O-C must trigger at exactly O=7, C=7"
+        );
+    }
+
+    #[test]
+    fn mut_oc_boundary_o7_c6_no_trigger() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(7);
+        b.ocean.conscientiousness = Some(6);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("creative vision")),
+            "O-C must NOT trigger when C=6 (<7)"
+        );
+    }
+
+    // ── Both neuroticism None → no friction ──
+
+    #[test]
+    fn mut_neuroticism_both_none_no_friction() {
+        let a = p("A");
+        let b = p("B");
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter().any(|s| s.contains("reactive to stress")),
+            "Both N=None must not produce neuroticism friction"
+        );
+    }
+
+    // ── One neuroticism None → no friction ──
+
+    #[test]
+    fn mut_neuroticism_one_none_no_friction() {
+        let mut a = p("A");
+        let b = p("B");
+        a.ocean.neuroticism = Some(9);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter().any(|s| s.contains("reactive to stress")),
+            "One N=None must not produce neuroticism friction"
+        );
+    }
+
+    // ── Similar profiles: O diff within 2 but C diff >2 → no similarity ──
+
+    #[test]
+    fn mut_similar_profiles_c_too_far() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(7);
+        a.ocean.conscientiousness = Some(2);
+        b.ocean.openness = Some(8);
+        b.ocean.conscientiousness = Some(6);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("similar OCEAN")),
+            "Must NOT be 'similar' when C diff=4 (>2)"
+        );
+    }
+
+    #[test]
+    fn mut_similar_profiles_o_too_far() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.openness = Some(2);
+        a.ocean.conscientiousness = Some(5);
+        b.ocean.openness = Some(6);
+        b.ocean.conscientiousness = Some(7);
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("similar OCEAN")),
+            "Must NOT be 'similar' when O diff=4 (>2)"
+        );
+    }
+
+    // ── Top strategy selection: first strategy wins ──
+
+    #[test]
+    fn mut_top_strategy_is_first() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.conscientiousness = Some(8);
+        a.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        b.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let (_, _, (top, str)) = compare_analysis(&a, &b, Lang::En);
+        assert_eq!(top, str[0], "top must equal the first element of str");
+        assert!(
+            top.contains("take initiative"),
+            "Power motivation strategy should be top (first added)"
+        );
+    }
+
+    // ── Rep imbalance (line 769): !close && va > vb ──
+
+    #[test]
+    fn rep_imbalance_a_higher() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores.hardworker_lazy = Some(9);
+        b.rep_scores.hardworker_lazy = Some(3);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("more") && s.contains("imbalance")),
+            "expected friction for rep imbalance A>B, got: {:?}",
+            fri
+        );
+    }
+
+    // ── Same bias type (line 815): b1.type == b2.type ──
+
+    #[test]
+    fn same_bias_type_adds_friction() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 8,
+            evidence: "e1".into(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 6,
+            evidence: "e2".into(),
+        }];
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter().any(|s| s.contains("Same") && s.contains("bias")),
+            "expected same-bias friction, got: {:?}",
+            fri
+        );
+    }
+
+    // ── Behavioral patterns FR (line 834): lang == Lang::Fr ──
+
+    #[test]
+    fn behavioral_patterns_fr() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksSupport,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(
+            syn.iter().any(|s| s.contains("réagit")),
+            "expected FR behavioral pattern synergy, got: {:?}",
+            syn
+        );
+    }
+
+    // ── Trigger synergy negative (line 998): t_syn < -0.1 ──
+
+    #[test]
+    fn trigger_synergy_negative() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::Escalates,
+            notes: String::new(),
+        }];
+        let (_, _, (_, strats)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            strats.iter().any(|s| s.contains("mutual triggering")),
+            "expected trigger clash strategy, got: {:?}",
+            strats
+        );
+    }
+
+    // ── Trigger synergy positive (line 1010): t_syn > 0.1 ──
+
+    #[test]
+    fn trigger_synergy_positive() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Feedback,
+            predicted_behavior: BehaviorResponse::SeeksSupport,
+            notes: String::new(),
+        }];
+        let (_, _, (_, strats)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            strats
+                .iter()
+                .any(|s| s.contains("complementarity") || s.contains("balance")),
+            "expected trigger complementarity strategy, got: {:?}",
+            strats
+        );
+    }
+
+    // ── prefill_rel_from ──
+
+    #[test]
+    fn prefill_rel_from_found_forward() {
+        let rels = vec![peoplemodeler_core::models::Relationship {
+            id: "r1".into(),
+            source_id: "a".into(),
+            target_id: "b".into(),
+            r#type: RelationType::Friends,
+            strength: 8,
+            notes: String::new(),
+            created_at: 0,
+        }];
+        let (typ, str) = prefill_rel_from(&rels, "a", "b");
+        assert_eq!(typ, Some(RelationType::Friends));
+        assert_eq!(str, 8);
+    }
+
+    #[test]
+    fn prefill_rel_from_found_reverse() {
+        let rels = vec![peoplemodeler_core::models::Relationship {
+            id: "r1".into(),
+            source_id: "b".into(),
+            target_id: "a".into(),
+            r#type: RelationType::Mentors,
+            strength: 3,
+            notes: String::new(),
+            created_at: 0,
+        }];
+        let (typ, str) = prefill_rel_from(&rels, "a", "b");
+        assert_eq!(typ, Some(RelationType::Mentors));
+        assert_eq!(str, 3);
+    }
+
+    #[test]
+    fn prefill_rel_from_not_found() {
+        let rels = vec![];
+        let (typ, str) = prefill_rel_from(&rels, "a", "b");
+        assert_eq!(typ, None);
+        assert_eq!(str, 5);
+    }
+
+    // ── benefit_labels ──
+
+    #[test]
+    fn benefit_labels_a_higher() {
+        let (a, b) = benefit_labels(8, 5, "Alice", "Bob", "more", "balanced");
+        assert!(a.contains("+3%"));
+        assert!(a.contains("Alice"));
+        assert!(b.is_empty());
+    }
+
+    #[test]
+    fn benefit_labels_b_higher() {
+        let (a, b) = benefit_labels(3, 7, "Alice", "Bob", "more", "balanced");
+        assert!(a.is_empty());
+        assert!(b.contains("+4%"));
+        assert!(b.contains("Bob"));
+    }
+
+    #[test]
+    fn benefit_labels_equal() {
+        let (a, b) = benefit_labels(5, 5, "Alice", "Bob", "more", "balanced");
+        assert!(a.contains("balanced"));
+        assert!(b.contains("balanced"));
+    }
+
+    // ── format_band_label ──
+
+    #[test]
+    fn format_band_label_positive() {
+        let result = format_band_label(3, "Band {} of 10");
+        assert_eq!(result, "Band 3 of 10");
+    }
+
+    #[test]
+    fn format_band_label_zero() {
+        let result = format_band_label(0, "Band {} of 10");
+        assert_eq!(result, "");
+    }
+
+    // ── format_signed_delta ──
+
+    #[test]
+    fn format_signed_delta_positive() {
+        assert_eq!(format_signed_delta(5), "+5");
+    }
+
+    #[test]
+    fn format_signed_delta_negative() {
+        assert_eq!(format_signed_delta(-3), "-3");
+    }
+
+    #[test]
+    fn format_signed_delta_zero() {
+        assert_eq!(format_signed_delta(0), "");
+    }
+
+    // ── prefill_rel_from (line 43): half-matches must not count ──
+
+    #[test]
+    fn prefill_rel_from_requires_exact_twin_match() {
+        let rel = |s: &str, t: &str| Relationship {
+            id: format!("{s}-{t}"),
+            source_id: s.into(),
+            target_id: t.into(),
+            r#type: RelationType::WorksWith,
+            strength: 7,
+            notes: String::new(),
+            created_at: 0,
+        };
+        assert_eq!(
+            prefill_rel_from(&[rel("a", "b")], "a", "b"),
+            (Some(RelationType::WorksWith), 7)
+        );
+        assert_eq!(
+            prefill_rel_from(&[rel("b", "a")], "a", "b"),
+            (Some(RelationType::WorksWith), 7)
+        );
+        assert_eq!(prefill_rel_from(&[rel("a", "x")], "a", "b"), (None, 5));
+        assert_eq!(prefill_rel_from(&[rel("x", "b")], "a", "b"), (None, 5));
+        assert_eq!(prefill_rel_from(&[rel("x", "a")], "a", "b"), (None, 5));
+        assert_eq!(prefill_rel_from(&[rel("b", "x")], "a", "b"), (None, 5));
+    }
+
+    // ── should_show_extra_strategies (line 165): gate is `len > 1` ──
+
+    #[test]
+    fn should_show_extra_strategies_gates() {
+        assert!(!should_show_extra_strategies(0));
+        assert!(!should_show_extra_strategies(1));
+        assert!(should_show_extra_strategies(2));
+    }
+
+    // ── Rep reputation imbalance (lines 802-826) ──
+
+    fn rep_pair(va: u8, vb: u8) -> (Person, Person) {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.rep_scores.hardworker_lazy = Some(va);
+        b.rep_scores.hardworker_lazy = Some(vb);
+        (a, b)
+    }
+
+    #[test]
+    fn reputation_imbalance_label_a_when_va_gt_vb() {
+        let (a, b) = rep_pair(8, 5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("Hardworker") && !s.contains("Lazy")),
+            "va>vb should name the high-end label, got: {:?}",
+            fri
+        );
+    }
+
+    #[test]
+    fn reputation_close_no_imbalance() {
+        let (a, b) = rep_pair(6, 5);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !fri.iter().any(|s| s.contains("imbalance")),
+            "close scores must not report imbalance, got: {:?}",
+            fri
+        );
+    }
+
+    #[test]
+    fn reputation_imbalance_label_b_when_va_lt_vb() {
+        let (a, b) = rep_pair(5, 8);
+        let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            fri.iter()
+                .any(|s| s.contains("Lazy") && !s.contains("Hardworker")),
+            "vb>va should name the low-end label, got: {:?}",
+            fri
+        );
+    }
+
+    // ── OCEAN-gap social pace (line 998): higher-extraversion named first ──
+
+    #[test]
+    fn extraversion_gap_names_higher_pace_person_first() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.ocean.extraversion = Some(8);
+        b.ocean.extraversion = Some(5);
+        let (_, _, (_, strats)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            strats
+                .iter()
+                .any(|s| s.contains("A prefers more interaction")),
+            "expected A (higher extraversion) first, got: {:?}",
+            strats
+        );
+    }
+
+    // ── Trigger synergy boundary (line 1031): t_syn == -0.1 is NOT a clash ──
+
+    #[test]
+    fn trigger_synergy_exact_minus_point_one_no_strategy() {
+        // Conflict×Injustice resolves to exactly -0.1 (model_config
+        // trigger_synergy matrix), so the `< -0.1` guard must not fire.
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::RemainsCalm,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Injustice,
+            predicted_behavior: BehaviorResponse::SeeksRestoration,
+            notes: String::new(),
+        }];
+        let (_, _, (_, strats)) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !strats.iter().any(|s| s.contains("mutual triggering")),
+            "exact -0.1 must not count as a clash, got: {:?}",
+            strats
+        );
+    }
 }

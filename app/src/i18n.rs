@@ -4,6 +4,27 @@ pub enum Lang {
     En,
 }
 
+fn detect_from_strings(
+    stored: Option<&str>,
+    navigator: Option<&str>,
+    env_lang: Option<&str>,
+) -> Lang {
+    if let Some(l) = stored {
+        return if l == "en" { Lang::En } else { Lang::Fr };
+    }
+    if let Some(nav) = navigator
+        && nav.starts_with("en")
+    {
+        return Lang::En;
+    }
+    if let Some(l) = env_lang
+        && l.starts_with("en")
+    {
+        return Lang::En;
+    }
+    Lang::Fr
+}
+
 impl Lang {
     pub fn detect() -> Self {
         #[cfg(target_arch = "wasm32")]
@@ -13,27 +34,13 @@ impl Lang {
                 .flatten()
                 .and_then(|s| s.get_item("pm_lang").ok())
                 .flatten();
-            if let Some(l) = stored {
-                if l == "en" {
-                    return Lang::En;
-                }
-                return Lang::Fr;
-            }
-            if let Some(nav) = web_sys::window().and_then(|w| w.navigator().language()) {
-                if nav.starts_with("en") {
-                    return Lang::En;
-                }
-            }
-            Lang::Fr
+            let nav = web_sys::window().and_then(|w| w.navigator().language());
+            detect_from_strings(stored.as_deref(), nav.as_deref(), None)
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            if let Ok(l) = std::env::var("LANG")
-                && l.starts_with("en")
-            {
-                return Lang::En;
-            }
-            Lang::Fr
+            let env_lang = std::env::var("LANG").ok();
+            detect_from_strings(None, None, env_lang.as_deref())
         }
     }
 
@@ -77,7 +84,7 @@ pub fn tr_danger_details(details: &str, lang: Lang) -> String {
     fn key(s: &str) -> &'static str {
         match s {
             "OCEAN volatility" => "OCEAN volatility",
-            "Rep power struggle" => "Power struggle (Reputation)",
+            "Rep power struggle" => "Rep power struggle",
             "Only negative patterns" => "Only negative patterns",
             "Low prediction accuracy" => "Low prediction accuracy",
             _ => "Unknown",
@@ -715,10 +722,7 @@ fn en(key: &'static str) -> &'static str {
         "compare_rel_strength" => "Strength",
         "compare_band_hint" => "±{}% (relationship + profile confidence)",
         "person_self_score" => "Profile Score",
-        "OCEAN volatility" => "OCEAN volatility",
-        "Rep power struggle" => "Rep power struggle",
-        "Only negative patterns" => "Only negative patterns",
-        "Low prediction accuracy" => "Low prediction accuracy",
+        "Rep power struggle" => "Power struggle (Reputation)",
         "compare_asymmetric" => "Mutual benefit",
         "compare_benefit_more" => "benefits more",
         "compare_balanced" => "Balanced",
@@ -1471,8 +1475,8 @@ fn fr(key: &'static str) -> &'static str {
         "compare_rel_strength" => "Intensité",
         "compare_band_hint" => "±{}% (relation + fiabilité du profil)",
         "person_self_score" => "Score de profil",
-        "OCEAN volatility" => "Volatilité OCEAN",
         "Rep power struggle" => "Lutte de pouvoir (réputation)",
+        "OCEAN volatility" => "Volatilité OCEAN",
         "Only negative patterns" => "Patterns négatifs uniquement",
         "Low prediction accuracy" => "Faible précision prédictive",
         "compare_asymmetric" => "Bénéfice mutuel",
@@ -1582,5 +1586,677 @@ fn fr(key: &'static str) -> &'static str {
         "common_finish" => "Terminer",
 
         _ => key,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ALL_KEYS: &[&str] = &[
+        "add_btn",
+        "bias_helper_anchoring",
+        "bias_helper_authority",
+        "bias_helper_availability",
+        "bias_helper_confirmation",
+        "bias_helper_dunning_kruger",
+        "bias_helper_favoritism",
+        "bias_helper_impostor",
+        "bias_helper_in_group",
+        "bias_helper_loss_aversion",
+        "bias_helper_recency",
+        "bias_helper_social_proof",
+        "bias_helper_sunk_cost",
+        "bias_undefined_warning",
+        "biases_title",
+        "common_add",
+        "common_back",
+        "common_cancel",
+        "common_delete",
+        "common_edit",
+        "common_finish",
+        "common_next",
+        "common_save",
+        "common_skip",
+        "compare_analysis_title",
+        "compare_asymmetric",
+        "compare_balanced",
+        "compare_band_hint",
+        "compare_benefit_more",
+        "compare_bias_main",
+        "compare_breakdown",
+        "compare_btn",
+        "compare_cat_bias",
+        "compare_cat_motivation",
+        "compare_cat_ocean",
+        "compare_cat_patterns",
+        "compare_cat_reputation",
+        "compare_cat_styles",
+        "compare_cat_values",
+        "compare_ctx_title",
+        "compare_ethics",
+        "compare_friction",
+        "compare_ocean",
+        "compare_rel_none",
+        "compare_rel_strength",
+        "compare_rel_title",
+        "compare_risk_mitigation",
+        "compare_strategy",
+        "compare_sub",
+        "compare_synergies",
+        "compare_title",
+        "compare_top_mot",
+        "compare_vs",
+        "confidence_hint",
+        "confidence_label",
+        "confirm_delete",
+        "confirm_delete_log",
+        "confirm_delete_pred",
+        "confirm_delete_team",
+        "ctx_change",
+        "ctx_communication",
+        "ctx_conflict",
+        "ctx_decision",
+        "ctx_feedback",
+        "ctx_growth",
+        "ctx_injustice",
+        "ctx_leadership",
+        "ctx_recognition",
+        "ctx_stress",
+        "ctx_success",
+        "ctx_team",
+        "ctx_threatened",
+        "ctx_uncertainty",
+        "delete_btn",
+        "edit_biases",
+        "edit_btn",
+        "edit_evidence_placeholder",
+        "edit_motivations",
+        "edit_notes_placeholder",
+        "edit_patterns",
+        "edit_priority",
+        "edit_reputation",
+        "edit_styles",
+        "edit_update_btn",
+        "edit_values",
+        "flag_affiliation_cold",
+        "flag_affiliation_distrustful",
+        "flag_ambition_lazy",
+        "flag_anchoring_open",
+        "flag_authority_dominant",
+        "flag_autonomy_submissive",
+        "flag_availability_calm",
+        "flag_bias_confirmation_open",
+        "flag_bias_favoritism_fairness",
+        "flag_calm_neurotic",
+        "flag_claims_calm_reactive",
+        "flag_creativity_closed",
+        "flag_creativity_rigid",
+        "flag_discipline_flaky",
+        "flag_discipline_lazy",
+        "flag_dunning_kruger_humble",
+        "flag_fairness_rhetoric",
+        "flag_helping_cold",
+        "flag_helping_selfish",
+        "flag_high_e_low_a",
+        "flag_high_n_low_c",
+        "flag_high_o_low_c",
+        "flag_honest_favoritist",
+        "flag_honest_selfish",
+        "flag_impostor_arrogant",
+        "flag_learning_arrogant",
+        "flag_learning_rigid",
+        "flag_loss_aversion_risky",
+        "flag_open_rigid",
+        "flag_pattern_achievement_complacent",
+        "flag_pattern_assertive_quiet",
+        "flag_pattern_calm_volatile",
+        "flag_pattern_claimed_calm_volatile",
+        "flag_pattern_diplomat_escalator",
+        "flag_pattern_discipline_shirker",
+        "flag_pattern_empath_dismissive",
+        "flag_pattern_extravert_quiet",
+        "flag_pattern_fair_exploiter",
+        "flag_pattern_fairness_exploiter",
+        "flag_pattern_flexible_resister",
+        "flag_pattern_generous_exploiter",
+        "flag_pattern_hardworker_complacent",
+        "flag_pattern_helping_exploiter",
+        "flag_pattern_honest_exploiter",
+        "flag_pattern_humble_dismissive",
+        "flag_pattern_learning_resister",
+        "flag_pattern_open_resister",
+        "flag_pattern_passive_blowup",
+        "flag_pattern_recognition_dismissive",
+        "flag_pattern_reliable_shirker",
+        "flag_pattern_trusting_paranoid",
+        "flag_pattern_warmth_dismissive",
+        "flag_power_passive",
+        "flag_recency_reliable",
+        "flag_resilient_hides",
+        "flag_resilient_reactive",
+        "flag_risk_appetite_ambition",
+        "flag_security_gullible",
+        "flag_security_risky",
+        "flag_social_proof_open",
+        "flag_style_competing_passive",
+        "flag_style_consensus_authoritative",
+        "flag_style_diplomatic_blunt",
+        "flag_style_direct_diplomatic",
+        "flag_style_dominant_submissive",
+        "flag_style_empathetic_cold",
+        "flag_style_guarded_trusting",
+        "flag_style_manipulative_honest",
+        "flag_style_repairs_trust_deceitful",
+        "flag_style_rulebased_favoritist",
+        "flag_style_servant_authoritative",
+        "flag_style_trusts_freely_suspicious",
+        "flag_style_virtuebased_deceitful",
+        "flag_sunk_cost_flexible",
+        "flag_value_career_family",
+        "flag_value_family_past",
+        "flag_value_loyalty_guarded",
+        "flag_value_stability_risk",
+        "flag_warmth_blunt",
+        "flag_warmth_cold",
+        "flag_warmth_selfish",
+        "form_avatar",
+        "form_cancel",
+        "form_confidence",
+        "form_context",
+        "form_edit_title",
+        "form_name",
+        "form_new_title",
+        "form_notes",
+        "form_ocean_title",
+        "form_resilience",
+        "form_risk_appetite",
+        "form_role",
+        "form_save",
+        "form_tags",
+        "insights_observed",
+        "insights_select_person",
+        "insights_title",
+        "log_add",
+        "log_empty",
+        "log_no_target",
+        "log_no_trigger",
+        "log_placeholder",
+        "log_target",
+        "log_title",
+        "log_trigger",
+        "log_valence",
+        "more_recs",
+        "mot_helper_achievement",
+        "mot_helper_affiliation",
+        "mot_helper_autonomy",
+        "mot_helper_creativity",
+        "mot_helper_fairness",
+        "mot_helper_helping",
+        "mot_helper_learning",
+        "mot_helper_power",
+        "mot_helper_recognition",
+        "mot_helper_security",
+        "mot_undefined_warning",
+        "motivations_title",
+        "nav_people",
+        "nav_relationships",
+        "nav_sync",
+        "nav_teams",
+        "nav_timeline",
+        "no_biases",
+        "no_motivations",
+        "no_patterns",
+        "no_people_insights",
+        "no_people_yet",
+        "no_reputation",
+        "no_search_results",
+        "no_values",
+        "ocean_a",
+        "ocean_a_high",
+        "ocean_a_low",
+        "ocean_agreeableness",
+        "ocean_c",
+        "ocean_c_high",
+        "ocean_c_low",
+        "ocean_conscientiousness",
+        "ocean_e",
+        "ocean_e_high",
+        "ocean_e_low",
+        "ocean_extraversion",
+        "ocean_n",
+        "ocean_n_high",
+        "ocean_n_low",
+        "ocean_neuroticism",
+        "ocean_o",
+        "ocean_o_high",
+        "ocean_o_low",
+        "ocean_openness",
+        "ocean_title",
+        "pattern_helper_change",
+        "pattern_helper_conflict",
+        "pattern_helper_feedback",
+        "pattern_helper_injustice",
+        "pattern_helper_recognition",
+        "pattern_helper_stress",
+        "pattern_helper_success",
+        "pattern_helper_threat",
+        "pattern_helper_uncertainty",
+        "patterns_title",
+        "person_not_found",
+        "person_self_score",
+        "pl_name",
+        "pred_accuracy_label",
+        "pred_actual_label",
+        "pred_actual_placeholder",
+        "pred_add_btn",
+        "pred_all_title",
+        "pred_cancel_btn",
+        "pred_context_placeholder",
+        "pred_delete_btn",
+        "pred_for",
+        "pred_none",
+        "pred_outcome_placeholder",
+        "pred_predicted_label",
+        "pred_resolve_btn",
+        "pred_resolve_submit",
+        "pred_title",
+        "profile_completeness",
+        "rel_close_add",
+        "rel_confirm_delete",
+        "rel_none",
+        "rel_notes",
+        "rel_open_add",
+        "rel_person_rel",
+        "rel_search_placeholder",
+        "rel_strength",
+        "rel_title",
+        "reliability_title",
+        "rep_undefined_warning",
+        "reputation_title",
+        "resilience_label",
+        "risk_appetite_label",
+        "scale_friction",
+        "scale_good",
+        "scale_moderate",
+        "scale_strong",
+        "scale_tension",
+        "score_band",
+        "search_placeholder",
+        "strategy_change_discipline_rhetoric",
+        "strategy_change_fallback",
+        "strategy_change_high_c",
+        "strategy_change_high_n",
+        "strategy_change_high_o",
+        "strategy_change_label",
+        "strategy_change_low_e",
+        "strategy_change_low_n",
+        "strategy_conflict_affiliation_rhetoric",
+        "strategy_conflict_affiliation_trust_rhetoric",
+        "strategy_conflict_fallback",
+        "strategy_conflict_high_a",
+        "strategy_conflict_high_c",
+        "strategy_conflict_high_e",
+        "strategy_conflict_high_n",
+        "strategy_conflict_label",
+        "strategy_conflict_low_a",
+        "strategy_conflict_low_e",
+        "strategy_feedback_fallback",
+        "strategy_feedback_helping_rhetoric",
+        "strategy_feedback_high_c",
+        "strategy_feedback_high_n",
+        "strategy_feedback_label",
+        "strategy_feedback_low_a",
+        "strategy_feedback_low_e",
+        "strategy_feedback_low_n",
+        "strategy_feedback_warmth_rhetoric",
+        "strategy_injustice_ambition_rhetoric",
+        "strategy_injustice_fairness",
+        "strategy_injustice_fairness_rhetoric",
+        "strategy_injustice_fallback",
+        "strategy_injustice_high_a",
+        "strategy_injustice_high_n",
+        "strategy_injustice_label",
+        "strategy_injustice_power",
+        "strategy_recognition_fallback",
+        "strategy_recognition_high",
+        "strategy_recognition_high_e",
+        "strategy_recognition_label",
+        "strategy_recognition_low",
+        "strategy_recognition_low_e",
+        "strategy_recognition_mid",
+        "strategy_stress_ambition_rhetoric",
+        "strategy_stress_fallback",
+        "strategy_stress_high_c",
+        "strategy_stress_high_e",
+        "strategy_stress_high_n",
+        "strategy_stress_high_o",
+        "strategy_stress_label",
+        "strategy_stress_low_a",
+        "strategy_stress_low_c",
+        "strategy_stress_low_e",
+        "strategy_stress_power",
+        "strategy_stress_security",
+        "strategy_stress_security_rhetoric",
+        "strategy_success_ambition_rhetoric",
+        "strategy_success_fallback",
+        "strategy_success_high_a",
+        "strategy_success_high_c",
+        "strategy_success_high_o",
+        "strategy_success_label",
+        "strategy_success_low_e",
+        "strategy_success_power",
+        "strategy_success_recognition",
+        "strategy_threat_fallback",
+        "strategy_threat_high_a",
+        "strategy_threat_high_n",
+        "strategy_threat_label",
+        "strategy_threat_low_a",
+        "strategy_threat_power",
+        "strategy_uncertainty_fallback",
+        "strategy_uncertainty_high_c",
+        "strategy_uncertainty_high_e",
+        "strategy_uncertainty_high_n",
+        "strategy_uncertainty_high_o",
+        "strategy_uncertainty_label",
+        "strategy_uncertainty_low_n",
+        "strategy_uncertainty_low_o",
+        "strategy_when",
+        "style_no_styles",
+        "style_panel_title",
+        "sync_backed_up",
+        "sync_backing_up",
+        "sync_backup_btn",
+        "sync_clear_btn",
+        "sync_export_btn",
+        "sync_exported",
+        "sync_gdrive_title",
+        "sync_import_btn",
+        "sync_local_desc",
+        "sync_local_title",
+        "sync_no_data_warn",
+        "sync_no_token",
+        "sync_not_configured",
+        "sync_passphrase_hide",
+        "sync_passphrase_label",
+        "sync_passphrase_placeholder",
+        "sync_passphrase_show",
+        "sync_paste_placeholder",
+        "sync_restore_btn",
+        "sync_restored",
+        "sync_restoring",
+        "sync_save_token_btn",
+        "sync_sign_in",
+        "sync_title",
+        "sync_token_cleared",
+        "sync_token_instruction_1",
+        "sync_token_instruction_2",
+        "sync_token_instruction_3",
+        "sync_token_instruction_4",
+        "sync_token_loaded",
+        "sync_token_saved",
+        "sync_view_backup",
+        "sync_wrong_passphrase",
+        "team_all_no_edit",
+        "team_avg_danger",
+        "team_avg_score",
+        "team_ctx_avg",
+        "team_edit",
+        "team_empty",
+        "team_icon",
+        "team_max_danger",
+        "team_members_count",
+        "team_no_danger",
+        "team_pairs",
+        "team_rename",
+        "team_size",
+        "team_strongest",
+        "team_tab_members",
+        "team_tab_synergy",
+        "team_title",
+        "team_weakest",
+        "teams_all",
+        "teams_create",
+        "teams_delete",
+        "teams_members",
+        "teams_title",
+        "template_blank",
+        "template_title",
+        "tl_empty",
+        "tl_title",
+        "toast_deleted",
+        "toast_error",
+        "toast_saved",
+        "trend_deteriorating",
+        "trend_hint",
+        "trend_improving",
+        "trend_stable",
+        "tut_compare_body",
+        "tut_compare_title",
+        "tut_create_body",
+        "tut_create_title",
+        "tut_done_body",
+        "tut_done_title",
+        "tut_mot_bias_body",
+        "tut_mot_bias_title",
+        "tut_ocean_body",
+        "tut_ocean_title",
+        "tut_people_body",
+        "tut_people_title",
+        "tut_rep_pattern_body",
+        "tut_rep_pattern_title",
+        "tut_step",
+        "tut_welcome_body",
+        "tut_welcome_title",
+        "values_title",
+    ];
+
+    const IDENTITY_KEYS: &[&str] = &[
+        "OCEAN volatility",
+        "Rep power struggle",
+        "Only negative patterns",
+        "Low prediction accuracy",
+    ];
+
+    #[test]
+    fn all_keys_translate_en() {
+        for &key in ALL_KEYS {
+            let result = tr(key, Lang::En);
+            assert!(!result.is_empty(), "tr({key}, En) returned empty");
+            assert_ne!(
+                result, key,
+                "tr({key}, En) returned key itself (arm deleted?)"
+            );
+            assert_ne!(result, "xyzzy", "tr({key}, En) returned sentinel 'xyzzy'");
+        }
+        for &key in IDENTITY_KEYS {
+            let result = tr(key, Lang::En);
+            assert!(!result.is_empty(), "tr({key}, En) returned empty");
+            assert_ne!(result, "xyzzy", "tr({key}, En) returned sentinel 'xyzzy'");
+        }
+    }
+
+    #[test]
+    fn all_keys_translate_fr() {
+        for &key in ALL_KEYS {
+            let result = tr(key, Lang::Fr);
+            assert!(!result.is_empty(), "tr({key}, Fr) returned empty");
+            assert_ne!(
+                result, key,
+                "tr({key}, Fr) returned key itself (arm deleted?)"
+            );
+            assert_ne!(result, "xyzzy", "tr({key}, Fr) returned sentinel 'xyzzy'");
+        }
+        for &key in IDENTITY_KEYS {
+            let result = tr(key, Lang::Fr);
+            assert!(!result.is_empty(), "tr({key}, Fr) returned empty");
+            assert_ne!(
+                result, key,
+                "tr({key}, Fr) returned key itself (arm deleted?)"
+            );
+            assert_ne!(result, "xyzzy", "tr({key}, Fr) returned sentinel 'xyzzy'");
+        }
+    }
+
+    #[test]
+    fn tr_empty_details() {
+        assert_eq!(tr_danger_details("", Lang::En), "");
+        assert_eq!(tr_danger_details("", Lang::Fr), "");
+    }
+
+    #[test]
+    fn tr_danger_details_en_individual() {
+        assert_eq!(
+            tr_danger_details("OCEAN volatility", Lang::En),
+            "OCEAN volatility"
+        );
+        assert_eq!(
+            tr_danger_details("Rep power struggle", Lang::En),
+            "Power struggle (Reputation)"
+        );
+        assert_eq!(
+            tr_danger_details("Only negative patterns", Lang::En),
+            "Only negative patterns"
+        );
+        assert_eq!(
+            tr_danger_details("Low prediction accuracy", Lang::En),
+            "Low prediction accuracy"
+        );
+    }
+
+    #[test]
+    fn tr_danger_details_fr_individual() {
+        assert_eq!(
+            tr_danger_details("OCEAN volatility", Lang::Fr),
+            "Volatilité OCEAN"
+        );
+        assert_eq!(
+            tr_danger_details("Rep power struggle", Lang::Fr),
+            "Lutte de pouvoir (réputation)"
+        );
+        assert_eq!(
+            tr_danger_details("Only negative patterns", Lang::Fr),
+            "Patterns négatifs uniquement"
+        );
+        assert_eq!(
+            tr_danger_details("Low prediction accuracy", Lang::Fr),
+            "Faible précision prédictive"
+        );
+    }
+
+    #[test]
+    fn tr_danger_details_multi() {
+        assert_eq!(
+            tr_danger_details("OCEAN volatility, Rep power struggle", Lang::En),
+            "OCEAN volatility, Power struggle (Reputation)"
+        );
+        assert_eq!(
+            tr_danger_details("OCEAN volatility, Rep power struggle", Lang::Fr),
+            "Volatilité OCEAN, Lutte de pouvoir (réputation)"
+        );
+    }
+
+    #[test]
+    fn tr_danger_details_unknown() {
+        assert_eq!(
+            tr_danger_details("Some unknown detail", Lang::En),
+            "Unknown"
+        );
+        assert_eq!(
+            tr_danger_details("Some unknown detail", Lang::Fr),
+            "Unknown"
+        );
+    }
+
+    #[test]
+    fn lang_detect_nonwasm() {
+        let lang = Lang::detect();
+        assert!(lang == Lang::En || lang == Lang::Fr);
+    }
+
+    #[test]
+    fn lang_display() {
+        assert_eq!(format!("{:?}", Lang::En), "En");
+        assert_eq!(format!("{:?}", Lang::Fr), "Fr");
+    }
+
+    #[test]
+    fn lang_persist_writes_file() {
+        let _lock = crate::CWD_LOCK.lock().unwrap();
+        let path = std::env::current_dir().unwrap().join(".pm_lang");
+        let _ = std::fs::remove_file(&path);
+        Lang::En.persist();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "en");
+        Lang::Fr.persist();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "fr");
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn lang_equality() {
+        assert_eq!(Lang::En, Lang::En);
+        assert_eq!(Lang::Fr, Lang::Fr);
+        assert_ne!(Lang::En, Lang::Fr);
+    }
+
+    #[test]
+    fn lang_clone_copy() {
+        let a = Lang::En;
+        let b = a;
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn detect_from_strings_stored_en() {
+        assert_eq!(detect_from_strings(Some("en"), None, None), Lang::En);
+    }
+
+    #[test]
+    fn detect_from_strings_stored_fr() {
+        assert_eq!(detect_from_strings(Some("fr"), None, None), Lang::Fr);
+    }
+
+    #[test]
+    fn detect_from_strings_stored_other() {
+        assert_eq!(detect_from_strings(Some("de"), None, None), Lang::Fr);
+    }
+
+    #[test]
+    fn detect_from_strings_navigator_en() {
+        assert_eq!(detect_from_strings(None, Some("en-CA"), None), Lang::En);
+    }
+
+    #[test]
+    fn detect_from_strings_navigator_fr() {
+        assert_eq!(detect_from_strings(None, Some("fr-CA"), None), Lang::Fr);
+    }
+
+    #[test]
+    fn detect_from_strings_env_en() {
+        assert_eq!(
+            detect_from_strings(None, None, Some("en_US.UTF-8")),
+            Lang::En
+        );
+    }
+
+    #[test]
+    fn detect_from_strings_env_fr() {
+        assert_eq!(
+            detect_from_strings(None, None, Some("fr_CA.UTF-8")),
+            Lang::Fr
+        );
+    }
+
+    #[test]
+    fn detect_from_strings_all_none() {
+        assert_eq!(detect_from_strings(None, None, None), Lang::Fr);
+    }
+
+    #[test]
+    fn detect_from_strings_stored_takes_priority() {
+        assert_eq!(
+            detect_from_strings(Some("fr"), Some("en-CA"), Some("en_US.UTF-8")),
+            Lang::Fr
+        );
     }
 }

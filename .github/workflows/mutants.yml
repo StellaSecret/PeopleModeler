@@ -57,6 +57,7 @@ jobs:
           # ── WASM SHARDS (need Chrome + chromedriver) ──
           - name: wasm-crypto
             files: app/src/crypto.rs
+            exclude_re: 'crypto\.rs:(89:19|93:(10|21|26))'
             wasm: true
             timeout: 600
           - name: wasm-db

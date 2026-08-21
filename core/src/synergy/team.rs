@@ -138,15 +138,7 @@ pub fn compute_team_synergy(
                         .map(|(_, s)| *s as u32)
                 })
                 .sum();
-            let count = pairs
-                .iter()
-                .filter(|p| p.breakdown.per_context.iter().any(|(c, _)| c == ctx))
-                .count();
-            let avg = if count > 0 {
-                (sum / count as u32) as u8
-            } else {
-                avg_score
-            };
+            let avg = (sum / pairs.len() as u32) as u8;
             (*ctx, avg)
         })
         .collect();

@@ -190,3 +190,121 @@ fn token_path() -> Option<std::path::PathBuf> {
         .ok()
         .map(|p| p.join(".pm_drive_token"))
 }
+
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn token_path_returns_pm_drive_token() {
+        let _lock = crate::CWD_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let orig = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(dir.path());
+        let path = token_path().unwrap();
+        assert!(path.to_string_lossy().ends_with(".pm_drive_token"));
+        let _ = std::env::set_current_dir(&orig);
+    }
+
+    #[test]
+    fn get_token_none_when_no_file() {
+        let _lock = crate::CWD_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let orig = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(dir.path());
+        assert_eq!(get_token(), None);
+        let _ = std::env::set_current_dir(&orig);
+    }
+
+    #[test]
+    fn set_token_then_get_roundtrip() {
+        let _lock = crate::CWD_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let orig = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(dir.path());
+        set_token("abc123");
+        assert_eq!(get_token(), Some("abc123".to_string()));
+        let _ = std::env::set_current_dir(&orig);
+    }
+
+    #[test]
+    fn clear_token_removes_file() {
+        let _lock = crate::CWD_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let orig = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(dir.path());
+        set_token("to_be_cleared");
+        clear_token();
+        assert_eq!(get_token(), None);
+        let _ = std::env::set_current_dir(&orig);
+    }
+
+    #[test]
+    fn get_token_trims_whitespace() {
+        let _lock = crate::CWD_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let orig = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(dir.path());
+        let path = token_path().unwrap();
+        std::fs::write(&path, "  spaced_token  \n").unwrap();
+        assert_eq!(get_token(), Some("spaced_token".to_string()));
+        let _ = std::env::set_current_dir(&orig);
+    }
+}
+
+#[cfg(test)]
+#[cfg(target_arch = "wasm32")]
+mod wasm_tests {
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    fn clear_all() {
+        use gloo_storage::Storage;
+        let _ = gloo_storage::LocalStorage::delete("pm_drive_token");
+    }
+
+    #[wasm_bindgen_test]
+    fn on_token_received_stores_callback() {
+        let mut called = false;
+        let ptr = &mut called as *mut bool;
+        let cb = Box::new(move |_: &str| unsafe {
+            *ptr = true;
+        }) as Box<dyn FnMut(&str)>;
+        super::on_token_received(cb);
+        super::TOKEN_LISTENERS.with(|l| {
+            assert!(!l.borrow().is_empty(), "listener was not stored");
+        });
+    }
+
+    #[wasm_bindgen_test]
+    fn get_token_wasm_none_initially() {
+        clear_all();
+        assert_eq!(super::get_token(), None);
+    }
+
+    #[wasm_bindgen_test]
+    fn get_token_wasm_roundtrip() {
+        clear_all();
+        super::set_token("wasm_abc123");
+        assert_eq!(super::get_token(), Some("wasm_abc123".to_string()));
+        clear_all();
+    }
+
+    #[wasm_bindgen_test]
+    fn clear_token_wasm_removes() {
+        clear_all();
+        super::set_token("to_be_cleared");
+        super::clear_token();
+        assert_eq!(super::get_token(), None);
+    }
+
+    #[wasm_bindgen_test]
+    fn init_injects_script_element() {
+        let doc = web_sys::window().unwrap().document().unwrap();
+        let before = doc.get_elements_by_tag_name("script").length();
+        super::init();
+        let after = doc.get_elements_by_tag_name("script").length();
+        assert!(after > before, "init should add a script element");
+    }
+}

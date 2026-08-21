@@ -5,6 +5,15 @@ use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
 
+#[allow(dead_code)]
+pub fn should_skip_add(ctx: &str, predicted: &str) -> bool {
+    ctx.is_empty() || predicted.is_empty()
+}
+
+pub fn matches_person(pred: &Prediction, pid: &str) -> bool {
+    pred.person_id == pid
+}
+
 #[component]
 pub fn Predictions() -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -39,7 +48,7 @@ pub fn PersonPredictions(person_id: String) -> Element {
     let mut add_pred = move || {
         let ctx = context();
         let pred = predicted();
-        if ctx.is_empty() || pred.is_empty() {
+        if should_skip_add(&ctx, &pred) {
             return;
         }
         let p = Prediction {
@@ -107,7 +116,7 @@ pub fn PredictionList(
     let filtered = if let Some(ref pid) = person_filter {
         predictions
             .into_iter()
-            .filter(|p| &p.person_id == pid)
+            .filter(|p| matches_person(p, pid))
             .collect::<Vec<_>>()
     } else {
         predictions
@@ -240,4 +249,76 @@ pub(crate) fn format_date(ts: i64) -> String {
     chrono::DateTime::from_timestamp_millis(ts)
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| "unknown".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_date_valid_timestamp() {
+        let ts = 1_700_000_000_000;
+        let result = format_date(ts);
+        assert!(result.contains("2023"), "got {}", result);
+        assert!(result.contains("-"), "expected date format, got {}", result);
+    }
+
+    #[test]
+    fn format_date_invalid_returns_unknown() {
+        // Very large timestamp that overflows DateTime representation
+        let result = format_date(i64::MAX);
+        assert_eq!(result, "unknown");
+    }
+
+    #[test]
+    fn should_skip_add_both_empty() {
+        assert!(should_skip_add("", ""));
+    }
+
+    #[test]
+    fn should_skip_add_context_empty() {
+        assert!(should_skip_add("", "rain tomorrow"));
+    }
+
+    #[test]
+    fn should_skip_add_predicted_empty() {
+        assert!(should_skip_add("will it rain?", ""));
+    }
+
+    #[test]
+    fn should_skip_add_neither_empty() {
+        assert!(!should_skip_add("will it rain?", "rain tomorrow"));
+    }
+
+    #[test]
+    fn matches_person_same_id() {
+        let p = Prediction {
+            id: "p1".into(),
+            person_id: "alice".into(),
+            context: "ctx".into(),
+            predicted_outcome: "out".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 0,
+            resolved_at: None,
+            resolved: false,
+        };
+        assert!(matches_person(&p, "alice"));
+    }
+
+    #[test]
+    fn matches_person_different_id() {
+        let p = Prediction {
+            id: "p1".into(),
+            person_id: "alice".into(),
+            context: "ctx".into(),
+            predicted_outcome: "out".into(),
+            actual_outcome: None,
+            accuracy: None,
+            created_at: 0,
+            resolved_at: None,
+            resolved: false,
+        };
+        assert!(!matches_person(&p, "bob"));
+    }
 }

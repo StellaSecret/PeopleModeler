@@ -316,6 +316,7 @@ mod tests {
             "AVAILABILITY",
             "SUNK_COST",
             "DUNNING_KRUGER",
+            "IMPOSTOR",
             "LOSS_AVERSION",
             "SOCIAL_PROOF",
             "AUTHORITY",

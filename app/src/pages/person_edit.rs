@@ -51,13 +51,12 @@ pub fn PersonNew() -> Element {
             };
             let person = if idx < templates.len() {
                 let t = &templates[idx];
-                Person {
-                    ocean: t.ocean.clone(),
-                    motivations: t.motivations.clone(),
-                    biases: t.biases.clone(),
-                    rep_scores: t.rep_scores.clone(),
-                    ..blank
-                }
+                let mut person = blank;
+                person.ocean = t.ocean.clone();
+                person.motivations = t.motivations.clone();
+                person.biases = t.biases.clone();
+                person.rep_scores = t.rep_scores.clone();
+                person
             } else {
                 blank
             };
@@ -567,13 +566,17 @@ fn MotEditPanel(
     }
 }
 
-fn mot_move(mut motivations: Signal<Vec<Motivation>>, i: usize, up: bool) {
-    let len = motivations.read().len();
+fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
+    let len = list.len();
     if up && i > 0 {
-        motivations.write().swap(i, i - 1);
+        list.swap(i, i - 1);
     } else if !up && i + 1 < len {
-        motivations.write().swap(i, i + 1);
+        list.swap(i, i + 1);
     }
+}
+
+fn mot_move(mut motivations: Signal<Vec<Motivation>>, i: usize, up: bool) {
+    swap_item_in_list(&mut motivations.write(), i, up);
 }
 
 #[component]
@@ -655,12 +658,7 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
 }
 
 fn val_move(mut values: Signal<Vec<Value>>, i: usize, up: bool) {
-    let len = values.read().len();
-    if up && i > 0 {
-        values.write().swap(i, i - 1);
-    } else if !up && i + 1 < len {
-        values.write().swap(i, i + 1);
-    }
+    swap_item_in_list(&mut values.write(), i, up);
 }
 
 #[component]
@@ -733,12 +731,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
 }
 
 fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
-    let len = biases.read().len();
-    if up && i > 0 {
-        biases.write().swap(i, i - 1);
-    } else if !up && i + 1 < len {
-        biases.write().swap(i, i + 1);
-    }
+    swap_item_in_list(&mut biases.write(), i, up);
 }
 
 #[component]
@@ -1048,7 +1041,6 @@ fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
 fn parse_mot_type(s: &str) -> MotivationType {
     match s {
         "Power" => MotivationType::Power,
-        "Achievement" => MotivationType::Achievement,
         "Affiliation" => MotivationType::Affiliation,
         "Security" => MotivationType::Security,
         "Autonomy" => MotivationType::Autonomy,
@@ -1097,7 +1089,6 @@ fn parse_bias_type(s: &str) -> BiasType {
 
 fn parse_trigger(s: &str) -> BehaviorTrigger {
     match s {
-        "Stress" => BehaviorTrigger::Stress,
         "Conflict" => BehaviorTrigger::Conflict,
         "Success" => BehaviorTrigger::Success,
         "Uncertainty" => BehaviorTrigger::Uncertainty,
@@ -1120,7 +1111,6 @@ fn parse_style_type(s: &str) -> StyleType {
 
 fn parse_style_category(s: &str) -> peoplemodeler_core::models::StyleCategory {
     match s {
-        "Communication" => peoplemodeler_core::models::StyleCategory::Communication,
         "ConflictResolution" => peoplemodeler_core::models::StyleCategory::ConflictResolution,
         "DecisionMaking" => peoplemodeler_core::models::StyleCategory::DecisionMaking,
         "Leadership" => peoplemodeler_core::models::StyleCategory::Leadership,
@@ -1233,19 +1223,390 @@ fn StyleEditPanel(
 }
 
 fn style_move(mut styles: Signal<Vec<PersonalStyle>>, i: usize, up: bool) {
-    let len = styles.read().len();
-    if up && i > 0 {
-        styles.write().swap(i, i - 1);
-    } else if !up && i + 1 < len {
-        styles.write().swap(i, i + 1);
-    }
+    swap_item_in_list(&mut styles.write(), i, up);
 }
 
 fn pattern_move(mut patterns: Signal<Vec<BehavioralPattern>>, i: usize, up: bool) {
-    let len = patterns.read().len();
-    if up && i > 0 {
-        patterns.write().swap(i, i - 1);
-    } else if !up && i + 1 < len {
-        patterns.write().swap(i, i + 1);
+    swap_item_in_list(&mut patterns.write(), i, up);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mot_helper_all_variants() {
+        let lang = Lang::En;
+        assert!(!mot_helper(&MotivationType::Achievement, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Power, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Affiliation, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Security, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Autonomy, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Recognition, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Learning, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Helping, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Creativity, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Fairness, lang).is_empty());
+    }
+
+    #[test]
+    fn bias_helper_all_variants() {
+        let lang = Lang::En;
+        assert!(!bias_helper(&BiasType::Confirmation, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Anchoring, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Availability, lang).is_empty());
+        assert!(!bias_helper(&BiasType::SunkCost, lang).is_empty());
+        assert!(!bias_helper(&BiasType::DunningKruger, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Impostor, lang).is_empty());
+        assert!(!bias_helper(&BiasType::LossAversion, lang).is_empty());
+        assert!(!bias_helper(&BiasType::SocialProof, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Authority, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Recency, lang).is_empty());
+        assert!(!bias_helper(&BiasType::InGroup, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Favoritism, lang).is_empty());
+    }
+
+    #[test]
+    fn style_helper_not_empty() {
+        let lang = Lang::En;
+        for t in StyleType::ALL {
+            let h = style_helper(&t, lang);
+            assert!(!h.is_empty(), "style_helper empty for {t:?}");
+        }
+    }
+
+    #[test]
+    fn pattern_helper_all_variants() {
+        let lang = Lang::En;
+        assert!(!pattern_helper(&BehaviorTrigger::Stress, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Conflict, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Success, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Uncertainty, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Recognition, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Threatened, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Change, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Feedback, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Injustice, lang).is_empty());
+    }
+
+    #[test]
+    fn parse_mot_type_all_variants() {
+        assert_eq!(parse_mot_type("Power"), MotivationType::Power);
+        assert_eq!(parse_mot_type("Achievement"), MotivationType::Achievement);
+        assert_eq!(parse_mot_type("Affiliation"), MotivationType::Affiliation);
+        assert_eq!(parse_mot_type("Security"), MotivationType::Security);
+        assert_eq!(parse_mot_type("Autonomy"), MotivationType::Autonomy);
+        assert_eq!(parse_mot_type("Recognition"), MotivationType::Recognition);
+        assert_eq!(parse_mot_type("Learning"), MotivationType::Learning);
+        assert_eq!(parse_mot_type("Helping"), MotivationType::Helping);
+        assert_eq!(parse_mot_type("Creativity"), MotivationType::Creativity);
+        assert_eq!(parse_mot_type("Fairness"), MotivationType::Fairness);
+    }
+
+    #[test]
+    fn parse_mot_type_unknown() {
+        assert_eq!(parse_mot_type("bogus"), MotivationType::Achievement);
+    }
+
+    #[test]
+    fn parse_val_type_all_variants() {
+        assert_eq!(parse_val_type("Career"), ValueType::Career);
+        assert_eq!(parse_val_type("Family"), ValueType::Family);
+        assert_eq!(parse_val_type("Health"), ValueType::Health);
+        assert_eq!(parse_val_type("Wealth"), ValueType::Wealth);
+        assert_eq!(parse_val_type("Stability"), ValueType::Stability);
+        assert_eq!(parse_val_type("Adventure"), ValueType::Adventure);
+        assert_eq!(parse_val_type("Community"), ValueType::Community);
+        assert_eq!(parse_val_type("Knowledge"), ValueType::Knowledge);
+        assert_eq!(parse_val_type("Faith"), ValueType::Faith);
+        assert_eq!(parse_val_type("Loyalty"), ValueType::Loyalty);
+    }
+
+    #[test]
+    fn parse_val_type_unknown() {
+        assert_eq!(parse_val_type("bogus"), ValueType::Career);
+    }
+
+    #[test]
+    fn parse_bias_type_all_variants() {
+        assert_eq!(parse_bias_type("Confirmation"), BiasType::Confirmation);
+        assert_eq!(parse_bias_type("Anchoring"), BiasType::Anchoring);
+        assert_eq!(parse_bias_type("Availability"), BiasType::Availability);
+        assert_eq!(parse_bias_type("SunkCost"), BiasType::SunkCost);
+        assert_eq!(parse_bias_type("DunningKruger"), BiasType::DunningKruger);
+        assert_eq!(parse_bias_type("Impostor"), BiasType::Impostor);
+        assert_eq!(parse_bias_type("LossAversion"), BiasType::LossAversion);
+        assert_eq!(parse_bias_type("SocialProof"), BiasType::SocialProof);
+        assert_eq!(parse_bias_type("Authority"), BiasType::Authority);
+        assert_eq!(parse_bias_type("Recency"), BiasType::Recency);
+        assert_eq!(parse_bias_type("InGroup"), BiasType::InGroup);
+        assert_eq!(parse_bias_type("Favoritism"), BiasType::Favoritism);
+    }
+
+    #[test]
+    fn parse_bias_type_unknown() {
+        assert_eq!(parse_bias_type("bogus"), BiasType::Confirmation);
+    }
+
+    #[test]
+    fn parse_trigger_all_variants() {
+        assert_eq!(parse_trigger("Stress"), BehaviorTrigger::Stress);
+        assert_eq!(parse_trigger("Conflict"), BehaviorTrigger::Conflict);
+        assert_eq!(parse_trigger("Success"), BehaviorTrigger::Success);
+        assert_eq!(parse_trigger("Uncertainty"), BehaviorTrigger::Uncertainty);
+        assert_eq!(parse_trigger("Recognition"), BehaviorTrigger::Recognition);
+        assert_eq!(parse_trigger("Threatened"), BehaviorTrigger::Threatened);
+        assert_eq!(parse_trigger("Change"), BehaviorTrigger::Change);
+        assert_eq!(parse_trigger("Feedback"), BehaviorTrigger::Feedback);
+        assert_eq!(parse_trigger("Injustice"), BehaviorTrigger::Injustice);
+    }
+
+    #[test]
+    fn parse_trigger_unknown() {
+        assert_eq!(parse_trigger("bogus"), BehaviorTrigger::Stress);
+    }
+
+    #[test]
+    fn parse_response_valid() {
+        assert!(parse_response("remains_calm").is_some());
+        assert!(parse_response("facilitates_resolution").is_some());
+        assert!(parse_response("seeks_support").is_some());
+    }
+
+    #[test]
+    fn parse_response_invalid() {
+        assert!(parse_response("bogus").is_none());
+    }
+
+    #[test]
+    fn parse_style_category_all_variants() {
+        use peoplemodeler_core::models::StyleCategory;
+        assert_eq!(
+            parse_style_category("Communication"),
+            StyleCategory::Communication
+        );
+        assert_eq!(
+            parse_style_category("ConflictResolution"),
+            StyleCategory::ConflictResolution
+        );
+        assert_eq!(
+            parse_style_category("DecisionMaking"),
+            StyleCategory::DecisionMaking
+        );
+        assert_eq!(
+            parse_style_category("Leadership"),
+            StyleCategory::Leadership
+        );
+        assert_eq!(
+            parse_style_category("TimeOrientation"),
+            StyleCategory::TimeOrientation
+        );
+        assert_eq!(
+            parse_style_category("MoralFramework"),
+            StyleCategory::MoralFramework
+        );
+        assert_eq!(
+            parse_style_category("InterpersonalConduct"),
+            StyleCategory::InterpersonalConduct
+        );
+        assert_eq!(
+            parse_style_category("TrustStyle"),
+            StyleCategory::TrustStyle
+        );
+    }
+
+    #[test]
+    fn parse_style_category_unknown() {
+        use peoplemodeler_core::models::StyleCategory;
+        assert_eq!(parse_style_category("bogus"), StyleCategory::Communication);
+    }
+
+    #[test]
+    fn parse_style_type_valid() {
+        let st = parse_style_type("DirectCommunicator");
+        assert_eq!(st, StyleType::DirectCommunicator);
+    }
+
+    #[test]
+    fn parse_style_type_invalid() {
+        let st = parse_style_type("bogus");
+        assert_eq!(st, StyleType::DirectCommunicator);
+    }
+
+    #[test]
+    fn swap_item_in_list_up() {
+        let mut v = vec!["a", "b", "c"];
+        swap_item_in_list(&mut v, 1, true);
+        assert_eq!(v, vec!["b", "a", "c"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_down() {
+        let mut v = vec!["a", "b", "c"];
+        swap_item_in_list(&mut v, 1, false);
+        assert_eq!(v, vec!["a", "c", "b"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_first_up_noop() {
+        let mut v = vec!["a", "b", "c"];
+        swap_item_in_list(&mut v, 0, true);
+        assert_eq!(v, vec!["a", "b", "c"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_last_down_noop() {
+        let mut v = vec!["a", "b", "c"];
+        swap_item_in_list(&mut v, 2, false);
+        assert_eq!(v, vec!["a", "b", "c"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_single_element() {
+        let mut v = vec!["a"];
+        swap_item_in_list(&mut v, 0, true);
+        assert_eq!(v, vec!["a"]);
+        swap_item_in_list(&mut v, 0, false);
+        assert_eq!(v, vec!["a"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_two_elements_up() {
+        let mut v = vec!["a", "b"];
+        swap_item_in_list(&mut v, 1, true);
+        assert_eq!(v, vec!["b", "a"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_two_elements_down() {
+        let mut v = vec!["a", "b"];
+        swap_item_in_list(&mut v, 0, false);
+        assert_eq!(v, vec!["b", "a"]);
+    }
+
+    #[test]
+    fn swap_item_in_list_integers() {
+        let mut v = vec![1, 2, 3, 4];
+        swap_item_in_list(&mut v, 0, true);
+        assert_eq!(v, vec![1, 2, 3, 4]);
+        swap_item_in_list(&mut v, 2, true);
+        assert_eq!(v, vec![1, 3, 2, 4]);
+        swap_item_in_list(&mut v, 2, false);
+        assert_eq!(v, vec![1, 3, 4, 2]);
+    }
+
+    #[test]
+    fn mot_helper_returns_known_string() {
+        let lang = Lang::En;
+        assert_ne!(mot_helper(&MotivationType::Achievement, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Power, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Affiliation, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Security, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Autonomy, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Recognition, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Learning, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Helping, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Creativity, lang), "xyzzy");
+        assert_ne!(mot_helper(&MotivationType::Fairness, lang), "xyzzy");
+    }
+
+    #[test]
+    fn bias_helper_returns_known_string() {
+        let lang = Lang::En;
+        assert_ne!(bias_helper(&BiasType::Confirmation, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::Anchoring, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::Availability, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::SunkCost, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::DunningKruger, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::Impostor, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::LossAversion, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::SocialProof, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::Authority, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::Recency, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::InGroup, lang), "xyzzy");
+        assert_ne!(bias_helper(&BiasType::Favoritism, lang), "xyzzy");
+    }
+
+    #[test]
+    fn style_helper_returns_known_string() {
+        let lang = Lang::En;
+        for t in StyleType::ALL {
+            let h = style_helper(&t, lang);
+            assert_ne!(h, "xyzzy", "style_helper returned xyzzy for {t:?}");
+        }
+    }
+
+    #[test]
+    fn pattern_helper_returns_known_string() {
+        let lang = Lang::En;
+        assert_ne!(pattern_helper(&BehaviorTrigger::Stress, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Conflict, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Success, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Uncertainty, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Recognition, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Threatened, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Change, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Feedback, lang), "xyzzy");
+        assert_ne!(pattern_helper(&BehaviorTrigger::Injustice, lang), "xyzzy");
+    }
+
+    #[test]
+    fn mot_helper_unique_per_variant() {
+        let lang = Lang::En;
+        let results: Vec<_> = MotivationType::ALL
+            .iter()
+            .map(|t| mot_helper(t, lang))
+            .collect();
+        let distinct: std::collections::HashSet<&str> = results.into_iter().collect();
+        assert_eq!(distinct.len(), MotivationType::ALL.len());
+    }
+
+    #[test]
+    fn bias_helper_unique_per_variant() {
+        let lang = Lang::En;
+        let results: Vec<_> = BiasType::ALL.iter().map(|t| bias_helper(t, lang)).collect();
+        let distinct: std::collections::HashSet<&str> = results.into_iter().collect();
+        assert_eq!(distinct.len(), BiasType::ALL.len());
+    }
+
+    #[test]
+    fn style_helper_exact_en_value() {
+        let desc = style_helper(&StyleType::DirectCommunicator, Lang::En);
+        assert_eq!(desc, "Speaks frankly, gets straight to the point");
+    }
+
+    #[test]
+    fn style_helper_exact_fr_value() {
+        let desc = style_helper(&StyleType::DirectCommunicator, Lang::Fr);
+        assert_eq!(desc, "Parle franchement et va droit au but");
+    }
+
+    #[test]
+    fn style_helper_en_differs_from_fr() {
+        let en = style_helper(&StyleType::DirectCommunicator, Lang::En);
+        let fr = style_helper(&StyleType::DirectCommunicator, Lang::Fr);
+        assert_ne!(en, fr);
+    }
+
+    #[test]
+    fn style_helper_unique_per_variant() {
+        let lang = Lang::En;
+        let results: Vec<_> = StyleType::ALL
+            .iter()
+            .map(|t| style_helper(t, lang))
+            .collect();
+        let distinct: std::collections::HashSet<&str> = results.into_iter().collect();
+        assert_eq!(distinct.len(), StyleType::ALL.len());
+    }
+
+    #[test]
+    fn pattern_helper_unique_per_variant() {
+        let lang = Lang::En;
+        let results: Vec<_> = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| pattern_helper(t, lang))
+            .collect();
+        let distinct: std::collections::HashSet<&str> = results.into_iter().collect();
+        assert_eq!(distinct.len(), BehaviorTrigger::ALL.len());
     }
 }

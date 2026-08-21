@@ -114,16 +114,12 @@ pub(crate) fn per_context_breakdown(
         wsum += w[5];
         num += inp.buckets[6] * w[6];
         wsum += w[6];
-        let raw = if wsum > 0.0 { num / wsum } else { 0.0 };
+        let raw = num / wsum;
         let danger = inp.penalties[0] * w[0]
             + inp.penalties[1] * w[1]
             + inp.penalties[2] * w[2]
             + inp.penalties[3] * CFG.base_weights.history;
-        let penalty = if wsum > 0.0 {
-            (danger / wsum * 100.0).round() as u8
-        } else {
-            0
-        };
+        let penalty = (danger / wsum * 100.0).round() as u8;
         let score = ((raw * 100.0).round() as u8)
             .min(100)
             .saturating_sub(penalty);
@@ -275,8 +271,8 @@ pub(crate) fn compute_synergy_score_inner(
         match target {
             BiasTarget::Ocean => ocean_mod += delta,
             BiasTarget::Reputation => rep_mod += delta,
-            BiasTarget::Motivation => mot_mod += delta,
             BiasTarget::Patterns => pat_mod += delta,
+            _ => {} // no complementary pair targets Motivation
         }
     }
 
@@ -448,24 +444,12 @@ pub(crate) fn compute_synergy_score_inner(
     b_raw += values * w_values;
     asym_w += w_values;
 
-    let a_score = if asym_w > 0.0 {
-        ((a_raw / asym_w * 100.0).round() as u8).min(100)
-    } else {
-        0
-    };
-    let b_score = if asym_w > 0.0 {
-        ((b_raw / asym_w * 100.0).round() as u8).min(100)
-    } else {
-        0
-    };
+    let a_score = ((a_raw / asym_w * 100.0).round() as u8).min(100);
+    let b_score = ((b_raw / asym_w * 100.0).round() as u8).min(100);
 
     // Apply danger penalties: total_danger = Σ(penalty_i × W_i) was the direct
     // reduction to `raw` in the old formula. Score-point reduction = total_danger / asym_w * 100.
-    let danger_penalty = if asym_w > 0.0 {
-        (total_danger / asym_w * 100.0).round() as u8
-    } else {
-        0
-    };
+    let danger_penalty = (total_danger / asym_w * 100.0).round() as u8;
     let mutual = ((a_score as f64 + b_score as f64) / 2.0).round() as u8;
     let mutual = mutual.saturating_sub(danger_penalty);
 

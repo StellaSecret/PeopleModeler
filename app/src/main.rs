@@ -3,6 +3,9 @@ use dioxus_router::Outlet;
 
 use crate::i18n::Lang;
 use crate::pages::compare::ComparePersons;
+
+#[cfg(test)]
+pub(crate) static CWD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use crate::pages::insights::Insights;
 use crate::pages::people_list::PeopleList;
 use crate::pages::person_detail::PersonDetail;
@@ -22,7 +25,6 @@ mod android_auth;
 #[cfg(target_os = "android")]
 mod android_share;
 mod auth;
-#[cfg(target_arch = "wasm32")]
 mod crypto;
 mod db;
 mod drive;
@@ -63,6 +65,11 @@ enum Route {
     TeamNew {},
     #[route("/team/:id")]
     TeamDetail { id: String },
+}
+
+#[cfg(any(test, target_arch = "wasm32"))]
+fn is_undo_shortcut(ctrl: bool, key: &str) -> bool {
+    ctrl && key == "z"
 }
 
 fn main() {
@@ -129,7 +136,7 @@ fn App() -> Element {
             let mut toast = _toast.clone();
             let cb: Closure<dyn FnMut(web_sys::KeyboardEvent)> =
                 Closure::new(move |e: web_sys::KeyboardEvent| {
-                    if e.ctrl_key() && e.key() == "z" {
+                    if is_undo_shortcut(e.ctrl_key(), &e.key()) {
                         if crate::undo::undo() {
                             toast.set(Some("↩ Undo".into()));
                         }
@@ -283,4 +290,126 @@ async fn sleep_ms(ms: u64) {
 #[cfg(not(target_arch = "wasm32"))]
 async fn sleep_ms(ms: u64) {
     tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+}
+
+#[cfg(test)]
+mod toast_harness {
+    use super::*;
+
+    std::thread_local! {
+        static TOAST_HANDLE: std::cell::RefCell<Option<Signal<Option<String>>>> =
+            const { std::cell::RefCell::new(None) };
+    }
+
+    pub(crate) fn toast_harness() -> Element {
+        let toast = use_signal(|| Some("hi".to_string()));
+        TOAST_HANDLE.with(|h| *h.borrow_mut() = Some(toast));
+        auto_clear_toast(toast);
+        rsx! { div {} }
+    }
+
+    pub(crate) fn toast_cleared() -> bool {
+        TOAST_HANDLE.with(|h| h.borrow().as_ref().unwrap().read().is_none())
+    }
+}
+
+#[cfg(test)]
+#[cfg(target_arch = "wasm32")]
+mod wasm_tests {
+    use dioxus::prelude::VirtualDom;
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    #[wasm_bindgen_test]
+    fn undo_shortcut_wasm() {
+        assert!(super::is_undo_shortcut(true, "z"));
+        assert!(!super::is_undo_shortcut(false, "z"));
+        assert!(!super::is_undo_shortcut(true, "x"));
+    }
+
+    #[wasm_bindgen_test]
+    fn init_pwa_injects_manifest_link() {
+        let doc = web_sys::window().unwrap().document().unwrap();
+        let head = doc.head().unwrap();
+        let before = head.child_element_count();
+        super::init_pwa();
+        let after = head.child_element_count();
+        assert!(after > before, "init_pwa should add a link element to head");
+    }
+
+    #[wasm_bindgen_test]
+    async fn sleep_ms_resolves() {
+        let start = js_sys::Date::now();
+        super::sleep_ms(60).await;
+        assert!(
+            js_sys::Date::now() - start >= 40.0,
+            "sleep_ms returned too early"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn auto_clear_toast_clears_after_delay_wasm() {
+        let mut dom = VirtualDom::new(super::toast_harness::toast_harness);
+        dom.rebuild_in_place();
+        let deadline = js_sys::Date::now() + 2500.0;
+        loop {
+            dom.process_events();
+            if super::toast_harness::toast_cleared() {
+                break;
+            }
+            assert!(
+                js_sys::Date::now() < deadline,
+                "toast was not cleared within 2500ms"
+            );
+            super::sleep_ms(50).await;
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod native_tests {
+    use super::*;
+
+    #[test]
+    fn undo_shortcut_requires_ctrl_and_z() {
+        assert!(is_undo_shortcut(true, "z"));
+        assert!(!is_undo_shortcut(false, "z"));
+        assert!(!is_undo_shortcut(true, "x"));
+        assert!(!is_undo_shortcut(true, "Z"));
+        assert!(!is_undo_shortcut(false, ""));
+    }
+
+    #[test]
+    fn sleep_ms_delays_at_least_requested() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let start = std::time::Instant::now();
+        rt.block_on(super::sleep_ms(120));
+        assert!(
+            start.elapsed().as_millis() >= 90,
+            "sleep_ms returned too early"
+        );
+    }
+
+    use super::toast_harness::{toast_cleared, toast_harness};
+
+    #[test]
+    fn auto_clear_toast_clears_after_delay() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let _guard = rt.enter();
+        let mut dom = VirtualDom::new(toast_harness);
+        dom.rebuild_in_place();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(2500);
+        loop {
+            dom.process_events();
+            if toast_cleared() {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "toast was not cleared within 2500ms"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
+    }
 }
