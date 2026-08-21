@@ -241,3 +241,23 @@ pub(crate) fn format_date(ts: i64) -> String {
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| "unknown".into())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_date_valid_timestamp() {
+        let ts = 1_700_000_000_000;
+        let result = format_date(ts);
+        assert!(result.contains("2023"), "got {}", result);
+        assert!(result.contains("-"), "expected date format, got {}", result);
+    }
+
+    #[test]
+    fn format_date_invalid_returns_unknown() {
+        // Very large timestamp that overflows DateTime representation
+        let result = format_date(i64::MAX);
+        assert_eq!(result, "unknown");
+    }
+}

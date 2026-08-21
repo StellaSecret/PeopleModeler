@@ -771,4 +771,185 @@ mod tests {
         assert_eq!(decision.len(), growth.len());
         assert!(decision.len() >= 2);
     }
+
+    fn multi_category_person() -> Person {
+        use crate::models::*;
+        Person {
+            id: "multi".into(),
+            name: "Multi".into(),
+            role: String::new(),
+            context: String::new(),
+            avatar_emoji: "M".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![
+                Motivation {
+                    r#type: MotivationType::Fairness,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Helping,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Affiliation,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Power,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Achievement,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Security,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Autonomy,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Learning,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+                Motivation {
+                    r#type: MotivationType::Creativity,
+                    intensity: 9,
+                    notes: String::new(),
+                },
+            ],
+            biases: vec![Bias {
+                r#type: BiasType::DunningKruger,
+                intensity: 9,
+                evidence: String::new(),
+            }],
+            behavioral_patterns: vec![],
+            styles: vec![PersonalStyle {
+                r#type: StyleType::DiplomaticCommunicator,
+                intensity: 9,
+                notes: String::new(),
+            }],
+            values: vec![
+                Value {
+                    r#type: ValueType::Family,
+                    intensity: 9,
+                    priority: 9,
+                    notes: String::new(),
+                },
+                Value {
+                    r#type: ValueType::Career,
+                    intensity: 9,
+                    priority: 9,
+                    notes: String::new(),
+                },
+            ],
+            rep_scores: RepScores {
+                fair_favoritism: Some(2),
+                generous_selfish: Some(2),
+                empathetic_detached: Some(2),
+                hardworker_lazy: Some(2),
+                trusting_suspicious: Some(9),
+                diplomatic_blunt: Some(2),
+                authoritative_submissive: Some(2),
+                assertive_passive: Some(2),
+                adaptable_rigid: Some(2),
+                humble_arrogant: Some(2),
+                ..Default::default()
+            },
+            ocean: OceanScores {
+                openness: Some(2),
+                conscientiousness: Some(9),
+                agreeableness: Some(9),
+                ..Default::default()
+            },
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 0,
+            updated_at: 0,
+        }
+    }
+
+    fn multi_category_profile() -> PersonProfile {
+        PersonProfile {
+            total: 50,
+            motivation: 0.5,
+            patterns: 0.5,
+            ocean: 0.5,
+            reputation: 0.5,
+            bias: 0.5,
+            styles: 0.5,
+            values: 0.5,
+            completeness: 60,
+            band: 0,
+        }
+    }
+
+    #[test]
+    fn per_context_sort_order_matches_category_weights() {
+        let p = multi_category_person();
+        let profile = multi_category_profile();
+        let decision = per_context_advice(&p, &profile, InsightContext::Decision);
+        assert!(decision.len() >= 4, "need items from multiple categories");
+        let d_cats: Vec<&str> = decision.iter().map(|a| a.category).collect();
+        // Decision: self_image(idx=0)=0.22 is highest → first
+        assert_eq!(
+            d_cats[0], "self_image",
+            "Decision: self_image should sort first (weight 0.22)"
+        );
+        // Decision: evidence(0.18) > rhetoric(0.16)
+        let d_ev = d_cats
+            .iter()
+            .position(|&c| c == "evidence")
+            .expect("needs evidence");
+        let d_rh = d_cats
+            .iter()
+            .position(|&c| c == "rhetoric")
+            .expect("needs rhetoric");
+        assert!(
+            d_ev < d_rh,
+            "Decision: evidence(0.18) should sort before rhetoric(0.16)"
+        );
+
+        // Leadership: rhetoric(idx=1)=0.22 is highest → first
+        let leadership = per_context_advice(&p, &profile, InsightContext::Leadership);
+        let l_cats: Vec<&str> = leadership.iter().map(|a| a.category).collect();
+        assert_eq!(
+            l_cats[0], "rhetoric",
+            "Leadership: rhetoric should sort first (weight 0.22)"
+        );
+
+        // Stress: style(idx=3)=0.24 is highest → first
+        let stress = per_context_advice(&p, &profile, InsightContext::Stress);
+        let s_cats: Vec<&str> = stress.iter().map(|a| a.category).collect();
+        assert_eq!(
+            s_cats[0], "style",
+            "Stress: style should sort first (weight 0.24)"
+        );
+        // Stress: values(0.18) > rhetoric(0.16)
+        let s_val = s_cats
+            .iter()
+            .position(|&c| c == "values")
+            .expect("needs values");
+        let s_rh = s_cats
+            .iter()
+            .position(|&c| c == "rhetoric")
+            .expect("needs rhetoric");
+        assert!(
+            s_val < s_rh,
+            "Stress: values(0.18) should sort before rhetoric(0.16)"
+        );
+    }
 }

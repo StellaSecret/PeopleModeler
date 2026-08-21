@@ -389,3 +389,534 @@ fn injustice_strategy(p: &Person, lang: Lang) -> Vec<String> {
     }
     s
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::models::*;
+
+    fn p(name: &str) -> Person {
+        Person {
+            id: "id".into(),
+            name: name.into(),
+            role: "Engineer".into(),
+            context: "Core".into(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 0,
+            updated_at: 0,
+        }
+    }
+
+    fn with_ocean(mut person: Person, o: u8, c: u8, e: u8, a: u8, n: u8) -> Person {
+        person.ocean.openness = Some(o);
+        person.ocean.conscientiousness = Some(c);
+        person.ocean.extraversion = Some(e);
+        person.ocean.agreeableness = Some(a);
+        person.ocean.neuroticism = Some(n);
+        person
+    }
+
+    fn with_mot(mut person: Person, mt: MotivationType, intensity: u8) -> Person {
+        person.motivations.push(Motivation {
+            r#type: mt,
+            intensity,
+            notes: String::new(),
+        });
+        person
+    }
+
+    #[test]
+    fn trigger_label_all_variants() {
+        let lang = Lang::En;
+        assert!(!trigger_label(&BehaviorTrigger::Stress, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Conflict, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Success, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Uncertainty, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Recognition, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Threatened, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Change, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Feedback, lang).is_empty());
+        assert!(!trigger_label(&BehaviorTrigger::Injustice, lang).is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_high_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+        assert!(s.iter().any(|x| !x.is_empty()));
+    }
+
+    #[test]
+    fn stress_strategy_high_e() {
+        let p = with_ocean(p("A"), 5, 5, 8, 5, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_low_e() {
+        let p = with_ocean(p("A"), 5, 5, 3, 5, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn conflict_strategy_low_a() {
+        let p = with_ocean(p("A"), 5, 5, 5, 3, 5);
+        let s = conflict_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn conflict_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = conflict_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn success_strategy_high_o() {
+        let p = with_ocean(p("A"), 8, 5, 5, 5, 5);
+        let s = success_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn success_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = success_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn uncertainty_strategy_high_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn recognition_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = recognition_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn recognition_strategy_high_e() {
+        let p = with_ocean(p("A"), 5, 5, 8, 5, 5);
+        let s = recognition_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn threatened_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = threatened_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn change_strategy_high_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = change_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn change_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = change_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn feedback_strategy_high_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = feedback_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn feedback_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = feedback_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn injustice_strategy_high_a() {
+        let p = with_ocean(p("A"), 5, 5, 5, 8, 5);
+        let s = injustice_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn injustice_strategy_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let s = injustice_strategy(&p, Lang::En);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn stress_strategy_french() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = stress_strategy(&p, Lang::Fr);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn build_top_rec_empty_recs() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let result = build_top_rec(&p, &BehaviorTrigger::Stress, &[], Lang::En);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn build_top_rec_with_recs() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let recs = vec!["Some advice".to_string()];
+        let result = build_top_rec(&p, &BehaviorTrigger::Stress, &recs, Lang::En);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn generate_insight_stress() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let out = generate_insight(&p, &BehaviorTrigger::Stress, Lang::En);
+        assert!(!out.top.is_empty());
+        assert!(!out.secondary.is_empty());
+    }
+
+    #[test]
+    fn generate_insight_conflict() {
+        let p = with_ocean(p("A"), 5, 5, 5, 3, 5);
+        let out = generate_insight(&p, &BehaviorTrigger::Conflict, Lang::En);
+        assert!(!out.top.is_empty());
+    }
+
+    #[test]
+    fn generate_insight_fallback() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        let out = generate_insight(&p, &BehaviorTrigger::Stress, Lang::En);
+        assert!(!out.top.is_empty());
+    }
+
+    #[test]
+    fn success_strategy_recognition_mot() {
+        let p = with_mot(
+            with_ocean(p("A"), 5, 5, 5, 5, 5),
+            MotivationType::Recognition,
+            8,
+        );
+        let s = success_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn success_strategy_power_mot() {
+        let p = with_mot(with_ocean(p("A"), 5, 5, 5, 5, 5), MotivationType::Power, 8);
+        let s = success_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_power_mot() {
+        let p = with_mot(with_ocean(p("A"), 5, 5, 5, 5, 5), MotivationType::Power, 8);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_security_mot() {
+        let p = with_mot(
+            with_ocean(p("A"), 5, 5, 5, 5, 5),
+            MotivationType::Security,
+            8,
+        );
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn recognition_strategy_recognition_mot() {
+        let p = with_mot(
+            with_ocean(p("A"), 5, 5, 8, 5, 5),
+            MotivationType::Recognition,
+            9,
+        );
+        let s = recognition_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn recognition_strategy_mid_intensity() {
+        let p = with_mot(
+            with_ocean(p("A"), 5, 5, 8, 5, 5),
+            MotivationType::Recognition,
+            6,
+        );
+        let s = recognition_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn recognition_strategy_low_intensity() {
+        let p = with_mot(
+            with_ocean(p("A"), 5, 5, 8, 5, 5),
+            MotivationType::Recognition,
+            3,
+        );
+        let s = recognition_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn threatened_strategy_power_mot() {
+        let p = with_mot(with_ocean(p("A"), 5, 5, 5, 5, 5), MotivationType::Power, 8);
+        let s = threatened_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn injustice_strategy_fairness_mot() {
+        let p = with_mot(
+            with_ocean(p("A"), 5, 5, 5, 5, 5),
+            MotivationType::Fairness,
+            7,
+        );
+        let s = injustice_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn injustice_strategy_power_mot() {
+        let p = with_mot(with_ocean(p("A"), 5, 5, 5, 5, 5), MotivationType::Power, 8);
+        let s = injustice_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_low_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 2);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_low_o() {
+        let p = with_ocean(p("A"), 3, 5, 5, 5, 5);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn conflict_strategy_high_e() {
+        let p = with_ocean(p("A"), 5, 5, 8, 5, 5);
+        let s = conflict_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn conflict_strategy_high_c() {
+        let p = with_ocean(p("A"), 5, 8, 5, 5, 5);
+        let s = conflict_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn conflict_strategy_low_e() {
+        let p = with_ocean(p("A"), 5, 5, 3, 5, 5);
+        let s = conflict_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn change_strategy_low_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 2);
+        let s = change_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn change_strategy_high_c() {
+        let p = with_ocean(p("A"), 5, 8, 5, 5, 5);
+        let s = change_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn change_strategy_low_e() {
+        let p = with_ocean(p("A"), 5, 5, 3, 5, 5);
+        let s = change_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn change_strategy_high_o() {
+        let p = with_ocean(p("A"), 8, 5, 5, 5, 5);
+        let s = change_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn feedback_strategy_low_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 2);
+        let s = feedback_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn feedback_strategy_low_a() {
+        let p = with_ocean(p("A"), 5, 5, 5, 3, 5);
+        let s = feedback_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn feedback_strategy_low_e() {
+        let p = with_ocean(p("A"), 5, 5, 3, 5, 5);
+        let s = feedback_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn feedback_strategy_high_c() {
+        let p = with_ocean(p("A"), 5, 8, 5, 5, 5);
+        let s = feedback_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_high_c() {
+        let p = with_ocean(p("A"), 5, 8, 5, 5, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_low_a() {
+        let p = with_ocean(p("A"), 5, 5, 5, 3, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_low_c() {
+        let p = with_ocean(p("A"), 5, 3, 5, 5, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn stress_strategy_high_o() {
+        let p = with_ocean(p("A"), 8, 5, 5, 5, 5);
+        let s = stress_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn success_strategy_high_c() {
+        let p = with_ocean(p("A"), 5, 8, 5, 5, 5);
+        let s = success_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn success_strategy_low_e() {
+        let p = with_ocean(p("A"), 5, 5, 3, 5, 5);
+        let s = success_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn success_strategy_high_a() {
+        let p = with_ocean(p("A"), 5, 5, 5, 8, 5);
+        let s = success_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_high_o() {
+        let p = with_ocean(p("A"), 8, 5, 5, 5, 5);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_low_o_val() {
+        let p = with_ocean(p("A"), 3, 5, 5, 5, 5);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_high_c() {
+        let p = with_ocean(p("A"), 5, 8, 5, 5, 5);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn uncertainty_strategy_high_e() {
+        let p = with_ocean(p("A"), 5, 5, 8, 5, 5);
+        let s = uncertainty_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn recognition_strategy_low_e() {
+        let p = with_ocean(p("A"), 5, 5, 3, 5, 5);
+        let s = recognition_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn threatened_strategy_high_a() {
+        let p = with_ocean(p("A"), 5, 5, 5, 8, 5);
+        let s = threatened_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn threatened_strategy_high_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = threatened_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn conflict_strategy_high_n() {
+        let p = with_ocean(p("A"), 5, 5, 5, 5, 8);
+        let s = conflict_strategy(&p, Lang::En);
+        assert!(!s.is_empty());
+    }
+}

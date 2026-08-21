@@ -1408,4 +1408,100 @@ mod tests {
         assert_eq!(format!("{}", g[1].0), "WorksWith");
         assert_eq!(format!("{}", g[2].0), "Partner");
     }
+
+    #[test]
+    fn valence_cls_negative() {
+        assert_eq!(valence_cls(-3), "v-neg");
+    }
+
+    #[test]
+    fn valence_cls_positive() {
+        assert_eq!(valence_cls(5), "v-pos");
+    }
+
+    #[test]
+    fn valence_cls_zero() {
+        assert_eq!(valence_cls(0), "v-zero");
+    }
+
+    #[test]
+    fn fmt_valence_positive() {
+        assert_eq!(fmt_valence(3), "+3");
+    }
+
+    #[test]
+    fn fmt_valence_negative() {
+        assert_eq!(fmt_valence(-2), "-2");
+    }
+
+    #[test]
+    fn fmt_valence_zero() {
+        assert_eq!(fmt_valence(0), "0");
+    }
+
+    #[test]
+    fn radar_poly_has_points() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        assert!(!poly.is_empty());
+        assert!(poly.contains(","));
+        let points: Vec<&str> = poly.split(' ').collect();
+        assert_eq!(points.len(), 6);
+    }
+
+    #[test]
+    fn radar_poly_closes() {
+        let poly = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let points: Vec<&str> = poly.split(' ').collect();
+        assert_eq!(points.first(), points.last());
+    }
+
+    #[test]
+    fn radar_poly_scale() {
+        let p1 = radar_poly(80.0, 110.0, 110.0, 1.0);
+        let p2 = radar_poly(80.0, 110.0, 110.0, 0.5);
+        assert_ne!(p1, p2);
+    }
+
+    #[test]
+    fn axis_label_returns_pair() {
+        let (x, y) = axis_label(110.0, 110.0, 80.0, 0);
+        assert!(x > 0.0);
+        assert!(y > 0.0);
+    }
+
+    #[test]
+    fn axis_label_varies_by_index() {
+        let (_, y0) = axis_label(110.0, 110.0, 80.0, 0);
+        let (_, y2) = axis_label(110.0, 110.0, 80.0, 2);
+        assert_ne!(y0, y2);
+    }
+
+    #[test]
+    fn rel_type_color_all_variants() {
+        assert_eq!(rel_type_color(&RelationType::WorksWith), "var(--cyan)");
+        assert_eq!(rel_type_color(&RelationType::Manages), "var(--orange)");
+        assert_eq!(rel_type_color(&RelationType::ReportsTo), "var(--green)");
+        assert_eq!(rel_type_color(&RelationType::Friends), "var(--pink)");
+        assert_eq!(rel_type_color(&RelationType::Family), "var(--purple)");
+        assert_eq!(rel_type_color(&RelationType::Partner), "var(--gold)");
+        assert_eq!(rel_type_color(&RelationType::Mentors), "#C0392B");
+        assert_eq!(rel_type_color(&RelationType::Collaborates), "var(--blue)");
+    }
+
+    #[test]
+    fn match_type_all_variants() {
+        assert_eq!(match_type("Manages"), RelationType::Manages);
+        assert_eq!(match_type("ReportsTo"), RelationType::ReportsTo);
+        assert_eq!(match_type("Friends"), RelationType::Friends);
+        assert_eq!(match_type("Family"), RelationType::Family);
+        assert_eq!(match_type("Partner"), RelationType::Partner);
+        assert_eq!(match_type("Mentors"), RelationType::Mentors);
+        assert_eq!(match_type("Collaborates"), RelationType::Collaborates);
+        assert_eq!(match_type("WorksWith"), RelationType::WorksWith);
+    }
+
+    #[test]
+    fn match_type_unknown_falls_back() {
+        assert_eq!(match_type("bogus"), RelationType::WorksWith);
+    }
 }

@@ -59,6 +59,23 @@ const STEPS: &[StepDef] = &[
     },
 ];
 
+fn is_last_step(step_idx: usize) -> bool {
+    step_idx + 1 >= STEPS.len()
+}
+
+fn next_step(step_idx: usize) -> Option<usize> {
+    let next = step_idx + 1;
+    if next < STEPS.len() { Some(next) } else { None }
+}
+
+fn prev_step(step_idx: usize) -> Option<usize> {
+    if step_idx == 0 {
+        None
+    } else {
+        Some(step_idx - 1)
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 static TUTORIAL_ACTIVE: std::sync::Mutex<Option<usize>> = std::sync::Mutex::new(None);
 
@@ -118,7 +135,7 @@ pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
     let total = STEPS.len();
     let title = tr(step.title_key, lang());
     let body = tr(step.body_key, lang());
-    let is_last = step_idx + 1 >= total;
+    let is_last = is_last_step(step_idx);
     let back_text = tr("common_back", lang());
     let skip_text = tr("common_skip", lang());
     let finish_text = tr("common_finish", lang());
@@ -129,8 +146,7 @@ pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
         if is_last {
             mark_done();
             s.set(TutorialStatus::Done);
-        } else {
-            let next = step_idx + 1;
+        } else if let Some(next) = next_step(step_idx) {
             if let Some(nav) = STEPS.get(next).and_then(|st| st.nav.clone()) {
                 navigator().push(nav);
             }
@@ -139,10 +155,9 @@ pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
     };
 
     let go_back = move |_| {
-        if step_idx == 0 {
+        let Some(prev) = prev_step(step_idx) else {
             return;
-        }
-        let prev = step_idx - 1;
+        };
         if let Some(nav) = STEPS.get(prev).and_then(|st| st.nav.clone()) {
             navigator().push(nav);
         }
@@ -187,5 +202,50 @@ pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tutorial_mark_done_implies_is_done() {
+        mark_done();
+        assert!(is_done());
+    }
+
+    #[test]
+    fn tutorial_clear_mark_implies_not_done() {
+        mark_done();
+        clear_mark();
+        assert!(!is_done());
+    }
+
+    #[test]
+    fn tutorial_is_done_false_after_clear() {
+        clear_mark();
+        assert!(!is_done());
+    }
+
+    #[test]
+    fn tutorial_is_last_step_boundary() {
+        assert!(!is_last_step(0));
+        assert!(!is_last_step(STEPS.len() - 2));
+        assert!(is_last_step(STEPS.len() - 1));
+    }
+
+    #[test]
+    fn tutorial_next_step_boundary() {
+        assert_eq!(next_step(0), Some(1));
+        assert_eq!(next_step(STEPS.len() - 2), Some(STEPS.len() - 1));
+        assert_eq!(next_step(STEPS.len() - 1), None);
+    }
+
+    #[test]
+    fn tutorial_prev_step_boundary() {
+        assert_eq!(prev_step(0), None);
+        assert_eq!(prev_step(1), Some(0));
+        assert_eq!(prev_step(STEPS.len() - 1), Some(STEPS.len() - 2));
     }
 }

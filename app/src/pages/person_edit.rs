@@ -1249,3 +1249,207 @@ fn pattern_move(mut patterns: Signal<Vec<BehavioralPattern>>, i: usize, up: bool
         patterns.write().swap(i, i + 1);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mot_helper_all_variants() {
+        let lang = Lang::En;
+        assert!(!mot_helper(&MotivationType::Achievement, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Power, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Affiliation, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Security, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Autonomy, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Recognition, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Learning, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Helping, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Creativity, lang).is_empty());
+        assert!(!mot_helper(&MotivationType::Fairness, lang).is_empty());
+    }
+
+    #[test]
+    fn bias_helper_all_variants() {
+        let lang = Lang::En;
+        assert!(!bias_helper(&BiasType::Confirmation, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Anchoring, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Availability, lang).is_empty());
+        assert!(!bias_helper(&BiasType::SunkCost, lang).is_empty());
+        assert!(!bias_helper(&BiasType::DunningKruger, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Impostor, lang).is_empty());
+        assert!(!bias_helper(&BiasType::LossAversion, lang).is_empty());
+        assert!(!bias_helper(&BiasType::SocialProof, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Authority, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Recency, lang).is_empty());
+        assert!(!bias_helper(&BiasType::InGroup, lang).is_empty());
+        assert!(!bias_helper(&BiasType::Favoritism, lang).is_empty());
+    }
+
+    #[test]
+    fn style_helper_not_empty() {
+        let lang = Lang::En;
+        for t in StyleType::ALL {
+            let h = style_helper(&t, lang);
+            assert!(!h.is_empty(), "style_helper empty for {t:?}");
+        }
+    }
+
+    #[test]
+    fn pattern_helper_all_variants() {
+        let lang = Lang::En;
+        assert!(!pattern_helper(&BehaviorTrigger::Stress, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Conflict, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Success, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Uncertainty, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Recognition, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Threatened, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Change, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Feedback, lang).is_empty());
+        assert!(!pattern_helper(&BehaviorTrigger::Injustice, lang).is_empty());
+    }
+
+    #[test]
+    fn parse_mot_type_all_variants() {
+        assert_eq!(parse_mot_type("Power"), MotivationType::Power);
+        assert_eq!(parse_mot_type("Achievement"), MotivationType::Achievement);
+        assert_eq!(parse_mot_type("Affiliation"), MotivationType::Affiliation);
+        assert_eq!(parse_mot_type("Security"), MotivationType::Security);
+        assert_eq!(parse_mot_type("Autonomy"), MotivationType::Autonomy);
+        assert_eq!(parse_mot_type("Recognition"), MotivationType::Recognition);
+        assert_eq!(parse_mot_type("Learning"), MotivationType::Learning);
+        assert_eq!(parse_mot_type("Helping"), MotivationType::Helping);
+        assert_eq!(parse_mot_type("Creativity"), MotivationType::Creativity);
+        assert_eq!(parse_mot_type("Fairness"), MotivationType::Fairness);
+    }
+
+    #[test]
+    fn parse_mot_type_unknown() {
+        assert_eq!(parse_mot_type("bogus"), MotivationType::Achievement);
+    }
+
+    #[test]
+    fn parse_val_type_all_variants() {
+        assert_eq!(parse_val_type("Career"), ValueType::Career);
+        assert_eq!(parse_val_type("Family"), ValueType::Family);
+        assert_eq!(parse_val_type("Health"), ValueType::Health);
+        assert_eq!(parse_val_type("Wealth"), ValueType::Wealth);
+        assert_eq!(parse_val_type("Stability"), ValueType::Stability);
+        assert_eq!(parse_val_type("Adventure"), ValueType::Adventure);
+        assert_eq!(parse_val_type("Community"), ValueType::Community);
+        assert_eq!(parse_val_type("Knowledge"), ValueType::Knowledge);
+        assert_eq!(parse_val_type("Faith"), ValueType::Faith);
+        assert_eq!(parse_val_type("Loyalty"), ValueType::Loyalty);
+    }
+
+    #[test]
+    fn parse_val_type_unknown() {
+        assert_eq!(parse_val_type("bogus"), ValueType::Career);
+    }
+
+    #[test]
+    fn parse_bias_type_all_variants() {
+        assert_eq!(parse_bias_type("Confirmation"), BiasType::Confirmation);
+        assert_eq!(parse_bias_type("Anchoring"), BiasType::Anchoring);
+        assert_eq!(parse_bias_type("Availability"), BiasType::Availability);
+        assert_eq!(parse_bias_type("SunkCost"), BiasType::SunkCost);
+        assert_eq!(parse_bias_type("DunningKruger"), BiasType::DunningKruger);
+        assert_eq!(parse_bias_type("Impostor"), BiasType::Impostor);
+        assert_eq!(parse_bias_type("LossAversion"), BiasType::LossAversion);
+        assert_eq!(parse_bias_type("SocialProof"), BiasType::SocialProof);
+        assert_eq!(parse_bias_type("Authority"), BiasType::Authority);
+        assert_eq!(parse_bias_type("Recency"), BiasType::Recency);
+        assert_eq!(parse_bias_type("InGroup"), BiasType::InGroup);
+        assert_eq!(parse_bias_type("Favoritism"), BiasType::Favoritism);
+    }
+
+    #[test]
+    fn parse_bias_type_unknown() {
+        assert_eq!(parse_bias_type("bogus"), BiasType::Confirmation);
+    }
+
+    #[test]
+    fn parse_trigger_all_variants() {
+        assert_eq!(parse_trigger("Stress"), BehaviorTrigger::Stress);
+        assert_eq!(parse_trigger("Conflict"), BehaviorTrigger::Conflict);
+        assert_eq!(parse_trigger("Success"), BehaviorTrigger::Success);
+        assert_eq!(parse_trigger("Uncertainty"), BehaviorTrigger::Uncertainty);
+        assert_eq!(parse_trigger("Recognition"), BehaviorTrigger::Recognition);
+        assert_eq!(parse_trigger("Threatened"), BehaviorTrigger::Threatened);
+        assert_eq!(parse_trigger("Change"), BehaviorTrigger::Change);
+        assert_eq!(parse_trigger("Feedback"), BehaviorTrigger::Feedback);
+        assert_eq!(parse_trigger("Injustice"), BehaviorTrigger::Injustice);
+    }
+
+    #[test]
+    fn parse_trigger_unknown() {
+        assert_eq!(parse_trigger("bogus"), BehaviorTrigger::Stress);
+    }
+
+    #[test]
+    fn parse_response_valid() {
+        assert!(parse_response("remains_calm").is_some());
+        assert!(parse_response("facilitates_resolution").is_some());
+        assert!(parse_response("seeks_support").is_some());
+    }
+
+    #[test]
+    fn parse_response_invalid() {
+        assert!(parse_response("bogus").is_none());
+    }
+
+    #[test]
+    fn parse_style_category_all_variants() {
+        use peoplemodeler_core::models::StyleCategory;
+        assert_eq!(
+            parse_style_category("Communication"),
+            StyleCategory::Communication
+        );
+        assert_eq!(
+            parse_style_category("ConflictResolution"),
+            StyleCategory::ConflictResolution
+        );
+        assert_eq!(
+            parse_style_category("DecisionMaking"),
+            StyleCategory::DecisionMaking
+        );
+        assert_eq!(
+            parse_style_category("Leadership"),
+            StyleCategory::Leadership
+        );
+        assert_eq!(
+            parse_style_category("TimeOrientation"),
+            StyleCategory::TimeOrientation
+        );
+        assert_eq!(
+            parse_style_category("MoralFramework"),
+            StyleCategory::MoralFramework
+        );
+        assert_eq!(
+            parse_style_category("InterpersonalConduct"),
+            StyleCategory::InterpersonalConduct
+        );
+        assert_eq!(
+            parse_style_category("TrustStyle"),
+            StyleCategory::TrustStyle
+        );
+    }
+
+    #[test]
+    fn parse_style_category_unknown() {
+        use peoplemodeler_core::models::StyleCategory;
+        assert_eq!(parse_style_category("bogus"), StyleCategory::Communication);
+    }
+
+    #[test]
+    fn parse_style_type_valid() {
+        let st = parse_style_type("DirectCommunicator");
+        assert_eq!(st, StyleType::DirectCommunicator);
+    }
+
+    #[test]
+    fn parse_style_type_invalid() {
+        let st = parse_style_type("bogus");
+        assert_eq!(st, StyleType::DirectCommunicator);
+    }
+}

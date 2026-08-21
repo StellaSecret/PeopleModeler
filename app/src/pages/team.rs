@@ -389,3 +389,19 @@ fn ctx_key(c: peoplemodeler_core::insights::InsightContext) -> &'static str {
         peoplemodeler_core::insights::InsightContext::Growth => "ctx_growth",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::insights::InsightContext;
+
+    #[test]
+    fn ctx_key_all_variants() {
+        assert_eq!(ctx_key(InsightContext::Decision), "ctx_decision");
+        assert_eq!(ctx_key(InsightContext::Team), "ctx_team");
+        assert_eq!(ctx_key(InsightContext::Stress), "ctx_stress");
+        assert_eq!(ctx_key(InsightContext::Communication), "ctx_communication");
+        assert_eq!(ctx_key(InsightContext::Leadership), "ctx_leadership");
+        assert_eq!(ctx_key(InsightContext::Growth), "ctx_growth");
+    }
+}

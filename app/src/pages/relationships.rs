@@ -29,6 +29,36 @@ fn type_idx(rt: &RelationType) -> usize {
     RelationType::ALL.iter().position(|t| t == rt).unwrap_or(0)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cx_cy_are_half_svg() {
+        assert_eq!(CX, 400.0);
+        assert_eq!(CY, 400.0);
+    }
+
+    #[test]
+    fn type_color_returns_var() {
+        assert_eq!(type_color(&RelationType::WorksWith), "var(--cyan)");
+        assert_eq!(type_color(&RelationType::Manages), "var(--orange)");
+        assert_eq!(type_color(&RelationType::ReportsTo), "var(--green)");
+        assert_eq!(type_color(&RelationType::Friends), "var(--pink)");
+        assert_eq!(type_color(&RelationType::Family), "var(--purple)");
+        assert_eq!(type_color(&RelationType::Partner), "var(--gold)");
+        assert_eq!(type_color(&RelationType::Mentors), "#C0392B");
+        assert_eq!(type_color(&RelationType::Collaborates), "var(--blue)");
+    }
+
+    #[test]
+    fn type_idx_matches_all() {
+        for (i, rt) in RelationType::ALL.iter().enumerate() {
+            assert_eq!(type_idx(rt), i);
+        }
+    }
+}
+
 struct NodePos {
     id: String,
     x: f64,

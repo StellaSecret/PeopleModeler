@@ -109,3 +109,23 @@ fn uuid() -> String {
 fn now_ts() -> i64 {
     0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_input_value_nonwasm_returns_empty() {
+        assert_eq!(read_input_value(), String::new());
+    }
+
+    #[test]
+    fn uuid_nonwasm_returns_placeholder() {
+        assert_eq!(uuid(), "team-placeholder");
+    }
+
+    #[test]
+    fn now_ts_nonwasm_returns_zero() {
+        assert_eq!(now_ts(), 0);
+    }
+}

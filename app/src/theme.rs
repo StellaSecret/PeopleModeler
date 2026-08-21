@@ -86,3 +86,44 @@ impl Theme {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn as_str_dark() {
+        assert_eq!(Theme::Dark.as_str(), "dark");
+    }
+
+    #[test]
+    fn as_str_light() {
+        assert_eq!(Theme::Light.as_str(), "light");
+    }
+
+    #[test]
+    fn label_dark() {
+        assert_eq!(Theme::Dark.label(), "☀️");
+    }
+
+    #[test]
+    fn label_light() {
+        assert_eq!(Theme::Light.label(), "🌙");
+    }
+
+    #[test]
+    fn toggle_dark_to_light() {
+        assert_eq!(Theme::Dark.toggle(), Theme::Light);
+    }
+
+    #[test]
+    fn toggle_light_to_dark() {
+        assert_eq!(Theme::Light.toggle(), Theme::Dark);
+    }
+
+    #[test]
+    fn persist_as_str_roundtrip() {
+        assert_eq!(Theme::Dark.as_str(), "dark");
+        assert_eq!(Theme::Light.as_str(), "light");
+    }
+}

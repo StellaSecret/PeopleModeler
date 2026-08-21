@@ -1547,6 +1547,274 @@ mod tests {
     }
 
     #[test]
+    fn test_ocean_rep_flags_high_e_low_a_both_sides() {
+        let o_e_high_a_high = OceanScores {
+            extraversion: Some(9),
+            agreeableness: Some(9),
+            ..Default::default()
+        };
+        assert!(ocean_rep_flags(&o_e_high_a_high, &RepScores::default()).is_empty());
+        let o_e_low_a_low = OceanScores {
+            extraversion: Some(4),
+            agreeableness: Some(2),
+            ..Default::default()
+        };
+        assert!(ocean_rep_flags(&o_e_low_a_low, &RepScores::default()).is_empty());
+    }
+
+    #[test]
+    fn test_ocean_rep_flags_high_o_low_c_both_sides() {
+        let o = OceanScores {
+            openness: Some(9),
+            conscientiousness: Some(9),
+            ..Default::default()
+        };
+        assert!(!ocean_rep_flags(&o, &RepScores::default()).contains(&"flag_high_o_low_c"));
+        let o2 = OceanScores {
+            openness: Some(4),
+            conscientiousness: Some(2),
+            ..Default::default()
+        };
+        assert!(!ocean_rep_flags(&o2, &RepScores::default()).contains(&"flag_high_o_low_c"));
+    }
+
+    #[test]
+    fn test_style_diplomatic_blunt_gap_both_sides() {
+        let styles = vec![PersonalStyle {
+            r#type: StyleType::DiplomaticCommunicator,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let r_high_blunt = RepScores {
+            diplomatic_blunt: Some(2),
+            ..Default::default()
+        };
+        assert!(style_diplomatic_blunt_gap(&styles, &r_high_blunt));
+        let r_not_blunt = RepScores {
+            diplomatic_blunt: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_diplomatic_blunt_gap(&styles, &r_not_blunt));
+        let no_style = vec![];
+        assert!(!style_diplomatic_blunt_gap(&no_style, &r_high_blunt));
+    }
+
+    #[test]
+    fn test_style_dominant_submissive_gap_both_sides() {
+        let styles = vec![PersonalStyle {
+            r#type: StyleType::Autocratic,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let r_submissive = RepScores {
+            authoritative_submissive: Some(2),
+            ..Default::default()
+        };
+        assert!(style_dominant_submissive_gap(&styles, &r_submissive));
+        let r_dominant = RepScores {
+            authoritative_submissive: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_dominant_submissive_gap(&styles, &r_dominant));
+        let no_style = vec![];
+        assert!(!style_dominant_submissive_gap(&no_style, &r_submissive));
+    }
+
+    #[test]
+    fn test_style_guarded_trusting_gap_both_sides() {
+        let styles = vec![PersonalStyle {
+            r#type: StyleType::Guarded,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let r_trusting = RepScores {
+            trusting_suspicious: Some(9),
+            ..Default::default()
+        };
+        assert!(style_guarded_trusting_gap(&styles, &r_trusting));
+        let r_suspicious = RepScores {
+            trusting_suspicious: Some(2),
+            ..Default::default()
+        };
+        assert!(!style_guarded_trusting_gap(&styles, &r_suspicious));
+        let no_style = vec![];
+        assert!(!style_guarded_trusting_gap(&no_style, &r_trusting));
+    }
+
+    #[test]
+    fn test_style_consensus_authoritative_gap_both_sides() {
+        let styles = vec![PersonalStyle {
+            r#type: StyleType::ConsensusDriven,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let r_auth = RepScores {
+            authoritative_submissive: Some(9),
+            ..Default::default()
+        };
+        assert!(style_consensus_authoritative_gap(&styles, &r_auth));
+        let r_sub = RepScores {
+            authoritative_submissive: Some(2),
+            ..Default::default()
+        };
+        assert!(!style_consensus_authoritative_gap(&styles, &r_sub));
+        let no_style = vec![];
+        assert!(!style_consensus_authoritative_gap(&no_style, &r_auth));
+    }
+
+    #[test]
+    fn test_style_repairs_trust_deceitful_gap_both_sides() {
+        let styles = vec![PersonalStyle {
+            r#type: StyleType::RepairsTrustActively,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let r_deceitful = RepScores {
+            honest_deceitful: Some(2),
+            ..Default::default()
+        };
+        assert!(style_repairs_trust_deceitful_gap(&styles, &r_deceitful));
+        let r_honest = RepScores {
+            honest_deceitful: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_repairs_trust_deceitful_gap(&styles, &r_honest));
+        let no_style = vec![];
+        assert!(!style_repairs_trust_deceitful_gap(&no_style, &r_deceitful));
+    }
+
+    #[test]
+    fn test_value_flags_empty() {
+        let flags = value_flags(&[], None, &[]);
+        assert!(flags.is_empty());
+    }
+
+    #[test]
+    fn test_value_flags_family_past() {
+        use crate::models::{PersonalStyle, StyleType, Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Family,
+            intensity: 8,
+            priority: 5,
+            notes: String::new(),
+        }];
+        let styles = vec![PersonalStyle {
+            r#type: StyleType::PresentOriented,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let flags = value_flags(&values, None, &styles);
+        assert!(flags.contains(&"flag_value_family_past"));
+        let past_style = vec![PersonalStyle {
+            r#type: StyleType::PastOriented,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        assert!(!value_flags(&values, None, &past_style).contains(&"flag_value_family_past"));
+        let low_val = vec![Value {
+            r#type: ValueType::Family,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(!value_flags(&low_val, None, &styles).contains(&"flag_value_family_past"));
+    }
+
+    #[test]
+    fn test_value_flags_stability_risk() {
+        use crate::models::{Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Stability,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(value_flags(&values, Some(9), &[]).contains(&"flag_value_stability_risk"));
+        assert!(value_flags(&values, Some(8), &[]).contains(&"flag_value_stability_risk"));
+        assert!(!value_flags(&values, Some(7), &[]).contains(&"flag_value_stability_risk"));
+        assert!(!value_flags(&values, None, &[]).contains(&"flag_value_stability_risk"));
+        let low_val = vec![Value {
+            r#type: ValueType::Stability,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(!value_flags(&low_val, Some(9), &[]).contains(&"flag_value_stability_risk"));
+    }
+
+    #[test]
+    fn test_value_flags_career_family() {
+        use crate::models::{Value, ValueType};
+        let values = vec![
+            Value {
+                r#type: ValueType::Career,
+                intensity: 9,
+                priority: 5,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Family,
+                intensity: 9,
+                priority: 5,
+                notes: String::new(),
+            },
+        ];
+        assert!(value_flags(&values, None, &[]).contains(&"flag_value_career_family"));
+        let only_career = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(!value_flags(&only_career, None, &[]).contains(&"flag_value_career_family"));
+        let low_both = vec![
+            Value {
+                r#type: ValueType::Career,
+                intensity: 5,
+                priority: 5,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Family,
+                intensity: 9,
+                priority: 5,
+                notes: String::new(),
+            },
+        ];
+        assert!(!value_flags(&low_both, None, &[]).contains(&"flag_value_career_family"));
+    }
+
+    #[test]
+    fn test_value_flags_loyalty_guarded() {
+        use crate::models::{PersonalStyle, StyleType, Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Loyalty,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        let guarded = vec![PersonalStyle {
+            r#type: StyleType::Guarded,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        assert!(value_flags(&values, None, &guarded).contains(&"flag_value_loyalty_guarded"));
+        let free_trust = vec![PersonalStyle {
+            r#type: StyleType::ExtendsTrustFreely,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        assert!(!value_flags(&values, None, &free_trust).contains(&"flag_value_loyalty_guarded"));
+        let low_val = vec![Value {
+            r#type: ValueType::Loyalty,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(!value_flags(&low_val, None, &guarded).contains(&"flag_value_loyalty_guarded"));
+    }
+
+    #[test]
     fn test_all_person_flags_includes_evidence() {
         let person = Person {
             id: String::new(),

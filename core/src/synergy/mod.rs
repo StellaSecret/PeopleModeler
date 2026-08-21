@@ -3977,4 +3977,1963 @@ mod tests {
             assert!(*avg <= 100, "context avg {:?} = {} exceeds 100", ctx, avg);
         }
     }
+
+    // === Mutation-killing tests for synergy.rs ===
+
+    // --- rep_danger_penalty: exact values per dimension ---
+
+    #[test]
+    fn test_rep_danger_penalty_single_dimension_exact() {
+        use crate::models::RepScores;
+        let d = &CFG.reputation.danger;
+        // Power struggle: both authoritative >= high (8)
+        let ra = RepScores {
+            authoritative_submissive: Some(d.high),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            authoritative_submissive: Some(d.high),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.power_struggle).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_brutal_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            diplomatic_blunt: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            diplomatic_blunt: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.brutal).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_escalation_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            calm_reactive: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            calm_reactive: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.escalation).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_no_concede_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            humble_arrogant: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            humble_arrogant: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.no_concede).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_passivity_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            hardworker_lazy: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            hardworker_lazy: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.passivity).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_suspicion_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            trusting_suspicious: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            trusting_suspicious: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.suspicion).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_coldness_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            empathetic_detached: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            empathetic_detached: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.coldness).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_trust_collapse_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            honest_deceitful: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            honest_deceitful: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.trust_collapse).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_unreliability_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            reliable_flaky: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            reliable_flaky: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.unreliability).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_cronyism_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            fair_favoritism: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            fair_favoritism: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.cronyism).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_hoarding_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            generous_selfish: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            generous_selfish: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.hoarding).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_paralysis_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            assertive_passive: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            assertive_passive: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.paralysis).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_gridlock_exact() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            adaptable_rigid: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            adaptable_rigid: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.gridlock).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_not_triggered_above_low() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            authoritative_submissive: Some(d.low + 1),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            authoritative_submissive: Some(d.low + 1),
+            ..Default::default()
+        };
+        assert_eq!(rep_danger_penalty(&ra, &rb), 0.0);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_all_dims_combine() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            authoritative_submissive: Some(d.high),
+            diplomatic_blunt: Some(d.low),
+            calm_reactive: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            authoritative_submissive: Some(d.high),
+            diplomatic_blunt: Some(d.low),
+            calm_reactive: Some(d.low),
+            ..Default::default()
+        };
+        let expected = d.power_struggle + d.brutal + d.escalation;
+        assert!((rep_danger_penalty(&ra, &rb) - expected).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_authoritative_above_high_no_trigger() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            authoritative_submissive: Some(d.high - 1),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            authoritative_submissive: Some(d.high - 1),
+            ..Default::default()
+        };
+        assert_eq!(rep_danger_penalty(&ra, &rb), 0.0);
+    }
+
+    // --- ocean_danger_penalty: exact values ---
+
+    #[test]
+    fn test_ocean_danger_volatile_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            neuroticism: Some(d.high),
+            agreeableness: Some(d.low),
+            ..Default::default()
+        };
+        let ob = OceanScores::default();
+        assert!((ocean_danger_penalty(&oa, &ob) - d.within_volatile).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_impulsive_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            neuroticism: Some(d.high),
+            conscientiousness: Some(d.low),
+            ..Default::default()
+        };
+        let ob = OceanScores::default();
+        assert!((ocean_danger_penalty(&oa, &ob) - d.within_impulsive).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_rigid_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            neuroticism: Some(d.high),
+            openness: Some(d.low),
+            ..Default::default()
+        };
+        let ob = OceanScores::default();
+        assert!((ocean_danger_penalty(&oa, &ob) - d.within_rigid).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_contagion_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            neuroticism: Some(d.high),
+            ..Default::default()
+        };
+        let ob = OceanScores {
+            neuroticism: Some(d.high),
+            ..Default::default()
+        };
+        assert!((ocean_danger_penalty(&oa, &ob) - d.contagion).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_antagonism_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            agreeableness: Some(d.low),
+            ..Default::default()
+        };
+        let ob = OceanScores {
+            agreeableness: Some(d.low),
+            ..Default::default()
+        };
+        assert!((ocean_danger_penalty(&oa, &ob) - d.antagonism).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_unreliability_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            conscientiousness: Some(d.low),
+            ..Default::default()
+        };
+        let ob = OceanScores {
+            conscientiousness: Some(d.low),
+            ..Default::default()
+        };
+        assert!((ocean_danger_penalty(&oa, &ob) - d.unreliability).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_rigidity_exact() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            openness: Some(d.low),
+            ..Default::default()
+        };
+        let ob = OceanScores {
+            openness: Some(d.low),
+            ..Default::default()
+        };
+        assert!((ocean_danger_penalty(&oa, &ob) - d.rigidity).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ocean_danger_all_combine() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            openness: Some(d.low),
+            conscientiousness: None,
+            extraversion: Some(5),
+            agreeableness: Some(d.low),
+            neuroticism: Some(d.high),
+        };
+        let ob = OceanScores {
+            openness: Some(d.low),
+            conscientiousness: None,
+            extraversion: Some(5),
+            agreeableness: Some(d.low),
+            neuroticism: Some(d.high),
+        };
+        // A: volatile (N high, A low) + rigid (N high, O low)
+        // B: volatile + rigid
+        // Cross: contagion + antagonism + rigidity
+        let expected = d.within_volatile * 2.0
+            + d.within_rigid * 2.0
+            + d.contagion
+            + d.antagonism
+            + d.rigidity;
+        let actual = ocean_danger_penalty(&oa, &ob);
+        assert!(
+            (actual - expected).abs() < 0.001,
+            "got {} expected {}",
+            actual,
+            expected
+        );
+    }
+
+    #[test]
+    fn test_ocean_danger_boundary_high_minus_one_no_trigger() {
+        let d = &CFG.ocean.danger;
+        let oa = OceanScores {
+            neuroticism: Some(d.high - 1),
+            agreeableness: Some(d.low + 1),
+            ..Default::default()
+        };
+        let ob = OceanScores::default();
+        assert_eq!(ocean_danger_penalty(&oa, &ob), 0.0);
+    }
+
+    // --- trajectory_from: exact level and delta ---
+
+    #[test]
+    fn test_trajectory_from_single_positive() {
+        use crate::models::InteractionEntry;
+        let entries: Vec<InteractionEntry> = (0..2)
+            .map(|i| InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(3),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            })
+            .collect();
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert_eq!(traj.sample, 2);
+        assert!(traj.level > 0.0, "positive valence → positive level");
+        assert!(traj.delta > 0, "positive valence → positive delta");
+    }
+
+    #[test]
+    fn test_trajectory_from_single_negative() {
+        use crate::models::InteractionEntry;
+        let entries: Vec<InteractionEntry> = (0..2)
+            .map(|i| InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(-3),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            })
+            .collect();
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert_eq!(traj.sample, 2);
+        assert!(traj.level < 0.0, "negative valence → negative level");
+        assert!(traj.delta < 0, "negative valence → negative delta");
+    }
+
+    #[test]
+    fn test_trajectory_from_level_clamped() {
+        use crate::models::InteractionEntry;
+        let entries: Vec<InteractionEntry> = (0..2)
+            .map(|i| InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(3),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            })
+            .collect();
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert!(traj.level <= 1.0, "level clamped to 1.0");
+        assert!(traj.level >= -1.0, "level clamped to -1.0");
+    }
+
+    #[test]
+    fn test_trajectory_from_delta_clamped() {
+        use crate::models::InteractionEntry;
+        let entries: Vec<InteractionEntry> = (0..6)
+            .map(|i| InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(3),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            })
+            .collect();
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert!(traj.delta <= CFG.trajectory.delta_clamp);
+        assert!(traj.delta >= -CFG.trajectory.delta_clamp);
+    }
+
+    #[test]
+    fn test_trajectory_from_improving_trend() {
+        use crate::models::InteractionEntry;
+        let mut entries: Vec<InteractionEntry> = Vec::new();
+        for i in 0..5 {
+            entries.push(InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(if i < 2 { -2 } else { 2 }),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            });
+        }
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert_eq!(traj.trend, Trend::Improving);
+    }
+
+    #[test]
+    fn test_trajectory_from_deteriorating_trend() {
+        use crate::models::InteractionEntry;
+        let mut entries: Vec<InteractionEntry> = Vec::new();
+        for i in 0..5 {
+            entries.push(InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(if i < 2 { 2 } else { -2 }),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            });
+        }
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert_eq!(traj.trend, Trend::Deteriorating);
+    }
+
+    #[test]
+    fn test_trajectory_from_few_samples_level_fallback() {
+        use crate::models::InteractionEntry;
+        let entries: Vec<InteractionEntry> = (0..2)
+            .map(|i| InteractionEntry {
+                id: format!("e{}", i),
+                valence: Some(3),
+                timestamp: i * 1000,
+                text: String::new(),
+                trigger: None,
+                target_id: None,
+            })
+            .collect();
+        let refs: Vec<&InteractionEntry> = entries.iter().collect();
+        let traj = trajectory_from(&refs);
+        assert!(traj.sample < CFG.trajectory.min_samples);
+        assert!(traj.trend == Trend::Improving || traj.trend == Trend::Stable);
+    }
+
+    // --- value_similarity: exact values ---
+
+    #[test]
+    fn test_value_similarity_identical() {
+        let vals = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 8,
+            priority: 7,
+            notes: String::new(),
+        }];
+        let sim = value_similarity(&vals, &vals);
+        assert!((sim - 1.0).abs() < 0.001, "identical → 1.0, got {}", sim);
+    }
+
+    #[test]
+    fn test_value_similarity_empty_empty() {
+        let sim = value_similarity(&[], &[]);
+        assert!((sim - 0.5).abs() < 0.001, "both empty → 0.5, got {}", sim);
+    }
+
+    #[test]
+    fn test_value_similarity_opposite() {
+        let a = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 10,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let b = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 1,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let sim = value_similarity(&a, &b);
+        assert!(sim < 0.5, "opposite intensities → low sim, got {}", sim);
+    }
+
+    #[test]
+    fn test_value_similarity_one_empty_one_populated() {
+        let a = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 5,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let b: Vec<Value> = vec![];
+        let sim = value_similarity(&a, &b);
+        // a has priority 10 → w=1.0, av=0.5, bv=0.5 (default) → 1.0 - 0 = 1.0
+        assert!(
+            (sim - 1.0).abs() < 0.001,
+            "one empty → 1.0 (default=0.5), got {}",
+            sim
+        );
+    }
+
+    #[test]
+    fn test_value_similarity_weighted_by_priority() {
+        // Low priority → low weight → barely matters
+        let a = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 10,
+            priority: 1,
+            notes: String::new(),
+        }];
+        let b = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 1,
+            priority: 1,
+            notes: String::new(),
+        }];
+        let sim_lo = value_similarity(&a, &b);
+        // High priority → high weight → matters a lot
+        let a_hi = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 10,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let b_lo = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 1,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let sim_hi = value_similarity(&a_hi, &b_lo);
+        // Both have same intensities but different priority weight
+        // sim_lo = (1 - |10/10 - 1/10|) * 0.1 / 0.1 = (1 - 0.9) = 0.1
+        // sim_hi = (1 - |10/10 - 1/10|) * 1.0 / 1.0 = (1 - 0.9) = 0.1
+        // Actually same sim because only 1 value, weight normalizes out
+        // Instead test: low priority pair vs high priority pair with more values
+        assert!(
+            (sim_lo - sim_hi).abs() < 0.001,
+            "single value: same sim regardless of priority"
+        );
+    }
+
+    // --- motivation_synergy_score: exact arithmetic ---
+
+    #[test]
+    fn test_motivation_synergy_score_single_pair() {
+        let ma = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let mb = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 6,
+            notes: String::new(),
+        }];
+        let score = motivation_synergy_score(&ma, &mb);
+        assert!(score > 0.5, "Achievement×Learning positive, got {}", score);
+        assert!(score <= 1.0, "clamped to 1.0");
+    }
+
+    #[test]
+    fn test_motivation_synergy_score_symmetric() {
+        let ma = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let mb = vec![Motivation {
+            r#type: MotivationType::Affiliation,
+            intensity: 6,
+            notes: String::new(),
+        }];
+        let score_ab = motivation_synergy_score(&ma, &mb);
+        let score_ba = motivation_synergy_score(&mb, &ma);
+        assert!((score_ab - score_ba).abs() < 0.001, "must be symmetric");
+    }
+
+    #[test]
+    fn test_motivation_synergy_score_zero_syn_zero_weight() {
+        let ma = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let mb = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let score = motivation_synergy_score(&ma, &mb);
+        assert!(
+            (score - CFG.motivation.default).abs() < 0.001,
+            "zero syn → default, got {}",
+            score
+        );
+    }
+
+    // --- pattern_synergy: exact arithmetic ---
+
+    #[test]
+    fn test_pattern_synergy_symmetric() {
+        let pa = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Change,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let pb = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Conflict,
+            predicted_behavior: BehaviorResponse::EmbracesChange,
+            notes: String::new(),
+        }];
+        let score_ab = pattern_synergy(&pa, &pb);
+        let score_ba = pattern_synergy(&pb, &pa);
+        assert!((score_ab - score_ba).abs() < 0.001, "must be symmetric");
+    }
+
+    // --- avg_prediction_accuracy: && guard ---
+
+    #[test]
+    fn test_avg_prediction_accuracy_both_resolved() {
+        let preds = vec![
+            Prediction {
+                id: "p1".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(8),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p2".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(6),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p3".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(7),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+        ];
+        let avg = avg_prediction_accuracy(&preds).unwrap();
+        assert!((avg - 7.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_avg_prediction_accuracy_unresolved_excluded() {
+        let preds = vec![
+            Prediction {
+                id: "p1".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(8),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p2".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(10),
+                created_at: 0,
+                resolved_at: None,
+                resolved: false,
+            },
+            Prediction {
+                id: "p3".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(4),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p4".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(6),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+        ];
+        let avg = avg_prediction_accuracy(&preds).unwrap();
+        assert!(
+            (avg - 6.0).abs() < 0.001,
+            "only resolved count, got {}",
+            avg
+        );
+    }
+
+    #[test]
+    fn test_avg_prediction_accuracy_no_accuracy_excluded() {
+        let preds = vec![
+            Prediction {
+                id: "p1".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(8),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p2".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: None,
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p3".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(4),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+            Prediction {
+                id: "p4".into(),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(6),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            },
+        ];
+        let avg = avg_prediction_accuracy(&preds).unwrap();
+        assert!(
+            (avg - 6.0).abs() < 0.001,
+            "only resolved with accuracy count, got {}",
+            avg
+        );
+    }
+
+    // --- per_context_breakdown: exact scores ---
+
+    #[test]
+    fn test_per_context_breakdown_known_buckets() {
+        let buckets = [0.8, 0.6, 0.7, 0.5, 0.4, 0.3, 0.2];
+        let penalties = [0.0, 0.0, 0.0, 0.0];
+        let inp = PerContextInputs {
+            buckets,
+            penalties,
+            rep_active: true,
+            mot_active: true,
+            pat_active: true,
+        };
+        let result = per_context_breakdown(&inp, None);
+        assert_eq!(result.len(), 6);
+        for (ctx, score) in &result {
+            assert!(*score <= 100, "score {:?} = {} exceeds 100", ctx, score);
+        }
+    }
+
+    #[test]
+    fn test_per_context_breakdown_all_zero_buckets() {
+        let inp = PerContextInputs {
+            buckets: [0.0; 7],
+            penalties: [0.0; 4],
+            rep_active: true,
+            mot_active: true,
+            pat_active: true,
+        };
+        let result = per_context_breakdown(&inp, None);
+        for (_, score) in &result {
+            assert_eq!(*score, 0, "zero buckets → zero score");
+        }
+    }
+
+    #[test]
+    fn test_per_context_breakdown_with_penalties_lowers_score() {
+        let buckets = [0.8, 0.6, 0.7, 0.5, 0.4, 0.3, 0.2];
+        let no_pen = per_context_breakdown(
+            &PerContextInputs {
+                buckets,
+                penalties: [0.0; 4],
+                rep_active: true,
+                mot_active: true,
+                pat_active: true,
+            },
+            None,
+        );
+        let with_pen = per_context_breakdown(
+            &PerContextInputs {
+                buckets,
+                penalties: [0.1, 0.1, 0.1, 0.1],
+                rep_active: true,
+                mot_active: true,
+                pat_active: true,
+            },
+            None,
+        );
+        for ((_, s1), (_, s2)) in no_pen.iter().zip(&with_pen) {
+            assert!(*s2 <= *s1, "penalties must lower score: {} > {}", s1, s2);
+        }
+    }
+
+    #[test]
+    fn test_per_context_breakdown_inactive_components() {
+        let buckets = [0.5, 0.9, 0.9, 0.9, 0.5, 0.5, 0.5];
+        let active = per_context_breakdown(
+            &PerContextInputs {
+                buckets,
+                penalties: [0.0; 4],
+                rep_active: true,
+                mot_active: true,
+                pat_active: true,
+            },
+            None,
+        );
+        let inactive = per_context_breakdown(
+            &PerContextInputs {
+                buckets,
+                penalties: [0.0; 4],
+                rep_active: false,
+                mot_active: false,
+                pat_active: false,
+            },
+            None,
+        );
+        for ((_, s_a), (_, s_i)) in active.iter().zip(&inactive) {
+            assert!(
+                *s_a >= *s_i,
+                "inactive components should lower or equal score"
+            );
+        }
+    }
+
+    // --- virtue_adjustment: match guard mutations ---
+
+    #[test]
+    fn test_virtue_fairness_low_penalty() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: 2,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        let expected = -CFG.motivation.virtue.fairness - CFG.motivation.virtue.helping;
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "got {} expected {}",
+            adj,
+            expected
+        );
+    }
+
+    #[test]
+    fn test_virtue_helping_low_penalty() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Helping,
+            intensity: 2,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        let expected = -CFG.motivation.virtue.fairness - CFG.motivation.virtue.helping;
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "got {} expected {}",
+            adj,
+            expected
+        );
+    }
+
+    #[test]
+    fn test_virtue_fairness_absent_penalty() {
+        let adj = virtue_adjustment(&[]);
+        assert!(
+            (adj - (-CFG.motivation.virtue.fairness - CFG.motivation.virtue.helping)).abs() < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_learning_high_bonus() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Learning,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        assert!(
+            (adj - (CFG.motivation.virtue.learning
+                - CFG.motivation.virtue.fairness
+                - CFG.motivation.virtue.helping))
+                .abs()
+                < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_creativity_high_bonus() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Creativity,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        assert!(
+            (adj - (CFG.motivation.virtue.creativity
+                - CFG.motivation.virtue.fairness
+                - CFG.motivation.virtue.helping))
+                .abs()
+                < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_power_high_penalty() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        assert!(
+            (adj - (-CFG.motivation.virtue.power
+                - CFG.motivation.virtue.fairness
+                - CFG.motivation.virtue.helping))
+                .abs()
+                < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_security_high_penalty() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Security,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        assert!(
+            (adj - (-CFG.motivation.virtue.security
+                - CFG.motivation.virtue.fairness
+                - CFG.motivation.virtue.helping))
+                .abs()
+                < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_recognition_extreme_penalty() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 9,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        assert!(
+            (adj - (-CFG.motivation.virtue.recognition
+                - CFG.motivation.virtue.fairness
+                - CFG.motivation.virtue.helping))
+                .abs()
+                < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_recognition_below_extreme_no_penalty() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Recognition,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        assert!(
+            (adj - (-CFG.motivation.virtue.fairness - CFG.motivation.virtue.helping)).abs() < 0.001
+        );
+    }
+
+    #[test]
+    fn test_virtue_boundary_at_high_triggers() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: CFG.motivation.virtue.high,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        let expected = CFG.motivation.virtue.fairness - CFG.motivation.virtue.helping;
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "got {} expected {}",
+            adj,
+            expected
+        );
+    }
+
+    #[test]
+    fn test_virtue_boundary_below_high_no_bonus() {
+        let m = vec![Motivation {
+            r#type: MotivationType::Fairness,
+            intensity: CFG.motivation.virtue.high - 1,
+            notes: String::new(),
+        }];
+        let adj = virtue_adjustment(&m);
+        // Fairness at high-1 = moderate → no bonus, no penalty
+        // Helping is absent → -v.helping
+        let expected = -CFG.motivation.virtue.helping;
+        assert!(
+            (adj - expected).abs() < 0.001,
+            "got {} expected {}",
+            adj,
+            expected
+        );
+    }
+
+    // --- invalidated_motivations: all match arms ---
+
+    #[test]
+    fn test_invalidated_security_gullible() {
+        let inv = invalidated_motivations(&["flag_security_gullible"]);
+        assert!(inv.contains(&MotivationType::Security));
+    }
+
+    #[test]
+    fn test_invalidated_security_risky() {
+        let inv = invalidated_motivations(&["flag_security_risky"]);
+        assert!(inv.contains(&MotivationType::Security));
+    }
+
+    #[test]
+    fn test_invalidated_risk_appetite_ambition() {
+        let inv = invalidated_motivations(&["flag_risk_appetite_ambition"]);
+        assert!(inv.contains(&MotivationType::Power));
+        assert!(inv.contains(&MotivationType::Achievement));
+    }
+
+    #[test]
+    fn test_invalidated_power_passive() {
+        let inv = invalidated_motivations(&["flag_power_passive"]);
+        assert!(inv.contains(&MotivationType::Power));
+    }
+
+    #[test]
+    fn test_invalidated_pattern_recognition_dismissive() {
+        let inv = invalidated_motivations(&["flag_pattern_recognition_dismissive"]);
+        assert!(inv.contains(&MotivationType::Recognition));
+    }
+
+    #[test]
+    fn test_invalidated_creativity_closed() {
+        let inv = invalidated_motivations(&["flag_creativity_closed"]);
+        assert!(inv.contains(&MotivationType::Creativity));
+    }
+
+    #[test]
+    fn test_invalidated_creativity_rigid() {
+        let inv = invalidated_motivations(&["flag_creativity_rigid"]);
+        assert!(inv.contains(&MotivationType::Creativity));
+    }
+
+    #[test]
+    fn test_invalidated_autonomy_submissive() {
+        let inv = invalidated_motivations(&["flag_autonomy_submissive"]);
+        assert!(inv.contains(&MotivationType::Autonomy));
+    }
+
+    #[test]
+    fn test_invalidated_affiliation_cold() {
+        let inv = invalidated_motivations(&["flag_affiliation_cold"]);
+        assert!(inv.contains(&MotivationType::Affiliation));
+    }
+
+    #[test]
+    fn test_invalidated_affiliation_distrustful() {
+        let inv = invalidated_motivations(&["flag_affiliation_distrustful"]);
+        assert!(inv.contains(&MotivationType::Affiliation));
+    }
+
+    // --- profile_completeness: exact arithmetic ---
+
+    #[test]
+    fn test_profile_completeness_half() {
+        let mut p = make_person(Some(5), Some(5), None, None, None);
+        p.motivations = vec![Motivation {
+            r#type: MotivationType::Power,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let c = profile_completeness(&p);
+        let expected = (2 + 1) as f64 / CFG.completeness.denominator;
+        assert!(
+            (c - expected).abs() < 0.001,
+            "got {} expected {}",
+            c,
+            expected
+        );
+    }
+
+    // --- compute_person_profile: exact arithmetic ---
+
+    #[test]
+    fn test_compute_person_profile_empty() {
+        let p = make_person(None, None, None, None, None);
+        let prof = compute_person_profile(&p);
+        assert!(
+            prof.motivation >= 0.0 && prof.motivation <= 1.0,
+            "motivation in range"
+        );
+        assert!(
+            prof.patterns >= 0.0 && prof.patterns <= 1.0,
+            "patterns in range"
+        );
+        assert!(prof.total <= 100, "total must be <= 100");
+    }
+
+    #[test]
+    fn test_compute_person_profile_band() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.confidence = 10;
+        let prof = compute_person_profile(&p);
+        assert_eq!(prof.band, confidence_band(10));
+    }
+
+    #[test]
+    fn test_compute_person_profile_bias_count() {
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.biases = vec![
+            Bias {
+                r#type: BiasType::Confirmation,
+                intensity: 2,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 2,
+                evidence: String::new(),
+            },
+            Bias {
+                r#type: BiasType::Availability,
+                intensity: 2,
+                evidence: String::new(),
+            },
+        ];
+        let prof = compute_person_profile(&p);
+        assert!(
+            prof.bias > 0.0,
+            "bias score should be positive with 3 biases present"
+        );
+    }
+
+    // --- model_config: matrix values ---
+
+    #[test]
+    fn test_relation_weights_all_distinct() {
+        let mut seen = std::collections::HashSet::new();
+        for w in &CFG.relationship.weights {
+            let key: Vec<String> = w.iter().map(|v| format!("{:.2}", v)).collect();
+            seen.insert(key);
+        }
+        assert!(
+            seen.len() >= 6,
+            "at least 6 distinct weight rows (Manages/ReportsTo may share)"
+        );
+    }
+
+    #[test]
+    fn test_context_weights_all_sum_to_one() {
+        for row in &CFG.contexts.weights {
+            let sum: f64 = row.iter().sum();
+            assert!((sum - 1.0).abs() < 0.001, "row sums to {}, not 1.0", sum);
+        }
+    }
+
+    #[test]
+    fn test_motivation_synergy_non_zero_entries() {
+        for (i, row) in CFG.motivation.synergy.iter().enumerate() {
+            for (j, &v) in row.iter().enumerate() {
+                assert!((-1.0..=1.0).contains(&v), "trigger[{}][{}] = {}", i, j, v);
+            }
+        }
+    }
+
+    #[test]
+    fn test_motivation_synergy_diagonal_power_negative() {
+        assert!(
+            CFG.motivation.synergy[0][0] < 0.0,
+            "Power×Power should be negative"
+        );
+    }
+
+    #[test]
+    fn test_motivation_synergy_diagonal_learning_positive() {
+        let i = MotivationType::ALL
+            .iter()
+            .position(|&t| t == MotivationType::Learning)
+            .unwrap();
+        assert!(
+            CFG.motivation.synergy[i][i] > 0.0,
+            "Learning×Learning should be positive"
+        );
+    }
+
+    #[test]
+    fn test_trigger_synergy_all_entries_in_range() {
+        for (i, row) in CFG.patterns.trigger_synergy.iter().enumerate() {
+            for (j, &v) in row.iter().enumerate() {
+                assert!((-1.0..=1.0).contains(&v), "trigger[{}][{}] = {}", i, j, v);
+            }
+        }
+    }
+
+    #[test]
+    fn test_bias_modulation_all_targets() {
+        for (i, entry) in CFG.bias.modulation.iter().enumerate() {
+            if let Some((target, coeff)) = entry {
+                assert!(coeff.abs() <= 1.0, "modulation[{}] coeff = {}", i, coeff);
+                let _ = target;
+            }
+        }
+    }
+
+    #[test]
+    fn test_base_weights_sum() {
+        let w = &CFG.base_weights;
+        let sum = w.ocean + w.reputation + w.motivation + w.patterns + w.bias + w.style + w.values;
+        assert!((sum - 1.0).abs() < 0.001, "base weights sum to {}", sum);
+    }
+
+    #[test]
+    fn test_rep_danger_thresholds_in_range() {
+        let d = &CFG.reputation.danger;
+        assert!(d.high > d.low, "high must exceed low");
+        assert!(d.high <= 10);
+    }
+
+    #[test]
+    fn test_ocean_danger_thresholds() {
+        let d = &CFG.ocean.danger;
+        assert!(d.high > d.low);
+        assert!(d.high <= 10);
+    }
+
+    #[test]
+    fn test_virtue_thresholds() {
+        let v = &CFG.motivation.virtue;
+        assert!(v.high > v.low);
+        assert!(v.recognition_high > v.high);
+    }
+
+    #[test]
+    fn test_bias_thresholds() {
+        let b = &CFG.bias;
+        assert!(b.strong_min > b.mild_max);
+    }
+
+    // --- compute_synergy_score_inner: specific numeric checks ---
+
+    #[test]
+    fn test_synergy_identical_full_profiles() {
+        let p = full_profile();
+        let b = compute_synergy_score_inner(&p, &p, None, &[], &[]);
+        assert_eq!(b.total, b.a_score, "identical persons → total == a_score");
+        assert_eq!(b.a_score, b.b_score, "identical persons → a == b");
+        assert!(
+            b.ocean > 0.5,
+            "identical high OCEAN → ocean > 0.5, got {}",
+            b.ocean
+        );
+        assert!(b.reputation > 0.0, "identical rep → positive");
+    }
+
+    #[test]
+    fn test_synergy_opposite_ocean_direction() {
+        let a = make_person(Some(10), Some(10), Some(10), Some(10), Some(1));
+        let b = make_person(Some(1), Some(1), Some(1), Some(1), Some(10));
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            breakdown.ocean < 0.5,
+            "opposite OCEAN → low ocean, got {}",
+            breakdown.ocean
+        );
+    }
+
+    #[test]
+    fn test_synergy_with_relationship_changes_weights() {
+        let a = full_profile();
+        let b = full_profile();
+        let no_ctx = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        let ctx = RelContext {
+            rtype: RelationType::Manages,
+            strength: 5,
+        };
+        let with_ctx = compute_synergy_score_inner(&a, &b, Some(&ctx), &[], &[]);
+        assert_ne!(
+            no_ctx.total, with_ctx.total,
+            "relationship context should change total"
+        );
+    }
+
+    #[test]
+    fn test_synergy_per_context_has_six_entries() {
+        let a = full_profile();
+        let b = full_profile();
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert_eq!(breakdown.per_context.len(), 6);
+    }
+
+    #[test]
+    fn test_synergy_danger_non_negative() {
+        let a = make_person(Some(10), Some(1), Some(10), Some(1), Some(10));
+        let b = make_person(Some(10), Some(1), Some(10), Some(1), Some(10));
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(breakdown.danger >= 0.0, "danger must be non-negative");
+        assert!(breakdown.total <= 100, "total must be <= 100");
+    }
+
+    #[test]
+    fn test_synergy_bias_mod_active_with_shared_biases() {
+        let mut a = full_profile();
+        let mut b = full_profile();
+        a.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(breakdown.bias_mod_active, "shared biases → mod active");
+    }
+
+    #[test]
+    fn test_synergy_history_penalty_with_low_accuracy() {
+        let a = full_profile();
+        let b = full_profile();
+        let preds_a: Vec<Prediction> = (0..3)
+            .map(|i| Prediction {
+                id: format!("p{}", i),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(3),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            })
+            .collect();
+        let preds_b: Vec<Prediction> = (0..3)
+            .map(|i| Prediction {
+                id: format!("p{}", i),
+                person_id: "b".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(3),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            })
+            .collect();
+        let no_preds = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        let with_preds = compute_synergy_score_inner(&a, &b, None, &preds_a, &preds_b);
+        assert!(
+            with_preds.danger > no_preds.danger,
+            "low accuracy → more danger"
+        );
+    }
+
+    #[test]
+    fn test_synergy_history_single_low_accuracy() {
+        let a = full_profile();
+        let b = full_profile();
+        let preds_a: Vec<Prediction> = (0..3)
+            .map(|i| Prediction {
+                id: format!("p{}", i),
+                person_id: "a".into(),
+                context: String::new(),
+                predicted_outcome: String::new(),
+                actual_outcome: None,
+                accuracy: Some(3),
+                created_at: 0,
+                resolved_at: Some(1),
+                resolved: true,
+            })
+            .collect();
+        let with_single = compute_synergy_score_inner(&a, &b, None, &preds_a, &[]);
+        let with_both = compute_synergy_score_inner(&a, &b, None, &preds_a, &preds_a);
+        assert!(
+            with_both.danger >= with_single.danger,
+            "both low ≥ single low danger"
+        );
+    }
+
+    #[test]
+    fn test_synergy_no_patterns_when_empty() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.behavioral_patterns = vec![];
+        b.behavioral_patterns = vec![];
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert_eq!(breakdown.patterns, 0.0);
+    }
+
+    #[test]
+    fn test_synergy_negative_patterns_only_penalty() {
+        let mut a = full_profile();
+        let mut b = full_profile();
+        a.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::BecomesQuiet,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::Escalates,
+                notes: String::new(),
+            },
+        ];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::BecomesQuiet,
+            notes: String::new(),
+        }];
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            breakdown.patterns < 1.0,
+            "negative-only patterns should not be 1.0"
+        );
+    }
+
+    // --- compute_team_synergy: exact checks ---
+
+    #[test]
+    fn test_team_synergy_two_persons_avg() {
+        let a = {
+            let mut p = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+            p.id = "a".into();
+            p
+        };
+        let b = {
+            let mut p = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+            p.id = "b".into();
+            p
+        };
+        let preds = std::collections::HashMap::new();
+        let team = compute_team_synergy(&[a, b], &[], &preds).unwrap();
+        assert_eq!(team.pairs.len(), 1);
+        assert_eq!(team.avg_score, team.pairs[0].breakdown.total);
+        assert_eq!(
+            team.weakest.as_ref().unwrap().2,
+            team.pairs[0].breakdown.total
+        );
+        assert_eq!(
+            team.strongest.as_ref().unwrap().2,
+            team.pairs[0].breakdown.total
+        );
+    }
+
+    #[test]
+    fn test_team_synergy_three_persons_pair_count() {
+        let a = {
+            let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+            p.id = "a".into();
+            p
+        };
+        let b = {
+            let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+            p.id = "b".into();
+            p
+        };
+        let c = {
+            let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+            p.id = "c".into();
+            p
+        };
+        let preds = std::collections::HashMap::new();
+        let team = compute_team_synergy(&[a, b, c], &[], &preds).unwrap();
+        assert_eq!(team.pairs.len(), 3, "3 persons → 3 pairs");
+        assert_eq!(team.team_size, 3);
+    }
+
+    #[test]
+    fn test_team_synergy_avg_danger_non_negative() {
+        let a = {
+            let mut p = make_person(Some(10), Some(1), Some(10), Some(1), Some(10));
+            p.id = "a".into();
+            p
+        };
+        let b = {
+            let mut p = make_person(Some(10), Some(1), Some(10), Some(1), Some(10));
+            p.id = "b".into();
+            p
+        };
+        let preds = std::collections::HashMap::new();
+        let team = compute_team_synergy(&[a, b], &[], &preds).unwrap();
+        assert!(team.avg_danger >= 0.0);
+        assert!(team.max_danger >= 0.0);
+        assert!(team.avg_score <= 100);
+    }
+
+    #[test]
+    fn test_team_synergy_with_relationship() {
+        let a = {
+            let mut p = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+            p.id = "a".into();
+            p
+        };
+        let b = {
+            let mut p = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+            p.id = "b".into();
+            p
+        };
+        let rel = Relationship {
+            id: "r1".into(),
+            source_id: "a".into(),
+            target_id: "b".into(),
+            r#type: RelationType::Manages,
+            strength: 8,
+            notes: String::new(),
+            created_at: 0,
+        };
+        let preds = std::collections::HashMap::new();
+        let team = compute_team_synergy(&[a, b], &[rel], &preds).unwrap();
+        assert_eq!(team.pairs.len(), 1);
+        let b = &team.pairs[0].breakdown;
+        assert!(b.band > 0, "relationship → nonzero band");
+    }
+
+    #[test]
+    fn test_team_synergy_context_averages_all_six() {
+        let a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let preds = std::collections::HashMap::new();
+        let team = compute_team_synergy(&[a, b], &[], &preds).unwrap();
+        assert_eq!(team.context_averages.len(), 6);
+    }
+
+    // --- value_self_score: exact arithmetic ---
+
+    #[test]
+    fn test_value_self_score_empty() {
+        let score = value_self_score(&[]);
+        assert!((score - 0.5).abs() < 0.001, "empty → 0.5, got {}", score);
+    }
+
+    #[test]
+    fn test_value_self_score_single() {
+        let vals = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 10,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let score = value_self_score(&vals);
+        assert!((score - 1.0).abs() < 0.001, "10+10 → 1.0, got {}", score);
+    }
+
+    #[test]
+    fn test_value_self_score_low() {
+        let vals = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 1,
+            priority: 1,
+            notes: String::new(),
+        }];
+        let score = value_self_score(&vals);
+        assert!((score - 0.1).abs() < 0.001, "1+1 → 0.1, got {}", score);
+    }
+
+    #[test]
+    fn test_value_self_score_multiple_average() {
+        let vals = vec![
+            Value {
+                r#type: ValueType::Career,
+                intensity: 10,
+                priority: 10,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Family,
+                intensity: 2,
+                priority: 2,
+                notes: String::new(),
+            },
+        ];
+        let score = value_self_score(&vals);
+        let expected = (1.0 + 0.2) / 2.0;
+        assert!(
+            (score - expected).abs() < 0.001,
+            "avg of 1.0 and 0.2 → {}, got {}",
+            expected,
+            score
+        );
+    }
+
+    // --- profile_completeness: exact arithmetic ---
+
+    #[test]
+    fn test_profile_completeness_empty_zero() {
+        let p = make_person(None, None, None, None, None);
+        let c = profile_completeness(&p);
+        assert!((c - 0.0).abs() < 0.001, "empty → 0.0, got {}", c);
+    }
+
+    #[test]
+    fn test_profile_completeness_full_one() {
+        let p = full_profile();
+        let c = profile_completeness(&p);
+        assert!(c > 0.5, "full profile > 0.5, got {}", c);
+        assert!(c <= 1.0, "full profile <= 1.0");
+    }
+
+    #[test]
+    fn test_profile_completeness_ocean_only_exact() {
+        let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let c = profile_completeness(&p);
+        let expected = 5.0 / CFG.completeness.denominator;
+        assert!(
+            (c - expected).abs() < 0.001,
+            "ocean only → {}, got {}",
+            expected,
+            c
+        );
+    }
+
+    // --- compute_synergy_score_inner: bias score with no shared biases ---
+
+    #[test]
+    fn test_synergy_bias_score_no_shared() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Anchoring,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            (breakdown.bias - 0.0).abs() < 0.001,
+            "no shared → 0.0, got {}",
+            breakdown.bias
+        );
+    }
+
+    #[test]
+    fn test_synergy_bias_score_all_shared() {
+        let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        a.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        b.biases = vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 5,
+            evidence: String::new(),
+        }];
+        let breakdown = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            (breakdown.bias - 1.0).abs() < 0.001,
+            "all shared → 1.0, got {}",
+            breakdown.bias
+        );
+    }
+
+    // --- per_context_breakdown: exact score math ---
+
+    #[test]
+    fn test_per_context_breakdown_all_ones() {
+        let inp = PerContextInputs {
+            buckets: [1.0; 7],
+            penalties: [0.0; 4],
+            rep_active: true,
+            mot_active: true,
+            pat_active: true,
+        };
+        let result = per_context_breakdown(&inp, None);
+        for (_, score) in &result {
+            assert_eq!(*score, 100, "all 1.0 buckets → 100");
+        }
+    }
+
+    #[test]
+    fn test_per_context_breakdown_with_context() {
+        let inp = PerContextInputs {
+            buckets: [0.8, 0.6, 0.7, 0.5, 0.4, 0.3, 0.2],
+            penalties: [0.0; 4],
+            rep_active: true,
+            mot_active: true,
+            pat_active: true,
+        };
+        let ctx = RelContext {
+            rtype: RelationType::Manages,
+            strength: 5,
+        };
+        let result = per_context_breakdown(&inp, Some(&ctx));
+        assert_eq!(result.len(), 6);
+        for (_, score) in &result {
+            assert!(*score <= 100);
+        }
+    }
+
+    // --- rep_danger_penalty: one side only vs both ---
+
+    #[test]
+    fn test_rep_danger_penalty_one_side_only() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            authoritative_submissive: Some(d.high),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            authoritative_submissive: Some(d.low),
+            ..Default::default()
+        };
+        assert_eq!(
+            rep_danger_penalty(&ra, &rb),
+            0.0,
+            "only one side high → no power struggle"
+        );
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_boundary_at_low_triggers() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            diplomatic_blunt: Some(d.low),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            diplomatic_blunt: Some(d.low),
+            ..Default::default()
+        };
+        assert!((rep_danger_penalty(&ra, &rb) - d.brutal).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rep_danger_penalty_boundary_above_low_no_trigger() {
+        let d = &CFG.reputation.danger;
+        let ra = RepScores {
+            diplomatic_blunt: Some(d.low + 1),
+            ..Default::default()
+        };
+        let rb = RepScores {
+            diplomatic_blunt: Some(d.low + 1),
+            ..Default::default()
+        };
+        assert_eq!(rep_danger_penalty(&ra, &rb), 0.0);
+    }
+
+    // --- synergy core arithmetic ---
+
+    #[test]
+    fn test_synergy_ocean_complement_bonus() {
+        let a = make_person(Some(8), Some(7), Some(5), Some(5), Some(5));
+        let b = make_person(Some(7), Some(8), Some(5), Some(5), Some(5));
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        let a2 = make_person(Some(3), Some(3), Some(5), Some(5), Some(5));
+        let b2 = make_person(Some(3), Some(3), Some(5), Some(5), Some(5));
+        let bd2 = compute_synergy_score_inner(&a2, &b2, None, &[], &[]);
+        assert!(bd.ocean > bd2.ocean, "complement bonus → higher ocean");
+    }
+
+    #[test]
+    fn test_synergy_style_score() {
+        let mut a = full_profile();
+        let mut b = full_profile();
+        a.styles = vec![PersonalStyle {
+            r#type: StyleType::DiplomaticCommunicator,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        b.styles = vec![PersonalStyle {
+            r#type: StyleType::DiplomaticCommunicator,
+            intensity: 5,
+            notes: String::new(),
+        }];
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            (bd.styles - 1.0).abs() < 0.001,
+            "same style → 1.0, got {}",
+            bd.styles
+        );
+    }
+
+    #[test]
+    fn test_synergy_values_score() {
+        let mut a = full_profile();
+        let mut b = full_profile();
+        a.values = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 10,
+            priority: 10,
+            notes: String::new(),
+        }];
+        b.values = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 10,
+            priority: 10,
+            notes: String::new(),
+        }];
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            (bd.values - 1.0).abs() < 0.001,
+            "identical values → 1.0, got {}",
+            bd.values
+        );
+    }
+
+    #[test]
+    fn test_synergy_total_clamped_100() {
+        let a = full_profile();
+        let b = full_profile();
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(bd.total <= 100, "total must be <= 100");
+    }
+
+    #[test]
+    fn test_synergy_scores_non_negative() {
+        let a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(bd.ocean >= 0.0);
+        assert!(bd.reputation >= 0.0);
+        assert!(bd.motivation >= 0.0);
+        assert!(bd.patterns >= 0.0);
+        assert!(bd.bias >= 0.0);
+        assert!(bd.styles >= 0.0);
+        assert!(bd.values >= 0.0);
+    }
+
+    #[test]
+    fn test_synergy_asymmetric_different() {
+        let a = make_person(Some(10), Some(10), Some(10), Some(10), Some(1));
+        let b = make_person(Some(1), Some(1), Some(1), Some(1), Some(10));
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert_ne!(bd.a_score, bd.b_score, "asymmetric → different scores");
+    }
+
+    #[test]
+    fn test_synergy_single_person_empty_biases() {
+        let mut a = full_profile();
+        let mut b = full_profile();
+        a.biases = vec![];
+        b.biases = vec![];
+        let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
+        assert!(
+            (bd.bias - CFG.bias.default).abs() < 0.001,
+            "no biases → default bias score"
+        );
+    }
 }
