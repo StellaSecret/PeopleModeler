@@ -1,0 +1,210 @@
+name: Mutation Tests
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: mutants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-mutants:
+    name: "Mutation Tests (${{ matrix.name }})"
+    runs-on: ubuntu-latest
+    environment: mutation-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: synergy-rel-weights
+            files: core/src/synergy/rel_weights.rs
+          - name: synergy-components
+            files: core/src/synergy/components.rs
+          - name: synergy-scoring
+            files: core/src/synergy/scoring.rs core/src/synergy/team.rs core/src/synergy/trajectory.rs
+            exclude_re: 'scoring\.rs:264:18'
+          - name: synergy-rest
+            files: core/src/synergy/mod.rs core/src/synergy/profile.rs
+          - name: validation
+            files: core/src/validation.rs
+          - name: advice
+            files: core/src/advice.rs
+          - name: core-rest
+            files: core/src/model_config.rs core/src/wasm.rs core/src/models.rs core/src/ocean.rs core/src/insights.rs core/src/i18n.rs core/src/predictions.rs
+          - name: app-i18n
+            files: app/src/i18n.rs
+          - name: app-compare
+            files: app/src/pages/compare.rs
+            exclude_re: '(Some\(a\), Some\(b\)|compare\.rs:806:40|compare\.rs:1047:25)'
+          - name: app-person-edit
+            files: app/src/pages/person_edit.rs
+            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move|person_edit\.rs:(52:33|324:29|863:22|1058:9|1074:9|1144:28|1153:12))'
+          - name: app-person-detail
+            files: app/src/pages/person_detail.rs
+            exclude_re: '(person_detail\.rs:.*in (PersonDetail|RelationshipSection))'
+          - name: app-insights
+            files: app/src/pages/insights.rs
+          - name: app-db-drive
+            files: app/src/db/mod.rs app/src/drive.rs
+            exclude_re: '(Identifiable|upsert|person_key|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|remove_individual|migrate_from_bulk|with_.*_cache|WebStorage|check_response|drive_backup|drive_restore|Some\(pp\)|delete ! in prepare_backup_body|drive.rs:20[34]:)'
+          - name: app-tiny
+            files: app/src/tutorial.rs app/src/auth.rs app/src/toast.rs app/src/theme.rs app/src/undo.rs app/src/main.rs app/src/templates.rs app/src/android_auth.rs app/src/android_share.rs app/src/pages/team.rs app/src/pages/team_new.rs app/src/pages/teams_list.rs app/src/pages/relationships.rs app/src/pages/predictions.rs app/src/pages/timeline.rs app/src/pages/people_list.rs
+            exclude_re: '(auth\.rs.*(on_token_received|start_oauth|get_gis_oauth2|replace init )|team_new\.rs.*(read_input_value|uuid|now_ts|/ with )|toast\.rs.*provide_toast|theme\.rs.*== with !=|main\.rs.*(replace main |replace init_pwa|replace sleep_ms|&& with \|\||== with !=|auto_clear_toast)|team\.rs.*== with !=|android_(auth|share)\.rs)'
+          # ── WASM SHARDS (need Chrome + chromedriver) ──
+          - name: wasm-crypto
+            files: app/src/crypto.rs
+            wasm: true
+            timeout: 600
+          - name: wasm-db
+            files: app/src/db/mod.rs
+            exclude_re: '(Identifiable|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|migrate_from_bulk|for SqliteStorage)'
+            wasm: true
+            timeout: 600
+          - name: wasm-auth
+            files: app/src/auth.rs
+            exclude_re: 'auth\.rs.*(start_oauth|token_path)'
+            wasm: true
+            timeout: 600
+          - name: wasm-theme
+            files: app/src/theme.rs
+            exclude_re: 'theme\.rs:38'
+            wasm: true
+            timeout: 600
+          - name: wasm-tutorial
+            files: app/src/tutorial.rs
+            wasm: true
+            timeout: 600
+          - name: wasm-team-new
+            files: app/src/pages/team_new.rs
+            exclude_re: 'team_new\.rs:(105:5|110:5)'
+            wasm: true
+            timeout: 600
+          - name: wasm-main
+            files: app/src/main.rs
+            exclude_re: 'main\.rs.*(replace main |replace sleep_ms)'
+            wasm: true
+            timeout: 600
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants,wasm-pack,wasm-bindgen-cli@0.2.126
+      - name: Setup Chrome
+        if: matrix.wasm
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+      - name: Setup chromedriver
+        if: matrix.wasm
+        run: |
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+          MAJOR=${CHROME_VERSION%%.*}
+          DRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" \
+            | python3 -c "import sys,json; versions=[v for v in json.load(sys.stdin)['versions'] if v['version'].startswith('${MAJOR}.')]; print(versions[-1]['version'])")
+          curl -sL "https://storage.googleapis.com/chrome-for-testing-public/${DRIVER_VERSION}/linux64/chromedriver-linux64.zip" -o /tmp/cd.zip
+          unzip -o /tmp/cd.zip -d /tmp/cd
+          chmod +x /tmp/cd/chromedriver-linux64/chromedriver
+          echo "/tmp/cd/chromedriver-linux64" >> $GITHUB_PATH
+          echo "CHROMEDRIVER=/tmp/cd/chromedriver-linux64/chromedriver" >> $GITHUB_ENV
+          echo "WASM_BINDGEN_TEST_WEBDRIVER_JSON=${{ github.workspace }}/webdriver.json" >> $GITHUB_ENV
+      - name: "Run mutation tests (${{ matrix.name }})"
+        id: mutants
+        run: |
+          set -o pipefail
+          i=0
+          fatal=0
+          CARGO_ARGS=""
+          if [ "${{ matrix.wasm }}" = "true" ]; then
+            CARGO_ARGS="-C --target=wasm32-unknown-unknown"
+          fi
+          TIMEOUT="${{ matrix.timeout }}"
+          if [ -z "$TIMEOUT" ]; then
+            TIMEOUT=300
+          fi
+          EXCLUDE_ARGS=()
+          if [ -n "${{ matrix.exclude_re }}" ]; then
+            EXCLUDE_ARGS+=(--exclude-re "${{ matrix.exclude_re }}")
+          fi
+          for f in ${{ matrix.files }}; do
+            echo "::group::$f"
+            cargo mutants -f "$f" --no-times --in-place -o "work-$i" --timeout "$TIMEOUT" $CARGO_ARGS "${EXCLUDE_ARGS[@]}" && ec=0 || ec=$?
+            echo "::endgroup::"
+            if [ "$ec" -ne 0 ]; then
+              echo "FATAL: cargo-mutants exited $ec on $f"
+              fatal=$ec
+            else
+              echo "cargo-mutants exited $ec on $f"
+            fi
+            i=$((i + 1))
+          done
+          mkdir -p mutants.out
+          for d in work-*/mutants.out; do
+            [ -f "$d/caught.txt" ] && cat "$d/caught.txt" >> mutants.out/caught.txt
+            [ -f "$d/missed.txt" ] && cat "$d/missed.txt" >> mutants.out/missed.txt
+            [ -f "$d/unviable.txt" ] && cat "$d/unviable.txt" >> mutants.out/unviable.txt
+          done
+          echo "Merged $(wc -l < mutants.out/caught.txt 2>/dev/null || echo 0) caught, $(wc -l < mutants.out/missed.txt 2>/dev/null || echo 0) missed, $(wc -l < mutants.out/unviable.txt 2>/dev/null || echo 0) unviable"
+          echo "fatal=$fatal" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-${{ matrix.name }}
+          path: mutants.out
+          retention-days: 30
+      - name: "Fail if mutations missed"
+        if: steps.mutants.outputs.fatal != '0'
+        run: |
+          echo "cargo-mutants found missed/timeout mutants — exiting"
+          exit ${{ steps.mutants.outputs.fatal }}
+
+  cargo-mutants-summary:
+    name: Mutation Tests Summary
+    if: always()
+    needs: [cargo-mutants]
+    runs-on: ubuntu-latest
+    outputs:
+      total_missed: ${{ steps.report.outputs.total_missed }}
+    steps:
+      - name: Download all mutant artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mutants-*
+          path: mutants/
+          merge-multiple: false
+      - name: Report results
+        id: report
+        run: |
+          echo "## Mutation Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Shard | Caught | Missed | Unviable |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          total_caught=0
+          total_missed=0
+          total_unviable=0
+          for dir in mutants/mutants-*/; do
+            [ -d "$dir" ] || continue
+            name=$(basename "$dir" | sed 's/^mutants-//')
+            caught=0; missed=0; unviable=0
+            [ -f "$dir/caught.txt" ] && caught=$(wc -l < "$dir/caught.txt")
+            [ -f "$dir/missed.txt" ] && missed=$(wc -l < "$dir/missed.txt")
+            [ -f "$dir/unviable.txt" ] && unviable=$(wc -l < "$dir/unviable.txt")
+            total_caught=$((total_caught + caught))
+            total_missed=$((total_missed + missed))
+            total_unviable=$((total_unviable + unviable))
+            if [ "$missed" -gt 0 ]; then
+              echo "| $name | $caught | **$missed** | $unviable |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $name | $caught | $missed | $unviable |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total: $total_caught caught / $total_missed missed / $total_unviable unviable**" >> $GITHUB_STEP_SUMMARY
+          echo "total_missed=$total_missed" >> $GITHUB_OUTPUT
