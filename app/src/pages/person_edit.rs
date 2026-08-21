@@ -936,6 +936,8 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
             div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
+                    button { class: "reorder-btn", aria_label: "Move pattern up", onclick: move |_| { pattern_move(patterns, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move pattern down", onclick: move |_| { pattern_move(patterns, i, false); }, "▼" }
                     button { class: "btn btn-small", aria_label: "Edit pattern", onclick: {
                         let bp = bp.clone();
                         move |_| {
@@ -1205,34 +1207,25 @@ fn StyleEditPanel(
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
             div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
-            for cat in StyleCategory::ALL {
-                { let all_styles = styles();
-                let items: Vec<_> = all_styles.iter().enumerate().filter(|(_, s)| s.r#type.category() == cat).collect();
-                if !items.is_empty() {
-                    rsx! {
-                        div { class: "style-group-header", "{cat.i18n_label(cl)}" }
-                        for (i, s) in items {
-                            div { class: "list-item",
-                                button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { style_move(styles, i, true); }, "▲" }
-                                button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { style_move(styles, i, false); }, "▼" }
-                                button { class: "btn btn-small", aria_label: "Edit style", onclick: {
-                                    let s = s.clone();
-                                    move |_| {
-                                        sel_category.set(s.r#type.category());
-                                        sel_type.set(s.r#type);
-                                        sel_intensity.set(s.intensity);
-                                        sel_notes.set(s.notes.clone());
-                                        edit_idx.set(Some(i));
-                                    }
-                                }, "✏" }
-                                strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
-                                span { " {s.intensity}/10" }
-                                span { " {s.notes}" }
-                                button { class: "btn btn-small", aria_label: "Delete style", onclick: move |_| { styles.write().remove(i); }, "✕" }
-                            }
+            for (i, s) in styles().iter().enumerate() {
+                div { class: "list-item",
+                    button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { style_move(styles, i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { style_move(styles, i, false); }, "▼" }
+                    button { class: "btn btn-small", aria_label: "Edit style", onclick: {
+                        let s = s.clone();
+                        move |_| {
+                            sel_category.set(s.r#type.category());
+                            sel_type.set(s.r#type);
+                            sel_intensity.set(s.intensity);
+                            sel_notes.set(s.notes.clone());
+                            edit_idx.set(Some(i));
                         }
-                    }
-                } else { rsx!{} }
+                    }, "✏" }
+                    span { class: "style-cat-badge", "{s.r#type.category().i18n_label(cl)}" }
+                    strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
+                    span { " {s.intensity}/10" }
+                    span { " {s.notes}" }
+                    button { class: "btn btn-small", aria_label: "Delete style", onclick: move |_| { styles.write().remove(i); }, "✕" }
                 }
             }
         }
@@ -1245,5 +1238,14 @@ fn style_move(mut styles: Signal<Vec<PersonalStyle>>, i: usize, up: bool) {
         styles.write().swap(i, i - 1);
     } else if !up && i + 1 < len {
         styles.write().swap(i, i + 1);
+    }
+}
+
+fn pattern_move(mut patterns: Signal<Vec<BehavioralPattern>>, i: usize, up: bool) {
+    let len = patterns.read().len();
+    if up && i > 0 {
+        patterns.write().swap(i, i - 1);
+    } else if !up && i + 1 < len {
+        patterns.write().swap(i, i + 1);
     }
 }
