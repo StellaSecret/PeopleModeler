@@ -4,9 +4,9 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::AVATAR_EMOJIS;
 use peoplemodeler_core::synergy::{compute_team_synergy, synergy_bands};
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
@@ -54,7 +54,13 @@ pub fn TeamDetail(id: String) -> Element {
     let mut edit_name = use_signal(|| team_name.clone());
     let mut edit_icon = use_signal(|| {
         db::team(&id)
-            .map(|t| if t.icon.is_empty() { "🎯".to_string() } else { t.icon })
+            .map(|t| {
+                if t.icon.is_empty() {
+                    "🎯".to_string()
+                } else {
+                    t.icon
+                }
+            })
             .unwrap_or_else(|| "🎯".to_string())
     });
 
@@ -73,8 +79,15 @@ pub fn TeamDetail(id: String) -> Element {
             .filter(|p| member_ids.contains(&p.id))
             .collect()
     };
-    let current_icon = team_guard.as_ref().map(|t| t.icon.clone()).unwrap_or_default();
-    let display_icon = if current_icon.is_empty() { "🎯".to_string() } else { current_icon };
+    let current_icon = team_guard
+        .as_ref()
+        .map(|t| t.icon.clone())
+        .unwrap_or_default();
+    let display_icon = if current_icon.is_empty() {
+        "🎯".to_string()
+    } else {
+        current_icon
+    };
     drop(team_guard);
     let rels = db::all_relationships();
     let all_preds = db::all_predictions();

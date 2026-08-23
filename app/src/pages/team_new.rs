@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::AVATAR_EMOJIS;
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[component]
 pub fn TeamNew() -> Element {

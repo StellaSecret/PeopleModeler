@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
+use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
-use crate::Route;
 
 #[component]
 pub fn TeamsList() -> Element {
@@ -19,9 +19,7 @@ pub fn TeamsList() -> Element {
     let mut teams = use_signal(db::all_teams);
     let mut confirming_del: Signal<Option<String>> = use_signal(|| None);
 
-    let members_str = |count: usize| -> String {
-        members_fmt.replace("{0}", &count.to_string())
-    };
+    let members_str = |count: usize| -> String { members_fmt.replace("{0}", &count.to_string()) };
 
     let team_rows: Vec<(String, String, String, usize)> = teams()
         .iter()
