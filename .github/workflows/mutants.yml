@@ -100,7 +100,7 @@ jobs:
           tool: cargo-mutants,wasm-pack,wasm-bindgen-cli@0.2.126
       - name: Setup Chrome
         if: matrix.wasm
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@v2
         with:
           chrome-version: stable
       - name: Setup chromedriver
