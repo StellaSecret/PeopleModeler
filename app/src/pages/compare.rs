@@ -470,8 +470,8 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
                     {if !a_flags.is_empty() || !b_flags.is_empty() {
                         let risk_title = crate::i18n::tr("compare_risk_mitigation", lang());
-                        let a_rm = peoplemodeler_core::advice::risk_mitigation_pair(&a);
-                        let b_rm = peoplemodeler_core::advice::risk_mitigation_pair(&b);
+                        let a_rm = peoplemodeler_core::advice::risk_mitigation_pair(&a, core_lang(lang()));
+                        let b_rm = peoplemodeler_core::advice::risk_mitigation_pair(&b, core_lang(lang()));
                         rsx! {
                             div { class: "analysis-section",
                                 h2 { "{risk_title}" }
@@ -870,13 +870,13 @@ fn compare_analysis(
         let cl = core_lang(lang);
         syn.push(if lang == Lang::Fr {
             format!(
-                "A réagit par «{}» | B réagit par «{}»",
+                "{na} réagit par «{}» | {nb} réagit par «{}»",
                 pa.predicted_behavior.label_bare(cl),
                 pb.predicted_behavior.label_bare(cl)
             )
         } else {
             format!(
-                "A responds with «{}» | B responds with «{}»",
+                "{na} responds with «{}» | {nb} responds with «{}»",
                 pa.predicted_behavior.label_bare(cl),
                 pb.predicted_behavior.label_bare(cl)
             )
@@ -1031,7 +1031,7 @@ fn compare_analysis(
         let cl = core_lang(lang);
         let a_resp = pa.predicted_behavior.label_bare(cl);
         let b_resp = pb.predicted_behavior.label_bare(cl);
-        let resp_info = format!(" (A: {a_resp} | B: {b_resp})");
+        let resp_info = format!(" ({na}: {a_resp} | {nb}: {b_resp})");
         if t_syn < -0.1 {
             str.push(if lang == Lang::Fr {
                 format!(
