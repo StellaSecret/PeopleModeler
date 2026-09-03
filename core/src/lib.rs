@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn test_insight_generation() {
         let p = demo_person();
-        let insight = insights::generate_insight(InsightContext::Decision, &p);
+        let insight = insights::generate_insight(InsightContext::Decision, &p, Lang::Fr);
         assert!(insight.contains("Alexandre Dubois"));
         assert!(insight.contains("Pouvoir"));
         assert!(insight.contains("Ancrage"));
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn test_team_insight() {
         let p = demo_person();
-        let insight = insights::generate_insight(InsightContext::Team, &p);
+        let insight = insights::generate_insight(InsightContext::Team, &p, Lang::Fr);
         assert!(insight.contains("Alexandre Dubois"));
         assert!(insight.contains("Dynamique"));
     }
@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn test_stress_insight() {
         let p = demo_person();
-        let insight = insights::generate_insight(InsightContext::Stress, &p);
+        let insight = insights::generate_insight(InsightContext::Stress, &p, Lang::Fr);
         assert!(insight.contains("Alexandre Dubois"));
         assert!(insight.contains("stress"));
     }
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_communication_insight() {
         let p = demo_person();
-        let insight = insights::generate_insight(InsightContext::Communication, &p);
+        let insight = insights::generate_insight(InsightContext::Communication, &p, Lang::Fr);
         assert!(insight.contains("Alexandre Dubois"));
         assert!(insight.contains("communication"));
     }
@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn test_leadership_insight() {
         let p = demo_person();
-        let insight = insights::generate_insight(InsightContext::Leadership, &p);
+        let insight = insights::generate_insight(InsightContext::Leadership, &p, Lang::Fr);
         assert!(insight.contains("Alexandre Dubois"));
         assert!(insight.contains("Leadership"));
     }
@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn test_growth_insight() {
         let p = demo_person();
-        let insight = insights::generate_insight(InsightContext::Growth, &p);
+        let insight = insights::generate_insight(InsightContext::Growth, &p, Lang::Fr);
         assert!(insight.contains("Alexandre Dubois"));
         assert!(insight.contains("Développement"));
     }
@@ -872,8 +872,12 @@ mod tests {
     fn test_insight_completeness_low() {
         let p = demo_person();
         let profile = minimal_profile(30);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Decision, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Decision,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(
             result.contains("Profil incomplet"),
             "should contain 'Profil incomplet' for completeness 30"
@@ -886,7 +890,8 @@ mod tests {
     fn test_insight_completeness_medium() {
         let p = demo_person();
         let profile = minimal_profile(55);
-        let result = insights::generate_insight_with_profile(InsightContext::Team, &p, &profile);
+        let result =
+            insights::generate_insight_with_profile(InsightContext::Team, &p, &profile, Lang::Fr);
         assert!(
             result.contains("partiellement complété"),
             "should contain 'partiellement complété' for completeness 55"
@@ -898,7 +903,8 @@ mod tests {
     fn test_insight_completeness_high() {
         let p = demo_person();
         let profile = minimal_profile(80);
-        let result = insights::generate_insight_with_profile(InsightContext::Stress, &p, &profile);
+        let result =
+            insights::generate_insight_with_profile(InsightContext::Stress, &p, &profile, Lang::Fr);
         assert!(!result.contains("Profil incomplet"));
         assert!(!result.contains("partiellement complété"));
     }
@@ -907,8 +913,12 @@ mod tests {
     fn test_insight_fmt_motivations_not_empty() {
         let p = demo_person();
         let profile = minimal_profile(50);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Decision, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Decision,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(
             result.contains("intensité"),
             "fmt_motivations output should contain 'intensité'"
@@ -919,8 +929,12 @@ mod tests {
     fn test_insight_fmt_biases_not_empty() {
         let p = demo_person();
         let profile = minimal_profile(50);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Decision, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Decision,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(
             result.contains("Ancrage"),
             "fmt_biases output should contain bias name"
@@ -952,8 +966,12 @@ mod tests {
             updated_at: 0,
         };
         let profile = minimal_profile(5);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Leadership, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Leadership,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(result.contains("Aucune motivation définie"));
         assert!(result.contains("Aucun biais défini"));
     }
@@ -983,7 +1001,8 @@ mod tests {
             updated_at: 0,
         };
         let profile = minimal_profile(5);
-        let result = insights::generate_insight_with_profile(InsightContext::Growth, &p, &profile);
+        let result =
+            insights::generate_insight_with_profile(InsightContext::Growth, &p, &profile, Lang::Fr);
         assert!(
             result.contains("Aucun signal d'alerte"),
             "flags fmt should show 'Aucun signal d'alerte'"
@@ -994,8 +1013,12 @@ mod tests {
     fn test_insight_completeness_boundary_40_not_incomplet() {
         let p = demo_person();
         let profile = minimal_profile(40);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Decision, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Decision,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(
             !result.contains("Profil incomplet"),
             "completeness 40 should NOT trigger 'incomplet' (boundary < 40)"
@@ -1006,8 +1029,12 @@ mod tests {
     fn test_insight_completeness_boundary_70_not_partial() {
         let p = demo_person();
         let profile = minimal_profile(70);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Decision, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Decision,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(
             !result.contains("partiellement complété"),
             "completeness 70 should NOT trigger 'partiellement' (boundary < 70)"
@@ -1018,8 +1045,12 @@ mod tests {
     fn test_insight_advice_not_empty_string() {
         let p = demo_person();
         let profile = minimal_profile(50);
-        let result =
-            insights::generate_insight_with_profile(InsightContext::Decision, &p, &profile);
+        let result = insights::generate_insight_with_profile(
+            InsightContext::Decision,
+            &p,
+            &profile,
+            Lang::Fr,
+        );
         assert!(
             result.contains("• ["),
             "advice section should contain formatted bullet points '• [category] action'"
@@ -1032,7 +1063,7 @@ mod tests {
         let p = demo_person();
         let profile = minimal_profile(50);
         for ctx in InsightContext::ALL {
-            let result = insights::generate_insight_with_profile(ctx, &p, &profile);
+            let result = insights::generate_insight_with_profile(ctx, &p, &profile, Lang::Fr);
             assert!(
                 result.contains("Motivation(s) active(s)"),
                 "{:?} missing motivations section",
@@ -1414,7 +1445,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
         };
-        let advice = advice::generate_advice(&p);
+        let advice = advice::generate_advice(&p, Lang::Fr);
         let mut _has_self_image = false;
         let mut has_rhetoric = false;
         let mut has_evidence = false;
@@ -1471,7 +1502,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
         };
-        let pairs = advice::risk_mitigation_pair(&p);
+        let pairs = advice::risk_mitigation_pair(&p, Lang::Fr);
         assert!(
             !pairs.is_empty(),
             "risk_mitigation_pair should return non-empty for contradicting profile"
@@ -1607,7 +1638,7 @@ mod tests {
     fn test_generate_advice_rhetoric_categories_specific() {
         use crate::advice;
         let p = mega_rhetoric_person();
-        let advice = advice::generate_advice(&p);
+        let advice = advice::generate_advice(&p, Lang::Fr);
         let rhetoric: Vec<_> = advice.iter().filter(|a| a.category == "rhetoric").collect();
         assert!(
             rhetoric.len() >= 8,
@@ -1782,7 +1813,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
         };
-        let advice = advice::generate_advice(&p);
+        let advice = advice::generate_advice(&p, Lang::Fr);
         let evidence: Vec<_> = advice.iter().filter(|a| a.category == "evidence").collect();
         assert!(
             evidence.len() >= 6,
@@ -1866,7 +1897,7 @@ mod tests {
             completeness: 60,
             band: 5,
         };
-        let advice = advice::per_context_advice(&p, &profile, InsightContext::Decision);
+        let advice = advice::per_context_advice(&p, &profile, InsightContext::Decision, Lang::Fr);
         assert!(
             advice.len() >= 10,
             "should have many advice items, got {}",
@@ -1922,7 +1953,7 @@ mod tests {
             band: 5,
         };
         for ctx in InsightContext::ALL {
-            let advice = advice::per_context_advice(&p, &profile, ctx);
+            let advice = advice::per_context_advice(&p, &profile, ctx, Lang::Fr);
             let categories: Vec<&str> = advice.iter().map(|a| a.category).collect();
             let first = categories.first().unwrap_or(&"none");
             let last = categories.last().unwrap_or(&"none");

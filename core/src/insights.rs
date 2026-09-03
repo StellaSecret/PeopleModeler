@@ -58,13 +58,13 @@ fn fmt_biases(p: &Person) -> String {
         .join("\n")
 }
 
-fn fmt_flags(flags: &[&str]) -> String {
+fn fmt_flags(flags: &[&str], lang: crate::i18n::Lang) -> String {
     if flags.is_empty() {
         return "• Aucun signal d'alerte\n".into();
     }
     flags
         .iter()
-        .map(|f| format!("• ⚠ {}", advice::flag_action(f, crate::i18n::Lang::Fr)))
+        .map(|f| format!("• ⚠ {}", advice::flag_action(f, lang)))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -81,33 +81,34 @@ fn fmt_advice(advice_list: &[advice::FlagAdvice]) -> String {
         .join("\n")
 }
 
-pub fn generate_insight(ctx: InsightContext, p: &Person) -> String {
+pub fn generate_insight(ctx: InsightContext, p: &Person, lang: crate::i18n::Lang) -> String {
     let profile = crate::synergy::compute_person_profile(p);
-    generate_insight_with_profile(ctx, p, &profile)
+    generate_insight_with_profile(ctx, p, &profile, lang)
 }
 
 pub fn generate_insight_with_profile(
     ctx: InsightContext,
     p: &Person,
     profile: &PersonProfile,
+    lang: crate::i18n::Lang,
 ) -> String {
     let top_mot = p
         .motivations
         .iter()
         .max_by_key(|m| m.intensity)
-        .map(|m| m.r#type.i18n(crate::i18n::Lang::Fr).label)
+        .map(|m| m.r#type.i18n(lang).label)
         .unwrap_or("—");
     let top_bias = p
         .biases
         .iter()
         .max_by_key(|b| b.intensity)
-        .map(|b| b.r#type.i18n(crate::i18n::Lang::Fr).label)
+        .map(|b| b.r#type.i18n(lang).label)
         .unwrap_or("—");
     let flags = validation::all_person_flags(p);
-    let prioritized = advice::per_context_advice(p, profile, ctx);
+    let prioritized = advice::per_context_advice(p, profile, ctx, lang);
     let flag_count = flags.len();
     let advice_block = fmt_advice(&prioritized);
-    let flag_block = fmt_flags(&flags);
+    let flag_block = fmt_flags(&flags, lang);
 
     let completeness_hint = if profile.completeness < 40 {
         "\n⚠ Profil incomplet — les recommandations sont moins fiables."

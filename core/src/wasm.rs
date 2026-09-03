@@ -27,7 +27,7 @@ pub fn generate_insight(ctx: &str, person_json: &str) -> String {
         "growth" => InsightContext::Growth,
         _ => return "Contexte inconnu".into(),
     };
-    insights::generate_insight(context, &p)
+    insights::generate_insight(context, &p, i18n::Lang::Fr)
 }
 
 #[wasm_bindgen]

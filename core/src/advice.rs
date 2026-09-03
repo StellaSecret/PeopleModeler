@@ -471,7 +471,7 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
     }
 }
 
-pub fn generate_advice(person: &crate::models::Person) -> Vec<FlagAdvice> {
+pub fn generate_advice(person: &crate::models::Person, lang: Lang) -> Vec<FlagAdvice> {
     let flags = validation::all_person_flags(person);
     let cat = |f: &str| -> &'static str {
         if f.starts_with("flag_style_") {
@@ -517,7 +517,7 @@ pub fn generate_advice(person: &crate::models::Person) -> Vec<FlagAdvice> {
     flags
         .iter()
         .filter_map(|f| {
-            let action = flag_action(f, Lang::Fr);
+            let action = flag_action(f, lang);
             if action.is_empty() {
                 None
             } else {
@@ -535,8 +535,9 @@ pub fn per_context_advice(
     person: &crate::models::Person,
     _profile: &PersonProfile,
     ctx: InsightContext,
+    lang: Lang,
 ) -> Vec<FlagAdvice> {
-    let mut advice = generate_advice(person);
+    let mut advice = generate_advice(person, lang);
     let weights = CFG.contexts.weights[ctx as usize];
     let sort_key = |a: &FlagAdvice| -> f64 {
         let cat_idx = match a.category {
@@ -554,12 +555,15 @@ pub fn per_context_advice(
     advice
 }
 
-pub fn risk_mitigation_pair(person: &crate::models::Person) -> Vec<(&'static str, &'static str)> {
+pub fn risk_mitigation_pair(
+    person: &crate::models::Person,
+    lang: Lang,
+) -> Vec<(&'static str, &'static str)> {
     let flags = validation::all_person_flags(person);
     flags
         .iter()
         .filter_map(|f| {
-            let mitigation = flag_action(f, Lang::Fr);
+            let mitigation = flag_action(f, lang);
             if mitigation.is_empty() {
                 None
             } else {
@@ -640,7 +644,7 @@ mod tests {
     #[test]
     fn advice_has_valid_category() {
         let p = test_person();
-        let advice = generate_advice(&p);
+        let advice = generate_advice(&p, Lang::En);
         for a in &advice {
             assert!(
                 matches!(
@@ -705,7 +709,7 @@ mod tests {
             },
         ];
         p.risk_appetite = Some(9);
-        let advice = generate_advice(&p);
+        let advice = generate_advice(&p, Lang::En);
         assert!(
             advice.len() >= 4,
             "Expected ≥4 advice items for a profile with multiple contradictions, got {}",
@@ -761,8 +765,8 @@ mod tests {
             completeness: 60,
             band: 0,
         };
-        let decision = per_context_advice(&p, &profile, InsightContext::Decision);
-        let growth = per_context_advice(&p, &profile, InsightContext::Growth);
+        let decision = per_context_advice(&p, &profile, InsightContext::Decision, Lang::En);
+        let growth = per_context_advice(&p, &profile, InsightContext::Growth, Lang::En);
         // Both should return the same flags (same person), just different order
         assert_eq!(decision.len(), growth.len());
         assert!(decision.len() >= 2);
@@ -897,7 +901,7 @@ mod tests {
     fn per_context_sort_order_matches_category_weights() {
         let p = multi_category_person();
         let profile = multi_category_profile();
-        let decision = per_context_advice(&p, &profile, InsightContext::Decision);
+        let decision = per_context_advice(&p, &profile, InsightContext::Decision, Lang::En);
         assert!(decision.len() >= 4, "need items from multiple categories");
         let d_cats: Vec<&str> = decision.iter().map(|a| a.category).collect();
         // Decision: self_image(idx=0)=0.22 is highest → first
@@ -920,7 +924,7 @@ mod tests {
         );
 
         // Leadership: rhetoric(idx=1)=0.22 is highest → first
-        let leadership = per_context_advice(&p, &profile, InsightContext::Leadership);
+        let leadership = per_context_advice(&p, &profile, InsightContext::Leadership, Lang::En);
         let l_cats: Vec<&str> = leadership.iter().map(|a| a.category).collect();
         assert_eq!(
             l_cats[0], "rhetoric",
@@ -928,7 +932,7 @@ mod tests {
         );
 
         // Stress: style(idx=3)=0.24 is highest → first
-        let stress = per_context_advice(&p, &profile, InsightContext::Stress);
+        let stress = per_context_advice(&p, &profile, InsightContext::Stress, Lang::En);
         let s_cats: Vec<&str> = stress.iter().map(|a| a.category).collect();
         assert_eq!(
             s_cats[0], "style",
