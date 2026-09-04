@@ -339,7 +339,7 @@ consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
 | Tier | Weight | Flags |
 |---|---|---|
 | Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded` |
-| Self-consistent styles | 0.10 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance) |
+| Self-consistent styles | 0.10 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness) |
 | Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
 | Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
 

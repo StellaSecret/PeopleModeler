@@ -446,6 +446,12 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         ("flag_style_controlling", Lang::En) => {
             "Delegate more: micromanaging stifles your team and erodes trust. Hand over real decisions to prove you trust them."
         }
+        ("flag_style_manipulative", Lang::Fr) => {
+            "Vous êtes perçu comme manipulateur et vous le revendiquez. Adoptez une conduite transparente : la manipulation détruit la confiance et votre réputation le confirme."
+        }
+        ("flag_style_manipulative", Lang::En) => {
+            "You are perceived as deceitful and openly admit a manipulative style. Adopt transparent conduct: manipulation destroys trust, and your reputation already confirms it."
+        }
 
         // --- value_flags ---
         ("flag_value_family_past", Lang::Fr) => {
@@ -679,6 +685,24 @@ mod tests {
         assert!(
             en.contains("Delegate"),
             "EN advice should suggest delegating: {en}"
+        );
+    }
+
+    #[test]
+    fn manipulative_flag_is_style_category_and_touches_integrity() {
+        let fr = flag_action("flag_style_manipulative", Lang::Fr);
+        let en = flag_action("flag_style_manipulative", Lang::En);
+        assert!(!fr.is_empty());
+        assert!(!en.is_empty());
+        // The confirmed-manipulator advice should frame the issue as an
+        // integrity / trust problem.
+        assert!(
+            en.contains("transparent") && en.contains("trust"),
+            "EN advice should mention transparency/trust: {en}"
+        );
+        assert!(
+            fr.contains("transparente") && fr.contains("confiance"),
+            "FR advice should mention transparence/confiance: {fr}"
         );
     }
 

@@ -748,6 +748,22 @@ pub fn style_manipulative_honest_gap(styles: &[PersonalStyle], rep: &RepScores) 
     ) && rep.honest_deceitful.is_some_and(|v| v >= HIGH)
 }
 
+/// Claims a manipulative, opportunistic, or intrusive style and is perceived
+/// as deceitful (self-image matches reputation). Flags the confirmed
+/// manipulator: someone who openly operates dirty and the model's reputation
+/// already distrusts them — the mirror of `style_manipulative_honest_gap`.
+pub fn style_manipulative_consistent(styles: &[PersonalStyle], rep: &RepScores) -> bool {
+    style_high(
+        styles,
+        &[
+            StyleType::Opportunistic,
+            StyleType::Manipulative,
+            StyleType::Intrusive,
+        ],
+        STYLE_HIGH,
+    ) && rep.honest_deceitful.is_some_and(|v| v <= LOW)
+}
+
 /// Claims an empathetic, respectful, supportive, or nurturing conduct style yet
 /// is perceived as cold.
 pub fn style_empathetic_cold_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
@@ -832,6 +848,9 @@ pub fn style_gap_flags(styles: &[PersonalStyle], rep: &RepScores) -> Vec<&'stati
     }
     if style_manipulative_honest_gap(styles, rep) {
         flags.push("flag_style_manipulative_honest");
+    }
+    if style_manipulative_consistent(styles, rep) {
+        flags.push("flag_style_manipulative");
     }
     if style_empathetic_cold_gap(styles, rep) {
         flags.push("flag_style_empathetic_cold");
@@ -3052,6 +3071,44 @@ mod tests {
         };
         assert!(!style_controlling_consistent(&[], &authoritative));
         assert!(!style_gap_flags(&[], &authoritative).contains(&"flag_style_controlling"));
+    }
+
+    #[test]
+    fn test_style_manipulative_consistent_fires_on_match() {
+        for t in [
+            StyleType::Opportunistic,
+            StyleType::Manipulative,
+            StyleType::Intrusive,
+        ] {
+            let styles = vec![mk_style(t, 8)];
+            let rep = RepScores {
+                honest_deceitful: Some(2),
+                ..Default::default()
+            };
+            assert!(style_manipulative_consistent(&styles, &rep));
+            assert!(style_gap_flags(&styles, &rep).contains(&"flag_style_manipulative"));
+        }
+    }
+
+    #[test]
+    fn test_style_manipulative_consistent_quiescent_when_honest_or_low() {
+        let manipulative_style = vec![mk_style(StyleType::Manipulative, 8)];
+        // Perceived as honest → aspiration gap (manipulative_honest), not consistent
+        let honest = RepScores {
+            honest_deceitful: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_manipulative_consistent(&manipulative_style, &honest));
+        assert!(
+            !style_gap_flags(&manipulative_style, &honest).contains(&"flag_style_manipulative")
+        );
+        // No manipulative style → no flag even if perceived deceitful
+        let deceitful = RepScores {
+            honest_deceitful: Some(2),
+            ..Default::default()
+        };
+        assert!(!style_manipulative_consistent(&[], &deceitful));
+        assert!(!style_gap_flags(&[], &deceitful).contains(&"flag_style_manipulative"));
     }
 
     #[test]

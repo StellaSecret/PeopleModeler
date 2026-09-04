@@ -346,7 +346,7 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_impostor_arrogant"
         | "flag_recency_reliable"
         | "flag_availability_calm" => CFG.flags.evidence,
-        "flag_style_controlling" => CFG.flags.style_consistent,
+        "flag_style_controlling" | "flag_style_manipulative" => CFG.flags.style_consistent,
         _ => CFG.flags.stated_perceived,
     }
 }
@@ -564,15 +564,18 @@ mod tests {
 
     #[test]
     fn controlling_flag_weight_is_mild() {
-        let w = flag_weight("flag_style_controlling");
-        assert_eq!(w, CFG.flags.style_consistent);
-        // A self-consistent "control freak" is a real but milder signal than
-        // a self-perception contradiction or a pattern flag.
-        assert!(
-            w < CFG.flags.stated_perceived,
-            "self-consistent style should be milder than a stated/perceived gap"
-        );
-        assert!(w > 0.0);
+        for flag in ["flag_style_controlling", "flag_style_manipulative"] {
+            let w = flag_weight(flag);
+            assert_eq!(w, CFG.flags.style_consistent);
+            // A self-consistent style (control freak / confirmed manipulator) is
+            // a real but milder signal than a self-perception contradiction or a
+            // pattern flag.
+            assert!(
+                w < CFG.flags.stated_perceived,
+                "{flag} should be milder than a stated/perceived gap"
+            );
+            assert!(w > 0.0);
+        }
     }
 
     #[test]
@@ -580,5 +583,7 @@ mod tests {
         let before = consistency_malus(&[]);
         let after = consistency_malus(&["flag_style_controlling"]);
         assert!((after - before - CFG.flags.style_consistent).abs() < 1e-9);
+        let both = consistency_malus(&["flag_style_controlling", "flag_style_manipulative"]);
+        assert!((both - before - 2.0 * CFG.flags.style_consistent).abs() < 1e-9);
     }
 }

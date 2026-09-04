@@ -305,6 +305,7 @@ fn en(key: &'static str) -> &'static str {
         "flag_style_controlling" => {
             "Controls and micromanages — perceived as domineering, not trusting."
         }
+        "flag_style_manipulative" => "Admits a manipulative style and is perceived as deceitful.",
         "flag_style_manipulative_honest" => "Claims to play dirty yet comes across as honest.",
         "flag_style_empathetic_cold" => "Claims empathy yet comes across as cold.",
         "flag_style_guarded_trusting" => "Claims to be guarded yet comes across as trusting.",
@@ -1038,6 +1039,7 @@ fn fr(key: &'static str) -> &'static str {
         "flag_style_controlling" => {
             "Contrôle et micro-gère — perçu comme dominateur, pas confiant."
         }
+        "flag_style_manipulative" => "Adopte un style manipulateur et passe pour malhonnête.",
         "flag_style_manipulative_honest" => "Se dit roublard mais passe pour honnête.",
         "flag_style_empathetic_cold" => "Se dit empathique mais paraît froid.",
         "flag_style_guarded_trusting" => "Se dit méfiant mais paraît confiant.",
@@ -1753,6 +1755,7 @@ mod tests {
         "flag_style_dominant_submissive",
         "flag_style_empathetic_cold",
         "flag_style_guarded_trusting",
+        "flag_style_manipulative",
         "flag_style_manipulative_honest",
         "flag_style_repairs_trust_deceitful",
         "flag_style_rulebased_favoritist",
