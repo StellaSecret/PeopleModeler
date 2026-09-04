@@ -452,6 +452,18 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         ("flag_style_manipulative", Lang::En) => {
             "You are perceived as deceitful and openly admit a manipulative style. Adopt transparent conduct: manipulation destroys trust, and your reputation already confirms it."
         }
+        ("flag_style_passive_aggressive", Lang::Fr) => {
+            "Vous êtes perçu comme réactif et vous l'acceptez. Traitez les tensions directement plutôt que par des manœuvres sournoises."
+        }
+        ("flag_style_passive_aggressive", Lang::En) => {
+            "You are perceived as reactive and openly admit a passive-aggressive style. Address tensions directly instead of through underhanded maneuvers."
+        }
+        ("flag_style_detached", Lang::Fr) => {
+            "Vous êtes perçu comme distant et vous le confirmez. Montrez-vous davantage présent et accessible."
+        }
+        ("flag_style_detached", Lang::En) => {
+            "You are perceived as distant and confirm it yourself. Show up warmer and more accessible."
+        }
 
         // --- value_flags ---
         ("flag_value_family_past", Lang::Fr) => {
@@ -477,6 +489,24 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         }
         ("flag_value_loyalty_guarded", Lang::En) => {
             "You value loyalty but remain guarded. Learn to grant graduated trust."
+        }
+        ("flag_value_health_risky", Lang::Fr) => {
+            "Vous valorisez la santé mais prenez des risques. Alignez vos comportements sur cette valeur."
+        }
+        ("flag_value_health_risky", Lang::En) => {
+            "You value health yet take risks. Align your behavior with that value."
+        }
+        ("flag_value_wealth_generous", Lang::Fr) => {
+            "Vous valorisez la richesse mais on vous perçoit généreux. Clarifiez votre rapport à l'argent."
+        }
+        ("flag_value_wealth_generous", Lang::En) => {
+            "You value wealth but are perceived as generous. Clarify your relationship with money."
+        }
+        ("flag_value_faith_deceitful", Lang::Fr) => {
+            "Vous valorisez la foi mais on vous perçoit malhonnête. Votre conduite contredit vos convictions."
+        }
+        ("flag_value_faith_deceitful", Lang::En) => {
+            "You value faith but are perceived as deceitful. Your conduct contradicts your convictions."
         }
 
         _ => "",
@@ -704,6 +734,40 @@ mod tests {
             fr.contains("transparente") && fr.contains("confiance"),
             "FR advice should mention transparence/confiance: {fr}"
         );
+    }
+
+    #[test]
+    fn passive_aggressive_and_detached_flags_have_actionable_advice() {
+        for flag in ["flag_style_passive_aggressive", "flag_style_detached"] {
+            let fr = flag_action(flag, Lang::Fr);
+            let en = flag_action(flag, Lang::En);
+            assert!(!fr.is_empty(), "{flag} FR advice missing");
+            assert!(!en.is_empty(), "{flag} EN advice missing");
+        }
+        let pa_en = flag_action("flag_style_passive_aggressive", Lang::En);
+        assert!(
+            pa_en.contains("directly"),
+            "PA advice should recommend directness: {pa_en}"
+        );
+        let detached_en = flag_action("flag_style_detached", Lang::En);
+        assert!(
+            detached_en.contains("warmer"),
+            "detached advice should recommend warmth: {detached_en}"
+        );
+    }
+
+    #[test]
+    fn value_flags_have_bilingual_advice() {
+        for flag in [
+            "flag_value_health_risky",
+            "flag_value_wealth_generous",
+            "flag_value_faith_deceitful",
+        ] {
+            let fr = flag_action(flag, Lang::Fr);
+            let en = flag_action(flag, Lang::En);
+            assert!(!fr.is_empty(), "{flag} FR advice missing");
+            assert!(!en.is_empty(), "{flag} EN advice missing");
+        }
     }
 
     #[test]

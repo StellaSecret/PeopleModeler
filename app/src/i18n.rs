@@ -306,6 +306,8 @@ fn en(key: &'static str) -> &'static str {
             "Controls and micromanages — perceived as domineering, not trusting."
         }
         "flag_style_manipulative" => "Admits a manipulative style and is perceived as deceitful.",
+        "flag_style_passive_aggressive" => "Openly passive-aggressive and perceived as reactive.",
+        "flag_style_detached" => "Openly detached and perceived as cold/distant.",
         "flag_style_manipulative_honest" => "Claims to play dirty yet comes across as honest.",
         "flag_style_empathetic_cold" => "Claims empathy yet comes across as cold.",
         "flag_style_guarded_trusting" => "Claims to be guarded yet comes across as trusting.",
@@ -365,6 +367,15 @@ fn en(key: &'static str) -> &'static str {
         }
         "flag_value_loyalty_guarded" => {
             "Values loyalty yet adopts a guarded, distrustful trust style."
+        }
+        "flag_value_health_risky" => {
+            "Values health yet has a very high risk appetite — contradictory."
+        }
+        "flag_value_wealth_generous" => {
+            "Values wealth yet is perceived as generous — contradictory."
+        }
+        "flag_value_faith_deceitful" => {
+            "Values faith yet is perceived as deceitful — contradictory."
         }
 
         // Edit form sections
@@ -1040,6 +1051,8 @@ fn fr(key: &'static str) -> &'static str {
             "Contrôle et micro-gère — perçu comme dominateur, pas confiant."
         }
         "flag_style_manipulative" => "Adopte un style manipulateur et passe pour malhonnête.",
+        "flag_style_passive_aggressive" => "S'avoue passif-agressif et passe pour réactif.",
+        "flag_style_detached" => "S'avoue détaché et passe pour froid/distant.",
         "flag_style_manipulative_honest" => "Se dit roublard mais passe pour honnête.",
         "flag_style_empathetic_cold" => "Se dit empathique mais paraît froid.",
         "flag_style_guarded_trusting" => "Se dit méfiant mais paraît confiant.",
@@ -1095,6 +1108,15 @@ fn fr(key: &'static str) -> &'static str {
         }
         "flag_value_loyalty_guarded" => {
             "Valorise la loyauté mais adopte un style de confiance défiant."
+        }
+        "flag_value_health_risky" => {
+            "Valorise la santé mais a un appétit de risque très élevé — contradictoire."
+        }
+        "flag_value_wealth_generous" => {
+            "Valorise la richesse mais passe pour généreux — contradictoire."
+        }
+        "flag_value_faith_deceitful" => {
+            "Valorise la foi mais passe pour malhonnête — contradictoire."
         }
 
         "edit_motivations" => "Motivations",
@@ -1750,6 +1772,7 @@ mod tests {
         "flag_style_competing_passive",
         "flag_style_consensus_authoritative",
         "flag_style_controlling",
+        "flag_style_detached",
         "flag_style_diplomatic_blunt",
         "flag_style_direct_diplomatic",
         "flag_style_dominant_submissive",
@@ -1757,6 +1780,7 @@ mod tests {
         "flag_style_guarded_trusting",
         "flag_style_manipulative",
         "flag_style_manipulative_honest",
+        "flag_style_passive_aggressive",
         "flag_style_repairs_trust_deceitful",
         "flag_style_rulebased_favoritist",
         "flag_style_servant_authoritative",
@@ -1764,9 +1788,12 @@ mod tests {
         "flag_style_virtuebased_deceitful",
         "flag_sunk_cost_flexible",
         "flag_value_career_family",
+        "flag_value_faith_deceitful",
         "flag_value_family_past",
+        "flag_value_health_risky",
         "flag_value_loyalty_guarded",
         "flag_value_stability_risk",
+        "flag_value_wealth_generous",
         "flag_warmth_blunt",
         "flag_warmth_cold",
         "flag_warmth_selfish",

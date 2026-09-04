@@ -764,6 +764,24 @@ pub fn style_manipulative_consistent(styles: &[PersonalStyle], rep: &RepScores) 
     ) && rep.honest_deceitful.is_some_and(|v| v <= LOW)
 }
 
+/// Claims a passive-aggressive style and is perceived as reactive/volatile
+/// (self-image matches reputation). Flags the confirmed passive-aggressive:
+/// someone who admits a simmering, underhanded conflict style the model's
+/// reputation already reads as unstable.
+pub fn style_passive_aggressive_consistent(styles: &[PersonalStyle], rep: &RepScores) -> bool {
+    style_high(styles, &[StyleType::PassiveAggressive], STYLE_HIGH)
+        && rep.calm_reactive.is_some_and(|v| v <= LOW)
+}
+
+/// Claims a detached conduct style and is perceived as cold/distant
+/// (self-image matches reputation). Flags the confirmed detached persona:
+/// someone who openly declares emotional distance the model's reputation
+/// already confirms.
+pub fn style_detached_consistent(styles: &[PersonalStyle], rep: &RepScores) -> bool {
+    style_high(styles, &[StyleType::Detached], STYLE_HIGH)
+        && rep.empathetic_detached.is_some_and(|v| v <= LOW)
+}
+
 /// Claims an empathetic, respectful, supportive, or nurturing conduct style yet
 /// is perceived as cold.
 pub fn style_empathetic_cold_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
@@ -851,6 +869,12 @@ pub fn style_gap_flags(styles: &[PersonalStyle], rep: &RepScores) -> Vec<&'stati
     }
     if style_manipulative_consistent(styles, rep) {
         flags.push("flag_style_manipulative");
+    }
+    if style_passive_aggressive_consistent(styles, rep) {
+        flags.push("flag_style_passive_aggressive");
+    }
+    if style_detached_consistent(styles, rep) {
+        flags.push("flag_style_detached");
     }
     if style_empathetic_cold_gap(styles, rep) {
         flags.push("flag_style_empathetic_cold");
@@ -941,6 +965,7 @@ pub fn value_flags(
     values: &[crate::models::Value],
     risk_appetite: Option<u8>,
     styles: &[crate::models::PersonalStyle],
+    rep: &RepScores,
 ) -> Vec<&'static str> {
     use crate::models::{StyleCategory, StyleType, ValueType};
     let mut flags = Vec::new();
@@ -968,6 +993,19 @@ pub fn value_flags(
     {
         flags.push("flag_value_loyalty_guarded");
     }
+    if val(ValueType::Health).is_some_and(|i| i >= 8) && risk_appetite.is_some_and(|r| r >= 8) {
+        flags.push("flag_value_health_risky");
+    }
+    if val(ValueType::Wealth).is_some_and(|i| i >= 8)
+        && rep.generous_selfish.is_some_and(|v| v >= HIGH)
+    {
+        flags.push("flag_value_wealth_generous");
+    }
+    if val(ValueType::Faith).is_some_and(|i| i >= 8)
+        && rep.honest_deceitful.is_some_and(|v| v <= LOW)
+    {
+        flags.push("flag_value_faith_deceitful");
+    }
     flags
 }
 
@@ -984,6 +1022,7 @@ pub fn all_person_flags(person: &Person) -> Vec<&'static str> {
         &person.values,
         person.risk_appetite,
         &person.styles,
+        &person.rep_scores,
     ));
     flags
 }
@@ -1718,7 +1757,7 @@ mod tests {
 
     #[test]
     fn test_value_flags_empty() {
-        let flags = value_flags(&[], None, &[]);
+        let flags = value_flags(&[], None, &[], &RepScores::default());
         assert!(flags.is_empty());
     }
 
@@ -1736,21 +1775,27 @@ mod tests {
             intensity: 8,
             notes: String::new(),
         }];
-        let flags = value_flags(&values, None, &styles);
+        let flags = value_flags(&values, None, &styles, &RepScores::default());
         assert!(flags.contains(&"flag_value_family_past"));
         let past_style = vec![PersonalStyle {
             r#type: StyleType::PastOriented,
             intensity: 8,
             notes: String::new(),
         }];
-        assert!(!value_flags(&values, None, &past_style).contains(&"flag_value_family_past"));
+        assert!(
+            !value_flags(&values, None, &past_style, &RepScores::default())
+                .contains(&"flag_value_family_past")
+        );
         let low_val = vec![Value {
             r#type: ValueType::Family,
             intensity: 5,
             priority: 5,
             notes: String::new(),
         }];
-        assert!(!value_flags(&low_val, None, &styles).contains(&"flag_value_family_past"));
+        assert!(
+            !value_flags(&low_val, None, &styles, &RepScores::default())
+                .contains(&"flag_value_family_past")
+        );
     }
 
     #[test]
@@ -1762,17 +1807,32 @@ mod tests {
             priority: 5,
             notes: String::new(),
         }];
-        assert!(value_flags(&values, Some(9), &[]).contains(&"flag_value_stability_risk"));
-        assert!(value_flags(&values, Some(8), &[]).contains(&"flag_value_stability_risk"));
-        assert!(!value_flags(&values, Some(7), &[]).contains(&"flag_value_stability_risk"));
-        assert!(!value_flags(&values, None, &[]).contains(&"flag_value_stability_risk"));
+        assert!(
+            value_flags(&values, Some(9), &[], &RepScores::default())
+                .contains(&"flag_value_stability_risk")
+        );
+        assert!(
+            value_flags(&values, Some(8), &[], &RepScores::default())
+                .contains(&"flag_value_stability_risk")
+        );
+        assert!(
+            !value_flags(&values, Some(7), &[], &RepScores::default())
+                .contains(&"flag_value_stability_risk")
+        );
+        assert!(
+            !value_flags(&values, None, &[], &RepScores::default())
+                .contains(&"flag_value_stability_risk")
+        );
         let low_val = vec![Value {
             r#type: ValueType::Stability,
             intensity: 5,
             priority: 5,
             notes: String::new(),
         }];
-        assert!(!value_flags(&low_val, Some(9), &[]).contains(&"flag_value_stability_risk"));
+        assert!(
+            !value_flags(&low_val, Some(9), &[], &RepScores::default())
+                .contains(&"flag_value_stability_risk")
+        );
     }
 
     #[test]
@@ -1792,14 +1852,20 @@ mod tests {
                 notes: String::new(),
             },
         ];
-        assert!(value_flags(&values, None, &[]).contains(&"flag_value_career_family"));
+        assert!(
+            value_flags(&values, None, &[], &RepScores::default())
+                .contains(&"flag_value_career_family")
+        );
         let only_career = vec![Value {
             r#type: ValueType::Career,
             intensity: 9,
             priority: 5,
             notes: String::new(),
         }];
-        assert!(!value_flags(&only_career, None, &[]).contains(&"flag_value_career_family"));
+        assert!(
+            !value_flags(&only_career, None, &[], &RepScores::default())
+                .contains(&"flag_value_career_family")
+        );
         let low_both = vec![
             Value {
                 r#type: ValueType::Career,
@@ -1814,7 +1880,10 @@ mod tests {
                 notes: String::new(),
             },
         ];
-        assert!(!value_flags(&low_both, None, &[]).contains(&"flag_value_career_family"));
+        assert!(
+            !value_flags(&low_both, None, &[], &RepScores::default())
+                .contains(&"flag_value_career_family")
+        );
     }
 
     #[test]
@@ -1831,20 +1900,128 @@ mod tests {
             intensity: 8,
             notes: String::new(),
         }];
-        assert!(value_flags(&values, None, &guarded).contains(&"flag_value_loyalty_guarded"));
+        assert!(
+            value_flags(&values, None, &guarded, &RepScores::default())
+                .contains(&"flag_value_loyalty_guarded")
+        );
         let free_trust = vec![PersonalStyle {
             r#type: StyleType::ExtendsTrustFreely,
             intensity: 8,
             notes: String::new(),
         }];
-        assert!(!value_flags(&values, None, &free_trust).contains(&"flag_value_loyalty_guarded"));
+        assert!(
+            !value_flags(&values, None, &free_trust, &RepScores::default())
+                .contains(&"flag_value_loyalty_guarded")
+        );
         let low_val = vec![Value {
             r#type: ValueType::Loyalty,
             intensity: 5,
             priority: 5,
             notes: String::new(),
         }];
-        assert!(!value_flags(&low_val, None, &guarded).contains(&"flag_value_loyalty_guarded"));
+        assert!(
+            !value_flags(&low_val, None, &guarded, &RepScores::default())
+                .contains(&"flag_value_loyalty_guarded")
+        );
+    }
+
+    #[test]
+    fn test_value_flags_health_risky() {
+        use crate::models::{Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Health,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            value_flags(&values, Some(9), &[], &RepScores::default())
+                .contains(&"flag_value_health_risky")
+        );
+        assert!(
+            value_flags(&values, Some(8), &[], &RepScores::default())
+                .contains(&"flag_value_health_risky")
+        );
+        assert!(
+            !value_flags(&values, Some(7), &[], &RepScores::default())
+                .contains(&"flag_value_health_risky")
+        );
+        assert!(
+            !value_flags(&values, None, &[], &RepScores::default())
+                .contains(&"flag_value_health_risky")
+        );
+        let low_val = vec![Value {
+            r#type: ValueType::Health,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            !value_flags(&low_val, Some(9), &[], &RepScores::default())
+                .contains(&"flag_value_health_risky")
+        );
+    }
+
+    #[test]
+    fn test_value_flags_wealth_generous() {
+        use crate::models::{Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Wealth,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        let generous = RepScores {
+            generous_selfish: Some(9),
+            ..Default::default()
+        };
+        assert!(value_flags(&values, None, &[], &generous).contains(&"flag_value_wealth_generous"));
+        let greedy = RepScores {
+            generous_selfish: Some(2),
+            ..Default::default()
+        };
+        assert!(!value_flags(&values, None, &[], &greedy).contains(&"flag_value_wealth_generous"));
+        let low_val = vec![Value {
+            r#type: ValueType::Wealth,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            !value_flags(&low_val, None, &[], &generous).contains(&"flag_value_wealth_generous")
+        );
+    }
+
+    #[test]
+    fn test_value_flags_faith_deceitful() {
+        use crate::models::{Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Faith,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        let deceitful = RepScores {
+            honest_deceitful: Some(2),
+            ..Default::default()
+        };
+        assert!(
+            value_flags(&values, None, &[], &deceitful).contains(&"flag_value_faith_deceitful")
+        );
+        let honest = RepScores {
+            honest_deceitful: Some(9),
+            ..Default::default()
+        };
+        assert!(!value_flags(&values, None, &[], &honest).contains(&"flag_value_faith_deceitful"));
+        let low_val = vec![Value {
+            r#type: ValueType::Faith,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            !value_flags(&low_val, None, &[], &deceitful).contains(&"flag_value_faith_deceitful")
+        );
     }
 
     #[test]
@@ -3109,6 +3286,66 @@ mod tests {
         };
         assert!(!style_manipulative_consistent(&[], &deceitful));
         assert!(!style_gap_flags(&[], &deceitful).contains(&"flag_style_manipulative"));
+    }
+
+    #[test]
+    fn test_style_passive_aggressive_consistent_fires_on_match() {
+        let styles = vec![mk_style(StyleType::PassiveAggressive, 8)];
+        let reactive = RepScores {
+            calm_reactive: Some(2),
+            ..Default::default()
+        };
+        assert!(style_passive_aggressive_consistent(&styles, &reactive));
+        assert!(style_gap_flags(&styles, &reactive).contains(&"flag_style_passive_aggressive"));
+    }
+
+    #[test]
+    fn test_style_passive_aggressive_consistent_quiescent_when_calm_or_low() {
+        let pa_style = vec![mk_style(StyleType::PassiveAggressive, 8)];
+        // Perceived as calm/volatile-neutral → no confirmation
+        let calm = RepScores {
+            calm_reactive: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_passive_aggressive_consistent(&pa_style, &calm));
+        assert!(!style_gap_flags(&pa_style, &calm).contains(&"flag_style_passive_aggressive"));
+        // No PA style → no flag even if perceived reactive
+        let reactive = RepScores {
+            calm_reactive: Some(2),
+            ..Default::default()
+        };
+        assert!(!style_passive_aggressive_consistent(&[], &reactive));
+        assert!(!style_gap_flags(&[], &reactive).contains(&"flag_style_passive_aggressive"));
+    }
+
+    #[test]
+    fn test_style_detached_consistent_fires_on_match() {
+        let styles = vec![mk_style(StyleType::Detached, 8)];
+        let cold = RepScores {
+            empathetic_detached: Some(2),
+            ..Default::default()
+        };
+        assert!(style_detached_consistent(&styles, &cold));
+        assert!(style_gap_flags(&styles, &cold).contains(&"flag_style_detached"));
+    }
+
+    #[test]
+    fn test_style_detached_consistent_quiescent_when_warm_or_low() {
+        let detached_style = vec![mk_style(StyleType::Detached, 8)];
+        // Perceived as warm → empathetic_cold direction (claim-warm/cold) is not this flag
+        let warm = RepScores {
+            empathetic_detached: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_detached_consistent(&detached_style, &warm));
+        assert!(!style_gap_flags(&detached_style, &warm).contains(&"flag_style_detached"));
+        // No detached style → no flag even if perceived cold
+        let cold = RepScores {
+            empathetic_detached: Some(2),
+            ..Default::default()
+        };
+        assert!(!style_detached_consistent(&[], &cold));
+        assert!(!style_gap_flags(&[], &cold).contains(&"flag_style_detached"));
     }
 
     #[test]

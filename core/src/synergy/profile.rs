@@ -311,7 +311,10 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_value_family_past"
         | "flag_value_stability_risk"
         | "flag_value_career_family"
-        | "flag_value_loyalty_guarded" => CFG.flags.self_report,
+        | "flag_value_loyalty_guarded"
+        | "flag_value_health_risky"
+        | "flag_value_wealth_generous"
+        | "flag_value_faith_deceitful" => CFG.flags.self_report,
         "flag_pattern_calm_volatile"
         | "flag_pattern_honest_exploiter"
         | "flag_pattern_diplomat_escalator"
@@ -346,7 +349,10 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_impostor_arrogant"
         | "flag_recency_reliable"
         | "flag_availability_calm" => CFG.flags.evidence,
-        "flag_style_controlling" | "flag_style_manipulative" => CFG.flags.style_consistent,
+        "flag_style_controlling"
+        | "flag_style_manipulative"
+        | "flag_style_passive_aggressive"
+        | "flag_style_detached" => CFG.flags.style_consistent,
         _ => CFG.flags.stated_perceived,
     }
 }
@@ -564,12 +570,17 @@ mod tests {
 
     #[test]
     fn controlling_flag_weight_is_mild() {
-        for flag in ["flag_style_controlling", "flag_style_manipulative"] {
+        for flag in [
+            "flag_style_controlling",
+            "flag_style_manipulative",
+            "flag_style_passive_aggressive",
+            "flag_style_detached",
+        ] {
             let w = flag_weight(flag);
             assert_eq!(w, CFG.flags.style_consistent);
-            // A self-consistent style (control freak / confirmed manipulator) is
-            // a real but milder signal than a self-perception contradiction or a
-            // pattern flag.
+            // A self-consistent style (control freak / confirmed manipulator / PA /
+            // detached) is a real but milder signal than a self-perception
+            // contradiction or a pattern flag.
             assert!(
                 w < CFG.flags.stated_perceived,
                 "{flag} should be milder than a stated/perceived gap"
@@ -583,7 +594,23 @@ mod tests {
         let before = consistency_malus(&[]);
         let after = consistency_malus(&["flag_style_controlling"]);
         assert!((after - before - CFG.flags.style_consistent).abs() < 1e-9);
-        let both = consistency_malus(&["flag_style_controlling", "flag_style_manipulative"]);
-        assert!((both - before - 2.0 * CFG.flags.style_consistent).abs() < 1e-9);
+        let both = consistency_malus(&[
+            "flag_style_controlling",
+            "flag_style_manipulative",
+            "flag_style_passive_aggressive",
+            "flag_style_detached",
+        ]);
+        assert!((both - before - 4.0 * CFG.flags.style_consistent).abs() < 1e-9);
+    }
+
+    #[test]
+    fn value_flags_weight_to_self_report() {
+        for flag in [
+            "flag_value_health_risky",
+            "flag_value_wealth_generous",
+            "flag_value_faith_deceitful",
+        ] {
+            assert_eq!(flag_weight(flag), CFG.flags.self_report);
+        }
     }
 }

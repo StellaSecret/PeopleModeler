@@ -338,8 +338,8 @@ consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
 
 | Tier | Weight | Flags |
 |---|---|---|
-| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded` |
-| Self-consistent styles | 0.10 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness) |
+| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful` |
+| Self-consistent styles | 0.10 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness), `style_passive_aggressive` (PA style matching perceived reactivity), `style_detached` (detached style matching perceived coldness) |
 | Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
 | Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
 
@@ -451,6 +451,9 @@ a genuine person with 1–2 honest flags keeps most credit.
 | `flag_value_stability_risk` | Stability value ≥ 8 and Risk appetite ≥ 8 |
 | `flag_value_career_family` | Career value ≥ 8 and Family value ≥ 8 |
 | `flag_value_loyalty_guarded` | Loyalty value ≥ 8 and Guarded trust style |
+| `flag_value_health_risky` | Health value ≥ 8 and Risk appetite ≥ 8 |
+| `flag_value_wealth_generous` | Wealth value ≥ 8 and perceived generous |
+| `flag_value_faith_deceitful` | Faith value ≥ 8 and perceived deceitful |
 
 Flags split into seven families: **rhetoric gaps** (stated motivation contradicts
 perceived behavior — the *"do as I say, not as I do"* cluster: fairness, helping,
