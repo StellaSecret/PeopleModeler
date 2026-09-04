@@ -590,6 +590,8 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
     let edit_values = crate::i18n::tr("edit_values", app_lang());
     let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
     let priority_label = crate::i18n::tr("edit_priority", app_lang());
+    let value_intensity_helper = crate::i18n::tr("value_intensity_helper", app_lang());
+    let value_priority_helper = crate::i18n::tr("value_priority_helper", app_lang());
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
 
@@ -632,6 +634,11 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
                     sel_intensity.set(5);
                     sel_priority.set(5);
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+            }
+            div { class: "helper-text",
+                div { "{value_helper(&sel_type(), app_lang())}" }
+                div { "{value_intensity_helper}" }
+                div { "{value_priority_helper}" }
             }
             for (i, v) in values().iter().enumerate() {
                 div { class: "list-item",
@@ -1022,6 +1029,15 @@ fn style_helper(t: &StyleType, lang: Lang) -> &'static str {
         peoplemodeler_core::i18n::Lang::En
     };
     t.i18n_desc(cl)
+}
+
+fn value_helper(t: &ValueType, lang: Lang) -> &'static str {
+    let cl = if lang == Lang::Fr {
+        peoplemodeler_core::i18n::Lang::Fr
+    } else {
+        peoplemodeler_core::i18n::Lang::En
+    };
+    t.i18n(cl).desc
 }
 
 fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {

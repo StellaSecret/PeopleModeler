@@ -732,6 +732,8 @@ fn en(key: &'static str) -> &'static str {
         "no_values" => "No values defined",
         "edit_values" => "Values",
         "edit_priority" => "P",
+        "value_intensity_helper" => "Intensity (I): how strongly they hold this value.",
+        "value_priority_helper" => "Priority (P): importance relative to their other values.",
         "compare_rel_title" => "Relationship Context",
         "compare_rel_none" => "General (no context)",
         "compare_rel_strength" => "Strength",
@@ -1500,6 +1502,8 @@ fn fr(key: &'static str) -> &'static str {
         "no_values" => "Aucune valeur définie",
         "edit_values" => "Valeurs",
         "edit_priority" => "P",
+        "value_intensity_helper" => "Intensité (I) : à quel point cette valeur est ancrée.",
+        "value_priority_helper" => "Priorité (P) : importance par rapport aux autres valeurs.",
         "compare_rel_title" => "Contexte de relation",
         "compare_rel_none" => "Général (sans contexte)",
         "compare_rel_strength" => "Intensité",
@@ -2086,6 +2090,8 @@ mod tests {
         "tut_welcome_body",
         "tut_welcome_title",
         "values_title",
+        "value_intensity_helper",
+        "value_priority_helper",
     ];
 
     const IDENTITY_KEYS: &[&str] = &[

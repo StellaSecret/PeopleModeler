@@ -1130,6 +1130,18 @@ mod tests {
     }
 
     #[test]
+    fn test_value_type_i18n_desc_not_xyzzy() {
+        for v in &crate::models::ValueType::ALL {
+            let fr = v.i18n(Lang::Fr).desc;
+            let en = v.i18n(Lang::En).desc;
+            assert!(!fr.is_empty(), "FR desc for {:?} is empty", v);
+            assert!(!en.is_empty(), "EN desc for {:?} is empty", v);
+            assert_ne!(fr, "xyzzy", "FR desc for {:?} should not be xyzzy", v);
+            assert_ne!(en, "xyzzy", "EN desc for {:?} should not be xyzzy", v);
+        }
+    }
+
+    #[test]
     fn test_behavior_response_label_not_xyzzy() {
         use crate::models::BehaviorResponse;
         let sample = [
