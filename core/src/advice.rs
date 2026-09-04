@@ -440,6 +440,12 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         ("flag_style_virtuebased_deceitful", Lang::En) => {
             "You advocate virtue but perceived as deceitful. Align actions with words."
         }
+        ("flag_style_controlling", Lang::Fr) => {
+            "Déléguez davantage : contrôler étouffe les talents et érode la confiance. Confiez des décisions pour prouver que vous faites confiance."
+        }
+        ("flag_style_controlling", Lang::En) => {
+            "Delegate more: micromanaging stifles your team and erodes trust. Hand over real decisions to prove you trust them."
+        }
 
         // --- value_flags ---
         ("flag_value_family_past", Lang::Fr) => {
@@ -655,6 +661,25 @@ mod tests {
                 a.category
             );
         }
+    }
+
+    #[test]
+    fn controlling_flag_is_style_category_and_touches_trust() {
+        let fr = flag_action("flag_style_controlling", Lang::Fr);
+        let en = flag_action("flag_style_controlling", Lang::En);
+        assert!(!fr.is_empty());
+        assert!(!en.is_empty());
+        // The "control freak" advice should frame the issue as a matter of trust
+        // and delegation, not just dominance.
+        assert!(en.contains("trust"), "EN advice should mention trust: {en}");
+        assert!(
+            fr.contains("confiance"),
+            "FR advice should mention confiance: {fr}"
+        );
+        assert!(
+            en.contains("Delegate"),
+            "EN advice should suggest delegating: {en}"
+        );
     }
 
     #[test]

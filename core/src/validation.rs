@@ -724,6 +724,17 @@ pub fn style_dominant_submissive_gap(styles: &[PersonalStyle], rep: &RepScores) 
     ) && rep.authoritative_submissive.is_some_and(|v| v <= LOW)
 }
 
+/// Claims a controlling or autocratic style and is perceived as authoritative
+/// (self-image matches reputation). Flags the "control freak" pattern: someone
+/// who genuinely dominates and micromanages, not just one who aspires to it.
+pub fn style_controlling_consistent(styles: &[PersonalStyle], rep: &RepScores) -> bool {
+    style_high(
+        styles,
+        &[StyleType::Controlling, StyleType::Autocratic],
+        STYLE_HIGH,
+    ) && rep.authoritative_submissive.is_some_and(|v| v >= HIGH)
+}
+
 /// Claims to operate opportunistically yet is perceived as honest.
 pub fn style_manipulative_honest_gap(styles: &[PersonalStyle], rep: &RepScores) -> bool {
     style_high(
@@ -815,6 +826,9 @@ pub fn style_gap_flags(styles: &[PersonalStyle], rep: &RepScores) -> Vec<&'stati
     }
     if style_dominant_submissive_gap(styles, rep) {
         flags.push("flag_style_dominant_submissive");
+    }
+    if style_controlling_consistent(styles, rep) {
+        flags.push("flag_style_controlling");
     }
     if style_manipulative_honest_gap(styles, rep) {
         flags.push("flag_style_manipulative_honest");
@@ -3002,6 +3016,42 @@ mod tests {
         assert_eq!(flags.len(), 2);
         assert!(style_gap_flags(&[], &rep).is_empty());
         assert!(style_gap_flags(&styles, &RepScores::default()).is_empty());
+    }
+
+    #[test]
+    fn test_style_controlling_consistent_fires_on_match() {
+        let styles = vec![mk_style(StyleType::Controlling, 8)];
+        let rep = RepScores {
+            authoritative_submissive: Some(9),
+            ..Default::default()
+        };
+        assert!(style_controlling_consistent(&styles, &rep));
+        let flags = style_gap_flags(&styles, &rep);
+        assert!(flags.contains(&"flag_style_controlling"));
+    }
+
+    #[test]
+    fn test_style_controlling_consistent_quiescent_when_submissive_or_low() {
+        let controlling_style = vec![mk_style(StyleType::Controlling, 8)];
+        // Perceived as submissive (low authoritative) → aspiration gap, not consistent
+        let submissive = RepScores {
+            authoritative_submissive: Some(2),
+            ..Default::default()
+        };
+        assert!(!style_controlling_consistent(
+            &controlling_style,
+            &submissive
+        ));
+        assert!(
+            !style_gap_flags(&controlling_style, &submissive).contains(&"flag_style_controlling")
+        );
+        // No controlling style → no flag even if perceived authoritative
+        let authoritative = RepScores {
+            authoritative_submissive: Some(9),
+            ..Default::default()
+        };
+        assert!(!style_controlling_consistent(&[], &authoritative));
+        assert!(!style_gap_flags(&[], &authoritative).contains(&"flag_style_controlling"));
     }
 
     #[test]

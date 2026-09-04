@@ -302,6 +302,9 @@ fn en(key: &'static str) -> &'static str {
         "flag_style_dominant_submissive" => {
             "Claims an autocratic style yet comes across as submissive."
         }
+        "flag_style_controlling" => {
+            "Controls and micromanages — perceived as domineering, not trusting."
+        }
         "flag_style_manipulative_honest" => "Claims to play dirty yet comes across as honest.",
         "flag_style_empathetic_cold" => "Claims empathy yet comes across as cold.",
         "flag_style_guarded_trusting" => "Claims to be guarded yet comes across as trusting.",
@@ -1032,6 +1035,9 @@ fn fr(key: &'static str) -> &'static str {
         "flag_style_diplomatic_blunt" => "Se dit diplomate mais passe pour brutal.",
         "flag_style_competing_passive" => "Se dit compétitif mais passe pour passif.",
         "flag_style_dominant_submissive" => "Se dit autocratique mais passe pour soumis.",
+        "flag_style_controlling" => {
+            "Contrôle et micro-gère — perçu comme dominateur, pas confiant."
+        }
         "flag_style_manipulative_honest" => "Se dit roublard mais passe pour honnête.",
         "flag_style_empathetic_cold" => "Se dit empathique mais paraît froid.",
         "flag_style_guarded_trusting" => "Se dit méfiant mais paraît confiant.",
@@ -1741,6 +1747,7 @@ mod tests {
         "flag_social_proof_open",
         "flag_style_competing_passive",
         "flag_style_consensus_authoritative",
+        "flag_style_controlling",
         "flag_style_diplomatic_blunt",
         "flag_style_direct_diplomatic",
         "flag_style_dominant_submissive",

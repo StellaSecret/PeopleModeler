@@ -278,6 +278,7 @@ pub const CFG: ModelConfig = ModelConfig {
         self_report: 0.20,
         stated_perceived: 0.30,
         evidence: 0.40,
+        style_consistent: 0.10,
         malus_cap: 0.50,
     },
     validation: ValidationConfig {
@@ -581,6 +582,7 @@ pub struct FlagConfig {
     pub self_report: f64,
     pub stated_perceived: f64,
     pub evidence: f64,
+    pub style_consistent: f64,
     pub malus_cap: f64,
 }
 
