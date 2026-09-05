@@ -236,10 +236,11 @@ pub fn value_similarity(a: &[crate::models::Value], b: &[crate::models::Value]) 
 }
 
 /// Self-alignment score for a person's values: mean of
-/// (intensity/10 + priority/10)/2 across the value set.
+/// (intensity/10 + priority/10)/2 across the value set. Empty set → 0
+/// (unfilled data earns no credit, mirroring the OCEAN bucket).
 pub fn value_self_score(values: &[crate::models::Value]) -> f64 {
     if values.is_empty() {
-        return 0.5;
+        return 0.0;
     }
     let sum: f64 = values
         .iter()

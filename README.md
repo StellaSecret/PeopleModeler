@@ -365,6 +365,15 @@ credit (capped → 0.5), in addition to the 0.50 Rep malus. Measured effect in
 tests: **~53 → 27** on a twin with the same claims but honest evidence, where
 a genuine person with 1–2 honest flags keeps most credit.
 
+**Unfilled buckets earn no credit** — missing data is not scored as a neutral
+midpoint. An empty profile starts low: the OCEAN sub-score uses 0 for an
+unfilled Agreeableness/Neuroticism (voided-by-flag dims still neutralize to
+0.5), and an empty Values set scores 0 for the self-alignment bucket. Filling
+in the profile is what builds the score (other buckets carry their own missing
+data handling: Reputation averages only filled dims and penalizes absent ones,
+Bias counts unfilled biases as present, Patterns are dropped from the total
+when the set is empty).
+
 **Consistency Flags** — rule-based warnings surfaced as ⚠ chips on the
 **edit**, **person detail**, and **compare** pages:
 

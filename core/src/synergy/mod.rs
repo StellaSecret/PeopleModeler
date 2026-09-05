@@ -2369,7 +2369,7 @@ mod tests {
             pf.patterns
         );
         assert!(
-            pf.total >= 30 && pf.total < 70,
+            pf.total >= 20 && pf.total < 70,
             "baseline self-score: {}",
             pf.total
         );
@@ -2381,7 +2381,7 @@ mod tests {
         let p = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
         let pf = compute_person_profile(&p);
         assert!(pf.ocean > 0.80, "high A + low N ocean: {}", pf.ocean);
-        assert!(pf.total >= 36, "should be decent: {}", pf.total);
+        assert!(pf.total >= 30, "should be decent: {}", pf.total);
     }
 
     #[test]
@@ -2822,7 +2822,7 @@ mod tests {
             mp.total
         );
         assert!(
-            gp.total >= 50,
+            gp.total >= 45,
             "genuine twin must keep mid-band credit, got {}",
             gp.total
         );
@@ -3165,7 +3165,7 @@ mod tests {
         };
         let pf = compute_person_profile(&p);
         assert!(pf.reputation > 0.70, "good rep: {}", pf.reputation);
-        assert!(pf.total >= 42, "good rep boosts total: {}", pf.total);
+        assert!(pf.total >= 35, "good rep boosts total: {}", pf.total);
     }
 
     #[test]
@@ -3309,8 +3309,8 @@ mod tests {
     fn test_self_score_full_ocean_none() {
         let p = make_person(None, None, None, None, None);
         let pf = compute_person_profile(&p);
-        // All None → A=0.5, N-inverted=0.5 → raw_ocean=0.5, no penalty
-        assert!((pf.ocean - 0.5).abs() < 0.001, "ocean score: {}", pf.ocean);
+        // All None → A and N unfilled → a_s=0, n_s=0 → raw_ocean=0, no penalty
+        assert!((pf.ocean - 0.0).abs() < 0.001, "ocean score: {}", pf.ocean);
         assert!(pf.total > 0, "total should be > 0: {}", pf.total);
     }
 
@@ -5853,7 +5853,7 @@ mod tests {
     #[test]
     fn test_value_self_score_empty() {
         let score = value_self_score(&[]);
-        assert!((score - 0.5).abs() < 0.001, "empty → 0.5, got {}", score);
+        assert!((score - 0.0).abs() < 0.001, "empty → 0.0, got {}", score);
     }
 
     #[test]
@@ -9092,7 +9092,7 @@ mod tests {
         let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let pf = compute_person_profile(&p);
         assert!(
-            pf.total >= 30 && pf.total <= 70,
+            pf.total >= 20 && pf.total <= 70,
             "baseline total: {}",
             pf.total
         );

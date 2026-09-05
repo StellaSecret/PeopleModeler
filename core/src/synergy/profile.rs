@@ -472,12 +472,12 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
         person
             .ocean
             .agreeableness
-            .map_or(neutral, |v| v as f64 / CFG.similarity.trait_scale)
+            .map_or(0.0, |v| v as f64 / CFG.similarity.trait_scale)
     };
     let n_s = if void_n {
         neutral
     } else {
-        person.ocean.neuroticism.map_or(neutral, |v| {
+        person.ocean.neuroticism.map_or(0.0, |v| {
             (CFG.similarity.trait_scale - v as f64) / CFG.similarity.trait_scale
         })
     };
