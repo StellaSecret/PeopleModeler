@@ -508,6 +508,24 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         ("flag_value_faith_deceitful", Lang::En) => {
             "You value faith but are perceived as deceitful. Your conduct contradicts your convictions."
         }
+        ("flag_value_adventure_stability", Lang::Fr) => {
+            "Vous valorisez à la fois l'aventure et la stabilité. Ces deux forces s'opposent — clarifiez ce qui prime."
+        }
+        ("flag_value_adventure_stability", Lang::En) => {
+            "You value both adventure and stability. These pull against each other — clarify which wins."
+        }
+        ("flag_value_community_selfish", Lang::Fr) => {
+            "Vous valorisez la communauté mais on vous perçoit égoïste. Confirmez votre engagement par vos actes."
+        }
+        ("flag_value_community_selfish", Lang::En) => {
+            "You value community but are perceived as selfish. Back your commitment with action."
+        }
+        ("flag_value_knowledge_arrogant", Lang::Fr) => {
+            "Vous valorisez le savoir mais on vous perçoit arrogant. L'humilité renforce votre crédibilité."
+        }
+        ("flag_value_knowledge_arrogant", Lang::En) => {
+            "You value knowledge but come across as arrogant. Humility builds credibility."
+        }
 
         _ => "",
     }
@@ -762,6 +780,9 @@ mod tests {
             "flag_value_health_risky",
             "flag_value_wealth_generous",
             "flag_value_faith_deceitful",
+            "flag_value_adventure_stability",
+            "flag_value_community_selfish",
+            "flag_value_knowledge_arrogant",
         ] {
             let fr = flag_action(flag, Lang::Fr);
             let en = flag_action(flag, Lang::En);

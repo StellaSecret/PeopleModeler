@@ -314,7 +314,10 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_value_loyalty_guarded"
         | "flag_value_health_risky"
         | "flag_value_wealth_generous"
-        | "flag_value_faith_deceitful" => CFG.flags.self_report,
+        | "flag_value_faith_deceitful"
+        | "flag_value_adventure_stability"
+        | "flag_value_community_selfish"
+        | "flag_value_knowledge_arrogant" => CFG.flags.self_report,
         "flag_pattern_calm_volatile"
         | "flag_pattern_honest_exploiter"
         | "flag_pattern_diplomat_escalator"
@@ -609,6 +612,9 @@ mod tests {
             "flag_value_health_risky",
             "flag_value_wealth_generous",
             "flag_value_faith_deceitful",
+            "flag_value_adventure_stability",
+            "flag_value_community_selfish",
+            "flag_value_knowledge_arrogant",
         ] {
             assert_eq!(flag_weight(flag), CFG.flags.self_report);
         }

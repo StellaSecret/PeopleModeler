@@ -1006,6 +1006,21 @@ pub fn value_flags(
     {
         flags.push("flag_value_faith_deceitful");
     }
+    if val(ValueType::Adventure).is_some_and(|i| i >= 8)
+        && val(ValueType::Stability).is_some_and(|i| i >= 8)
+    {
+        flags.push("flag_value_adventure_stability");
+    }
+    if val(ValueType::Community).is_some_and(|i| i >= 8)
+        && rep.generous_selfish.is_some_and(|v| v <= LOW)
+    {
+        flags.push("flag_value_community_selfish");
+    }
+    if val(ValueType::Knowledge).is_some_and(|i| i >= 8)
+        && rep.humble_arrogant.is_some_and(|v| v <= LOW)
+    {
+        flags.push("flag_value_knowledge_arrogant");
+    }
     flags
 }
 
@@ -2021,6 +2036,125 @@ mod tests {
         }];
         assert!(
             !value_flags(&low_val, None, &[], &deceitful).contains(&"flag_value_faith_deceitful")
+        );
+    }
+
+    #[test]
+    fn test_value_flags_adventure_stability() {
+        use crate::models::{Value, ValueType};
+        let both_high = vec![
+            Value {
+                r#type: ValueType::Adventure,
+                intensity: 9,
+                priority: 5,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Stability,
+                intensity: 8,
+                priority: 5,
+                notes: String::new(),
+            },
+        ];
+        assert!(
+            value_flags(&both_high, None, &[], &RepScores::default())
+                .contains(&"flag_value_adventure_stability")
+        );
+        let only_adventure = vec![Value {
+            r#type: ValueType::Adventure,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            !value_flags(&only_adventure, None, &[], &RepScores::default())
+                .contains(&"flag_value_adventure_stability")
+        );
+        let low_adventure = vec![
+            Value {
+                r#type: ValueType::Adventure,
+                intensity: 5,
+                priority: 5,
+                notes: String::new(),
+            },
+            Value {
+                r#type: ValueType::Stability,
+                intensity: 8,
+                priority: 5,
+                notes: String::new(),
+            },
+        ];
+        assert!(
+            !value_flags(&low_adventure, None, &[], &RepScores::default())
+                .contains(&"flag_value_adventure_stability")
+        );
+    }
+
+    #[test]
+    fn test_value_flags_community_selfish() {
+        use crate::models::{Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Community,
+            intensity: 8,
+            priority: 5,
+            notes: String::new(),
+        }];
+        let selfish = RepScores {
+            generous_selfish: Some(2),
+            ..Default::default()
+        };
+        assert!(
+            value_flags(&values, None, &[], &selfish).contains(&"flag_value_community_selfish")
+        );
+        let generous = RepScores {
+            generous_selfish: Some(9),
+            ..Default::default()
+        };
+        assert!(
+            !value_flags(&values, None, &[], &generous).contains(&"flag_value_community_selfish")
+        );
+        let low_val = vec![Value {
+            r#type: ValueType::Community,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            !value_flags(&low_val, None, &[], &selfish).contains(&"flag_value_community_selfish")
+        );
+    }
+
+    #[test]
+    fn test_value_flags_knowledge_arrogant() {
+        use crate::models::{Value, ValueType};
+        let values = vec![Value {
+            r#type: ValueType::Knowledge,
+            intensity: 9,
+            priority: 5,
+            notes: String::new(),
+        }];
+        let arrogant = RepScores {
+            humble_arrogant: Some(3),
+            ..Default::default()
+        };
+        assert!(
+            value_flags(&values, None, &[], &arrogant).contains(&"flag_value_knowledge_arrogant")
+        );
+        let humble = RepScores {
+            humble_arrogant: Some(9),
+            ..Default::default()
+        };
+        assert!(
+            !value_flags(&values, None, &[], &humble).contains(&"flag_value_knowledge_arrogant")
+        );
+        let low_val = vec![Value {
+            r#type: ValueType::Knowledge,
+            intensity: 5,
+            priority: 5,
+            notes: String::new(),
+        }];
+        assert!(
+            !value_flags(&low_val, None, &[], &arrogant).contains(&"flag_value_knowledge_arrogant")
         );
     }
 

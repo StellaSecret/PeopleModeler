@@ -338,7 +338,7 @@ consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
 
 | Tier | Weight | Flags |
 |---|---|---|
-| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful` |
+| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful`, `value_adventure_stability`, `value_community_selfish`, `value_knowledge_arrogant` |
 | Self-consistent styles | 0.10 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness), `style_passive_aggressive` (PA style matching perceived reactivity), `style_detached` (detached style matching perceived coldness) |
 | Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
 | Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
@@ -368,7 +368,7 @@ a genuine person with 1–2 honest flags keeps most credit.
 **Unfilled buckets earn no credit** — missing data is not scored as a neutral
 midpoint. An empty profile starts low: the OCEAN sub-score uses 0 for an
 unfilled Agreeableness/Neuroticism (voided-by-flag dims still neutralize to
-0.5), and an empty Values set scores 0 for the self-alignment bucket. Filling
+0.5), empty Values and Style sets score 0 for their buckets. Filling
 in the profile is what builds the score (other buckets carry their own missing
 data handling: Reputation averages only filled dims and penalizes absent ones,
 Bias counts unfilled biases as present, Patterns are dropped from the total
@@ -463,6 +463,9 @@ when the set is empty).
 | `flag_value_health_risky` | Health value ≥ 8 and Risk appetite ≥ 8 |
 | `flag_value_wealth_generous` | Wealth value ≥ 8 and perceived generous |
 | `flag_value_faith_deceitful` | Faith value ≥ 8 and perceived deceitful |
+| `flag_value_adventure_stability` | Adventure value ≥ 8 and Stability value ≥ 8 |
+| `flag_value_community_selfish` | Community value ≥ 8 and perceived selfish |
+| `flag_value_knowledge_arrogant` | Knowledge value ≥ 8 and perceived arrogant |
 
 Flags split into seven families: **rhetoric gaps** (stated motivation contradicts
 perceived behavior — the *"do as I say, not as I do"* cluster: fairness, helping,

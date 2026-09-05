@@ -271,7 +271,7 @@ pub const CFG: ModelConfig = ModelConfig {
         default_total: 50,
         default_motivation: 0.5,
         default_patterns: 0.5,
-        default_style: 0.5,
+        default_style: 0.0,
         contradiction_cap: 0.5,
     },
     flags: FlagConfig {

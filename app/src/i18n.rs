@@ -377,6 +377,15 @@ fn en(key: &'static str) -> &'static str {
         "flag_value_faith_deceitful" => {
             "Values faith yet is perceived as deceitful — contradictory."
         }
+        "flag_value_adventure_stability" => {
+            "Values both adventure and stability — opposing drivers."
+        }
+        "flag_value_community_selfish" => {
+            "Values community yet is perceived as selfish — contradictory."
+        }
+        "flag_value_knowledge_arrogant" => {
+            "Values knowledge yet comes across as arrogant — contradictory."
+        }
 
         // Edit form sections
         "edit_motivations" => "Motivations",
@@ -1120,6 +1129,15 @@ fn fr(key: &'static str) -> &'static str {
         "flag_value_faith_deceitful" => {
             "Valorise la foi mais passe pour malhonnête — contradictoire."
         }
+        "flag_value_adventure_stability" => {
+            "Valorise l'aventure et la stabilité à la fois — forces opposées."
+        }
+        "flag_value_community_selfish" => {
+            "Valorise la communauté mais passe pour égoïste — contradictoire."
+        }
+        "flag_value_knowledge_arrogant" => {
+            "Valorise le savoir mais passe pour arrogant — contradictoire."
+        }
 
         "edit_motivations" => "Motivations",
         "edit_biases" => "Biais",
@@ -1791,10 +1809,13 @@ mod tests {
         "flag_style_trusts_freely_suspicious",
         "flag_style_virtuebased_deceitful",
         "flag_sunk_cost_flexible",
+        "flag_value_adventure_stability",
         "flag_value_career_family",
+        "flag_value_community_selfish",
         "flag_value_faith_deceitful",
         "flag_value_family_past",
         "flag_value_health_risky",
+        "flag_value_knowledge_arrogant",
         "flag_value_loyalty_guarded",
         "flag_value_stability_risk",
         "flag_value_wealth_generous",

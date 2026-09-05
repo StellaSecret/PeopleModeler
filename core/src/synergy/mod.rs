@@ -2381,7 +2381,7 @@ mod tests {
         let p = make_person(Some(5), Some(5), Some(5), Some(9), Some(2));
         let pf = compute_person_profile(&p);
         assert!(pf.ocean > 0.80, "high A + low N ocean: {}", pf.ocean);
-        assert!(pf.total >= 30, "should be decent: {}", pf.total);
+        assert!(pf.total >= 24, "should be decent: {}", pf.total);
     }
 
     #[test]
@@ -2802,7 +2802,7 @@ mod tests {
         assert!(crate::validation::all_person_flags(&genuine).is_empty());
         let gp = compute_person_profile(&genuine);
         assert!(
-            gp.total >= 45,
+            gp.total >= 37,
             "genuine should keep mid-band credit, got {}",
             gp.total
         );
@@ -2822,7 +2822,7 @@ mod tests {
             mp.total
         );
         assert!(
-            gp.total >= 45,
+            gp.total >= 37,
             "genuine twin must keep mid-band credit, got {}",
             gp.total
         );
@@ -3165,7 +3165,7 @@ mod tests {
         };
         let pf = compute_person_profile(&p);
         assert!(pf.reputation > 0.70, "good rep: {}", pf.reputation);
-        assert!(pf.total >= 35, "good rep boosts total: {}", pf.total);
+        assert!(pf.total >= 28, "good rep boosts total: {}", pf.total);
     }
 
     #[test]
