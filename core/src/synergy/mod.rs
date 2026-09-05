@@ -1442,6 +1442,36 @@ mod tests {
         assert!((result - 1.0).abs() < 0.001, "got {}", result);
     }
 
+    #[test]
+    fn test_pattern_synergy_negative_mean_unsaturated() {
+        let a = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::SeeksSupport,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::SeeksSupport,
+                notes: String::new(),
+            },
+        ];
+        let b = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::SeeksSupport,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::SeeksSupport,
+                notes: String::new(),
+            },
+        ];
+        let result = pattern_synergy(&a, &b);
+        assert!((result - 0.1666666667).abs() < 0.001, "got {}", result);
+    }
+
     // --- Pattern adjustment tests ---
 
     #[test]
@@ -9146,6 +9176,45 @@ mod tests {
             "bias * weight keeps total in range, got {}",
             pf.total
         );
+    }
+
+    #[test]
+    fn test_self_score_accumulator_exact() {
+        // All seven buckets active with distinct non-trivial values so every
+        // +−∗/ mutation in the raw/total_w accumulation shifts the rounded total.
+        let mut p = full_profile();
+        let pf0 = compute_person_profile(&p);
+        assert_eq!(pf0.total, 53, "full-profile total: {}", pf0.total);
+
+        // Pattern trigger changed to a distinct non-zero bucket value.
+        p.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::SeeksSupport,
+            notes: String::new(),
+        }];
+        let pf1 = compute_person_profile(&p);
+        assert_eq!(pf1.total, 45, "modified-pattern total: {}", pf1.total);
+
+        // Values bucket non-empty (val = 0.8) AND one rep dim in an adjustment
+        // band (extreme-low → rep_adjustment = -0.04) so mutations to
+        // `raw += val * values_w` and `base_rep_quality + rep_adjustment`
+        // change the total by more than the rounding step.
+        let mut p2 = full_profile();
+        p2.values = vec![Value {
+            r#type: ValueType::Career,
+            intensity: 8,
+            priority: 8,
+            notes: String::new(),
+        }];
+        p2.rep_scores.assertive_passive = Some(1);
+        let pf2 = compute_person_profile(&p2);
+        assert_eq!(pf2.total, 59, "values+rep-adj total: {}", pf2.total);
+        assert!(value_self_score(&p2.values) > 0.0);
+        assert!(rep_adjustment(&p2.rep_scores) < 0.0);
+
+        // Scales: full OCEAN/mot/bias/style and empty patterns keep raw=total_w,
+        // so the exact totals above are model-pinned, not accidental.
+        assert!(pf2.total > 0 && pf2.total <= 100);
     }
 
     // === scoring.rs: per_context_breakdown exact values ===
