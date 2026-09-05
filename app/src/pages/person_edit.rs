@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
-    Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores, StyleType,
-    Tag, Value, ValueType,
+    Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores,
+    StyleCategory, StyleType, Tag, Value, ValueType,
 };
 
 use crate::Route;
@@ -545,8 +545,8 @@ fn MotEditPanel(
             div { class: "helper-text", "{mot_helper(&sel_type(), app_lang())}" }
             for (i, m) in motivations().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move motivation up", onclick: move |_| { mot_move(motivations, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move motivation down", onclick: move |_| { mot_move(motivations, i, false); }, "▼" }
+                    button { class: "reorder-btn", aria_label: "Move motivation up", onclick: move |_| { swap_item_in_list(&mut motivations.write(), i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move motivation down", onclick: move |_| { swap_item_in_list(&mut motivations.write(), i, false); }, "▼" }
                     button { class: "btn btn-small", aria_label: "Edit motivation", onclick: {
                         let m = m.clone();
                         move |_| {
@@ -573,10 +573,6 @@ fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
     } else if !up && i + 1 < len {
         list.swap(i, i + 1);
     }
-}
-
-fn mot_move(mut motivations: Signal<Vec<Motivation>>, i: usize, up: bool) {
-    swap_item_in_list(&mut motivations.write(), i, up);
 }
 
 #[component]
@@ -642,8 +638,8 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
             }
             for (i, v) in values().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move value up", onclick: move |_| { val_move(values, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move value down", onclick: move |_| { val_move(values, i, false); }, "▼" }
+                    button { class: "reorder-btn", aria_label: "Move value up", onclick: move |_| { swap_item_in_list(&mut values.write(), i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move value down", onclick: move |_| { swap_item_in_list(&mut values.write(), i, false); }, "▼" }
                     button { class: "btn btn-small", aria_label: "Edit value", onclick: {
                         let v = v.clone();
                         move |_| {
@@ -662,10 +658,6 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
             }
         }
     }
-}
-
-fn val_move(mut values: Signal<Vec<Value>>, i: usize, up: bool) {
-    swap_item_in_list(&mut values.write(), i, up);
 }
 
 #[component]
@@ -716,8 +708,8 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
             div { class: "helper-text", "{bias_helper(&sel_type(), app_lang())}" }
             for (i, b) in biases().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move bias up", onclick: move |_| { bias_move(biases, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move bias down", onclick: move |_| { bias_move(biases, i, false); }, "▼" }
+                    button { class: "reorder-btn", aria_label: "Move bias up", onclick: move |_| { swap_item_in_list(&mut biases.write(), i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move bias down", onclick: move |_| { swap_item_in_list(&mut biases.write(), i, false); }, "▼" }
                     button { class: "btn btn-small", aria_label: "Edit bias", onclick: {
                         let b = b.clone();
                         move |_| {
@@ -735,10 +727,6 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
             }
         }
     }
-}
-
-fn bias_move(mut biases: Signal<Vec<Bias>>, i: usize, up: bool) {
-    swap_item_in_list(&mut biases.write(), i, up);
 }
 
 #[component]
@@ -866,12 +854,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
 
-    use peoplemodeler_core::i18n::Lang as CoreLang;
-    let cl = if lang == crate::i18n::Lang::Fr {
-        CoreLang::Fr
-    } else {
-        CoreLang::En
-    };
+    let cl = core_lang(lang);
 
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
     let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
@@ -936,8 +919,8 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
             div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move pattern up", onclick: move |_| { pattern_move(patterns, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move pattern down", onclick: move |_| { pattern_move(patterns, i, false); }, "▼" }
+                    button { class: "reorder-btn", aria_label: "Move pattern up", onclick: move |_| { swap_item_in_list(&mut patterns.write(), i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move pattern down", onclick: move |_| { swap_item_in_list(&mut patterns.write(), i, false); }, "▼" }
                     button { class: "btn btn-small", aria_label: "Edit pattern", onclick: {
                         let bp = bp.clone();
                         move |_| {
@@ -1023,21 +1006,11 @@ fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
 }
 
 fn style_helper(t: &StyleType, lang: Lang) -> &'static str {
-    let cl = if lang == Lang::Fr {
-        peoplemodeler_core::i18n::Lang::Fr
-    } else {
-        peoplemodeler_core::i18n::Lang::En
-    };
-    t.i18n_desc(cl)
+    t.i18n_desc(core_lang(lang))
 }
 
 fn value_helper(t: &ValueType, lang: Lang) -> &'static str {
-    let cl = if lang == Lang::Fr {
-        peoplemodeler_core::i18n::Lang::Fr
-    } else {
-        peoplemodeler_core::i18n::Lang::En
-    };
-    t.i18n(cl).desc
+    t.i18n(core_lang(lang)).desc
 }
 
 fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
@@ -1071,7 +1044,6 @@ fn parse_mot_type(s: &str) -> MotivationType {
 
 fn parse_val_type(s: &str) -> ValueType {
     match s {
-        "Career" => ValueType::Career,
         "Family" => ValueType::Family,
         "Health" => ValueType::Health,
         "Wealth" => ValueType::Wealth,
@@ -1087,7 +1059,6 @@ fn parse_val_type(s: &str) -> ValueType {
 
 fn parse_bias_type(s: &str) -> BiasType {
     match s {
-        "Confirmation" => BiasType::Confirmation,
         "Anchoring" => BiasType::Anchoring,
         "Availability" => BiasType::Availability,
         "SunkCost" => BiasType::SunkCost,
@@ -1138,6 +1109,11 @@ fn parse_style_category(s: &str) -> peoplemodeler_core::models::StyleCategory {
     }
 }
 
+fn coerce_style_to_category(cat: StyleCategory, sel: StyleType) -> StyleType {
+    let opts = StyleType::options_for(cat);
+    if opts.contains(&sel) { sel } else { opts[0] }
+}
+
 #[component]
 fn StyleEditPanel(
     styles: Signal<Vec<PersonalStyle>>,
@@ -1156,19 +1132,11 @@ fn StyleEditPanel(
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
 
-    use peoplemodeler_core::i18n::Lang as CoreLang;
-    let cl = if app_lang() == crate::i18n::Lang::Fr {
-        CoreLang::Fr
-    } else {
-        CoreLang::En
-    };
+    let cl = core_lang(app_lang());
 
     use_effect(move || {
         let cat = sel_category();
-        let opts = StyleType::options_for(cat);
-        if !opts.contains(&sel_type()) {
-            sel_type.set(opts[0]);
-        }
+        sel_type.set(coerce_style_to_category(cat, sel_type()));
     });
 
     rsx! {
@@ -1215,8 +1183,8 @@ fn StyleEditPanel(
             div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
             for (i, s) in styles().iter().enumerate() {
                 div { class: "list-item",
-                    button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { style_move(styles, i, true); }, "▲" }
-                    button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { style_move(styles, i, false); }, "▼" }
+                    button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { swap_item_in_list(&mut styles.write(), i, true); }, "▲" }
+                    button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { swap_item_in_list(&mut styles.write(), i, false); }, "▼" }
                     button { class: "btn btn-small", aria_label: "Edit style", onclick: {
                         let s = s.clone();
                         move |_| {
@@ -1236,14 +1204,6 @@ fn StyleEditPanel(
             }
         }
     }
-}
-
-fn style_move(mut styles: Signal<Vec<PersonalStyle>>, i: usize, up: bool) {
-    swap_item_in_list(&mut styles.write(), i, up);
-}
-
-fn pattern_move(mut patterns: Signal<Vec<BehavioralPattern>>, i: usize, up: bool) {
-    swap_item_in_list(&mut patterns.write(), i, up);
 }
 
 #[cfg(test)]
@@ -1624,5 +1584,49 @@ mod tests {
             .collect();
         let distinct: std::collections::HashSet<&str> = results.into_iter().collect();
         assert_eq!(distinct.len(), BehaviorTrigger::ALL.len());
+    }
+
+    #[test]
+    fn core_lang_maps_both_branches() {
+        assert!(matches!(
+            core_lang(Lang::Fr),
+            peoplemodeler_core::i18n::Lang::Fr
+        ));
+        assert!(matches!(
+            core_lang(Lang::En),
+            peoplemodeler_core::i18n::Lang::En
+        ));
+    }
+
+    #[test]
+    fn value_helper_bilingual_not_empty() {
+        for &v in &ValueType::ALL {
+            let en = value_helper(&v, Lang::En);
+            let fr = value_helper(&v, Lang::Fr);
+            assert!(!en.is_empty(), "{v:?} en empty");
+            assert!(!fr.is_empty(), "{v:?} fr empty");
+            assert_ne!(en, "xyzzy");
+            assert_ne!(fr, "xyzzy");
+            assert_ne!(en, fr, "{v:?} langs identical");
+        }
+    }
+
+    #[test]
+    fn coerce_style_to_category_keeps_valid_choice() {
+        for cat in StyleCategory::ALL {
+            let opts = StyleType::options_for(cat);
+            let valid = opts[1];
+            assert_eq!(coerce_style_to_category(cat, valid), valid);
+        }
+    }
+
+    #[test]
+    fn coerce_style_to_category_falls_back_to_first() {
+        let cat = peoplemodeler_core::models::StyleCategory::TrustStyle;
+        let invalid = StyleType::DirectCommunicator;
+        assert_eq!(
+            coerce_style_to_category(cat, invalid),
+            StyleType::options_for(cat)[0]
+        );
     }
 }
