@@ -88,6 +88,9 @@ fn main() {
     }
     #[cfg(target_arch = "wasm32")]
     {
+        // Route Rust panics to console.error instead of silently trapping
+        // the WASM instance with no diagnostic output at all.
+        console_error_panic_hook::set_once();
         // Inject CSS into <head> before Dioxus mounts
         // so Firefox doesn't show a blank unstyled page while WASM compiles.
         if let Some(doc) = web_sys::window().and_then(|w| w.document()) {

@@ -16,6 +16,22 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     }
 }
 
+/// TEMPORARY diagnostic checkpoint. Prints to the browser console (and
+/// therefore shows up in Playwright traces) so we can see exactly how
+/// far render/click handling gets before things stop. Safe to leave in
+/// briefly; remove once the hang is root-caused.
+#[allow(dead_code)]
+fn checkpoint(label: &str) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        web_sys::console::log_1(&format!("[PM-CHECKPOINT] {label}").into());
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        eprintln!("[PM-CHECKPOINT] {label}");
+    }
+}
+
 #[component]
 pub fn PersonNew() -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -27,6 +43,7 @@ pub fn PersonNew() -> Element {
 
     match selected() {
         Some(idx) => {
+            checkpoint("PersonNew: entered Some(idx) branch");
             let blank = Person {
                 id: uuid::Uuid::new_v4().to_string(),
                 name: String::new(),
@@ -49,6 +66,7 @@ pub fn PersonNew() -> Element {
                 created_at: chrono::Utc::now().timestamp_millis(),
                 updated_at: chrono::Utc::now().timestamp_millis(),
             };
+            checkpoint("PersonNew: blank Person constructed");
             let person = if idx < templates.len() {
                 let t = &templates[idx];
                 let mut person = blank;
@@ -60,7 +78,10 @@ pub fn PersonNew() -> Element {
             } else {
                 blank
             };
-            rsx! { PersonEditForm { initial: person } }
+            checkpoint("PersonNew: about to render PersonEditForm");
+            let el = rsx! { PersonEditForm { initial: person } };
+            checkpoint("PersonNew: rsx! macro for PersonEditForm returned");
+            el
         }
         None => rsx! {
             div { class: "page",
@@ -95,8 +116,11 @@ pub fn PersonEdit(id: String) -> Element {
 
 #[component]
 fn PersonEditForm(initial: Option<Person>) -> Element {
+    checkpoint("PersonEditForm: entered");
     let lang = use_context::<Signal<Lang>>();
+    checkpoint("PersonEditForm: got lang context");
     let mut toast_sig = use_context::<Signal<Option<String>>>();
+    checkpoint("PersonEditForm: got toast context");
     let is_new = initial.is_none();
     let p = initial.unwrap_or_else(|| Person {
         id: uuid::Uuid::new_v4().to_string(),
@@ -142,10 +166,14 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let rep_scores = use_signal(|| p.rep_scores.clone());
     let patterns = use_signal(|| p.behavioral_patterns.clone());
     let styles = use_signal(|| p.styles.clone());
+    checkpoint("PersonEditForm: all base signals created");
     let values = use_signal(|| p.values.clone());
+    checkpoint("PersonEditForm: about to define ocean_rep_flags memo");
 
     let ocean_rep_flags = use_memo(move || {
+        checkpoint("ocean_rep_flags memo: closure started");
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
+        checkpoint("ocean_rep_flags memo: base ocean_rep_flags computed");
         flags.extend(peoplemodeler_core::validation::rhetoric_gap_flags(
             &ocean(),
             &rep_scores(),
@@ -306,8 +334,10 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             &styles(),
             &rep_scores(),
         ));
+        checkpoint("ocean_rep_flags memo: closure finished");
         flags
     });
+    checkpoint("PersonEditForm: ocean_rep_flags memo defined");
 
     let pers_id = p.id.clone();
 
@@ -373,6 +403,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_save = crate::i18n::tr("form_save", lang());
     let form_cancel = crate::i18n::tr("form_cancel", lang());
     let cl = core_lang(lang());
+    checkpoint("PersonEditForm: all i18n strings resolved, building rsx! tree now");
 
     rsx! {
         div { class: "page",

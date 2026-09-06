@@ -3,7 +3,7 @@ import { type Page } from '@playwright/test';
 export async function dismissTutorial(page: Page) {
   const skip = page.locator('.tut-modal .btn-ghost');
   try {
-    await skip.waitFor({ state: 'visible', timeout: 500 });
+    await skip.waitFor({ state: 'visible', timeout: 3000 });
     await skip.click();
     await page.waitForTimeout(300);
   } catch {
@@ -15,7 +15,14 @@ export async function gotoNewPerson(page: Page) {
   await page.goto('/PeopleModeler/person/new');
   await page.waitForTimeout(1000);
   await dismissTutorial(page);
-  await page.getByText('Blank (start from scratch)').click();
+  // The tutorial modal can render slightly late (e.g. slower WASM
+  // hydration), landing on top of the template picker right as we're
+  // about to click it and swallowing the click indefinitely. Re-check
+  // immediately before clicking so a late overlay doesn't block us.
+  await dismissTutorial(page);
+  await page
+    .getByText('Blank (start from scratch)')
+    .click({ timeout: 30000 });
 }
 
 export async function clearStorage(page: Page) {
