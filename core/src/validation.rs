@@ -973,9 +973,9 @@ pub fn value_flags(
         values.iter().find(|v| v.r#type == vt).map(|v| v.intensity)
     };
     if val(ValueType::Family).is_some_and(|i| i >= 7)
-        && !styles.iter().any(|s| s.r#type == StyleType::PastOriented)
+        && styles.iter().any(|s| s.r#type == StyleType::FutureOriented)
     {
-        flags.push("flag_value_family_past");
+        flags.push("flag_value_family_future");
     }
     if val(ValueType::Stability).is_some_and(|i| i >= 8) && risk_appetite.is_some_and(|r| r >= 8) {
         flags.push("flag_value_stability_risk");
@@ -1777,7 +1777,7 @@ mod tests {
     }
 
     #[test]
-    fn test_value_flags_family_past() {
+    fn test_value_flags_family_future() {
         use crate::models::{PersonalStyle, StyleType, Value, ValueType};
         let values = vec![Value {
             r#type: ValueType::Family,
@@ -1785,22 +1785,25 @@ mod tests {
             priority: 5,
             notes: String::new(),
         }];
-        let styles = vec![PersonalStyle {
-            r#type: StyleType::PresentOriented,
+        let future_style = vec![PersonalStyle {
+            r#type: StyleType::FutureOriented,
             intensity: 8,
             notes: String::new(),
         }];
-        let flags = value_flags(&values, None, &styles, &RepScores::default());
-        assert!(flags.contains(&"flag_value_family_past"));
-        let past_style = vec![PersonalStyle {
-            r#type: StyleType::PastOriented,
-            intensity: 8,
-            notes: String::new(),
-        }];
-        assert!(
-            !value_flags(&values, None, &past_style, &RepScores::default())
-                .contains(&"flag_value_family_past")
-        );
+        let flags = value_flags(&values, None, &future_style, &RepScores::default());
+        assert!(flags.contains(&"flag_value_family_future"));
+        for t in [StyleType::PastOriented, StyleType::PresentOriented] {
+            let styles = vec![PersonalStyle {
+                r#type: t,
+                intensity: 8,
+                notes: String::new(),
+            }];
+            assert!(
+                !value_flags(&values, None, &styles, &RepScores::default())
+                    .contains(&"flag_value_family_future"),
+                "{t:?} should not trigger family_future"
+            );
+        }
         let low_val = vec![Value {
             r#type: ValueType::Family,
             intensity: 5,
@@ -1808,8 +1811,8 @@ mod tests {
             notes: String::new(),
         }];
         assert!(
-            !value_flags(&low_val, None, &styles, &RepScores::default())
-                .contains(&"flag_value_family_past")
+            !value_flags(&low_val, None, &future_style, &RepScores::default())
+                .contains(&"flag_value_family_future")
         );
     }
 

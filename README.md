@@ -338,7 +338,7 @@ consistency_malus(flags) = min(Σ flag_weight(flag), 0.35)
 
 | Tier | Weight | Flags |
 |---|---|---|
-| Self-report inconsistencies | 0.15 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful`, `value_adventure_stability`, `value_community_selfish`, `value_knowledge_arrogant` |
+| Self-report inconsistencies | 0.15 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_future`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful`, `value_adventure_stability`, `value_community_selfish`, `value_knowledge_arrogant` |
 | Self-consistent styles | 0.08 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness), `style_passive_aggressive` (PA style matching perceived reactivity), `style_detached` (detached style matching perceived coldness) |
 | Stated vs perceived | 0.25 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
 | Evidence-based | 0.30 | `pattern_*` and `bias_*` flags |
@@ -456,7 +456,7 @@ when the set is empty).
 | `flag_availability_calm` | Availability bias ≥ 7 but Reputation Calm-Reactive ≥ 8 |
 | `flag_pattern_open_resister` | OCEAN O ≥ 8 but recorded patterns resist change or feedback |
 | `flag_pattern_recognition_dismissive` | Recognition motivation ≥ 6 but recorded patterns put others down |
-| `flag_value_family_past` | Family value ≥ 7 but no PastOriented style |
+| `flag_value_family_future` | Family value ≥ 7 and FutureOriented style |
 | `flag_value_stability_risk` | Stability value ≥ 8 and Risk appetite ≥ 8 |
 | `flag_value_career_family` | Career value ≥ 8 and Family value ≥ 8 |
 | `flag_value_loyalty_guarded` | Loyalty value ≥ 8 and Guarded trust style |

@@ -466,11 +466,11 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         }
 
         // --- value_flags ---
-        ("flag_value_family_past", Lang::Fr) => {
-            "Vous valorisez la famille mais votre orientation temporelle ne l'est pas. Intégrez la dimension familiale dans vos décisions."
+        ("flag_value_family_future", Lang::Fr) => {
+            "Vous valorisez la famille mais décidez tourné vers l'avenir. Intégrez les priorités familiales dans vos décisions présentes."
         }
-        ("flag_value_family_past", Lang::En) => {
-            "You value family but lack past orientation. Integrate family considerations into decisions."
+        ("flag_value_family_future", Lang::En) => {
+            "You value family yet decide with a future orientation. Weave family priorities into present decisions."
         }
         ("flag_value_stability_risk", Lang::Fr) => {
             "Vous cravez la stabilité mais prends des risques. Définissez votre seuil de risque acceptable."

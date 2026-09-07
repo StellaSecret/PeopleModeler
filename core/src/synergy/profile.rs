@@ -308,7 +308,7 @@ pub fn flag_weight(key: &str) -> f64 {
         | "flag_high_o_low_c"
         | "flag_honest_selfish"
         | "flag_honest_favoritist"
-        | "flag_value_family_past"
+        | "flag_value_family_future"
         | "flag_value_stability_risk"
         | "flag_value_career_family"
         | "flag_value_loyalty_guarded"

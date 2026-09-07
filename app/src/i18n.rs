@@ -356,8 +356,8 @@ fn en(key: &'static str) -> &'static str {
         "flag_pattern_recognition_dismissive" => {
             "Seeks recognition yet puts others down to win it."
         }
-        "flag_value_family_past" => {
-            "Values family highly yet shows no past-oriented time orientation."
+        "flag_value_family_future" => {
+            "Values family highly yet decides through a future-oriented lens."
         }
         "flag_value_stability_risk" => {
             "Craves stability yet has a very high risk appetite — contradictory."
@@ -1108,8 +1108,8 @@ fn fr(key: &'static str) -> &'static str {
         "flag_pattern_recognition_dismissive" => {
             "Cherche la reconnaissance mais rabaisse les autres pour la gagner."
         }
-        "flag_value_family_past" => {
-            "Valorise la famille mais n'a aucune orientation temporelle passée."
+        "flag_value_family_future" => {
+            "Valorise la famille mais décide avec une orientation tournée vers l'avenir."
         }
         "flag_value_stability_risk" => {
             "Aspire à la stabilité mais a un très fort appétit pour le risque — contradictoire."
@@ -1813,7 +1813,7 @@ mod tests {
         "flag_value_career_family",
         "flag_value_community_selfish",
         "flag_value_faith_deceitful",
-        "flag_value_family_past",
+        "flag_value_family_future",
         "flag_value_health_risky",
         "flag_value_knowledge_arrogant",
         "flag_value_loyalty_guarded",
