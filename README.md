@@ -329,22 +329,22 @@ Rep_adjusted = clamp(base_rep_quality(person) + rep_adjustment(&person.rep_score
 **Consistency Malus** — applied on top of `Rep_adjusted` in `compute_person_profile`:
 
 Each consistency flag carries a severity weight by evidence strength, and the
-malus is the **weighted sum of all fired flags, capped at 0.50**:
+malus is the **weighted sum of all fired flags, capped at 0.35**:
 
 ```
 Rep_final = max(Rep_adjusted − consistency_malus(flags), 0)
-consistency_malus(flags) = min(Σ flag_weight(flag), 0.50)
+consistency_malus(flags) = min(Σ flag_weight(flag), 0.35)
 ```
 
 | Tier | Weight | Flags |
 |---|---|---|
-| Self-report inconsistencies | 0.20 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful`, `value_adventure_stability`, `value_community_selfish`, `value_knowledge_arrogant` |
-| Self-consistent styles | 0.10 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness), `style_passive_aggressive` (PA style matching perceived reactivity), `style_detached` (detached style matching perceived coldness) |
-| Stated vs perceived | 0.30 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
-| Evidence-based | 0.40 | `pattern_*` and `bias_*` flags |
+| Self-report inconsistencies | 0.15 | `high_e_low_a`, `high_n_low_c`, `high_o_low_c`, `honest_selfish`, `honest_favoritist`, `value_family_past`, `value_stability_risk`, `value_career_family`, `value_loyalty_guarded`, `value_health_risky`, `value_wealth_generous`, `value_faith_deceitful`, `value_adventure_stability`, `value_community_selfish`, `value_knowledge_arrogant` |
+| Self-consistent styles | 0.08 | `style_controlling` (control freak: controlling/autocratic style matching perceived dominance), `style_manipulative` (confirmed manipulator: manipulative/opportunistic style matching perceived deceitfulness), `style_passive_aggressive` (PA style matching perceived reactivity), `style_detached` (detached style matching perceived coldness) |
+| Stated vs perceived | 0.25 | rhetoric gaps, self-image gaps, scalar gaps, style gaps |
+| Evidence-based | 0.30 | `pattern_*` and `bias_*` flags |
 
-With Rep weighted at 18%, a single rhetoric gap costs roughly **−5.4 points**,
-a single evidence-based flag **−7.2 points**, and the cap is about **−9 points**.
+With Rep weighted at 18%, a single rhetoric gap costs roughly **−4.5 points**,
+a single evidence-based flag **−5.4 points**, and the cap is about **−6.3 points**.
 
 **Contradicted-claim discount** — beyond the Rep malus, a fired flag also
 **removes the credit the contradicted claim was banking** in the other buckets:
@@ -361,8 +361,8 @@ A manipulator claiming all-good traits — high Fairness/Helping/Achievement/Lea
 warm (A≥8) and calm (N≤3), good styles, no biases — while recorded behavior
 contradicts each claim loses its motivation credit entirely (motivations all
 invalidated → bucket → 0.27), its OCEAN credit (voided → 0.5), and its pattern
-credit (capped → 0.5), in addition to the 0.50 Rep malus. Measured effect in
-tests: **~53 → 27** on a twin with the same claims but honest evidence, where
+credit (capped → 0.5), in addition to the 0.35 Rep malus. Measured effect in
+tests: **~40 → 20** on a twin with the same claims but honest evidence, where
 a genuine person with 1–2 honest flags keeps most credit.
 
 **Unfilled buckets earn no credit** — missing data is not scored as a neutral

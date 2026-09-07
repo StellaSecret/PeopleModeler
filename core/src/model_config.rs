@@ -275,11 +275,11 @@ pub const CFG: ModelConfig = ModelConfig {
         contradiction_cap: 0.5,
     },
     flags: FlagConfig {
-        self_report: 0.20,
-        stated_perceived: 0.30,
-        evidence: 0.40,
-        style_consistent: 0.10,
-        malus_cap: 0.50,
+        self_report: 0.15,
+        stated_perceived: 0.25,
+        evidence: 0.30,
+        style_consistent: 0.08,
+        malus_cap: 0.35,
     },
     validation: ValidationConfig {
         high: 8,

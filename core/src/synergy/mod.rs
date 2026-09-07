@@ -2482,7 +2482,7 @@ mod tests {
 
         let clean_rep = compute_person_profile(&clean).reputation;
         let flagged_rep = compute_person_profile(&flagged).reputation;
-        let expected = (clean_rep - 0.30).max(0.0);
+        let expected = (clean_rep - 0.25).max(0.0);
         assert!(
             (flagged_rep - expected).abs() < 0.001,
             "reputation malus: expected {expected}, got {flagged_rep}"
@@ -2492,26 +2492,26 @@ mod tests {
     #[test]
     fn test_consistency_malus() {
         assert_eq!(consistency_malus(&[]), 0.0);
-        assert!((flag_weight("flag_high_e_low_a") - 0.20).abs() < 1e-9);
-        assert!((flag_weight("flag_fairness_rhetoric") - 0.30).abs() < 1e-9);
-        assert!((flag_weight("flag_pattern_calm_volatile") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_pattern_generous_exploiter") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_pattern_helping_exploiter") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_pattern_claimed_calm_volatile") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_pattern_extravert_quiet") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_pattern_open_resister") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_availability_calm") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_style_virtuebased_deceitful") - 0.30).abs() < 1e-9);
-        assert!((flag_weight("flag_anchoring_open") - 0.40).abs() < 1e-9);
-        assert!((flag_weight("flag_style_competing_passive") - 0.30).abs() < 1e-9);
-        assert!((flag_weight("flag_learning_arrogant") - 0.30).abs() < 1e-9);
-        assert!((flag_weight("flag_warmth_selfish") - 0.30).abs() < 1e-9);
-        assert!((flag_weight("flag_unknown_future") - 0.30).abs() < 1e-9);
-        assert!((consistency_malus(&["flag_high_e_low_a"]) - 0.20).abs() < 1e-9);
-        assert!((consistency_malus(&["flag_fairness_rhetoric"]) - 0.30).abs() < 1e-9);
-        assert!((consistency_malus(&["flag_pattern_calm_volatile"]) - 0.40).abs() < 1e-9);
+        assert!((flag_weight("flag_high_e_low_a") - 0.15).abs() < 1e-9);
+        assert!((flag_weight("flag_fairness_rhetoric") - 0.25).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_calm_volatile") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_generous_exploiter") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_helping_exploiter") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_claimed_calm_volatile") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_extravert_quiet") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_pattern_open_resister") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_availability_calm") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_style_virtuebased_deceitful") - 0.25).abs() < 1e-9);
+        assert!((flag_weight("flag_anchoring_open") - 0.30).abs() < 1e-9);
+        assert!((flag_weight("flag_style_competing_passive") - 0.25).abs() < 1e-9);
+        assert!((flag_weight("flag_learning_arrogant") - 0.25).abs() < 1e-9);
+        assert!((flag_weight("flag_warmth_selfish") - 0.25).abs() < 1e-9);
+        assert!((flag_weight("flag_unknown_future") - 0.25).abs() < 1e-9);
+        assert!((consistency_malus(&["flag_high_e_low_a"]) - 0.15).abs() < 1e-9);
+        assert!((consistency_malus(&["flag_fairness_rhetoric"]) - 0.25).abs() < 1e-9);
+        assert!((consistency_malus(&["flag_pattern_calm_volatile"]) - 0.30).abs() < 1e-9);
         assert!(
-            (consistency_malus(&["flag_high_e_low_a", "flag_fairness_rhetoric"]) - 0.50).abs()
+            (consistency_malus(&["flag_high_e_low_a", "flag_fairness_rhetoric"]) - 0.35).abs()
                 < 1e-9
         );
         assert!(
@@ -2519,7 +2519,7 @@ mod tests {
                 "flag_pattern_calm_volatile",
                 "flag_pattern_fair_exploiter",
                 "flag_fairness_rhetoric"
-            ]) - 0.50)
+            ]) - 0.35)
                 .abs()
                 < 1e-9
         );
@@ -2528,9 +2528,8 @@ mod tests {
     #[test]
     fn test_profile_consistency_malus_scales() {
         // Identical rep basis; only ocean flags differ (ocean doesn't affect reputation).
-        // Twin A: 3 flags (high_e_low_a 0.20 + high_n_low_c 0.20 + honest_selfish 0.20
-        //   = 0.60 → capped 0.50)
-        // Twin B: 1 flag (honest_selfish 0.20) → exactly 0.30 lower.
+        // Twin A: 3 flags (3 x self_report 0.15 = 0.45 → capped 0.35)
+        // Twin B: 1 flag (self_report 0.15) → exactly 0.20 lower.
         let rep = RepScores {
             honest_deceitful: Some(9),
             generous_selfish: Some(2),
@@ -2552,7 +2551,7 @@ mod tests {
 
         let many_rep = compute_person_profile(&many).reputation;
         let few_rep = compute_person_profile(&few).reputation;
-        let expected = (few_rep - 0.30).max(0.0);
+        let expected = (few_rep - 0.20).max(0.0);
         assert!(
             (many_rep - expected).abs() < 0.001,
             "weighted malus: expected {expected}, got {many_rep}"
@@ -9184,7 +9183,7 @@ mod tests {
         // +−∗/ mutation in the raw/total_w accumulation shifts the rounded total.
         let mut p = full_profile();
         let pf0 = compute_person_profile(&p);
-        assert_eq!(pf0.total, 53, "full-profile total: {}", pf0.total);
+        assert_eq!(pf0.total, 54, "full-profile total: {}", pf0.total);
 
         // Pattern trigger changed to a distinct non-zero bucket value.
         p.behavioral_patterns = vec![BehavioralPattern {
@@ -9193,7 +9192,7 @@ mod tests {
             notes: String::new(),
         }];
         let pf1 = compute_person_profile(&p);
-        assert_eq!(pf1.total, 45, "modified-pattern total: {}", pf1.total);
+        assert_eq!(pf1.total, 46, "modified-pattern total: {}", pf1.total);
 
         // Values bucket non-empty (val = 0.8) AND one rep dim in an adjustment
         // band (extreme-low → rep_adjustment = -0.04) so mutations to
@@ -9208,7 +9207,7 @@ mod tests {
         }];
         p2.rep_scores.assertive_passive = Some(1);
         let pf2 = compute_person_profile(&p2);
-        assert_eq!(pf2.total, 59, "values+rep-adj total: {}", pf2.total);
+        assert_eq!(pf2.total, 60, "values+rep-adj total: {}", pf2.total);
         assert!(value_self_score(&p2.values) > 0.0);
         assert!(rep_adjustment(&p2.rep_scores) < 0.0);
 

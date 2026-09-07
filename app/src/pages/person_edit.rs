@@ -1114,6 +1114,13 @@ fn coerce_style_to_category(cat: StyleCategory, sel: StyleType) -> StyleType {
     if opts.contains(&sel) { sel } else { opts[0] }
 }
 
+/// If `sel` is valid for `cat`, returns `None` (no change needed); otherwise
+/// returns `Some` with the coerced replacement.
+fn style_selection_reconcile(cat: StyleCategory, sel: StyleType) -> Option<StyleType> {
+    let coerced = coerce_style_to_category(cat, sel);
+    if coerced == sel { None } else { Some(coerced) }
+}
+
 #[component]
 fn StyleEditPanel(
     styles: Signal<Vec<PersonalStyle>>,
@@ -1137,8 +1144,7 @@ fn StyleEditPanel(
     use_effect(move || {
         let cat = sel_category();
         let current = sel_type();
-        let coerced = coerce_style_to_category(cat, current);
-        if coerced != current {
+        if let Some(coerced) = style_selection_reconcile(cat, current) {
             sel_type.set(coerced);
         }
     });
@@ -1631,6 +1637,25 @@ mod tests {
         assert_eq!(
             coerce_style_to_category(cat, invalid),
             StyleType::options_for(cat)[0]
+        );
+    }
+
+    #[test]
+    fn style_selection_reconcile_keeps_valid_choice() {
+        for cat in StyleCategory::ALL {
+            if let Some(valid) = StyleType::options_for(cat).get(1) {
+                assert_eq!(style_selection_reconcile(cat, *valid), None);
+            }
+        }
+    }
+
+    #[test]
+    fn style_selection_reconcile_coerces_invalid_choice() {
+        let cat = peoplemodeler_core::models::StyleCategory::TrustStyle;
+        let invalid = StyleType::DirectCommunicator;
+        assert_eq!(
+            style_selection_reconcile(cat, invalid),
+            Some(StyleType::options_for(cat)[0])
         );
     }
 }
