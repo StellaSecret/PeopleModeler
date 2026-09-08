@@ -237,8 +237,8 @@ fn en(key: &'static str) -> &'static str {
         "flag_pattern_honest_exploiter" => {
             "Perceived as honest, but recorded patterns show exploitation or blame-shifting — do as I say, not as I do."
         }
-        "flag_bias_confirmation_open" => {
-            "Claims open-mindedness yet shows confirmation bias — they don't know themselves."
+"flag_bias_confirmation_open" => {
+            "Claims open-mindedness yet only seeks confirming information — they don't know themselves."
         }
         "flag_bias_favoritism_fairness" => {
             "Preaches fairness yet shows favoritism or in-group bias — do as I say, not as I do."
@@ -987,8 +987,8 @@ fn fr(key: &'static str) -> &'static str {
         "flag_pattern_honest_exploiter" => {
             "Perçu comme honnête, mais les schémas montrent de l'exploitation ou des rejets de responsabilité — fait ce que je dis, pas ce que je fais."
         }
-        "flag_bias_confirmation_open" => {
-            "Se dit ouvert d'esprit mais présente un biais de confirmation — ne se connaît pas."
+"flag_bias_confirmation_open" => {
+            "Se dit ouvert d'esprit mais ne cherche que des informations qui confirment ses vues — ne se connaît pas."
         }
         "flag_bias_favoritism_fairness" => {
             "Prêche l'équité mais montre un biais de favoritisme ou de groupe — fait ce que je dis, pas ce que je fais."
@@ -1005,7 +1005,7 @@ fn fr(key: &'static str) -> &'static str {
         "flag_learning_rigid" => {
             "Prêche l'apprentissage et la croissance mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
         }
-        "flag_creativity_closed" => "Prêche la créativité mais se dit peu ouvert à la nouveauté.",
+        "flag_creativity_closed" => "Prêche la créativité mais se dit peu ouvert à la nouveauté — fait ce que je dis, pas ce que je fais.",
         "flag_creativity_rigid" => {
             "Prêche la créativité mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
         }

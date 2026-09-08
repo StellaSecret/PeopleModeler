@@ -21,7 +21,7 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "Practice active listening to balance your extraversion."
         }
         ("flag_high_n_low_c", Lang::Fr) => {
-            "Instauriez des routines structurées pour canaliser l'anxiété."
+            "Instaurez des routines structurées pour canaliser l'anxiété."
         }
         ("flag_high_n_low_c", Lang::En) => {
             "Build structured routines to channel anxiety productively."
@@ -38,7 +38,7 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
         ("flag_calm_neurotic", Lang::En) => {
             "Identify and address root stressors rather than masking them."
         }
-        ("flag_honest_selfish", Lang::Fr) => "Pratiquez de petits actes de générité quotidiens.",
+        ("flag_honest_selfish", Lang::Fr) => "Pratiquez de petits actes de générosité quotidiens.",
         ("flag_honest_selfish", Lang::En) => "Practice small daily acts of generosity.",
         ("flag_open_rigid", Lang::Fr) => {
             "Fixez-vous des objectifs stretch pour développer votre adaptabilité."
@@ -185,7 +185,7 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "Passive withdrawal leads to blowups. Express concerns earlier."
         }
         ("flag_pattern_assertive_quiet", Lang::Fr) => {
-            "Vous vous affirmez mais les montrent le silence. Trouvez un juste milieu."
+            "Vous vous affirmez mais vos interactions montrent le silence. Trouvez un juste milieu."
         }
         ("flag_pattern_assertive_quiet", Lang::En) => {
             "You claim assertiveness but interactions show quietness. Find a middle ground."
@@ -271,16 +271,16 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
 
         // --- evidence_flags (bias gaps) ---
         ("flag_bias_confirmation_open", Lang::Fr) => {
-            "Vous dites ouvert mais subissez le biais de confirmation. Cherchez activement des contre-exemples."
+            "Quand vous êtes sûr d'avoir raison, cherchez activement des preuves qui pourraient vous contredire."
         }
         ("flag_bias_confirmation_open", Lang::En) => {
-            "You claim openness but succumb to confirmation bias. Actively seek counter-examples."
+            "When you're convinced you're right, look for evidence that could prove you wrong."
         }
         ("flag_anchoring_open", Lang::Fr) => {
-            "Ouvert revendiqué mais ancrage cognitif détecté. Examinez plusieurs points de référence."
+            "Ne laissez pas la première information décider pour vous — pesez plusieurs points de référence."
         }
         ("flag_anchoring_open", Lang::En) => {
-            "Openness claimed but anchoring detected. Examine multiple reference points."
+            "Don't let the first data point decide for you — weigh several reference points."
         }
         ("flag_bias_favoritism_fairness", Lang::Fr) => {
             "Vous prônez l'équité mais favorisez vos proches. Appliquez des critères objectifs."
@@ -289,22 +289,22 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "You advocate fairness but favor your own. Apply objective criteria."
         }
         ("flag_authority_dominant", Lang::Fr) => {
-            "Vous prétendez être ouvert mais dominez les discussions. Laissez plus de place aux autres."
+            "Perçu comme un leader, vous vous en remettez pourtant à l'autorité. Faites confiance à votre propre jugement."
         }
         ("flag_authority_dominant", Lang::En) => {
-            "You claim openness but dominate discussions. Make more room for others."
+            "You are perceived as a leader yet defer to authority figures. Trust your own judgment."
         }
         ("flag_social_proof_open", Lang::Fr) => {
-            "Ouvert revendiqué mais soumis à la pression sociale. Pensez par vous-même."
+            "Vous dites penser par vous-même mais suivez le groupe. Décidez selon votre propre raisonnement."
         }
         ("flag_social_proof_open", Lang::En) => {
-            "Openness claimed but socially conforming. Think independently."
+            "You claim independent thought yet follow the herd. Decide from your own reasoning."
         }
         ("flag_sunk_cost_flexible", Lang::Fr) => {
-            "Flexibilité revendiquée mais biais du coût irrécupérable. Évaluez sur les mérites actuels."
+            "Perçu comme flexible mais vous vous accrochez aux coûts irrécupérables. Jugez chaque option sur ses mérites actuels."
         }
         ("flag_sunk_cost_flexible", Lang::En) => {
-            "Flexibility claimed but sunk cost bias present. Evaluate on current merits."
+            "Perceived as flexible yet you cling to sunk costs. Judge each option on current merits."
         }
         ("flag_loss_aversion_risky", Lang::Fr) => {
             "Appétit pour le risque mais aversion aux pertes. Acceptez les pertes comme partie du processus."
@@ -313,10 +313,10 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "Risk appetite claimed but loss aversion present. Accept losses as part of the process."
         }
         ("flag_dunning_kruger_humble", Lang::Fr) => {
-            "Humilité revendiquée mais surévaluation de vos compétences. Demandez un feedback externe."
+            "Vous passez pour humble mais surestimez probablement vos compétences. Demandez un retour externe."
         }
         ("flag_dunning_kruger_humble", Lang::En) => {
-            "Humility claimed but overestimation present. Seek external feedback."
+            "Seen as humble yet likely overestimating your skill. Get external feedback."
         }
         ("flag_impostor_arrogant", Lang::Fr) => {
             "Vous dites être en imposture mais agissez avec arrogance. Soyez humble et curieux."
@@ -325,16 +325,16 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "You claim imposter syndrome but act arrogantly. Be humble and curious."
         }
         ("flag_recency_reliable", Lang::Fr) => {
-            "Fiabilité revendiquée mais biais de récence. Considérez le contexte à long terme."
+            "Perçu comme stable mais vous accordez trop de poids aux événements récents. Pesez le contexte à long terme."
         }
         ("flag_recency_reliable", Lang::En) => {
-            "Reliability claimed but recency bias present. Consider long-term context."
+            "Perceived as steady yet you overweight recent events. Weigh the long-term record."
         }
         ("flag_availability_calm", Lang::Fr) => {
-            "Calme revendiqué mais biais de disponibilité. Prenez du recul avant de réagir."
+            "Perçu comme calme mais vous surpondez les événements dramatiques récents. Prenez du recul avant de réagir."
         }
         ("flag_availability_calm", Lang::En) => {
-            "Calm claimed but availability bias present. Step back before reacting."
+            "Perceived as calm yet you overweight dramatic recent events. Step back before reacting."
         }
         ("flag_security_risky", Lang::Fr) => {
             "Sécurité revendiquée mais comportement à risque. Évaluez les conséquences réelles."
@@ -355,10 +355,10 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "High ambition but risk-averse. Accept uncertainty as necessary."
         }
         ("flag_resilient_hides", Lang::Fr) => {
-            "Résilience revendiquée mais tendance à cacher les difficultés. Soyez transparent."
+            "Vous admettez votre fragilité mais paraissez imperturbable — vous cachez vos difficultés. Montrez à vos proches votre vraie charge."
         }
         ("flag_resilient_hides", Lang::En) => {
-            "Resilience claimed but hides difficulties. Be transparent."
+            "You admit fragility yet appear unflappable — you hide how hard it is. Let trusted people see the real difficulty."
         }
 
         // --- style_gap ---
@@ -369,7 +369,7 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "You claim direct but perceived as diplomatic. Clarify your position."
         }
         ("flag_style_diplomatic_blunt", Lang::Fr) => {
-            "Vous vous dites diplomate mais vous êtes perçu comme brutale. Adoucissez votre approche."
+            "Vous vous dites diplomate mais vous êtes perçu comme brutal. Adoucissez votre approche."
         }
         ("flag_style_diplomatic_blunt", Lang::En) => {
             "You claim diplomatic but perceived as blunt. Soften your approach."
@@ -473,7 +473,7 @@ pub fn flag_action(flag: &str, lang: Lang) -> &'static str {
             "You value family yet decide with a future orientation. Weave family priorities into present decisions."
         }
         ("flag_value_stability_risk", Lang::Fr) => {
-            "Vous cravez la stabilité mais prends des risques. Définissez votre seuil de risque acceptable."
+            "Vous aspirez à la stabilité mais prenez des risques. Définissez votre seuil de risque acceptable."
         }
         ("flag_value_stability_risk", Lang::En) => {
             "You crave stability but take risks. Define your acceptable risk threshold."
