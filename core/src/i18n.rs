@@ -354,34 +354,86 @@ impl RepDim {
         };
         let desc = match lang {
             Lang::Fr => match self {
-                Self::HardworkerLazy => "Effort vs. fainéantise",
-                Self::AuthoritativeSubmissive => "Commandement vs. obéissance",
-                Self::HonestDeceitful => "Vérité vs. tromperie",
-                Self::ReliableFlaky => "Constance vs. versatilité",
-                Self::HumbleArrogant => "Modestie vs. orgueil",
-                Self::CalmReactive => "Sérénité vs. réactivité émotionnelle",
-                Self::DiplomaticBlunt => "Tact vs. franchise",
-                Self::GenerousSelfish => "Altruisme vs. égoïsme",
-                Self::FairFavoritism => "Justice vs. favoritisme",
-                Self::TrustingSuspicious => "Confiance vs. méfiance",
-                Self::AssertivePassive => "Affirmation vs. passivité",
-                Self::EmpatheticDetached => "Empathie vs. détachement",
-                Self::AdaptableRigid => "Flexibilité vs. rigidité",
+                Self::HardworkerLazy => {
+                    "Effort et diligence — 8+ mène ses tâches à terme au travail et finit ce qu'il entreprend à la maison ; 2- glande ou abandonne au premier obstacle."
+                }
+                Self::AuthoritativeSubmissive => {
+                    "Aptitude à mener — 8+ prend les choses en main et délègue au travail, organise les sorties entre amis ; 2- attend les ordres et laisse les autres décider."
+                }
+                Self::HonestDeceitful => {
+                    "Sincérité — 8+ reconnaît ses erreurs et tient parole au travail, dit la vérité à ses proches ; 2- ment ou dissimule."
+                }
+                Self::ReliableFlaky => {
+                    "Respecte ses engagements — 8+ tient les échéances au travail, se présente aux plans entre amis ; 2- se désiste ou annule au dernier moment."
+                }
+                Self::HumbleArrogant => {
+                    "Reconnaît ses limites et crédite les autres — 8+ valorise ses collègues au travail, remercie qui a cuisiné à la maison ; 2- s'attribue tout le mérite."
+                }
+                Self::CalmReactive => {
+                    "Sang-froid sous pression — 8+ garde son calme en crise au travail, reste posé lors des disputes familiales ; 2- explose ou panique."
+                }
+                Self::DiplomaticBlunt => {
+                    "Façon d'annoncer les messages difficiles — 8+ atténue les critiques au travail comme à la maison ; 2- dit les choses crues et coupantes à tous."
+                }
+                Self::GenerousSelfish => {
+                    "Partage temps, ressources, mérite — 8+ aide ses collègues au travail, participe à la maison ; 2- garde tout pour lui."
+                }
+                Self::FairFavoritism => {
+                    "Applique la même règle à tous — 8+ gère équipes et foyers sans favoritisme ; 2- favorise ses proches au détriment des autres."
+                }
+                Self::TrustingSuspicious => {
+                    "Part du principe que les gens sont de bonne foi — 8+ croit ses collègues sur parole, fait confiance à ses amis ; 2- voit des intentions hostiles partout."
+                }
+                Self::AssertivePassive => {
+                    "Fait valoir sa position — 8+ dit son opinion au travail, pose des limites en famille ; 2- se tait et s'efface."
+                }
+                Self::EmpatheticDetached => {
+                    "Ressent ce que ressentent les autres — 8+ capte le moral de l'équipe au travail, remarque la mauvaise journée d'un ami ; 2- reste distant et froid."
+                }
+                Self::AdaptableRigid => {
+                    "S'adapte quand les circonstances changent — 8+ adopte les nouveaux outils au travail, suit la nouvelle routine des enfants ; 2- s'accroche à l'existant."
+                }
             },
             Lang::En => match self {
-                Self::HardworkerLazy => "Effort vs. laziness",
-                Self::AuthoritativeSubmissive => "Command vs. obedience",
-                Self::HonestDeceitful => "Truth vs. deception",
-                Self::ReliableFlaky => "Consistency vs. unreliability",
-                Self::HumbleArrogant => "Modesty vs. pride",
-                Self::CalmReactive => "Serenity vs. emotional reactivity",
-                Self::DiplomaticBlunt => "Tact vs. directness",
-                Self::GenerousSelfish => "Altruism vs. selfishness",
-                Self::FairFavoritism => "Justice vs. favoritism",
-                Self::TrustingSuspicious => "Trust vs. suspicion",
-                Self::AssertivePassive => "Assertion vs. passivity",
-                Self::EmpatheticDetached => "Empathy vs. detachment",
-                Self::AdaptableRigid => "Flexibility vs. rigidity",
+                Self::HardworkerLazy => {
+                    "Effort and diligence — 8+ pushes tasks to done at work, and finishes what they start at home; 2- coasts or quits at the first obstacle."
+                }
+                Self::AuthoritativeSubmissive => {
+                    "Willingness to lead — 8+ takes charge and delegates at work, and organizes weekend plans with friends; 2- waits for orders and lets others decide."
+                }
+                Self::HonestDeceitful => {
+                    "Truthfulness — 8+ owns mistakes and keeps their word at work, and tells the truth to friends and family; 2- lies or covers up."
+                }
+                Self::ReliableFlaky => {
+                    "Keeps commitments — 8+ meets deadlines at work, and shows up for plans with friends; 2- flakes or cancels at the last minute."
+                }
+                Self::HumbleArrogant => {
+                    "Acknowledges limits and credits others — 8+ praises teammates at work, and thanks the cook instead of claiming the meal; 2- claims all the credit."
+                }
+                Self::CalmReactive => {
+                    "Steadiness under pressure — 8+ stays level-headed in a crisis at work, and keeps cool during family arguments; 2- snaps or panics."
+                }
+                Self::DiplomaticBlunt => {
+                    "How they deliver hard messages — 8+ softens criticism in meetings and at home; 2- says it straight and sharp to everyone."
+                }
+                Self::GenerousSelfish => {
+                    "Shares time, resources, credit — 8+ helps colleagues at work, chips in at home; 2- keeps everything for themselves."
+                }
+                Self::FairFavoritism => {
+                    "Applies the same standard to everyone — 8+ rules teams and households without favor; 2- favors friends and family over everyone."
+                }
+                Self::TrustingSuspicious => {
+                    "Assumes people mean well — 8+ takes colleagues at their word, trusts friends; 2- sees hidden hostile intent everywhere."
+                }
+                Self::AssertivePassive => {
+                    "Speaks up for their own position — 8+ voices opinions at work and sets boundaries with family; 2- stays silent and defers."
+                }
+                Self::EmpatheticDetached => {
+                    "Feels what others feel — 8+ picks up on team morale at work, senses a friend's bad day at home; 2- stays aloof and cold."
+                }
+                Self::AdaptableRigid => {
+                    "Adjusts when circumstances change — 8+ adopts new tools at work, tries the kids' new routine at home; 2- insists things stay as they were."
+                }
             },
         };
         RepI18n {

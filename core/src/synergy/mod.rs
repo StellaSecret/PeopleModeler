@@ -9183,7 +9183,7 @@ mod tests {
         // +−∗/ mutation in the raw/total_w accumulation shifts the rounded total.
         let mut p = full_profile();
         let pf0 = compute_person_profile(&p);
-        assert_eq!(pf0.total, 54, "full-profile total: {}", pf0.total);
+        assert_eq!(pf0.total, 58, "full-profile total: {}", pf0.total);
 
         // Pattern trigger changed to a distinct non-zero bucket value.
         p.behavioral_patterns = vec![BehavioralPattern {
@@ -9192,10 +9192,10 @@ mod tests {
             notes: String::new(),
         }];
         let pf1 = compute_person_profile(&p);
-        assert_eq!(pf1.total, 46, "modified-pattern total: {}", pf1.total);
+        assert_eq!(pf1.total, 49, "modified-pattern total: {}", pf1.total);
 
-        // Values bucket non-empty (val = 0.8) AND one rep dim in an adjustment
-        // band (extreme-low → rep_adjustment = -0.04) so mutations to
+        // Values bucket non-empty (val = 0.8) AND a rep dim in an adjustment
+        // band (extreme-high at 8 or extreme-low) so mutations to
         // `raw += val * values_w` and `base_rep_quality + rep_adjustment`
         // change the total by more than the rounding step.
         let mut p2 = full_profile();
@@ -9207,9 +9207,9 @@ mod tests {
         }];
         p2.rep_scores.assertive_passive = Some(1);
         let pf2 = compute_person_profile(&p2);
-        assert_eq!(pf2.total, 60, "values+rep-adj total: {}", pf2.total);
+        assert_eq!(pf2.total, 64, "values+rep-adj total: {}", pf2.total);
         assert!(value_self_score(&p2.values) > 0.0);
-        assert!(rep_adjustment(&p2.rep_scores) < 0.0);
+        assert!(rep_adjustment(&p2.rep_scores) != 0.0);
 
         // Scales: full OCEAN/mot/bias/style and empty patterns keep raw=total_w,
         // so the exact totals above are model-pinned, not accidental.

@@ -315,8 +315,8 @@ Each undefined dimension penalizes (−0.02). Extreme values adjust based on dim
 | Type | Condition | Adjustment |
 |---|---|---|
 | **Good pole** (Honest, Reliable, Humble, Hardworker, Calm, Generous, Fair, Empathetic, Adaptable) | ≤ 2 | −0.05 |
-| | ≥ 9 | +0.03 |
-| **Contextual** (Authoritative/Submissive, Diplomatic/Blunt, Trusting/Suspicious, Assertive/Passive) | ≤ 2 or ≥ 9 | −0.04 |
+| | ≥ 8 | +0.03 |
+| **Contextual** (Authoritative/Submissive, Diplomatic/Blunt, Trusting/Suspicious, Assertive/Passive) | ≤ 2 or ≥ 8 | −0.04 |
 | | 4‑6 | +0.02 |
 | **Any dimension** | undefined | −0.02 |
 
