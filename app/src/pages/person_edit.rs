@@ -921,6 +921,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
             }
             div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
+            div { class: "helper-text", "{behavior_helper(&sel_behavior(), lang)}" }
             for (i, bp) in patterns().iter().enumerate() {
                 div { class: "list-item",
                     button { class: "reorder-btn", aria_label: "Move pattern up", onclick: move |_| { swap_item_in_list(&mut patterns.write(), i, true); }, "▲" }
@@ -1005,6 +1006,10 @@ fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
         BehaviorTrigger::Feedback => crate::i18n::tr("pattern_helper_feedback", lang),
         BehaviorTrigger::Injustice => crate::i18n::tr("pattern_helper_injustice", lang),
     }
+}
+
+fn behavior_helper(t: &BehaviorResponse, lang: Lang) -> &'static str {
+    t.desc(core_lang(lang))
 }
 
 fn parse_mot_type(s: &str) -> MotivationType {
@@ -1580,6 +1585,23 @@ mod tests {
             .collect();
         let distinct: std::collections::HashSet<&str> = results.into_iter().collect();
         assert_eq!(distinct.len(), BehaviorTrigger::ALL.len());
+    }
+
+    #[test]
+    fn behavior_helper_unique_per_variant() {
+        let lang = Lang::En;
+        let pair: Vec<(String, &'static str)> = BehaviorTrigger::ALL
+            .iter()
+            .flat_map(|t| BehaviorResponse::options_for(*t).to_vec())
+            .map(|b| (b.serde_name().to_string(), behavior_helper(&b, lang)))
+            .collect();
+        let mut by_name: Vec<String> = pair.iter().map(|(n, _)| n.clone()).collect();
+        by_name.sort();
+        by_name.dedup();
+        let mut by_desc: Vec<&'static str> = pair.iter().map(|(_, d)| *d).collect();
+        by_desc.sort();
+        by_desc.dedup();
+        assert_eq!(by_desc.len(), by_name.len());
     }
 
     #[test]
