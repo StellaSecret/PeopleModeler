@@ -571,96 +571,258 @@ impl StyleType {
     pub fn i18n_desc(&self, lang: Lang) -> &'static str {
         match lang {
             Lang::Fr => match self {
-                Self::DirectCommunicator => "Parle franchement et va droit au but",
-                Self::DiplomaticCommunicator => "Adoucit son langage pour ménager les autres",
-                Self::ReservedCommunicator => "Parle peu, choisit ses mots avec soin",
-                Self::ExpressiveCommunicator => "Partage ses pensées et émotions ouvertement",
-                Self::Competing => "Cherche à gagner, confronte directement",
-                Self::Collaborating => "Cherche une solution qui satisfait tout le monde",
-                Self::Compromising => "Accepte des concessions mutuelles",
-                Self::Avoiding => "Évite la confrontation, laisse faire",
-                Self::Accommodating => "Cède pour préserver l'harmonie",
-                Self::Analytical => "Décide après analyse approfondie des données",
-                Self::Intuitive => "Décide par instinct et ressenti",
-                Self::Participatory => "Implique les autres dans la décision",
-                Self::Autocratic => "Décide seul, sans consultation",
-                Self::ConsensusDriven => "Cherche l'accord unanime avant de décider",
-                Self::Visionary => "Inspire avec une vision à long terme",
-                Self::Servant => "Place les besoins de l'équipe en premier",
-                Self::Transactional => "Gère par récompenses et sanctions",
-                Self::Transformational => "Transforme et élève ses collaborateurs",
-                Self::Bureaucratic => "Suit les procédures et la hiérarchie",
-                Self::PastOriented => "Se réfère aux expériences passées",
-                Self::PresentOriented => "Vit dans l'instant présent",
-                Self::FutureOriented => "Planifie et anticipe l'avenir",
-                Self::RuleBased => "Suit des principes moraux universels",
-                Self::OutcomeBased => "Juge la moralité par les conséquences",
-                Self::VirtueBased => "Cultive des qualités de caractère",
-                Self::Relativist => "Adapte sa morale au contexte",
+                Self::DirectCommunicator => {
+                    "Parle franchement et va droit au but — au travail : donne un retour direct en réunion ; dans la vie : dit ce qu'il pense sans adoucir"
+                }
+                Self::DiplomaticCommunicator => {
+                    "Adoucit son langage pour ménager les autres — au travail : nuance sa critique quand il présente ; dans la vie : annonce les mauvaises nouvelles avec tact"
+                }
+                Self::ReservedCommunicator => {
+                    "Parle peu, choisit ses mots avec soin — au travail : contribue en quelques phrases pesées ; dans la vie : écoute plus qu'il ne parle"
+                }
+                Self::ExpressiveCommunicator => {
+                    "Partage ses pensées et émotions ouvertement — au travail : exprime sentiments et idées ; dans la vie : raconte des histoires avec vivacité"
+                }
+                Self::Competing => {
+                    "Cherche à gagner, confronte directement — au travail : vise les objectifs et bat ses concurrents ; dans la vie : transforme jeux et débats en compétition"
+                }
+                Self::Collaborating => {
+                    "Cherche une solution qui satisfait tout le monde — au travail : fusionne les idées en solution commune ; dans la vie : organise des sorties où chacun est inclus"
+                }
+                Self::Compromising => {
+                    "Accepte des concessions mutuelles — au travail : partage la différence pour avancer ; dans la vie : fait des compromis quand il planifie avec ses proches"
+                }
+                Self::Avoiding => {
+                    "Évite la confrontation, laisse faire — au travail : fuit les conversations difficiles ; dans la vie : change de sujet plutôt que se disputer"
+                }
+                Self::Accommodating => {
+                    "Cède pour préserver l'harmonie — au travail : laisse tomber son avis pour éviter les frictions ; dans la vie : laisse les autres choisir le resto, le film, le plan"
+                }
+                Self::Analytical => {
+                    "Décide après analyse approfondie des données — au travail : construit tableaux et modèles avant d'agir ; dans la vie : lit les avis et compare avant d'acheter"
+                }
+                Self::Intuitive => {
+                    "Décide par instinct et ressenti — au travail : suit son intuition plutôt que les données ; dans la vie : se fie à son feeling sur les gens et les choix"
+                }
+                Self::Participatory => {
+                    "Implique les autres dans la décision — au travail : consulte l'équipe avant de trancher ; dans la vie : demande l'avis de tous avant de choisir"
+                }
+                Self::Autocratic => {
+                    "Décide seul, sans consultation — au travail : fixe la direction et attend l'exécution ; dans la vie : planifie l'agenda familial seul"
+                }
+                Self::ConsensusDriven => {
+                    "Cherche l'accord unanime avant de décider — au travail : attend que tout le monde soit d'accord ; dans la vie : attend l'approbation de toute la famille"
+                }
+                Self::Visionary => {
+                    "Inspire avec une vision à long terme — au travail : dessine la direction de l'équipe ; dans la vie : projette des plans de vie à long terme"
+                }
+                Self::Servant => {
+                    "Place les besoins de l'équipe en premier — au travail : soutient et débloque ses collègues ; dans la vie : prend les tâches ménagères pour que les autres se reposent"
+                }
+                Self::Transactional => {
+                    "Gère par récompenses et sanctions — au travail : associe primes et résultats ; dans la vie : traite les services rendus comme à rembourser"
+                }
+                Self::Transformational => {
+                    "Transforme et élève ses collaborateurs — au travail : coache les gens pour qu'ils se dépassent ; dans la vie : pousse ses amis vers leurs objectifs"
+                }
+                Self::Bureaucratic => {
+                    "Suit les procédures et la hiérarchie — au travail : s'en tient au process et à l'organigramme ; dans la vie : aime les règles et les horaires clairs"
+                }
+                Self::PastOriented => {
+                    "Se réfère aux expériences passées — au travail : réutilise ce qui a marché avant ; dans la vie : aime traditions, souvenirs et routines habituelles"
+                }
+                Self::PresentOriented => {
+                    "Vit dans l'instant présent — au travail : se concentre sur les tâches du jour ; dans la vie : profite de l'ici et maintenant sans planifier"
+                }
+                Self::FutureOriented => {
+                    "Planifie et anticipe l'avenir — au travail : révise feuilles de route et prévisions ; dans la vie : épargne et projette des années en avance"
+                }
+                Self::RuleBased => {
+                    "Suit des principes moraux universels — au travail : applique les mêmes règles à tous ; dans la vie : tient bon sur ce qu'il juge juste pour tous"
+                }
+                Self::OutcomeBased => {
+                    "Juge la moralité par les conséquences — au travail : pèse les résultats plus que le process ; dans la vie : juge juste ce dont l'issue est bénéfique"
+                }
+                Self::VirtueBased => {
+                    "Cultive des qualités de caractère — au travail : pratique intégrité et assiduité ; dans la vie : s'efforce d'être honnête, gentil et discipliné"
+                }
+                Self::Relativist => {
+                    "Adapte sa morale au contexte — au travail : assouplit les règles quand la situation le demande ; dans la vie : juge chaque cas sur sa propre valeur"
+                }
                 // Interpersonal conduct
-                Self::Opportunistic => "Exploite les situations et les gens pour son profit",
-                Self::Intrusive => "Franchit les limites, s'impose aux autres",
-                Self::Manipulative => "Orchestre les autres par la tromperie",
-                Self::PassiveAggressive => "Résistance indirecte, sabotage subtil",
-                Self::Controlling => "Domine et micro-gère les autres",
-                Self::Detached => "Maintient une distance émotionnelle, objectif",
-                Self::Respectful => "Respecte les limites et l'autonomie",
-                Self::Empathetic => "Comprend et valide les émotions des autres",
-                Self::Supportive => "Aide et encourage activement les autres",
-                Self::Nurturing => "Investit dans la croissance des autres",
+                Self::Opportunistic => {
+                    "Exploite les situations et les gens pour son profit — au travail : saisit les occasions aux dépens des autres ; dans la vie : se met en premier quand ça rapporte"
+                }
+                Self::Intrusive => {
+                    "Franchit les limites, s'impose aux autres — au travail : s'immisce dans les tâches et agendas des autres ; dans la vie : lit les messages, donne des avis non demandés"
+                }
+                Self::Manipulative => {
+                    "Orchestre les autres par la tromperie — au travail : influence les gens avec des demi-vérités ; dans la vie : joue sur les sentiments pour orienter les gens"
+                }
+                Self::PassiveAggressive => {
+                    "Résistance indirecte, sabotage subtil — au travail : bloque discrètement les projets au lieu de protester ; dans la vie : boude et fait des remarques pointues"
+                }
+                Self::Controlling => {
+                    "Domine et micro-gère les autres — au travail : contrôle chaque détail du travail de l'équipe ; dans la vie : décide et supervise le quotidien à la maison"
+                }
+                Self::Detached => {
+                    "Maintient une distance émotionnelle, objectif — au travail : reste clinique même dans les moments tendus ; dans la vie : semble distant dans les affaires personnelles"
+                }
+                Self::Respectful => {
+                    "Respecte les limites et l'autonomie — au travail : demande avant de toucher au travail des autres ; dans la vie : respecte la vie privée et les choix"
+                }
+                Self::Empathetic => {
+                    "Comprend et valide les émotions des autres — au travail : perçoit l'humeur et les tensions de l'équipe ; dans la vie : sent quand un ami va mal et demande"
+                }
+                Self::Supportive => {
+                    "Aide et encourage activement les autres — au travail : aide et encourage ses collègues ; dans la vie : se rend disponible pour ses amis en difficulté"
+                }
+                Self::Nurturing => {
+                    "Investit dans la croissance des autres — au travail : développe le talent des gens dans la durée ; dans la vie : veille sur les progrès de famille et amis"
+                }
                 // Trust style
                 Self::ExtendsTrustFreely => {
-                    "Accorde sa confiance facilement, donne le bénéfice du doute"
+                    "Accorde sa confiance facilement, donne le bénéfice du doute — au travail : délègue sans vérifier ; dans la vie : fait confiance aux gens jusqu'à preuve du contraire"
                 }
-                Self::EarnsTrustGradually => "Construit la confiance par la fiabilité démontrée",
-                Self::VerifiesTrust => "Fait confiance mais vérifie par les actions",
-                Self::Guarded => "Prudent, a besoin de preuves avant de faire confiance",
-                Self::RepairsTrustActively => "Recrée activement la confiance après une brèche",
+                Self::EarnsTrustGradually => {
+                    "Construit la confiance par la fiabilité démontrée — au travail : gagne la confiance par la constance ; dans la vie : s'ouvre quand l'historique le justifie"
+                }
+                Self::VerifiesTrust => {
+                    "Fait confiance mais vérifie par les actions — au travail : contrôle le travail délégué ; dans la vie : croit les paroles mais observe les actes"
+                }
+                Self::Guarded => {
+                    "Prudent, a besoin de preuves avant de faire confiance — au travail : doute des promesses tant que les résultats ne sont pas là ; dans la vie : met du temps à laisser les gens approcher"
+                }
+                Self::RepairsTrustActively => {
+                    "Recrée activement la confiance après une brèche — au travail : assume ses erreurs et répare les relations ; dans la vie : s'excuse et s'efforce de se racheter"
+                }
             },
             Lang::En => match self {
-                Self::DirectCommunicator => "Speaks frankly, gets straight to the point",
-                Self::DiplomaticCommunicator => "Softens language to spare others' feelings",
-                Self::ReservedCommunicator => "Speaks little, chooses words carefully",
-                Self::ExpressiveCommunicator => "Shares thoughts and emotions openly",
-                Self::Competing => "Seeks to win, confronts directly",
-                Self::Collaborating => "Seeks win-win solutions for everyone",
-                Self::Compromising => "Accepts mutual concessions",
-                Self::Avoiding => "Avoids confrontation, lets things slide",
-                Self::Accommodating => "Yields to preserve harmony",
-                Self::Analytical => "Decides after thorough data analysis",
-                Self::Intuitive => "Decides by gut feeling and instinct",
-                Self::Participatory => "Involves others in the decision",
-                Self::Autocratic => "Decides alone without consultation",
-                Self::ConsensusDriven => "Seeks unanimous agreement before deciding",
-                Self::Visionary => "Inspires with a long-term vision",
-                Self::Servant => "Puts team needs first",
-                Self::Transactional => "Manages through rewards and sanctions",
-                Self::Transformational => "Transforms and elevates collaborators",
-                Self::Bureaucratic => "Follows procedures and hierarchy",
-                Self::PastOriented => "References past experiences",
-                Self::PresentOriented => "Lives in the present moment",
-                Self::FutureOriented => "Plans and anticipates the future",
-                Self::RuleBased => "Follows universal moral principles",
-                Self::OutcomeBased => "Judges morality by consequences",
-                Self::VirtueBased => "Cultivates character qualities",
-                Self::Relativist => "Adapts morality to context",
+                Self::DirectCommunicator => {
+                    "Speaks frankly and goes straight to the point — at work: gives direct feedback in meetings; in everyday life: says what they think without softening"
+                }
+                Self::DiplomaticCommunicator => {
+                    "Softens language to spare others' feelings — at work: rounds off a critical point when presenting; in everyday life: phrases bad news kindly"
+                }
+                Self::ReservedCommunicator => {
+                    "Speaks little, chooses words carefully — at work: contributes measured remarks in meetings; in everyday life: listens more than they talk"
+                }
+                Self::ExpressiveCommunicator => {
+                    "Shares thoughts and emotions openly — at work: speaks up about feelings and ideas; in everyday life: tells stories with animation"
+                }
+                Self::Competing => {
+                    "Seeks to win, confronts directly — at work: drives to beat targets and rivals; in everyday life: turns games and debates into contests"
+                }
+                Self::Collaborating => {
+                    "Seeks win-win solutions for everyone — at work: combines ideas into shared solutions; in everyday life: plans group outings where everyone is included"
+                }
+                Self::Compromising => {
+                    "Accepts mutual concessions — at work: splits differences to keep projects moving; in everyday life: trades off when planning with loved ones"
+                }
+                Self::Avoiding => {
+                    "Avoids confrontation, lets things slide — at work: ducks tough conversations; in everyday life: changes the subject rather than argue"
+                }
+                Self::Accommodating => {
+                    "Yields to preserve harmony — at work: waves their own view to avoid friction; in everyday life: lets others choose the restaurant, the film, the plan"
+                }
+                Self::Analytical => {
+                    "Decides after thorough data analysis — at work: builds spreadsheets and models before acting; in everyday life: reads reviews and compares before buying"
+                }
+                Self::Intuitive => {
+                    "Decides by gut feeling and instinct — at work: trusts a hunch over deep data; in everyday life: goes with a feeling about people and choices"
+                }
+                Self::Participatory => {
+                    "Involves others in the decision — at work: polls the team before deciding; in everyday life: asks everyone's opinion before choosing"
+                }
+                Self::Autocratic => {
+                    "Decides alone without consultation — at work: sets direction and expects follow-through; in everyday life: plans the family agenda alone"
+                }
+                Self::ConsensusDriven => {
+                    "Seeks unanimous agreement before deciding — at work: holds out until everyone agrees; in everyday life: waits for full family approval"
+                }
+                Self::Visionary => {
+                    "Inspires with a long-term vision — at work: paints where the team is heading; in everyday life: dreams up long-term life plans"
+                }
+                Self::Servant => {
+                    "Puts team needs first — at work: supports and unblocks colleagues; in everyday life: takes on the chores so others can rest"
+                }
+                Self::Transactional => {
+                    "Manages through rewards and sanctions — at work: ties bonuses to results; in everyday life: treats favors as things to be returned"
+                }
+                Self::Transformational => {
+                    "Transforms and elevates those around them — at work: coaches people to exceed themselves; in everyday life: pushes friends to reach their goals"
+                }
+                Self::Bureaucratic => {
+                    "Follows procedures and hierarchy — at work: sticks to the process and the org chart; in everyday life: loves clear rules and schedules"
+                }
+                Self::PastOriented => {
+                    "References past experiences — at work: reuses what worked before; in everyday life: enjoys traditions, memories, and usual routines"
+                }
+                Self::PresentOriented => {
+                    "Lives in the present moment — at work: focuses on today's tasks; in everyday life: enjoys the here and now without planning"
+                }
+                Self::FutureOriented => {
+                    "Plans and anticipates the future — at work: reviews roadmaps and forecasts; in everyday life: saves and projects years ahead"
+                }
+                Self::RuleBased => {
+                    "Follows universal moral principles — at work: applies the same rules to everyone; in everyday life: holds firm on what they think is right for all"
+                }
+                Self::OutcomeBased => {
+                    "Judges morality by consequences — at work: weighs results over process; in everyday life: calls something right when the outcome is beneficial"
+                }
+                Self::VirtueBased => {
+                    "Cultivates character qualities — at work: practices integrity and diligence; in everyday life: strives to be honest, kind, and disciplined"
+                }
+                Self::Relativist => {
+                    "Adapts morality to context — at work: bends the rules when the situation asks; in everyday life: judges each case on its own, not by fixed rules"
+                }
                 // Interpersonal conduct
-                Self::Opportunistic => "Exploits situations and people for personal gain",
-                Self::Intrusive => "Oversteps boundaries, imposes on others",
-                Self::Manipulative => "Orchestrates others through deception",
-                Self::PassiveAggressive => "Indirect resistance, subtle sabotage",
-                Self::Controlling => "Dominates and micromanages others",
-                Self::Detached => "Maintains emotional distance, objective",
-                Self::Respectful => "Honors boundaries and autonomy",
-                Self::Empathetic => "Understands and validates others' feelings",
-                Self::Supportive => "Actively helps and encourages others",
-                Self::Nurturing => "Invests in others' growth and wellbeing",
+                Self::Opportunistic => {
+                    "Exploits situations and people for personal gain — at work: jumps on chances at others' expense; in everyday life: puts themselves first when it pays"
+                }
+                Self::Intrusive => {
+                    "Oversteps boundaries, imposes on others — at work: barges into others' tasks and schedules; in everyday life: reads messages, gives unsolicited advice"
+                }
+                Self::Manipulative => {
+                    "Orchestrates others through deception — at work: sways people with half-truths; in everyday life: plays on feelings to steer people"
+                }
+                Self::PassiveAggressive => {
+                    "Indirect resistance, subtle sabotage — at work: quietly blocks projects instead of objecting; in everyday life: sulks and makes pointed remarks"
+                }
+                Self::Controlling => {
+                    "Dominates and micromanages others — at work: checks every detail of the team's work; in everyday life: decides and oversees how things are done at home"
+                }
+                Self::Detached => {
+                    "Maintains emotional distance, objective — at work: stays clinical even in tense moments; in everyday life: seems distant in personal matters"
+                }
+                Self::Respectful => {
+                    "Honors boundaries and autonomy — at work: asks before touching others' work; in everyday life: respects others' privacy and choices"
+                }
+                Self::Empathetic => {
+                    "Understands and validates others' feelings — at work: picks up on team mood and tensions; in everyday life: senses when friends are off and asks"
+                }
+                Self::Supportive => {
+                    "Actively helps and encourages others — at work: helps and cheers colleagues on; in everyday life: shows up for friends in need"
+                }
+                Self::Nurturing => {
+                    "Invests in others' growth and wellbeing — at work: develops people's talent over time; in everyday life: cares deeply about family and friends' progress"
+                }
                 // Trust style
-                Self::ExtendsTrustFreely => "Gives trust easily, offers benefit of the doubt",
-                Self::EarnsTrustGradually => "Builds trust through demonstrated reliability",
-                Self::VerifiesTrust => "Trusts but verifies through actions",
-                Self::Guarded => "Cautious, needs proof before trusting",
-                Self::RepairsTrustActively => "Proactively rebuilds trust after a breach",
+                Self::ExtendsTrustFreely => {
+                    "Gives trust easily, offers benefit of the doubt — at work: delegates without checking; in everyday life: trusts people until proven otherwise"
+                }
+                Self::EarnsTrustGradually => {
+                    "Builds trust through demonstrated reliability — at work: wins confidence with consistency; in everyday life: opens up once the track record shows they can"
+                }
+                Self::VerifiesTrust => {
+                    "Trusts but verifies through actions — at work: checks in on delegated work; in everyday life: trusts words but watches behavior"
+                }
+                Self::Guarded => {
+                    "Cautious, needs proof before trusting — at work: doubts promises until results appear; in everyday life: slow to let people close"
+                }
+                Self::RepairsTrustActively => {
+                    "Proactively rebuilds trust after a breach — at work: owns mistakes and mends relations; in everyday life: apologizes and works to make it up"
+                }
             },
         }
     }
