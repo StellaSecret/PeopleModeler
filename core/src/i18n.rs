@@ -1018,4 +1018,411 @@ impl BehaviorResponse {
             Self::BecomesBitter => "⚫ Devient amer (ranceur, cynisme)",
         }
     }
+
+    pub fn desc(self, lang: Lang) -> &'static str {
+        match lang {
+            Lang::En => self.desc_en(),
+            Lang::Fr => self.desc_fr(),
+        }
+    }
+
+    fn desc_en(self) -> &'static str {
+        match self {
+            // Stress
+            Self::RemainsCalm => {
+                "Stays composed under pressure — at work: keeps working calmly as a deadline slips; in everyday life: stays steady when plans fall apart"
+            }
+            Self::SeeksSupport => {
+                "Reaches out for help when overwhelmed — at work: asks colleagues for support on a heavy workload; in everyday life: leans on family and friends during hard times"
+            }
+            Self::StaysFocused => {
+                "Channels stress into productivity — at work: powers through the busy period with a clear task list; in everyday life: picks a task or project to stay anchored"
+            }
+            Self::BecomesQuiet => {
+                "Clams up and withdraws — at work: goes silent in meetings when tension rises; in everyday life: shuts down instead of talking it through"
+            }
+            Self::BecomesIrritable => {
+                "Gets easily annoyed — at work: snaps at small interruptions during crunch time; in everyday life: gets testy at home when things press on them"
+            }
+            Self::Overwhelmed => {
+                "Shuts down completely — at work: freezes in the face of a big backlog; in everyday life: gets stuck by mounting chores and worries"
+            }
+            Self::Panics => {
+                "Loses control — at work: overreacts to an unexpected failure; in everyday life: catastrophizes when something goes wrong"
+            }
+            // Conflict
+            Self::FacilitatesResolution => {
+                "Mediates and finds common ground — at work: steps in to defuse team clashes; in everyday life: brokers peace between arguing relatives"
+            }
+            Self::CommunicatesOpenly => {
+                "Expresses feelings constructively — at work: says what bothers them in a calm direct way; in everyday life: talks issues through instead of holding grudges"
+            }
+            Self::SeeksCompromise => {
+                "Looks for a middle ground — at work: splits the difference on a disputed plan; in everyday life: suggests trade-offs so everyone gets something"
+            }
+            Self::StaysSilent => {
+                "Avoids taking sides — at work: sits out the debate without taking a position; in everyday life: stays quiet in family disputes"
+            }
+            Self::BecomesPassiveAggressive => {
+                "Uses pointed digs instead of honesty — at work: makes snide comments rather than raising the issue; in everyday life: gives the silent treatment and bitter remarks"
+            }
+            Self::BecomesDefensive => {
+                "Blocks, argues, justifies — at work: answers criticism with excuses; in everyday life: turns disagreements into arguments to win"
+            }
+            Self::Escalates => {
+                "Attacks personally — at work: makes the disagreement personal and heated; in everyday life: raises old grudges in a fight"
+            }
+            // Success
+            Self::CelebratesWithOthers => {
+                "Shares the joy and brings people together — at work: organizes a team celebration for the win; in everyday life: throws a party for a milestone"
+            }
+            Self::SharesCredit => {
+                "Praises others' contributions — at work: names everyone on the project in the recap; in everyday life: tells people they made it possible"
+            }
+            Self::SetsNewGoals => {
+                "Raises the bar — at work: immediately aims for the next target; in everyday life: signs up for a new personal challenge"
+            }
+            Self::EnjoysQuietly => {
+                "Internal satisfaction without display — at work: lets results speak and skips the loud win; in everyday life: savors accomplishments privately"
+            }
+            Self::BecomesComplacent => {
+                "Rests on their laurels — at work: coasts after hitting a big target; in everyday life: stops pushing once a goal is reached"
+            }
+            Self::BecomesOverconfident => {
+                "Arrogant and boastful — at work: takes on more than they can deliver after a win; in everyday life: lectures others on their success"
+            }
+            Self::DismissesOthers => {
+                "Belittles others' contributions — at work: claims the success while minimizing teammates' input; in everyday life: plays down others' achievements"
+            }
+            // Uncertainty
+            Self::EmbracesAmbiguity => {
+                "Thrives in the unknown — at work: jumps into vaguely scoped projects; in everyday life: enjoys open-ended plans and surprises"
+            }
+            Self::AsksQuestions => {
+                "Seeks to understand — at work: clarifies goals and expectations; in everyday life: gathers details before deciding"
+            }
+            Self::SeeksData => {
+                "Gathers facts — at work: pulls metrics before acting; in everyday life: researches before a purchase"
+            }
+            Self::WaitsForClarity => {
+                "Temporizes — at work: holds decisions until direction is clear; in everyday life: postpones choices until the situation clears"
+            }
+            Self::OverPlans => {
+                "Tries to control the uncertain — at work: over-schedules and over-documents; in everyday life: plans every step of a trip or event"
+            }
+            Self::BecomesParalyzed => {
+                "Unable to act — at work: stalls on an ambiguous task; in everyday life: can't choose when options are left open"
+            }
+            Self::DeflectsResponsibility => {
+                "Blames the ambiguity — at work: attributes delays to unclear instructions; in everyday life: blames circumstances rather than themselves"
+            }
+            // Recognition
+            Self::AppreciatesQuietly => {
+                "Values recognition without display — at work: is content with a discreet thank-you; in everyday life: values genuine praise over fanfare"
+            }
+            Self::AppreciatesPraise => {
+                "Accepts compliments gracefully — at work: smiles and thanks the team for feedback; in everyday life: receives compliments warmly"
+            }
+            Self::SharesAchievement => {
+                "Updates on progress — at work: keeps stakeholders posted on wins; in everyday life: tells close ones about their successes"
+            }
+            Self::SeeksMore => {
+                "Needs some approval — at work: checks in for validation after tasks; in everyday life: wants reassurance from family and friends"
+            }
+            Self::BecomesJealous => {
+                "Resents others' recognition — at work: begrudges a colleague's praise; in everyday life: envies friends' achievements"
+            }
+            Self::DemandsAttention => {
+                "Must be the center — at work: steers conversations back to themselves; in everyday life: needs to be noticed in a group"
+            }
+            Self::UnderminesOthers => {
+                "Diminishes others to get ahead — at work: downplays teammates' wins; in everyday life: cuts others down socially"
+            }
+            // Threatened
+            Self::SeeksUnderstanding => {
+                "Tries to understand the threat — at work: investigates the source of an attack; in everyday life: analyzes motives before reacting"
+            }
+            Self::SeeksAllies => {
+                "Builds a support network — at work: lines up support from other teams; in everyday life: rallies friends when they feel attacked"
+            }
+            Self::StandsGround => {
+                "Calmly defends their position — at work: holds their ground on a choice without escalating; in everyday life: stays firm but polite in arguments"
+            }
+            Self::BecomesCautious => {
+                "Withdraws to assess — at work: pulls back to evaluate the situation; in everyday life: keeps distance while weighing a threat"
+            }
+            Self::DeflectsBlame => {
+                "Redirects responsibility — at work: points to process or others when accused; in everyday life: finds someone else to carry the fault"
+            }
+            Self::Counterattacks => {
+                "Strikes back — at work: retaliates against criticism; in everyday life: fires back in a dispute"
+            }
+            Self::BecomesParanoid => {
+                "Sees threats everywhere — at work: reads attacks into neutral messages; in everyday life: suspects hidden motives in others"
+            }
+            // Change
+            Self::EmbracesChange => {
+                "Adapts quickly — at work: adopts new tools and processes readily; in everyday life: welcomes changes in plans and routines"
+            }
+            Self::PlansAhead => {
+                "Prepares and anticipates — at work: sets up contingencies for transitions; in everyday life: plans well ahead of a big change"
+            }
+            Self::AdaptsQuickly => {
+                "Adjusts on the fly — at work: pivots smoothly when priorities shift; in everyday life: rolls with unexpected changes"
+            }
+            Self::ResistsChange => {
+                "Pushes back initially — at work: questions new processes before adopting; in everyday life: is wary of changes to routines"
+            }
+            Self::NeedsReassurance => {
+                "Requires support — at work: asks for repeated confirmation during transitions; in everyday life: seeks reassurance through change"
+            }
+            Self::BecomesDisoriented => {
+                "Can't keep up — at work: lags when processes shift fast; in everyday life: feels lost when routines change abruptly"
+            }
+            Self::Sabotages => {
+                "Actively undermines — at work: quietly blocks the new direction; in everyday life: spoils plans they didn't want"
+            }
+            // Feedback
+            Self::SeeksFeedback => {
+                "Proactively asks — at work: requests regular reviews of their work; in everyday life: asks friends how they come across"
+            }
+            Self::AsksForDetails => {
+                "Digs deeper, seeks specifics — at work: asks for concrete examples in reviews; in everyday life: probes to understand exactly what went wrong"
+            }
+            Self::Reflects => {
+                "Takes time to process — at work: sleeps on feedback before responding; in everyday life: mulls over criticism before reacting"
+            }
+            Self::AcceptsResignedly => {
+                "Reluctant acceptance — at work: takes feedback without agreement or pushback; in everyday life: shrugs off criticism with resignation"
+            }
+            Self::RejectsFeedback => {
+                "Dismisses — at work: pushes back hard on any negative review; in everyday life: refuses to hear criticism from others"
+            }
+            Self::IgnoresCompletely => {
+                "Disregards entirely — at work: tunes out the feedback session; in everyday life: carries on regardless of others' input"
+            }
+            // Injustice
+            Self::SeeksRestoration => {
+                "Repairs and reconciles — at work: pushes to mend the unfair situation and relations; in everyday life: seeks to restore fairness and peace"
+            }
+            Self::ProtestsConstructively => {
+                "Raises concerns productively — at work: formalizes unfairness through the right channels; in everyday life: speaks up with reason and composure"
+            }
+            Self::ProtestsFirmly => {
+                "Advocates clearly — at work: challenges the unfair decision head-on; in everyday life: defends the wronged person loudly"
+            }
+            Self::SeeksClarity => {
+                "Investigates the facts — at work: gathers evidence before judging; in everyday life: verifies both sides before taking a stance"
+            }
+            Self::WithdrawsFromInjustice => {
+                "Disengages — at work: distances themselves from the unfair environment; in everyday life: walks away from unjust situations"
+            }
+            Self::ExploitsOpportunistically => {
+                "Takes advantage — at work: profits from a loophole or unfair situation; in everyday life: benefits from others' bad luck"
+            }
+            Self::BecomesBitter => {
+                "Resentful, cynical — at work: harbors resentment over past unfairness; in everyday life: grows cynical about people and systems"
+            }
+        }
+    }
+
+    fn desc_fr(self) -> &'static str {
+        match self {
+            // Stress
+            Self::RemainsCalm => {
+                "Garde son sang-froid sous pression — au travail : continue de travailler calmement alors qu'une échéance glisse ; dans la vie : reste stable quand les plans s'effondrent"
+            }
+            Self::SeeksSupport => {
+                "Demande de l'aide quand il est dépassé — au travail : sollicite ses collègues sur une charge lourde ; dans la vie : s'appuie sur famille et amis dans les moments difficiles"
+            }
+            Self::StaysFocused => {
+                "Canalise le stress en productivité — au travail : traverse la période chargée avec une liste claire ; dans la vie : se raccroche à une tâche ou un projet"
+            }
+            Self::BecomesQuiet => {
+                "Se ferme et se retire — au travail : se tait en réunion quand la tension monte ; dans la vie : se renferme au lieu d'en parler"
+            }
+            Self::BecomesIrritable => {
+                "S'énerve facilement — au travail : s'agace des petites interruptions en période de rush ; dans la vie : devient grognon à la maison sous pression"
+            }
+            Self::Overwhelmed => {
+                "Se ferme complètement — au travail : fige devant un gros backlog ; dans la vie : reste bloqué par l'accumulation de tâches et de soucis"
+            }
+            Self::Panics => {
+                "Perd le contrôle — au travail : surréagit à un échec inattendu ; dans la vie : dramatise quand quelque chose tourne mal"
+            }
+            // Conflict
+            Self::FacilitatesResolution => {
+                "Médie et trouve un terrain d'entente — au travail : s'interpose pour apaiser les clashs d'équipe ; dans la vie : joue les médiateurs entre proches en désaccord"
+            }
+            Self::CommunicatesOpenly => {
+                "Exprime ses sentiments avec constructivité — au travail : dit ce qui le dérange calmement et directement ; dans la vie : discute des problèmes au lieu de garder rancune"
+            }
+            Self::SeeksCompromise => {
+                "Cherche un terrain d'entente — au travail : partage la différence sur un plan contesté ; dans la vie : propose des concessions pour que chacun y gagne"
+            }
+            Self::StaysSilent => {
+                "Évite de prendre parti — au travail : reste en retrait du débat sans se positionner ; dans la vie : se tait lors des disputes familiales"
+            }
+            Self::BecomesPassiveAggressive => {
+                "Utilise des piques au lieu de la franchise — au travail : lance des remarques perfides plutôt que de soulever le problème ; dans la vie : boude et fait des réflexions amères"
+            }
+            Self::BecomesDefensive => {
+                "Bloque, argumente, se justifie — au travail : répond aux critiques par des excuses ; dans la vie : transforme les désaccords en disputes à gagner"
+            }
+            Self::Escalates => {
+                "Attaque personnellement — au travail : rend le désaccord personnel et virulent ; dans la vie : ressasse de vieilles rancunes pendant une dispute"
+            }
+            // Success
+            Self::CelebratesWithOthers => {
+                "Partage la joie et soude le groupe — au travail : organise une célébration d'équipe pour la victoire ; dans la vie : fête une étape importante avec les proches"
+            }
+            Self::SharesCredit => {
+                "Félicite les contributions des autres — au travail : cite tout le monde dans le bilan du projet ; dans la vie : rappelle aux gens leur part du mérite"
+            }
+            Self::SetsNewGoals => {
+                "Relève la barre — au travail : vise immédiatement l'objectif suivant ; dans la vie : se lance un nouveau défi personnel"
+            }
+            Self::EnjoysQuietly => {
+                "Satisfaction intérieure sans démonstration — au travail : laisse les résultats parler, sans fanfare ; dans la vie : savoure ses réussites en privé"
+            }
+            Self::BecomesComplacent => {
+                "Se repose sur ses lauriers — au travail : navigue à vue après avoir atteint un gros objectif ; dans la vie : arrête de progresser une fois le but atteint"
+            }
+            Self::BecomesOverconfident => {
+                "Arrogant et vantard — au travail : prend plus que ce qu'il peut livrer après une victoire ; dans la vie : donne des leçons sur son succès"
+            }
+            Self::DismissesOthers => {
+                "Dévalorise les contributions des autres — au travail : s'attribue le succès en minimisant l'apport de l'équipe ; dans la vie : minimise les réussites des autres"
+            }
+            // Uncertainty
+            Self::EmbracesAmbiguity => {
+                "Prospère dans l'inconnu — au travail : se lance dans des projets au périmètre flou ; dans la vie : aime les plans ouverts et les surprises"
+            }
+            Self::AsksQuestions => {
+                "Cherche à comprendre — au travail : clarifie objectifs et attentes ; dans la vie : rassemble les détails avant de décider"
+            }
+            Self::SeeksData => {
+                "Rassemble des faits — au travail : sort les indicateurs avant d'agir ; dans la vie : fait des recherches avant un achat"
+            }
+            Self::WaitsForClarity => {
+                "Temporise — au travail : diffère les décisions tant que la direction n'est pas claire ; dans la vie : reporte les choix jusqu'à ce que ça s'éclaircisse"
+            }
+            Self::OverPlans => {
+                "Tente de contrôler l'incertain — au travail : surplanifie et surdocumente ; dans la vie : planifie chaque étape d'un voyage ou d'un événement"
+            }
+            Self::BecomesParalyzed => {
+                "Incapable d'agir — au travail : cale sur une tâche ambiguë ; dans la vie : n'arrive pas à choisir face à des options ouvertes"
+            }
+            Self::DeflectsResponsibility => {
+                "Blâme l'ambiguïté — au travail : attribue les retards à des consignes floues ; dans la vie : blâme les circonstances plutôt que lui-même"
+            }
+            // Recognition
+            Self::AppreciatesQuietly => {
+                "Valorise sans chercher la lumière — au travail : se contente d'un merci discret ; dans la vie : apprécie les vrais éloges sans fanfare"
+            }
+            Self::AppreciatesPraise => {
+                "Accepte les compliments avec grâce — au travail : sourit et remercie pour le retour ; dans la vie : reçoit les compliments chaleureusement"
+            }
+            Self::SharesAchievement => {
+                "Informe des progrès — au travail : tient les parties prenantes au courant des victoires ; dans la vie : partage ses réussites avec ses proches"
+            }
+            Self::SeeksMore => {
+                "Besoin d'approbation modéré — au travail : vérifie que son travail est validé ; dans la vie : cherche la réassurance de famille et amis"
+            }
+            Self::BecomesJealous => {
+                "Ressent la reconnaissance des autres — au travail : en veut à un collègue loué ; dans la vie : envie les succès de ses amis"
+            }
+            Self::DemandsAttention => {
+                "Veut être le centre — au travail : ramène les conversations vers lui ; dans la vie : a besoin d'être remarqué dans un groupe"
+            }
+            Self::UnderminesOthers => {
+                "Rabaisse les autres pour avancer — au travail : minimise les réussites de l'équipe ; dans la vie : rabaisse socialement les autres"
+            }
+            // Threatened
+            Self::SeeksUnderstanding => {
+                "Tente de cerner la menace — au travail : recherche la source d'une attaque ; dans la vie : analyse les motivations avant de réagir"
+            }
+            Self::SeeksAllies => {
+                "Tisse des coalitions — au travail : s'appuie sur d'autres équipes ; dans la vie : mobilise ses amis quand il se sent attaqué"
+            }
+            Self::StandsGround => {
+                "Affirme sa position calmement — au travail : tient sa position sur un choix sans envenimer ; dans la vie : reste ferme mais poli dans les débats"
+            }
+            Self::BecomesCautious => {
+                "Recule pour évaluer — au travail : prend du recul pour analyser ; dans la vie : garde ses distances en pesant la menace"
+            }
+            Self::DeflectsBlame => {
+                "Redirige la responsabilité — au travail : pointe le process ou les autres quand il est accusé ; dans la vie : trouve quelqu'un d'autre à qui imputer la faute"
+            }
+            Self::Counterattacks => {
+                "Riposte — au travail : contre-attaque face aux critiques ; dans la vie : réplique vivement dans une dispute"
+            }
+            Self::BecomesParanoid => {
+                "Voit des menaces partout — au travail : lit des attaques dans des messages neutres ; dans la vie : soupçonne des intentions cachées chez les autres"
+            }
+            // Change
+            Self::EmbracesChange => {
+                "S'adapte rapidement — au travail : adopte outils et process nouveaux sans résistance ; dans la vie : accueille volontiers les changements de plans"
+            }
+            Self::PlansAhead => {
+                "Se prépare, anticipe — au travail : prépare des plans B pour les transitions ; dans la vie : planifie largement à l'avance un grand changement"
+            }
+            Self::AdaptsQuickly => {
+                "S'ajuste à la volée — au travail : pivote facilement quand les priorités changent ; dans la vie : suit les imprévus avec souplesse"
+            }
+            Self::ResistsChange => {
+                "Rechigne initialement — au travail : questionne tout nouveau process avant de l'adopter ; dans la vie : se méfie des changements de routine"
+            }
+            Self::NeedsReassurance => {
+                "Demande du soutien — au travail : réclame des confirmations répétées pendant les transitions ; dans la vie : cherche à être rassuré dans le changement"
+            }
+            Self::BecomesDisoriented => {
+                "N'arrive pas à suivre — au travail : décroche quand les process changent vite ; dans la vie : se sent perdu quand les routines chamboulent"
+            }
+            Self::Sabotages => {
+                "Compromet activement — au travail : bloque en douce la nouvelle direction ; dans la vie : fait échouer les plans qu'il ne voulait pas"
+            }
+            // Feedback
+            Self::SeeksFeedback => {
+                "Le sollicite proactivement — au travail : demande des bilans réguliers de son travail ; dans la vie : demande aux amis l'image qu'il renvoie"
+            }
+            Self::AsksForDetails => {
+                "Creuse, cherche des précisions — au travail : réclame des exemples concrets dans les bilans ; dans la vie : cherche à comprendre précisément ce qui a échoué"
+            }
+            Self::Reflects => {
+                "Prend le temps d'analyser — au travail : dort sur le feedback avant de répondre ; dans la vie : réfléchit avant de réagir à une critique"
+            }
+            Self::AcceptsResignedly => {
+                "Acceptation à contrecœur — au travail : encaisse le feedback sans adhérer ni protester ; dans la vie : hausse les épaules face aux critiques"
+            }
+            Self::RejectsFeedback => {
+                "Se braque, se ferme — au travail : rejette vivement toute évaluation négative ; dans la vie : refuse d'écouter les critiques"
+            }
+            Self::IgnoresCompletely => {
+                "Fait la sourde oreille — au travail : n'écoute pas la séance de feedback ; dans la vie : continue sans tenir compte des avis"
+            }
+            // Injustice
+            Self::SeeksRestoration => {
+                "Répare et réconcilie — au travail : s'emploie à réparer la situation et les relations ; dans la vie : cherche à rétablir justice et paix"
+            }
+            Self::ProtestsConstructively => {
+                "Exprime ses préoccupations avec constructivité — au travail : remonte l'injustice par les bons canaux ; dans la vie : s'exprime avec calme et raison"
+            }
+            Self::ProtestsFirmly => {
+                "Défend ce qui est juste — au travail : conteste frontalement la décision injuste ; dans la vie : défend haut et fort la personne lésée"
+            }
+            Self::SeeksClarity => {
+                "Enquête sur les faits — au travail : rassemble les preuves avant de juger ; dans la vie : vérifie les deux versions avant de prendre parti"
+            }
+            Self::WithdrawsFromInjustice => {
+                "Se désengage — au travail : prend ses distances avec un environnement injuste ; dans la vie : s'écarte des situations injustes"
+            }
+            Self::ExploitsOpportunistically => {
+                "Profite de la situation — au travail : tire parti d'une faille ou d'une injustice ; dans la vie : bénéficie du malheur des autres"
+            }
+            Self::BecomesBitter => {
+                "Amertume, cynisme — au travail : nourrit de la rancœur sur les injustices passées ; dans la vie : devient cynique envers les gens et les systèmes"
+            }
+        }
+    }
 }
