@@ -211,101 +211,101 @@ impl BiasType {
             Lang::Fr => match self {
                 Self::Confirmation => BiasI18n {
                     label: "Biais de confirmation",
-                    desc: "Ne retient que les infos qui confirment ce qu'il croit déjà, en ignorant le reste. Ex. : relit surtout les sources qui lui donnent raison",
+                    desc: "Ne retient que les infos qui confirment ce qu'il croit déjà, en ignorant le reste. Au travail : relit surtout les sources qui lui donnent raison ; dans la vie : ne suit que des avis conformes à ses convictions",
                 },
                 Self::Anchoring => BiasI18n {
                     label: "Ancrage cognitif",
-                    desc: "Cale sa décision sur le premier chiffre ou le premier fait rencontré. Ex. : une première offre ancre ce qu'il acceptera ensuite",
+                    desc: "Cale sa décision sur le premier chiffre ou le premier fait rencontré. Au travail : la première estimation d'un budget scelle ce qu'il acceptera ; dans la vie : juge un achat au premier prix vu",
                 },
                 Self::Availability => BiasI18n {
                     label: "Disponibilité",
-                    desc: "Estime la probabilité d'un événement à la facilité d'en évoquer des exemples — le récent et le dramatique pèsent plus. Ex. : un accident spectaculaire lui fait croire que voler est dangereux",
+                    desc: "Estime la probabilité d'un événement à la facilité d'en évoquer des exemples — le récent et le dramatique pèsent plus. Au travail : un bug récent lui fait croire que le système est fragile ; dans la vie : un accident spectaculaire lui fait éviter l'avion",
                 },
                 Self::SunkCost => BiasI18n {
                     label: "Coût irrécupérable",
-                    desc: "Poursuit une voie perdante à cause de ce qui a déjà été investi. Ex. : refuse d'abandonner un projet raté après des années d'efforts",
+                    desc: "Poursuit une voie perdante à cause de ce qui a déjà été investi. Au travail : refuse d'abandonner un projet raté après des années d'efforts ; dans la vie : finit un livre ou un abonnement qu'il n'aime plus parce qu'il a payé",
                 },
                 Self::DunningKruger => BiasI18n {
                     label: "Dunning-Kruger",
-                    desc: "Surestime son propre niveau — classique excès de confiance des débutants. Ex. : un débutant se prend pour l'expert",
+                    desc: "Surestime son propre niveau — classique excès de confiance des débutants. Au travail : un débutant se prend pour l'expert et surcharge sa mission ; dans la vie : donne des conseils assurés dans des domaines qu'il maîtrise peu",
                 },
                 Self::Impostor => BiasI18n {
                     label: "Imposteur",
-                    desc: "Sous-estime ses compétences réelles et se sent imposteur. Ex. : un excellent profil craint d'être démasqué",
+                    desc: "Sous-estime ses compétences réelles et se sent imposteur. Au travail : un excellent profil craint d'être démasqué à chaque promo ; dans la vie : minimise ses réussites personnelles",
                 },
                 Self::LossAversion => BiasI18n {
                     label: "Aversion aux pertes",
-                    desc: "Craint plus les pertes qu'il ne goûte les gains équivalents. Ex. : refuse un pari à chances égales",
+                    desc: "Craint plus les pertes qu'il ne goûte les gains équivalents. Au travail : refuse un pari à chances égales ; dans la vie : garde un placement perdant plutôt que d'assumer la perte",
                 },
                 Self::SocialProof => BiasI18n {
                     label: "Preuve sociale",
-                    desc: "Copie le comportement du groupe quand il est incertain. Ex. : change sa réponse pour rejoindre le consensus",
+                    desc: "Copie le comportement du groupe quand il est incertain. Au travail : change sa réponse pour rejoindre le consensus ; dans la vie : choisit un restaurant parce qu'il est bondé",
                 },
                 Self::Authority => BiasI18n {
                     label: "Autorité",
-                    desc: "Se plie aux titres et au rang plutôt qu'à son propre jugement. Ex. : suit sans questionner une mauvaise décision de son supérieur",
+                    desc: "Se plie aux titres et au rang plutôt qu'à son propre jugement. Au travail : suit sans questionner une mauvaise décision de son supérieur ; dans la vie : se range à l'avis d'un spécialiste médiatique",
                 },
                 Self::Recency => BiasI18n {
                     label: "Récence",
-                    desc: "Pèse plus les informations récentes que la tendance de long terme. Ex. : un mauvais trimestre efface des années de bons résultats",
+                    desc: "Pèse plus les informations récentes que la tendance de long terme. Au travail : un mauvais trimestre efface des années de bons résultats ; dans la vie : décide selon son humeur récente",
                 },
                 Self::InGroup => BiasI18n {
                     label: "Endogroupe",
-                    desc: "Favorise le « nous » face au « eux » — son équipe ou sa famille bénéficie du doute. Ex. : défend son camp même quand il a clairement tort",
+                    desc: "Favorise le « nous » face au « eux ». Au travail : défend son équipe même quand elle a clairement tort ; dans la vie : son camp ou sa famille bénéficie toujours du doute",
                 },
                 Self::Favoritism => BiasI18n {
                     label: "Favoritisme",
-                    desc: "Traite certains individus mieux que les autres pour des raisons personnelles. Ex. : promeut toujours ses amis",
+                    desc: "Traite certains individus mieux que les autres pour des raisons personnelles. Au travail : promeut toujours ses amis ; dans la vie : prête plus facilement à ses proches",
                 },
             },
             Lang::En => match self {
                 Self::Confirmation => BiasI18n {
                     label: "Confirmation bias",
-                    desc: "Filters for info that backs what they already believe, ignoring the rest. E.g. only re-reads sources that agree with them",
+                    desc: "Filters for info that backs what they already believe, ignoring the rest. At work: re-reads only the sources that agree with them; in everyday life: follows only views aligned with their opinions",
                 },
                 Self::Anchoring => BiasI18n {
                     label: "Anchoring",
-                    desc: "Hangs a decision on the first number or fact they see. E.g. a first offer anchors what they'll accept later",
+                    desc: "Hangs a decision on the first number or fact they see. At work: a budget's first estimate seals what they'll accept; in everyday life: judges a purchase by the first price they saw",
                 },
                 Self::Availability => BiasI18n {
                     label: "Availability",
-                    desc: "Judges how likely something is by how easily examples come to mind, so dramatic recent events loom large. E.g. one scary crash makes flying feel dangerous",
+                    desc: "Judges how likely something is by how easily examples come to mind, so dramatic recent events loom large. At work: one recent bug makes the whole system feel fragile; in everyday life: a scary crash makes flying feel dangerous",
                 },
                 Self::SunkCost => BiasI18n {
                     label: "Sunk cost",
-                    desc: "Keeps a losing course going because of what's already been invested. E.g. refuses to drop a failing project after sinking years into it",
+                    desc: "Keeps a losing course going because of what's already been invested. At work: refuses to drop a failing project after sinking years into it; in everyday life: finishes a dull book or membership they already paid for",
                 },
                 Self::DunningKruger => BiasI18n {
                     label: "Dunning-Kruger",
-                    desc: "Overrates their own skill, typically low-competence overconfidence. E.g. a beginner insists they're the expert",
+                    desc: "Overrates their own skill, typically low-competence overconfidence. At work: a beginner insists they're the expert and overpromises; in everyday life: gives confident advice on topics they know little about",
                 },
                 Self::Impostor => BiasI18n {
                     label: "Impostor",
-                    desc: "Downrates their proven skill and feels like a fraud. E.g. a top performer fears being 'found out'",
+                    desc: "Downrates their proven skill and feels like a fraud. At work: a top performer fears being found out at every promotion; in everyday life: plays down their personal achievements",
                 },
                 Self::LossAversion => BiasI18n {
                     label: "Loss aversion",
-                    desc: "Fears losing more than they enjoy winning the same amount. E.g. refuses an even-odds bet",
+                    desc: "Fears losing more than they enjoy winning the same amount. At work: refuses an even-odds bet; in everyday life: holds a losing investment rather than taking the loss",
                 },
                 Self::SocialProof => BiasI18n {
                     label: "Social proof",
-                    desc: "Copies what the group does when unsure. E.g. changes their answer to match the room",
+                    desc: "Copies what the group does when unsure. At work: changes their answer to match the room; in everyday life: picks the busy restaurant",
                 },
                 Self::Authority => BiasI18n {
                     label: "Authority",
-                    desc: "Defers to titles and rank over their own judgment. E.g. follows a senior's bad call without question",
+                    desc: "Defers to titles and rank over their own judgment. At work: follows a senior's bad call without question; in everyday life: defers to a media pundit",
                 },
                 Self::Recency => BiasI18n {
                     label: "Recency",
-                    desc: "Weights the latest news over the longer track record. E.g. last week's bad quarter outweighs years of solid results",
+                    desc: "Weights the latest news over the longer track record. At work: last week's bad quarter outweighs years of solid results; in everyday life: decides based on recent moods",
                 },
                 Self::InGroup => BiasI18n {
                     label: "In-group",
-                    desc: "Favors 'us' over 'them' — their own team or family gets the benefit of the doubt. E.g. backs the home team even when clearly wrong",
+                    desc: "Favors 'us' over 'them'. At work: defends their own team even when it's clearly wrong; in everyday life: their camp or family always gets the benefit of the doubt",
                 },
                 Self::Favoritism => BiasI18n {
                     label: "Favoritism",
-                    desc: "Treats certain individuals better than others for personal reasons. E.g. always promotes their friends",
+                    desc: "Treats certain individuals better than others for personal reasons. At work: always promotes their friends; in everyday life: lends more easily to close ones",
                 },
             },
         }
