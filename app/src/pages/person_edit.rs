@@ -978,18 +978,7 @@ fn OceanSlider(
 }
 
 fn mot_helper(t: &MotivationType, lang: Lang) -> &'static str {
-    match t {
-        MotivationType::Achievement => crate::i18n::tr("mot_helper_achievement", lang),
-        MotivationType::Power => crate::i18n::tr("mot_helper_power", lang),
-        MotivationType::Affiliation => crate::i18n::tr("mot_helper_affiliation", lang),
-        MotivationType::Security => crate::i18n::tr("mot_helper_security", lang),
-        MotivationType::Autonomy => crate::i18n::tr("mot_helper_autonomy", lang),
-        MotivationType::Recognition => crate::i18n::tr("mot_helper_recognition", lang),
-        MotivationType::Learning => crate::i18n::tr("mot_helper_learning", lang),
-        MotivationType::Helping => crate::i18n::tr("mot_helper_helping", lang),
-        MotivationType::Creativity => crate::i18n::tr("mot_helper_creativity", lang),
-        MotivationType::Fairness => crate::i18n::tr("mot_helper_fairness", lang),
-    }
+    t.i18n(core_lang(lang)).desc
 }
 
 fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {

@@ -29,85 +29,85 @@ impl MotivationType {
             Lang::Fr => match self {
                 Self::Power => MotI18n {
                     label: "Pouvoir",
-                    desc: "Contrôle des décisions, influence et autorité",
+                    desc: "Contrôle des décisions et influence — au travail : prend les rênes et mène ; dans la vie : aime être consulté et décider",
                 },
                 Self::Achievement => MotI18n {
                     label: "Accomplissement",
-                    desc: "Atteinte d'objectifs ambitieux et performance",
+                    desc: "Objectifs ambitieux et haute performance — au travail : se fixe des cibles exigeantes ; dans la vie : se mesure via sports, loisirs ou jalons personnels",
                 },
                 Self::Affiliation => MotI18n {
                     label: "Appartenance",
-                    desc: "Relations harmonieuses et appartenance au groupe",
+                    desc: "Relations harmonieuses et appartenance — au travail : valorise une équipe soudée et évite les conflits ; dans la vie : s'entoure d'amis proches",
                 },
                 Self::Security => MotI18n {
                     label: "Sécurité",
-                    desc: "Stabilité, prévisibilité et évitement des risques",
+                    desc: "Stabilité, prévisibilité et évitement des risques — au travail : préfère un rôle stable et des règles claires ; dans la vie : tient aux habitudes, budgets et routines",
                 },
                 Self::Autonomy => MotI18n {
                     label: "Autonomie",
-                    desc: "Indépendance et liberté d'action",
+                    desc: "Indépendance et liberté d'action — au travail : veut gérer ses tâches à sa façon ; dans la vie : organise librement son temps et son emploi du temps",
                 },
                 Self::Recognition => MotI18n {
                     label: "Reconnaissance",
-                    desc: "Validation et estime des autres",
+                    desc: "Validation et estime des autres — au travail : veut que son travail soit vu et loué ; dans la vie : partage ses réussites et apprécie les compliments",
                 },
                 Self::Learning => MotI18n {
                     label: "Apprentissage",
-                    desc: "Connaissances et développement personnel",
+                    desc: "Connaissances et développement personnel — au travail : suit des formations et creuse les nouveautés ; dans la vie : lit, explore et continue d'apprendre",
                 },
                 Self::Helping => MotI18n {
                     label: "Aider les autres",
-                    desc: "Aider et soutenir les autres",
+                    desc: "Aider et soutenir les autres — au travail : assiste ses collègues et prend des tâches de service ; dans la vie : soutient famille, amis et communauté",
                 },
                 Self::Creativity => MotI18n {
                     label: "Créativité",
-                    desc: "Innovation, expression et exploration créative",
+                    desc: "Innovation, expression et exploration créative — au travail : invente des approches et des idées neuves ; dans la vie : écrit, fabrique ou bricole",
                 },
                 Self::Fairness => MotI18n {
                     label: "Justice",
-                    desc: "Équité, mérite et traitement juste des autres",
+                    desc: "Équité et traitement juste des autres — au travail : dénonce le favoritisme et partage équitablement ; dans la vie : défend la justice et le mérite individuel",
                 },
             },
             Lang::En => match self {
                 Self::Power => MotI18n {
                     label: "Power",
-                    desc: "Control over decisions, influence and authority",
+                    desc: "Control over decisions and influence — at work: takes charge and leads; in everyday life: likes being consulted and deciding",
                 },
                 Self::Achievement => MotI18n {
                     label: "Achievement",
-                    desc: "Reaching ambitious goals and high performance",
+                    desc: "Ambitious goals and high performance — at work: sets demanding targets and chases mastery; in everyday life: competes in sports, hobbies, or personal milestones",
                 },
                 Self::Affiliation => MotI18n {
                     label: "Affiliation",
-                    desc: "Harmonious relationships and group belonging",
+                    desc: "Harmonious relationships and belonging — at work: values a friendly team and avoids conflict; in everyday life: surrounds themselves with close friends",
                 },
                 Self::Security => MotI18n {
                     label: "Security",
-                    desc: "Stability, predictability and risk avoidance",
+                    desc: "Stability, predictability and risk avoidance — at work: prefers a steady role and clear rules; in everyday life: sticks to habits, budgets, and routines",
                 },
                 Self::Autonomy => MotI18n {
                     label: "Autonomy",
-                    desc: "Independence and freedom of action",
+                    desc: "Independence and freedom of action — at work: wants to run their tasks their own way; in everyday life: manages their time and schedule freely",
                 },
                 Self::Recognition => MotI18n {
                     label: "Recognition",
-                    desc: "Validation and esteem from others",
+                    desc: "Validation and esteem from others — at work: wants others to see and praise their work; in everyday life: shares wins and appreciates compliments",
                 },
                 Self::Learning => MotI18n {
                     label: "Learning",
-                    desc: "Knowledge and personal development",
+                    desc: "Knowledge and personal development — at work: takes courses and digs into new topics; in everyday life: reads, explores, and keeps growing",
                 },
                 Self::Helping => MotI18n {
                     label: "Helping others",
-                    desc: "Helping and supporting others",
+                    desc: "Helping and supporting others — at work: assists colleagues and takes on service tasks; in everyday life: supports family, friends, and community",
                 },
                 Self::Creativity => MotI18n {
                     label: "Creativity",
-                    desc: "Innovation, expression and creative exploration",
+                    desc: "Innovation, expression and creative exploration — at work: invents novel approaches and new ideas; in everyday life: writes, makes, or crafts",
                 },
                 Self::Fairness => MotI18n {
                     label: "Fairness",
-                    desc: "Justice, equity, and fair treatment of others",
+                    desc: "Equity and fair treatment of others — at work: speaks up against favoritism and shares fairly; in everyday life: defends justice and individual merit",
                 },
             },
         }
