@@ -411,16 +411,16 @@ fn en(key: &'static str) -> &'static str {
 
         "bias_scale_hint" => "0 = this bias is absent, 10 = it shapes most decisions.",
 
-        "pattern_helper_stress" => "How they react under pressure or tight deadlines",
-        "pattern_helper_conflict" => "How they handle disagreements and confrontation",
-        "pattern_helper_success" => "How they respond to achievements and wins",
-        "pattern_helper_uncertainty" => "How they navigate ambiguity and unknown outcomes",
-        "pattern_helper_recognition" => "How they seek and respond to acknowledgment",
-        "pattern_helper_threat" => "How they defend themselves when feeling attacked",
-        "pattern_helper_change" => "How they adapt to transitions and new situations",
-        "pattern_helper_feedback" => "How they receive and process input from others",
+        "pattern_helper_stress" => "How they react under pressure or tight deadlines — at work: a looming deadline; in everyday life: a jam-packed day",
+        "pattern_helper_conflict" => "How they handle disagreements and confrontation — at work: a clash in a meeting; in everyday life: a heavy argument at home",
+        "pattern_helper_success" => "How they respond to achievements and wins — at work: closing a big deal; in everyday life: finishing a personal milestone",
+        "pattern_helper_uncertainty" => "How they navigate ambiguity and unknown outcomes — at work: an unclear project scope; in everyday life: waiting on an uncertain outcome",
+        "pattern_helper_recognition" => "How they seek and respond to acknowledgment — at work: being praised by a manager; in everyday life: being appreciated by friends",
+        "pattern_helper_threat" => "How they defend themselves when feeling attacked — at work: criticized during a review; in everyday life: cornered in a heated talk",
+        "pattern_helper_change" => "How they adapt to transitions and new situations — at work: a reorg or a new role; in everyday life: a move or a new routine",
+        "pattern_helper_feedback" => "How they receive and process input from others — at work: a post-project review; in everyday life: a friend pointing out a blind spot",
         "pattern_helper_injustice" => {
-            "How they react when treated unfairly or witnessing unfairness"
+            "How they react when treated unfairly or witnessing unfairness — at work: an unfairly skipped promotion; in everyday life: seeing someone treated unfairly"
         }
 
         // Context labels
@@ -1147,16 +1147,16 @@ fn fr(key: &'static str) -> &'static str {
 
         "bias_scale_hint" => "0 = ce biais est absent, 10 = il influence la plupart des décisions.",
 
-        "pattern_helper_stress" => "Comment il réagit sous pression ou délais serrés",
-        "pattern_helper_conflict" => "Comment il gère les désaccords et confrontations",
-        "pattern_helper_success" => "Comment il répond aux réussites et victoires",
-        "pattern_helper_uncertainty" => "Comment il navigue l'ambiguïté et l'incertain",
-        "pattern_helper_recognition" => "Comment il cherche et réagit à la reconnaissance",
-        "pattern_helper_threat" => "Comment il se défend quand il se sent attaqué",
-        "pattern_helper_change" => "Comment il s'adapte aux transitions et nouveautés",
-        "pattern_helper_feedback" => "Comment il reçoit et traite les retours des autres",
+        "pattern_helper_stress" => "Comment il réagit sous pression ou délais serrés — au travail : une échéance imminente ; dans la vie : une journée surchargée",
+        "pattern_helper_conflict" => "Comment il gère les désaccords et confrontations — au travail : un clash en réunion ; dans la vie : une dispute familiale",
+        "pattern_helper_success" => "Comment il répond aux réussites et victoires — au travail : la conclusion d'un gros contrat ; dans la vie : l'aboutissement d'un projet personnel",
+        "pattern_helper_uncertainty" => "Comment il navigue l'ambiguïté et l'incertain — au travail : un projet au périmètre flou ; dans la vie : l'attente d'un résultat incertain",
+        "pattern_helper_recognition" => "Comment il cherche et réagit à la reconnaissance — au travail : les éloges d'un supérieur ; dans la vie : l'appréciation de ses amis",
+        "pattern_helper_threat" => "Comment il se défend quand il se sent attaqué — au travail : critiqué lors d'un entretien ; dans la vie : pris à partie dans une discussion vive",
+        "pattern_helper_change" => "Comment il s'adapte aux transitions et nouveautés — au travail : une réorganisation ou un nouveau poste ; dans la vie : un déménagement ou une nouvelle routine",
+        "pattern_helper_feedback" => "Comment il reçoit et traite les retours des autres — au travail : le bilan d'un projet ; dans la vie : un ami qui signale un angle mort",
         "pattern_helper_injustice" => {
-            "Comment il réagit face à l'injustice ou au traitement inéquitable"
+            "Comment il réagit face à l'injustice ou au traitement inéquitable — au travail : une promotion injustement ignorée ; dans la vie : voir quelqu'un être maltraité"
         }
 
         "ctx_stress" => "Stress",
