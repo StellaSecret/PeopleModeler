@@ -120,85 +120,85 @@ impl ValueType {
             Lang::Fr => match self {
                 Self::Career => ValueI18n {
                     label: "Carrière",
-                    desc: "Ambition professionnelle et priorités de vie au travail",
+                    desc: "Ambition professionnelle — au travail : vise promotions et responsabilités ; dans la vie : mesure sa réussite à sa carrière",
                 },
                 Self::Family => ValueI18n {
                     label: "Famille",
-                    desc: "Priorités familiales et temps avec les proches",
+                    desc: "Temps passé avec les proches — au travail : aménage son agenda autour des moments en famille ; dans la vie : privilégie dîners, appels et vacances ensemble",
                 },
                 Self::Health => ValueI18n {
                     label: "Santé",
-                    desc: "Bien-être physique et mental",
+                    desc: "Bien-être physique et mental — au travail : protège l'équilibre vie pro/vie perso ; dans la vie : s'investit dans l'exercice, le sommeil et le stress",
                 },
                 Self::Wealth => ValueI18n {
                     label: "Richesse",
-                    desc: "Sécurité financière et confort matériel",
+                    desc: "Sécurité financière et confort matériel — au travail : cherche revenus et promotions ; dans la vie : épargne, investit et planifie la stabilité",
                 },
                 Self::Stability => ValueI18n {
                     label: "Stabilité",
-                    desc: "Prévisibilité, routine et faible incertitude",
+                    desc: "Prévisibilité et faible incertitude — au travail : préfère des tâches claires et des routines stables ; dans la vie : évite surprises et changements brusques",
                 },
                 Self::Adventure => ValueI18n {
                     label: "Aventure",
-                    desc: "Nouveauté, risque et expériences nouvelles",
+                    desc: "Nouveauté, risque et expériences — au travail : se porte volontaire pour des projets ambitieux ; dans la vie : voyage et essaie de nouveaux loisirs",
                 },
                 Self::Community => ValueI18n {
                     label: "Communauté",
-                    desc: "Contribution sociale et appartenance à un groupe",
+                    desc: "Appartenance et contribution à un groupe — au travail : s'implique dans son équipe et ses causes ; dans la vie : fait du bénévolat ou rejoint des groupes locaux",
                 },
                 Self::Knowledge => ValueI18n {
                     label: "Savoir",
-                    desc: "Apprentissage, expertise et compréhension",
+                    desc: "Apprentissage, expertise et compréhension — au travail : étudie son domaine en profondeur ; dans la vie : lit beaucoup et suit ses curiosités",
                 },
                 Self::Faith => ValueI18n {
                     label: "Foi",
-                    desc: "Croyances spirituelles et traditions",
+                    desc: "Croyances spirituelles et traditions — au travail : cherche du sens et une culture compatible ; dans la vie : pratique rituels et communauté",
                 },
                 Self::Loyalty => ValueI18n {
                     label: "Loyauté",
-                    desc: "Fidélité, engagement et liens durables",
+                    desc: "Fidélité et liens durables — au travail : reste fidèle aux équipes et défend ses collègues ; dans la vie : valorise les amitiés et relations qui durent",
                 },
             },
             Lang::En => match self {
                 Self::Career => ValueI18n {
                     label: "Career",
-                    desc: "Professional ambition and work-life priorities",
+                    desc: "Professional ambition — at work: pushes for promotions and bigger responsibilities; in life: measures success by their career path",
                 },
                 Self::Family => ValueI18n {
                     label: "Family",
-                    desc: "Family priorities and time with loved ones",
+                    desc: "Time with loved ones — at work: schedules around family moments; in life: prioritizes dinners, calls, and holidays together",
                 },
                 Self::Health => ValueI18n {
                     label: "Health",
-                    desc: "Physical and mental well-being",
+                    desc: "Physical and mental well-being — at work: protects work-life balance; in life: commits to exercise, sleep, and managing stress",
                 },
                 Self::Wealth => ValueI18n {
                     label: "Wealth",
-                    desc: "Financial security and material comfort",
+                    desc: "Financial security and material comfort — at work: seeks income and promotions; in life: saves, invests, and plans for stability",
                 },
                 Self::Stability => ValueI18n {
                     label: "Stability",
-                    desc: "Predictability, routine and low uncertainty",
+                    desc: "Predictability and low uncertainty — at work: prefers clear tasks and steady routines; in life: avoids surprises and sudden change",
                 },
                 Self::Adventure => ValueI18n {
                     label: "Adventure",
-                    desc: "Novelty, risk and new experiences",
+                    desc: "Novelty, risk and new experiences — at work: volunteers for stretch projects; in life: travels and tries new hobbies",
                 },
                 Self::Community => ValueI18n {
                     label: "Community",
-                    desc: "Social contribution and belonging to a group",
+                    desc: "Social contribution and belonging — at work: engages in teams and causes; in life: volunteers or joins local groups",
                 },
                 Self::Knowledge => ValueI18n {
                     label: "Knowledge",
-                    desc: "Learning, expertise and understanding",
+                    desc: "Learning, expertise and understanding — at work: studies their field deeply; in life: reads widely and follows curiosities",
                 },
                 Self::Faith => ValueI18n {
                     label: "Faith",
-                    desc: "Spiritual beliefs and traditions",
+                    desc: "Spiritual beliefs and traditions — at work: seeks meaning and a compatible culture; in life: practices rituals and community",
                 },
                 Self::Loyalty => ValueI18n {
                     label: "Loyalty",
-                    desc: "Fidelity, commitment and long-term bonds",
+                    desc: "Fidelity and long-term bonds — at work: stays loyal to teams and defends colleagues; in life: values friendships and relationships that last",
                 },
             },
         }
