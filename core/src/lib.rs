@@ -2043,12 +2043,12 @@ mod tests {
         let fr = wasm::bias_desc("CONFIRMATION", "fr");
         let en = wasm::bias_desc("CONFIRMATION", "en");
         assert!(
-            fr.starts_with("Cherche"),
+            fr.starts_with("Ne retient"),
             "FR desc should be French, got: {}",
             fr
         );
         assert!(
-            en.starts_with("Seeks"),
+            en.starts_with("Filters"),
             "EN desc should be English, got: {}",
             en
         );

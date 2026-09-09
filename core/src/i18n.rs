@@ -211,101 +211,101 @@ impl BiasType {
             Lang::Fr => match self {
                 Self::Confirmation => BiasI18n {
                     label: "Biais de confirmation",
-                    desc: "Cherche et interprète les infos qui confirment ses croyances",
+                    desc: "Ne retient que les infos qui confirment ce qu'il croit déjà, en ignorant le reste. Ex. : relit surtout les sources qui lui donnent raison",
                 },
                 Self::Anchoring => BiasI18n {
                     label: "Ancrage cognitif",
-                    desc: "Se focalise sur la première information reçue",
+                    desc: "Cale sa décision sur le premier chiffre ou le premier fait rencontré. Ex. : une première offre ancre ce qu'il acceptera ensuite",
                 },
                 Self::Availability => BiasI18n {
                     label: "Disponibilité",
-                    desc: "Surestime la probabilité d'événements récents",
+                    desc: "Estime la probabilité d'un événement à la facilité d'en évoquer des exemples — le récent et le dramatique pèsent plus. Ex. : un accident spectaculaire lui fait croire que voler est dangereux",
                 },
                 Self::SunkCost => BiasI18n {
                     label: "Coût irrécupérable",
-                    desc: "Poursuit un investissement à cause des ressources déjà engagées",
+                    desc: "Poursuit une voie perdante à cause de ce qui a déjà été investi. Ex. : refuse d'abandonner un projet raté après des années d'efforts",
                 },
                 Self::DunningKruger => BiasI18n {
                     label: "Dunning-Kruger",
-                    desc: "Les incompétents surestiment leurs compétences",
+                    desc: "Surestime son propre niveau — classique excès de confiance des débutants. Ex. : un débutant se prend pour l'expert",
                 },
                 Self::Impostor => BiasI18n {
                     label: "Imposteur",
-                    desc: "Sous-estime sa propre compétence dans un domaine",
+                    desc: "Sous-estime ses compétences réelles et se sent imposteur. Ex. : un excellent profil craint d'être démasqué",
                 },
                 Self::LossAversion => BiasI18n {
                     label: "Aversion aux pertes",
-                    desc: "Préfère éviter les pertes plutôt que chercher des gains",
+                    desc: "Craint plus les pertes qu'il ne goûte les gains équivalents. Ex. : refuse un pari à chances égales",
                 },
                 Self::SocialProof => BiasI18n {
                     label: "Preuve sociale",
-                    desc: "Se conforme aux comportements du groupe",
+                    desc: "Copie le comportement du groupe quand il est incertain. Ex. : change sa réponse pour rejoindre le consensus",
                 },
                 Self::Authority => BiasI18n {
                     label: "Autorité",
-                    desc: "Confiance excessive aux figures d'autorité",
+                    desc: "Se plie aux titres et au rang plutôt qu'à son propre jugement. Ex. : suit sans questionner une mauvaise décision de son supérieur",
                 },
                 Self::Recency => BiasI18n {
                     label: "Récence",
-                    desc: "Accorde plus d'importance aux informations récentes",
+                    desc: "Pèse plus les informations récentes que la tendance de long terme. Ex. : un mauvais trimestre efface des années de bons résultats",
                 },
                 Self::InGroup => BiasI18n {
                     label: "Endogroupe",
-                    desc: "Favorise les membres de son propre groupe",
+                    desc: "Favorise le « nous » face au « eux » — son équipe ou sa famille bénéficie du doute. Ex. : défend son camp même quand il a clairement tort",
                 },
                 Self::Favoritism => BiasI18n {
                     label: "Favoritisme",
-                    desc: "Accorde un traitement préférentiel à certains individus",
+                    desc: "Traite certains individus mieux que les autres pour des raisons personnelles. Ex. : promeut toujours ses amis",
                 },
             },
             Lang::En => match self {
                 Self::Confirmation => BiasI18n {
                     label: "Confirmation bias",
-                    desc: "Seeks and interprets info that confirms existing beliefs",
+                    desc: "Filters for info that backs what they already believe, ignoring the rest. E.g. only re-reads sources that agree with them",
                 },
                 Self::Anchoring => BiasI18n {
                     label: "Anchoring",
-                    desc: "Fixes on the first piece of information received",
+                    desc: "Hangs a decision on the first number or fact they see. E.g. a first offer anchors what they'll accept later",
                 },
                 Self::Availability => BiasI18n {
                     label: "Availability",
-                    desc: "Overestimates probability of recent events",
+                    desc: "Judges how likely something is by how easily examples come to mind, so dramatic recent events loom large. E.g. one scary crash makes flying feel dangerous",
                 },
                 Self::SunkCost => BiasI18n {
                     label: "Sunk cost",
-                    desc: "Continues investment because of resources already committed",
+                    desc: "Keeps a losing course going because of what's already been invested. E.g. refuses to drop a failing project after sinking years into it",
                 },
                 Self::DunningKruger => BiasI18n {
                     label: "Dunning-Kruger",
-                    desc: "Incompetent overestimate their skill",
+                    desc: "Overrates their own skill, typically low-competence overconfidence. E.g. a beginner insists they're the expert",
                 },
                 Self::Impostor => BiasI18n {
                     label: "Impostor",
-                    desc: "Underestimates own competence in a domain",
+                    desc: "Downrates their proven skill and feels like a fraud. E.g. a top performer fears being 'found out'",
                 },
                 Self::LossAversion => BiasI18n {
                     label: "Loss aversion",
-                    desc: "Prefers avoiding losses over acquiring gains",
+                    desc: "Fears losing more than they enjoy winning the same amount. E.g. refuses an even-odds bet",
                 },
                 Self::SocialProof => BiasI18n {
                     label: "Social proof",
-                    desc: "Conforms to group behavior",
+                    desc: "Copies what the group does when unsure. E.g. changes their answer to match the room",
                 },
                 Self::Authority => BiasI18n {
                     label: "Authority",
-                    desc: "Excessive trust in authority figures",
+                    desc: "Defers to titles and rank over their own judgment. E.g. follows a senior's bad call without question",
                 },
                 Self::Recency => BiasI18n {
                     label: "Recency",
-                    desc: "Overweights recent information",
+                    desc: "Weights the latest news over the longer track record. E.g. last week's bad quarter outweighs years of solid results",
                 },
                 Self::InGroup => BiasI18n {
                     label: "In-group",
-                    desc: "Favors members of own group",
+                    desc: "Favors 'us' over 'them' — their own team or family gets the benefit of the doubt. E.g. backs the home team even when clearly wrong",
                 },
                 Self::Favoritism => BiasI18n {
                     label: "Favoritism",
-                    desc: "Shows preferential treatment toward certain individuals",
+                    desc: "Treats certain individuals better than others for personal reasons. E.g. always promotes their friends",
                 },
             },
         }

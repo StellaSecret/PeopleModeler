@@ -669,6 +669,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
     let mut edit_idx = use_signal(|| None::<usize>);
     let edit_biases = crate::i18n::tr("edit_biases", app_lang());
     let bias_undefined_warning = crate::i18n::tr("bias_undefined_warning", app_lang());
+    let bias_scale_hint = crate::i18n::tr("bias_scale_hint", app_lang());
     let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", app_lang());
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
@@ -677,6 +678,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
         fieldset { class: "section",
             legend { "{edit_biases}" }
             div { class: "helper-text", "{bias_undefined_warning}" }
+            div { class: "helper-text", "{bias_scale_hint}" }
             div { class: "add-row",
                 select { value: "{sel_type}",
                     onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
@@ -989,20 +991,7 @@ fn mot_helper(t: &MotivationType, lang: Lang) -> &'static str {
 }
 
 fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
-    match t {
-        BiasType::Confirmation => crate::i18n::tr("bias_helper_confirmation", lang),
-        BiasType::Anchoring => crate::i18n::tr("bias_helper_anchoring", lang),
-        BiasType::Availability => crate::i18n::tr("bias_helper_availability", lang),
-        BiasType::SunkCost => crate::i18n::tr("bias_helper_sunk_cost", lang),
-        BiasType::DunningKruger => crate::i18n::tr("bias_helper_dunning_kruger", lang),
-        BiasType::Impostor => crate::i18n::tr("bias_helper_impostor", lang),
-        BiasType::LossAversion => crate::i18n::tr("bias_helper_loss_aversion", lang),
-        BiasType::SocialProof => crate::i18n::tr("bias_helper_social_proof", lang),
-        BiasType::Authority => crate::i18n::tr("bias_helper_authority", lang),
-        BiasType::Recency => crate::i18n::tr("bias_helper_recency", lang),
-        BiasType::InGroup => crate::i18n::tr("bias_helper_in_group", lang),
-        BiasType::Favoritism => crate::i18n::tr("bias_helper_favoritism", lang),
-    }
+    t.i18n(core_lang(lang)).desc
 }
 
 fn style_helper(t: &StyleType, lang: Lang) -> &'static str {

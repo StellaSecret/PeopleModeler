@@ -237,7 +237,7 @@ fn en(key: &'static str) -> &'static str {
         "flag_pattern_honest_exploiter" => {
             "Perceived as honest, but recorded patterns show exploitation or blame-shifting — do as I say, not as I do."
         }
-"flag_bias_confirmation_open" => {
+        "flag_bias_confirmation_open" => {
             "Claims open-mindedness yet only seeks confirming information — they don't know themselves."
         }
         "flag_bias_favoritism_fairness" => {
@@ -417,18 +417,7 @@ fn en(key: &'static str) -> &'static str {
         "mot_helper_creativity" => "Driven to create, innovate, and express ideas",
         "mot_helper_fairness" => "Motivated by justice, equity, and fair treatment",
 
-        "bias_helper_confirmation" => "Favors info that confirms existing beliefs",
-        "bias_helper_anchoring" => "Over-relies on the first piece of info received",
-        "bias_helper_availability" => "Overestimates likelihood of easily recalled events",
-        "bias_helper_sunk_cost" => "Continues investing due to past sunken resources",
-        "bias_helper_dunning_kruger" => "Overestimates own competence in a domain",
-        "bias_helper_impostor" => "Underestimates own competence in a domain",
-        "bias_helper_loss_aversion" => "Fears losses more than values equivalent gains",
-        "bias_helper_social_proof" => "Follows others' behavior in uncertainty",
-        "bias_helper_authority" => "Defers excessively to authority figures",
-        "bias_helper_recency" => "Overweighs recent events over older ones",
-        "bias_helper_in_group" => "Favors own group members over outsiders",
-        "bias_helper_favoritism" => "Shows preferential treatment to certain individuals",
+        "bias_scale_hint" => "0 = this bias is absent, 10 = it shapes most decisions.",
 
         "pattern_helper_stress" => "How they react under pressure or tight deadlines",
         "pattern_helper_conflict" => "How they handle disagreements and confrontation",
@@ -987,7 +976,7 @@ fn fr(key: &'static str) -> &'static str {
         "flag_pattern_honest_exploiter" => {
             "Perçu comme honnête, mais les schémas montrent de l'exploitation ou des rejets de responsabilité — fait ce que je dis, pas ce que je fais."
         }
-"flag_bias_confirmation_open" => {
+        "flag_bias_confirmation_open" => {
             "Se dit ouvert d'esprit mais ne cherche que des informations qui confirment ses vues — ne se connaît pas."
         }
         "flag_bias_favoritism_fairness" => {
@@ -1005,7 +994,9 @@ fn fr(key: &'static str) -> &'static str {
         "flag_learning_rigid" => {
             "Prêche l'apprentissage et la croissance mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
         }
-        "flag_creativity_closed" => "Prêche la créativité mais se dit peu ouvert à la nouveauté — fait ce que je dis, pas ce que je fais.",
+        "flag_creativity_closed" => {
+            "Prêche la créativité mais se dit peu ouvert à la nouveauté — fait ce que je dis, pas ce que je fais."
+        }
         "flag_creativity_rigid" => {
             "Prêche la créativité mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
         }
@@ -1170,18 +1161,7 @@ fn fr(key: &'static str) -> &'static str {
         "mot_helper_creativity" => "Cherche à créer, innover et exprimer des idées",
         "mot_helper_fairness" => "Motivé par la justice, l'équité et le traitement juste",
 
-        "bias_helper_confirmation" => "Favorise les infos qui confirment ses croyances",
-        "bias_helper_anchoring" => "Se fie trop à la première information reçue",
-        "bias_helper_availability" => "Surestime la probabilité d'événements récents",
-        "bias_helper_sunk_cost" => "Continue d'investir à cause des ressources déjà dépensées",
-        "bias_helper_dunning_kruger" => "Surestime sa propre compétence dans un domaine",
-        "bias_helper_impostor" => "Sous-estime sa propre compétence dans un domaine",
-        "bias_helper_loss_aversion" => "Craint plus les pertes qu'il ne valorise les gains",
-        "bias_helper_social_proof" => "Suit le comportement des autres en cas d'incertitude",
-        "bias_helper_authority" => "Se soumet excessivement aux figures d'autorité",
-        "bias_helper_recency" => "Accorde trop de poids aux événements récents",
-        "bias_helper_in_group" => "Favorise les membres de son propre groupe",
-        "bias_helper_favoritism" => "Accorde un traitement préférentiel à certains",
+        "bias_scale_hint" => "0 = ce biais est absent, 10 = il influence la plupart des décisions.",
 
         "pattern_helper_stress" => "Comment il réagit sous pression ou délais serrés",
         "pattern_helper_conflict" => "Comment il gère les désaccords et confrontations",
@@ -1647,18 +1627,7 @@ mod tests {
 
     const ALL_KEYS: &[&str] = &[
         "add_btn",
-        "bias_helper_anchoring",
-        "bias_helper_authority",
-        "bias_helper_availability",
-        "bias_helper_confirmation",
-        "bias_helper_dunning_kruger",
-        "bias_helper_favoritism",
-        "bias_helper_impostor",
-        "bias_helper_in_group",
-        "bias_helper_loss_aversion",
-        "bias_helper_recency",
-        "bias_helper_social_proof",
-        "bias_helper_sunk_cost",
+        "bias_scale_hint",
         "bias_undefined_warning",
         "biases_title",
         "common_add",
