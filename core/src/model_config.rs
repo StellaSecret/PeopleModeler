@@ -94,7 +94,7 @@ pub const CFG: ModelConfig = ModelConfig {
         ],
         adjust: RepAdjustConfig {
             extreme_low: 2,
-            extreme_high: 9,
+            extreme_high: 8,
             mid_low: 4,
             mid_high: 6,
             context_extreme: 0.04,

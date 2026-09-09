@@ -392,7 +392,10 @@ fn en(key: &'static str) -> &'static str {
         "edit_biases" => "Biases",
         "bias_undefined_warning" => "Undefined biases count as present. Set 0 to mark as absent.",
         "rep_undefined_warning" => {
-            "Undefined traits penalize reputation. Extreme values (≤2 or ≥9) trigger adjustments."
+            "Undefined traits penalize reputation. Extreme values (≤2 or ≥8) trigger adjustments."
+        }
+        "rep_scale_hint" => {
+            "0 = the negative pole, 10 = the positive pole — the ✗ toggle leaves the dimension unknown."
         }
         "mot_undefined_warning" => {
             "Fewer than 3 motivations penalizes (−0.03 each). Missing Fairness/Helping also hurts."
@@ -1136,7 +1139,10 @@ fn fr(key: &'static str) -> &'static str {
             "Les biais non définis comptent comme présents. Mettez 0 pour les marquer absents."
         }
         "rep_undefined_warning" => {
-            "Les traits non définis pénalisent la réputation. Les valeurs extrêmes (≤2 ou ≥9) déclenchent des ajustements."
+            "Les traits non définis pénalisent la réputation. Les valeurs extrêmes (≤2 ou ≥8) déclenchent des ajustements."
+        }
+        "rep_scale_hint" => {
+            "0 = pôle négatif, 10 = pôle positif — la case ✗ laisse la dimension inconnue."
         }
         "mot_undefined_warning" => {
             "Moins de 3 motivations pénalise (−0.03 chaque). L'absence de Justice/Aide aussi."
@@ -1903,6 +1909,7 @@ mod tests {
         "rel_strength",
         "rel_title",
         "reliability_title",
+        "rep_scale_hint",
         "rep_undefined_warning",
         "reputation_title",
         "resilience_label",
