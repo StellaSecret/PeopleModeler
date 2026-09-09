@@ -1538,13 +1538,19 @@ mod tests {
     #[test]
     fn style_helper_exact_en_value() {
         let desc = style_helper(&StyleType::DirectCommunicator, Lang::En);
-        assert_eq!(desc, "Speaks frankly, gets straight to the point");
+        assert_eq!(
+            desc,
+            "Speaks frankly and goes straight to the point — at work: gives direct feedback in meetings; in everyday life: says what they think without softening"
+        );
     }
 
     #[test]
     fn style_helper_exact_fr_value() {
         let desc = style_helper(&StyleType::DirectCommunicator, Lang::Fr);
-        assert_eq!(desc, "Parle franchement et va droit au but");
+        assert_eq!(
+            desc,
+            "Parle franchement et va droit au but — au travail : donne un retour direct en réunion ; dans la vie : dit ce qu'il pense sans adoucir"
+        );
     }
 
     #[test]
