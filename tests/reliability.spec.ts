@@ -38,7 +38,7 @@ test.describe('Data Reliability UX', () => {
     await expect(fieldset.locator('label')).toContainText(
       'Profile confidence (1-10)',
     );
-    await expect(fieldset.locator('input[type="range"]')).toHaveCount(1);
+    await expect(fieldset.locator('.stepper-slider')).toHaveCount(1);
   });
 
   test('detail page groups confidence and completeness as data quality', async ({

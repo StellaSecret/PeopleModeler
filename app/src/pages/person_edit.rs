@@ -413,26 +413,26 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     div { class: "reliability-hint", "{confidence_hint}" }
                     label { "{form_confidence}" }
                     div { class: "ocean-slider",
-                        span { "{confidence}/10" }
-                        input { r#type: "range", min: "1", max: "10", value: "{confidence}",
-                            oninput: move |e| confidence.set(e.value().parse().unwrap_or(5)),
+                        StepperSlider {
+                            min: 1, max: 10, value: confidence(), display: format!("{}/10", confidence()),
+                            onchange: move |v| confidence.set(v),
                         }
                     }
                 }
 
                 label { "{form_resilience}" }
                 div { class: "ocean-slider",
-                    span { "{resilience}/10" }
-                    input { r#type: "range", min: "1", max: "10", value: "{resilience}",
-                        oninput: move |e| resilience.set(e.value().parse().unwrap_or(5)),
+                    StepperSlider {
+                        min: 1, max: 10, value: resilience(), display: format!("{}/10", resilience()),
+                        onchange: move |v| resilience.set(v),
                     }
                 }
 
                 label { "{form_risk_appetite}" }
                 div { class: "ocean-slider",
-                    span { "{risk_appetite}/10" }
-                    input { r#type: "range", min: "1", max: "10", value: "{risk_appetite}",
-                        oninput: move |e| risk_appetite.set(e.value().parse().unwrap_or(5)),
+                    StepperSlider {
+                        min: 1, max: 10, value: risk_appetite(), display: format!("{}/10", risk_appetite()),
+                        onchange: move |v| risk_appetite.set(v),
                     }
                 }
 
@@ -521,10 +521,10 @@ fn MotEditPanel(
                         option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
                     }
                 }
-                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
-                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                StepperSlider {
+                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                    onchange: move |v| { sel_intensity.set(v); }
                 }
-                span { "{sel_intensity}" }
                 input { placeholder: "{notes_pl}", value: "{sel_notes}",
                     oninput: move |e| { sel_notes.set(e.value()); }
                 }
@@ -602,14 +602,14 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
                     }
                 }
                 div { class: "dual-range",
-                    span { "{sel_intensity()}" }
-                    input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
-                        oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                    StepperSlider {
+                        min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                        onchange: move |v| { sel_intensity.set(v); }
                     }
                     span { class: "range-label", "I" }
-                    span { "{sel_priority()}" }
-                    input { r#type: "range", min: "1", max: "10", value: "{sel_priority}",
-                        oninput: move |e| { sel_priority.set(e.value().parse().unwrap_or(5)); }
+                    StepperSlider {
+                        min: 1, max: 10, value: sel_priority(), display: format!("{}", sel_priority()),
+                        onchange: move |v| { sel_priority.set(v); }
                     }
                     span { class: "range-label", "{priority_label}" }
                 }
@@ -686,10 +686,10 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
                         option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
                     }
                 }
-                input { r#type: "range", min: "0", max: "10", value: "{sel_intensity}",
-                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                StepperSlider {
+                    min: 0, max: 10, value: sel_intensity(), display: format!("{}/10", sel_intensity()),
+                    onchange: move |v| { sel_intensity.set(v); }
                 }
-                span { "{sel_intensity}/10" }
                 input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
                     oninput: move |e| { sel_evidence.set(e.value()); }
                 }
@@ -948,6 +948,33 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
 }
 
 #[component]
+fn StepperSlider(
+    min: u8,
+    max: u8,
+    value: u8,
+    display: String,
+    onchange: EventHandler<u8>,
+) -> Element {
+    rsx! {
+        div { class: "stepper-slider",
+            button {
+                class: "step-btn step-minus",
+                aria_label: "-1",
+                onclick: move |_| onchange.call(value.saturating_sub(1).max(min)),
+                "−"
+            }
+            span { class: "step-val", "{display}" }
+            button {
+                class: "step-btn step-plus",
+                aria_label: "+1",
+                onclick: move |_| onchange.call((value + 1).min(max)),
+                "+"
+            }
+        }
+    }
+}
+
+#[component]
 fn OceanSlider(
     label: String,
     val: Option<u8>,
@@ -959,14 +986,19 @@ fn OceanSlider(
     rsx! {
         div { class: "ocean-slider",
             label { "{label}" }
-            input {
-                r#type: "range",
-                min: "1",
-                max: "10",
-                value: "{current}",
-                oninput: move |e| onchange.call(Some(e.value().parse::<u8>().unwrap_or(5))),
+            StepperSlider {
+                min: 1,
+                max: 10,
+                value: current,
+                display: if val.is_some() { current.to_string() } else { "—".to_string() },
+                onchange: move |v| {
+                    if val.is_none() {
+                        onchange.call(Some(5));
+                    } else {
+                        onchange.call(Some(v));
+                    }
+                },
             }
-            span { if val.is_some() { "{current}" } else { "—" } }
             if let (Some(l), Some(h)) = (low_hint.as_ref(), high_hint.as_ref()) {
                 div { class: "ocean-hint",
                     span { class: "hint-low", "↓ {l}" }
@@ -1154,10 +1186,10 @@ fn StyleEditPanel(
                         option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
                     }
                 }
-                input { r#type: "range", min: "1", max: "10", value: "{sel_intensity}",
-                    oninput: move |e| { sel_intensity.set(e.value().parse().unwrap_or(5)); }
+                StepperSlider {
+                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                    onchange: move |v| { sel_intensity.set(v); }
                 }
-                span { "{sel_intensity}" }
                 input { placeholder: "{notes_pl}", value: "{sel_notes}",
                     oninput: move |e| { sel_notes.set(e.value()); }
                 }

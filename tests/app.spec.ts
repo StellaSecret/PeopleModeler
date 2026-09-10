@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoNewPerson, clearStorage } from './helpers';
+import { gotoNewPerson, clearStorage, setStepper } from './helpers';
 
 test.describe('People Modeler Dioxus App', () => {
 
@@ -20,9 +20,9 @@ test.describe('People Modeler Dioxus App', () => {
   test('create person with ocean scores', async ({ page }) => {
     await gotoNewPerson(page);
     await page.locator('label:has-text("Name") + input').fill('Alan Turing');
-    const sliders = page.locator('.ocean-inputs input[type="range"]');
+    const sliders = page.locator('.ocean-inputs .stepper-slider');
     await expect(sliders).toHaveCount(5);
-    await sliders.nth(0).fill('8');
+    await setStepper(sliders.nth(0), 8);
     await page.click('button:has-text("Save")');
     await page.waitForURL(/\/person\//);
     await expect(page.locator('h1')).toContainText('Alan Turing');

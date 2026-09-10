@@ -362,6 +362,17 @@ fieldset.ocean-inputs legend{
 .ocean-slider .ocean-hint .hint-low{color:var(--text-muted)}
 .ocean-slider .ocean-hint .hint-sep{opacity:0.3}
 .ocean-slider .ocean-hint .hint-high{color:var(--text-muted)}
+.stepper-slider{display:inline-flex;align-items:center;gap:0.35rem}
+.stepper-slider .step-btn{
+  width:2.5rem;height:2.5rem;border:1px solid var(--border);border-radius:10px;
+  background:var(--surface2);color:var(--cyan);font-size:1.1rem;font-weight:700;line-height:1;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  transition:border-color .2s,background .2s;-webkit-tap-highlight-color:transparent;
+  font-family:var(--font-mono)
+}
+.stepper-slider .step-btn:hover{border-color:var(--cyan)}
+.stepper-slider .step-btn:active{background:var(--cyan);color:var(--surface2)}
+.stepper-slider .step-val{min-width:2.6rem;text-align:center;font-weight:700;color:var(--cyan);font-size:0.95rem;font-family:var(--font-mono)}
 .reliability{border:1px dashed var(--border);border-radius:12px;padding:0.75rem 0.9rem 0.5rem;margin:0.5rem 0;background:var(--surface2)}
 .reliability legend{padding:0 0.4rem;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)}
 .reliability-hint{font-size:0.7rem;color:var(--text-muted);margin-bottom:0.35rem;opacity:0.8}
@@ -871,4 +882,65 @@ fieldset.ocean-inputs legend{
 @media(max-width:480px){
   .team-summary{grid-template-columns:repeat(2,1fr)}
   .team-pairs-grid{grid-template-columns:1fr}
+}
+
+/* ── MOBILE / TOUCH: bigger, easier-to-grab sliders ── */
+@media (pointer: coarse) {
+  .ocean-slider input[type="range"],
+  .add-row input[type="range"],
+  .dual-range input[type="range"]{
+    touch-action: none;
+    height: 8px;
+    margin: 14px 0; /* extra vertical hit-area above/below the thumb */
+  }
+  .ocean-slider input[type="range"]::-webkit-slider-thumb,
+  .add-row input[type="range"]::-webkit-slider-thumb{
+    width: 28px; height: 28px;
+    border-width: 3px;
+  }
+  .ocean-slider input[type="range"]::-moz-range-thumb,
+  .add-row input[type="range"]::-moz-range-thumb{
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--cyan);
+    border: 3px solid var(--bg);
+    cursor: pointer;
+  }
+
+  /* Relationship-strength sliders live in densely packed bars/cells */
+  .rep-slider-bar input[type="range"],
+  .rel-strength-slider,
+  .rel-context-row input[type="range"],
+  .rel-edit-row input[type="range"]{
+    touch-action: none;
+    height: 8px;
+    margin: 8px 0;
+  }
+  .rep-slider-bar input[type="range"]::-webkit-slider-thumb,
+  .rel-strength-slider::-webkit-slider-thumb,
+  .rel-context-row input[type="range"]::-webkit-slider-thumb,
+  .rel-edit-row input[type="range"]::-webkit-slider-thumb{
+    width: 28px; height: 28px;
+    border-width: 3px;
+  }
+  .rep-slider-bar input[type="range"]::-moz-range-thumb,
+  .rel-strength-slider::-moz-range-thumb,
+  .rel-context-row input[type="range"]::-moz-range-thumb,
+  .rel-edit-row input[type="range"]::-moz-range-thumb{
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--cyan);
+    border: 3px solid var(--bg);
+    cursor: pointer;
+  }
+
+  /* Value readout legibility while your finger covers the track */
+  .ocean-slider .step-val,
+  .add-row .step-val{
+    font-size: 1.1rem;
+  }
+  .ocean-slider label{
+    flex-basis: 100%;
+    width: auto;
+  }
 }

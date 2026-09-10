@@ -1,4 +1,17 @@
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
+
+// Steppers replace drag sliders in the editing form: `[−] value [+]`.
+// Deltas are based on the currently displayed value (default start: 5).
+export async function setStepper(slider: Locator, target: number) {
+  const txt = (await slider.locator('.step-val').innerText()).trim();
+  const match = txt.match(/-?\d+/);
+  const current = match ? Number(match[0]) : 5;
+  const delta = target - current;
+  const button = delta < 0 ? 'button.step-minus' : 'button.step-plus';
+  for (let i = 0; i < Math.abs(delta); i++) {
+    await slider.locator(button).click();
+  }
+}
 
 export async function dismissTutorial(page: Page) {
   const skip = page.locator('.tut-modal .btn-ghost');
@@ -42,9 +55,9 @@ export async function setOcean(
   vals: [number, number, number, number, number],
 ) {
   const fieldset = page.locator('fieldset.ocean-inputs').first();
-  const sliders = fieldset.locator('div.ocean-slider input[type="range"]');
+  const sliders = fieldset.locator('div.ocean-slider .stepper-slider');
   for (let i = 0; i < 5; i++) {
-    await sliders.nth(i).fill(String(vals[i]));
+    await setStepper(sliders.nth(i), vals[i]);
   }
 }
 
@@ -72,10 +85,7 @@ export async function addMotivation(
     'fieldset.section:has(legend:text-is("Motivations"))',
   );
   await fs.locator('select').selectOption(mtype);
-  await fs
-    .locator('input[type="range"]')
-    .first()
-    .fill(String(intensity));
+  await setStepper(fs.locator('.stepper-slider').first(), intensity);
   await fs.locator("button[aria-label='Add motivation']").click();
 }
 
@@ -84,10 +94,7 @@ export async function addBias(page: Page, btype: string, intensity: number) {
     'fieldset.section:has(legend:text-is("Biases"))',
   );
   await fs.locator('select').selectOption(btype);
-  await fs
-    .locator('input[type="range"]')
-    .first()
-    .fill(String(intensity));
+  await setStepper(fs.locator('.stepper-slider').first(), intensity);
   await fs.locator("button[aria-label='Add bias']").click();
 }
 
@@ -125,7 +132,7 @@ export async function addRelationship(
 
 export async function setConfidence(page: Page, conf: number) {
   const fieldset = page.locator('fieldset.reliability');
-  await fieldset.locator('input[type="range"]').fill(String(conf));
+  await setStepper(fieldset.locator('.stepper-slider').first(), conf);
 }
 
 export async function openLogTab(page: Page) {

@@ -317,3 +317,28 @@
   .profile-header { flex-wrap: wrap; }
   .ocean-label { width: 130px; font-size: 0.75rem; }
 }
+
+/* ── MOBILE / TOUCH: bigger, easier-to-grab sliders ── */
+@media (pointer: coarse) {
+  input[type="range"]{ touch-action: none; }
+
+  .ocean-slider{
+    height: 8px;
+    margin: 14px 0;
+  }
+  .ocean-slider::-webkit-slider-thumb{
+    width: 28px; height: 28px;
+    border-width: 3px;
+  }
+  .ocean-slider::-moz-range-thumb{
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--cyan);
+    border: 3px solid var(--bg);
+    cursor: pointer;
+  }
+  .modal input[type=range]{
+    height: 8px;
+    margin: 14px 0 1rem;
+  }
+}
