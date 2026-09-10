@@ -258,6 +258,102 @@ mod tests {
         }
     }
 
+    // --- mutation-guard pins for compute_synergy_score_inner ---
+
+    // Asymmetric partner quality: a_ocean_i = (1 - |a_i - b_i|) * b_i. A flat
+    // pair (a = all minimum, b = all maximum) makes every similarity factor
+    // 0, so a_ocean = b_ocean = 0 and a_score = b_score = 47. Swapping any
+    // `*` for `+` turns one term into +b_i (1.0), lifting a_ocean to 0.2 and
+    // a_score to 54 — pinning 47 catches all 5 multiplications.
+    #[test]
+    fn test_asym_partner_quality_uses_multiplication() {
+        let a = make_person(Some(0), Some(0), Some(0), Some(0), Some(0));
+        let b = make_person(Some(10), Some(10), Some(10), Some(10), Some(10));
+        let brk = compute_synergy_score(&a, &b);
+        // a_raw = 0*0.17 + 1.0*0.14 + 0.5*0.12 + 0.5*0.08 = 0.24 → /0.51*100 = 47.06
+        assert_eq!(brk.a_score, 47);
+        assert_eq!(brk.b_score, 47);
+    }
+
+    // Hierarchy bonus (Manages/ReportsTo): boss_rep - sub_rep must be
+    // *strictly* above the minimum. At the exact boundary (gap == 3) the
+    // bonus must not apply; relax the comparison to `>=` and it does.
+    #[test]
+    fn test_hierarchy_bonus_requires_strict_gap() {
+        let ctx = RelContext {
+            rtype: RelationType::Manages,
+            strength: 8,
+        };
+        let pair = |boss_rep: u8, sub_rep: u8| -> (Person, Person) {
+            let mut boss = make_person(None, None, None, None, None);
+            let mut sub = make_person(None, None, None, None, None);
+            boss.rep_scores.authoritative_submissive = Some(boss_rep);
+            sub.rep_scores.authoritative_submissive = Some(sub_rep);
+            (boss, sub)
+        };
+        // Boundary: raw_rep = 1 - |6-3|/10 = 0.7 on the only shared dim.
+        let (boss, sub) = pair(6, 3);
+        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[]);
+        assert!(
+            (brk.reputation - 0.7).abs() < 1e-9,
+            "gap == min must not apply the hierarchy bonus, got {}",
+            brk.reputation
+        );
+        // Positive control: gap 4 > 3 applies the bonus.
+        let (boss, sub) = pair(7, 3);
+        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[]);
+        assert!(
+            (brk.reputation - 0.6 * 1.04).abs() < 1e-9,
+            "gap > min must apply the hierarchy bonus, got {}",
+            brk.reputation
+        );
+    }
+
+    // Hierarchy bonus multiplies the partner-reputation term of the
+    // asymmetric score (a_raw += b_base_rep * w_rep * rep_boost). The 12
+    // non-authoritative dims at 10 push base_rep_quality + rep_adjustment
+    // past 1.0, so b_base_rep clamps to 1.0 and the term is 1.0 * 0.28 *
+    // 1.04. Swapping the last `*` for `/` drops a_score from 82 to ~78.
+    #[test]
+    fn test_hierarchy_bonus_multiplies_partner_rep() {
+        let ctx = RelContext {
+            rtype: RelationType::Manages,
+            strength: 8,
+        };
+        let person = |authoritative: u8| -> Person {
+            let mut p = make_person(None, None, None, None, None);
+            p.rep_scores = RepScores {
+                hardworker_lazy: Some(10),
+                authoritative_submissive: Some(authoritative),
+                honest_deceitful: Some(10),
+                reliable_flaky: Some(10),
+                humble_arrogant: Some(10),
+                calm_reactive: Some(10),
+                diplomatic_blunt: Some(10),
+                generous_selfish: Some(10),
+                fair_favoritism: Some(10),
+                trusting_suspicious: Some(10),
+                assertive_passive: Some(10),
+                empathetic_detached: Some(10),
+                adaptable_rigid: Some(10),
+            };
+            p
+        };
+        let boss = person(7);
+        let sub = person(3);
+        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[]);
+        // a_raw = 0.5*0.15 + 1.0*0.28*1.04 + 1.0*0.13 + 0.5*0.09 + 0.5*0.02
+        //       = 0.5512 → / 0.67 * 100 = 82.27 (a « `*` → `/` » leaves 78.99).
+        assert_eq!(brk.a_score, 82);
+        // Bonus applied: raw_rep = (0.6*0.12 + 0.90) / 1.02 = 0.9529… would
+        // stay under 0.98 without the 1.04 hierarchy boost.
+        assert!(
+            (0.98..=1.0).contains(&brk.reputation),
+            "expected hierarchy-boosted reputation, got {}",
+            brk.reputation
+        );
+    }
+
     #[test]
     fn test_per_context_collapses_under_stress() {
         let (a, b) = crisis_pair();

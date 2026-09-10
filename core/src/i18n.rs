@@ -1426,3 +1426,130 @@ impl BehaviorResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// All 62 `BehaviorResponse` variants, in `serde_name` order. Kept here so
+    /// a mutation that empties or scrambles a whole `desc_en`/`desc_fr` return
+    /// (or the language routing in `desc`) fails on every variant.
+    fn all_variants() -> [BehaviorResponse; 62] {
+        [
+            // Stress
+            BehaviorResponse::RemainsCalm,
+            BehaviorResponse::SeeksSupport,
+            BehaviorResponse::StaysFocused,
+            BehaviorResponse::BecomesQuiet,
+            BehaviorResponse::BecomesIrritable,
+            BehaviorResponse::Overwhelmed,
+            BehaviorResponse::Panics,
+            // Conflict
+            BehaviorResponse::FacilitatesResolution,
+            BehaviorResponse::CommunicatesOpenly,
+            BehaviorResponse::SeeksCompromise,
+            BehaviorResponse::StaysSilent,
+            BehaviorResponse::BecomesPassiveAggressive,
+            BehaviorResponse::BecomesDefensive,
+            BehaviorResponse::Escalates,
+            // Success
+            BehaviorResponse::CelebratesWithOthers,
+            BehaviorResponse::SharesCredit,
+            BehaviorResponse::SetsNewGoals,
+            BehaviorResponse::EnjoysQuietly,
+            BehaviorResponse::BecomesComplacent,
+            BehaviorResponse::BecomesOverconfident,
+            BehaviorResponse::DismissesOthers,
+            // Uncertainty
+            BehaviorResponse::EmbracesAmbiguity,
+            BehaviorResponse::AsksQuestions,
+            BehaviorResponse::SeeksData,
+            BehaviorResponse::WaitsForClarity,
+            BehaviorResponse::OverPlans,
+            BehaviorResponse::BecomesParalyzed,
+            BehaviorResponse::DeflectsResponsibility,
+            // Recognition
+            BehaviorResponse::AppreciatesQuietly,
+            BehaviorResponse::AppreciatesPraise,
+            BehaviorResponse::SharesAchievement,
+            BehaviorResponse::SeeksMore,
+            BehaviorResponse::BecomesJealous,
+            BehaviorResponse::DemandsAttention,
+            BehaviorResponse::UnderminesOthers,
+            // Threatened
+            BehaviorResponse::SeeksUnderstanding,
+            BehaviorResponse::SeeksAllies,
+            BehaviorResponse::StandsGround,
+            BehaviorResponse::BecomesCautious,
+            BehaviorResponse::DeflectsBlame,
+            BehaviorResponse::Counterattacks,
+            BehaviorResponse::BecomesParanoid,
+            // Change
+            BehaviorResponse::EmbracesChange,
+            BehaviorResponse::PlansAhead,
+            BehaviorResponse::AdaptsQuickly,
+            BehaviorResponse::ResistsChange,
+            BehaviorResponse::NeedsReassurance,
+            BehaviorResponse::BecomesDisoriented,
+            BehaviorResponse::Sabotages,
+            // Feedback
+            BehaviorResponse::SeeksFeedback,
+            BehaviorResponse::AsksForDetails,
+            BehaviorResponse::Reflects,
+            BehaviorResponse::AcceptsResignedly,
+            BehaviorResponse::RejectsFeedback,
+            BehaviorResponse::IgnoresCompletely,
+            // Injustice
+            BehaviorResponse::SeeksRestoration,
+            BehaviorResponse::ProtestsConstructively,
+            BehaviorResponse::ProtestsFirmly,
+            BehaviorResponse::SeeksClarity,
+            BehaviorResponse::WithdrawsFromInjustice,
+            BehaviorResponse::ExploitsOpportunistically,
+            BehaviorResponse::BecomesBitter,
+        ]
+    }
+
+    #[test]
+    fn behavior_descriptions_are_complete() {
+        for v in all_variants() {
+            let en = v.desc_en();
+            let fr = v.desc_fr();
+            assert!(
+                !en.is_empty() && en.len() > 40,
+                "{v:?} EN desc too short: {en:?}"
+            );
+            assert!(
+                !fr.is_empty() && fr.len() > 40,
+                "{v:?} FR desc too short: {fr:?}"
+            );
+            assert!(
+                en.contains("at work:") && en.contains("in everyday life:"),
+                "{v:?} EN desc missing the phrase structure: {en:?}"
+            );
+            assert!(
+                fr.contains("au travail :") && fr.contains("dans la vie :"),
+                "{v:?} FR desc missing the phrase structure: {fr:?}"
+            );
+            assert_ne!(en, fr, "{v:?} desc identical across languages");
+            assert_eq!(v.desc(Lang::En), en, "{v:?} desc does not route to desc_en");
+            assert_eq!(v.desc(Lang::Fr), fr, "{v:?} desc does not route to desc_fr");
+        }
+    }
+
+    #[test]
+    fn behavior_description_exact_pins() {
+        assert_eq!(
+            BehaviorResponse::RemainsCalm.desc_en(),
+            "Stays composed under pressure — at work: keeps working calmly \
+             as a deadline slips; in everyday life: stays steady when plans \
+             fall apart"
+        );
+        assert_eq!(
+            BehaviorResponse::RemainsCalm.desc_fr(),
+            "Garde son sang-froid sous pression — au travail : continue de \
+             travailler calmement alors qu'une échéance glisse ; dans la vie : \
+             reste stable quand les plans s'effondrent"
+        );
+    }
+}
