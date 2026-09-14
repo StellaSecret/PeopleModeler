@@ -13,7 +13,7 @@
     "lint:secrets": "node scripts/check-secrets.js"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "husky": "^9.1.6",
     "lint-staged": "^17.4.1",
     "serve": "^14.2.6"
