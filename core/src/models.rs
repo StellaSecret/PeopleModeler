@@ -890,6 +890,59 @@ pub struct OceanScores {
     pub neuroticism: Option<u8>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum FacetKind {
+    #[default]
+    Base,
+    Work,
+}
+
+impl FacetKind {
+    pub fn label(&self, lang: crate::i18n::Lang) -> &'static str {
+        match (self, lang) {
+            (Self::Base, crate::i18n::Lang::Fr) => "Vie privée",
+            (Self::Base, crate::i18n::Lang::En) => "Personal life",
+            (Self::Work, crate::i18n::Lang::Fr) => "Au travail",
+            (Self::Work, crate::i18n::Lang::En) => "At work",
+        }
+    }
+}
+
+/// Optional "work persona": the mask a person wears at work. Each field is a
+/// delta over the base profile (which always represents the authentic self).
+/// `None` on a bucket means "same as base".
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct WorkPersona {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ocean: Option<OceanScores>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rep_scores: Option<RepScores>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub motivations: Option<Vec<Motivation>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biases: Option<Vec<Bias>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub behavioral_patterns: Option<Vec<BehavioralPattern>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub styles: Option<Vec<PersonalStyle>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub values: Option<Vec<Value>>,
+}
+
+/// Effective view of a person's behavior channels under a given facet. When a
+/// work-persona bucket is unset, it inherits from base.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FacetView {
+    pub kind: FacetKind,
+    pub ocean: OceanScores,
+    pub rep_scores: RepScores,
+    pub motivations: Vec<Motivation>,
+    pub biases: Vec<Bias>,
+    pub behavioral_patterns: Vec<BehavioralPattern>,
+    pub styles: Vec<PersonalStyle>,
+    pub values: Vec<Value>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationType {
     WorksWith,
@@ -944,6 +997,17 @@ impl RelationType {
             },
         }
     }
+
+    pub fn facet(&self) -> FacetKind {
+        match self {
+            Self::WorksWith
+            | Self::Manages
+            | Self::ReportsTo
+            | Self::Mentors
+            | Self::Collaborates => FacetKind::Work,
+            Self::Friends | Self::Family | Self::Partner => FacetKind::Base,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -994,6 +1058,8 @@ pub struct Person {
     pub styles: Vec<PersonalStyle>,
     #[serde(default)]
     pub values: Vec<Value>,
+    #[serde(default)]
+    pub persona: Option<WorkPersona>,
     pub ocean: OceanScores,
     #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
     pub resilience: Option<u8>,
@@ -1017,6 +1083,71 @@ impl Person {
     }
     pub fn top_bias(&self) -> Option<&Bias> {
         self.biases.iter().max_by_key(|b| b.intensity)
+    }
+
+    pub fn facet_view(&self, kind: FacetKind) -> FacetView {
+        match kind {
+            FacetKind::Base => FacetView {
+                kind,
+                ocean: self.ocean.clone(),
+                rep_scores: self.rep_scores.clone(),
+                motivations: self.motivations.clone(),
+                biases: self.biases.clone(),
+                behavioral_patterns: self.behavioral_patterns.clone(),
+                styles: self.styles.clone(),
+                values: self.values.clone(),
+            },
+            FacetKind::Work => {
+                let wp = self.persona.as_ref();
+                FacetView {
+                    kind,
+                    ocean: wp
+                        .and_then(|w| w.ocean.clone())
+                        .unwrap_or_else(|| self.ocean.clone()),
+                    rep_scores: wp
+                        .and_then(|w| w.rep_scores.clone())
+                        .unwrap_or_else(|| self.rep_scores.clone()),
+                    motivations: wp
+                        .and_then(|w| w.motivations.clone())
+                        .unwrap_or_else(|| self.motivations.clone()),
+                    biases: wp
+                        .and_then(|w| w.biases.clone())
+                        .unwrap_or_else(|| self.biases.clone()),
+                    behavioral_patterns: wp
+                        .and_then(|w| w.behavioral_patterns.clone())
+                        .unwrap_or_else(|| self.behavioral_patterns.clone()),
+                    styles: wp
+                        .and_then(|w| w.styles.clone())
+                        .unwrap_or_else(|| self.styles.clone()),
+                    values: wp
+                        .and_then(|w| w.values.clone())
+                        .unwrap_or_else(|| self.values.clone()),
+                }
+            }
+        }
+    }
+
+    /// A clone with the seven behavior channels resolved under `kind`.
+    /// Work-persona buckets that are `None` inherit the base channel, so the
+    /// merged person is what every downstream computation (profile, insights,
+    /// flags) would read for that facet. The clone carries no persona, which
+    /// keeps those computations persona-agnostic.
+    pub fn facet_person(&self, kind: FacetKind) -> Person {
+        if kind == FacetKind::Base || self.persona.is_none() {
+            return self.clone();
+        }
+        let v = self.facet_view(kind);
+        Person {
+            persona: None,
+            ocean: v.ocean,
+            rep_scores: v.rep_scores,
+            motivations: v.motivations,
+            biases: v.biases,
+            behavioral_patterns: v.behavioral_patterns,
+            styles: v.styles,
+            values: v.values,
+            ..self.clone()
+        }
     }
 }
 

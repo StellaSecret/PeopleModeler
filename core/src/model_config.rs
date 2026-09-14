@@ -288,6 +288,11 @@ pub const CFG: ModelConfig = ModelConfig {
         bias_high: 7,
         style_high: 6,
     },
+    mask: MaskConfig {
+        // Base-vs-work persona divergence bands.
+        low_max: 0.15,
+        moderate_max: 0.35,
+    },
 };
 
 pub struct ModelConfig {
@@ -308,6 +313,7 @@ pub struct ModelConfig {
     pub profile: ProfileConfig,
     pub flags: FlagConfig,
     pub validation: ValidationConfig,
+    pub mask: MaskConfig,
 }
 
 impl ModelConfig {
@@ -592,4 +598,11 @@ pub struct ValidationConfig {
     pub motivation_high: u8,
     pub bias_high: u8,
     pub style_high: u8,
+}
+
+pub struct MaskConfig {
+    /// Below this base-vs-work gap the mask is considered negligible.
+    pub low_max: f64,
+    /// Below this base-vs-work gap the mask is Moderate, else High.
+    pub moderate_max: f64,
 }

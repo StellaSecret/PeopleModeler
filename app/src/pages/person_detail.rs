@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
-    BehaviorTrigger, Person, Prediction, RelationType, Relationship, RepDim,
+    BehaviorTrigger, FacetKind, Person, Prediction, RelationType, Relationship, RepDim,
 };
-use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
+use peoplemodeler_core::synergy::{MaskBand, compute_person_profile, mask_gap, synergy_bands};
 
 use crate::Route;
 use crate::db;
@@ -46,7 +46,32 @@ pub fn PersonDetail(id: String) -> Element {
     let p = &*person_guard;
     match p {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
-        Some(person) => {
+        Some(orig) => {
+            let facet_base_label = crate::i18n::tr("facet_base", lang());
+            let facet_work_label = crate::i18n::tr("facet_work", lang());
+            let persona_section_label = crate::i18n::tr("persona_section", lang());
+            let has_persona = orig.persona.is_some();
+            let mask_info = if has_persona { mask_gap(orig) } else { None };
+            let mask_badge = mask_info.map(|m| {
+                let label = match m.band {
+                    MaskBand::Low => crate::i18n::tr("mask_gap_low", lang()),
+                    MaskBand::Moderate => crate::i18n::tr("mask_gap_moderate", lang()),
+                    MaskBand::High => crate::i18n::tr("mask_gap_high", lang()),
+                };
+                let cls = match m.band {
+                    MaskBand::Low => "mask-low",
+                    MaskBand::Moderate => "mask-moderate",
+                    MaskBand::High => "mask-high",
+                };
+                (label, cls, format!("{:.0}%", m.gap * 100.0))
+            });
+            let mut facet = use_signal(|| FacetKind::Base);
+            let facet_person: Person = if facet() == FacetKind::Work {
+                orig.facet_person(FacetKind::Work)
+            } else {
+                orig.clone()
+            };
+            let person = &facet_person;
             let edit_btn = crate::i18n::tr("edit_btn", lang());
             let delete_btn = crate::i18n::tr("delete_btn", lang());
             let mot_title = crate::i18n::tr("motivations_title", lang());
@@ -255,6 +280,29 @@ pub fn PersonDetail(id: String) -> Element {
                         h1 { "{person.name}" }
                         p { "{person.role}" }
                         p { class: "context", "{person.context}" }
+                        if has_persona {
+                            div { class: "facet-bar",
+                                div { class: "facet-toggle", role: "radiogroup", aria_label: "{persona_section_label}",
+                                    button {
+                                        class: if facet() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
+                                        role: "radio",
+                                        aria_checked: if facet() == FacetKind::Base { "true" } else { "false" },
+                                        onclick: move |_| facet.set(FacetKind::Base),
+                                        "{facet_base_label}"
+                                    }
+                                    button {
+                                        class: if facet() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
+                                        role: "radio",
+                                        aria_checked: if facet() == FacetKind::Work { "true" } else { "false" },
+                                        onclick: move |_| facet.set(FacetKind::Work),
+                                        "{facet_work_label}"
+                                    }
+                                }
+                                if let Some((mask_label, mask_cls, mask_pct)) = mask_badge {
+                                    span { class: "mask-badge {mask_cls}", title: "Δ {mask_pct}", "{mask_label}" }
+                                }
+                            }
+                        }
                         if !person.tags.is_empty() {
                             div { class: "tags",
                                 for tag in &person.tags {

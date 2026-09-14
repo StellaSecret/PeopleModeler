@@ -13,6 +13,7 @@ pub(crate) fn make_person(
     neuroticism: Option<u8>,
 ) -> Person {
     Person {
+        persona: None,
         id: "test".into(),
         name: "Test".into(),
         role: String::new(),

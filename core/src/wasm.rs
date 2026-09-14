@@ -30,6 +30,59 @@ pub fn generate_insight(ctx: &str, person_json: &str) -> String {
     insights::generate_insight(context, &p, i18n::Lang::Fr)
 }
 
+/// Insight for a person under a facet. `facet` is "work" for the masked
+/// (work-persona) view, anything else falls back to the base profile.
+#[wasm_bindgen]
+pub fn generate_insight_facet(ctx: &str, person_json: &str, facet: &str) -> String {
+    let p: Person = match serde_json::from_str(person_json) {
+        Ok(p) => p,
+        Err(_) => return "Invalid person data".into(),
+    };
+    let context = match ctx {
+        "decision" => InsightContext::Decision,
+        "team" => InsightContext::Team,
+        "stress" => InsightContext::Stress,
+        "communication" => InsightContext::Communication,
+        "leadership" => InsightContext::Leadership,
+        "growth" => InsightContext::Growth,
+        _ => return "Contexte inconnu".into(),
+    };
+    let kind = if facet == "work" {
+        crate::models::FacetKind::Work
+    } else {
+        crate::models::FacetKind::Base
+    };
+    insights::generate_insight_facet(context, &p, kind, i18n::Lang::Fr)
+}
+
+/// Mask-gap of a person (base vs work personas), JSON out. `null` when the
+/// person has no work persona.
+#[wasm_bindgen]
+pub fn mask_gap(person_json: &str) -> String {
+    let p: Person = match serde_json::from_str(person_json) {
+        Ok(p) => p,
+        Err(_) => return "Invalid person data".into(),
+    };
+    serde_json::to_string(&crate::synergy::mask_gap(&p)).unwrap_or_else(|_| "null".into())
+}
+
+/// Prediction suggestion input picks up the facet: "work" uses the masked
+/// motivations/biases, anything else the base profile.
+#[wasm_bindgen]
+pub fn suggest_prediction_facet(person_json: &str, context: &str, facet: &str) -> String {
+    let p: Person = match serde_json::from_str(person_json) {
+        Ok(p) => p,
+        Err(_) => return "Invalid person data".into(),
+    };
+    let kind = if facet == "work" {
+        crate::models::FacetKind::Work
+    } else {
+        crate::models::FacetKind::Base
+    };
+    let pm = p.facet_person(kind);
+    crate::predictions::suggest_outcome(&pm, context)
+}
+
 #[wasm_bindgen]
 pub fn suggest_prediction(person_json: &str, context: &str) -> String {
     let p: Person = match serde_json::from_str(person_json) {

@@ -719,6 +719,7 @@ mod tests {
 
     fn sample_person(id: &str) -> Person {
         Person {
+            persona: None,
             id: id.into(),
             name: "Test Person".into(),
             role: "Engineer".into(),
@@ -840,6 +841,7 @@ mod tests {
     fn test_person_with_all_fields_roundtrip() {
         let db = test_db();
         let p = Person {
+            persona: None,
             id: "full".into(),
             name: "Full Person".into(),
             role: "Manager".into(),
@@ -1039,6 +1041,7 @@ mod tests {
     fn test_save_load_json_equivalent() {
         let db = test_db();
         let original = Person {
+            persona: None,
             id: "json-eq".into(),
             name: "JSON Compare".into(),
             role: "Tester".into(),
@@ -1545,6 +1548,7 @@ mod wasm_dispatch_tests {
             styles: vec![],
             values: vec![],
             ocean: OceanScores::default(),
+            persona: None,
             resilience: None,
             risk_appetite: None,
             confidence: 5,

@@ -335,6 +335,7 @@ mod tests {
             version: 1,
             exported_at: now,
             persons: vec![Person {
+                persona: None,
                 id: "rt-001".into(),
                 name: "Roundtrip Tester".into(),
                 role: "QA".into(),
@@ -470,6 +471,7 @@ mod tests {
         static INIT: Once = Once::new();
         INIT.call_once(crate::db::init);
         let p = Person {
+            persona: None,
             id: "backup-test-1".into(),
             name: "Backup Test".into(),
             role: "Tester".into(),

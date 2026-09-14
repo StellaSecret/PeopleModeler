@@ -2164,6 +2164,7 @@ mod tests {
     #[test]
     fn test_all_person_flags_includes_evidence() {
         let person = Person {
+            persona: None,
             id: String::new(),
             name: String::new(),
             role: String::new(),
@@ -3488,6 +3489,7 @@ mod tests {
     #[test]
     fn test_all_person_flags_includes_styles() {
         let person = Person {
+            persona: None,
             id: String::new(),
             name: String::new(),
             role: String::new(),

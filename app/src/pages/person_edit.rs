@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
     Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores,
-    StyleCategory, StyleType, Tag, Value, ValueType,
+    StyleCategory, StyleType, Tag, Value, ValueType, WorkPersona,
 };
 
 use crate::Route;
@@ -28,6 +28,7 @@ pub fn PersonNew() -> Element {
     match selected() {
         Some(idx) => {
             let blank = Person {
+                persona: None,
                 id: uuid::Uuid::new_v4().to_string(),
                 name: String::new(),
                 role: String::new(),
@@ -99,6 +100,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut toast_sig = use_context::<Signal<Option<String>>>();
     let is_new = initial.is_none();
     let p = initial.unwrap_or_else(|| Person {
+        persona: None,
         id: uuid::Uuid::new_v4().to_string(),
         name: String::new(),
         role: String::new(),
@@ -143,6 +145,56 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let patterns = use_signal(|| p.behavioral_patterns.clone());
     let styles = use_signal(|| p.styles.clone());
     let values = use_signal(|| p.values.clone());
+
+    // --- Work persona (mask) state ---
+    // Each bucket has a data signal + a defined flag. A bucket that is not
+    // defined (`has_* == false`) means "same as base" (inherited), which is
+    // exactly the core delta semantics.
+    let mut persona_enabled = use_signal(|| p.persona.is_some());
+    let wp = p.persona.clone();
+    let mut work_ocean = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.ocean.clone())
+            .unwrap_or_else(|| p.ocean.clone())
+    });
+    let mut work_rep = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.rep_scores.clone())
+            .unwrap_or_else(|| p.rep_scores.clone())
+    });
+    let mut work_motivations = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.motivations.clone())
+            .unwrap_or_else(|| p.motivations.clone())
+    });
+    let mut work_biases = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.biases.clone())
+            .unwrap_or_else(|| p.biases.clone())
+    });
+    let mut work_patterns = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.behavioral_patterns.clone())
+            .unwrap_or_else(|| p.behavioral_patterns.clone())
+    });
+    let mut work_styles = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.styles.clone())
+            .unwrap_or_else(|| p.styles.clone())
+    });
+    let mut work_values = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.values.clone())
+            .unwrap_or_else(|| p.values.clone())
+    });
+    let mut has_ocean = use_signal(|| wp.as_ref().is_some_and(|w| w.ocean.is_some()));
+    let mut has_rep = use_signal(|| wp.as_ref().is_some_and(|w| w.rep_scores.is_some()));
+    let mut has_motivations = use_signal(|| wp.as_ref().is_some_and(|w| w.motivations.is_some()));
+    let mut has_biases = use_signal(|| wp.as_ref().is_some_and(|w| w.biases.is_some()));
+    let mut has_patterns =
+        use_signal(|| wp.as_ref().is_some_and(|w| w.behavioral_patterns.is_some()));
+    let mut has_styles = use_signal(|| wp.as_ref().is_some_and(|w| w.styles.is_some()));
+    let mut has_values = use_signal(|| wp.as_ref().is_some_and(|w| w.values.is_some()));
 
     let ocean_rep_flags = use_memo(move || {
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
@@ -313,6 +365,43 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
     let mut save = move || {
         let person = Person {
+            persona: if persona_enabled() {
+                Some(WorkPersona {
+                    ocean: if has_ocean() {
+                        Some(work_ocean())
+                    } else {
+                        None
+                    },
+                    rep_scores: if has_rep() { Some(work_rep()) } else { None },
+                    motivations: if has_motivations() {
+                        Some(work_motivations())
+                    } else {
+                        None
+                    },
+                    biases: if has_biases() {
+                        Some(work_biases())
+                    } else {
+                        None
+                    },
+                    behavioral_patterns: if has_patterns() {
+                        Some(work_patterns())
+                    } else {
+                        None
+                    },
+                    styles: if has_styles() {
+                        Some(work_styles())
+                    } else {
+                        None
+                    },
+                    values: if has_values() {
+                        Some(work_values())
+                    } else {
+                        None
+                    },
+                })
+            } else {
+                None
+            },
             id: pers_id.clone(),
             name: name(),
             role: role(),
@@ -373,6 +462,16 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_save = crate::i18n::tr("form_save", lang());
     let form_cancel = crate::i18n::tr("form_cancel", lang());
     let cl = core_lang(lang());
+    let persona_section = crate::i18n::tr("persona_section", lang());
+    let persona_hint = crate::i18n::tr("persona_hint", lang());
+    let persona_copy_base = crate::i18n::tr("persona_copy_base", lang());
+    let persona_clear = crate::i18n::tr("persona_clear", lang());
+    let edit_reputation = crate::i18n::tr("edit_reputation", lang());
+    let edit_motivations = crate::i18n::tr("edit_motivations", lang());
+    let edit_biases = crate::i18n::tr("edit_biases", lang());
+    let edit_patterns = crate::i18n::tr("edit_patterns", lang());
+    let edit_styles = crate::i18n::tr("edit_styles", lang());
+    let edit_values = crate::i18n::tr("edit_values", lang());
 
     rsx! {
         div { class: "page",
@@ -484,6 +583,157 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 PatternEditPanel { patterns, lang: lang() }
                 StyleEditPanel { styles, lang: cl }
                 ValEditPanel { values, lang: cl }
+
+                // ---- Work persona (mask) ----
+                fieldset { class: "section persona-panel",
+                    legend { "🎭 {persona_section}" }
+                    div { class: "helper-text", "{persona_hint}" }
+                    label { class: "dim-toggle persona-master",
+                        input { r#type: "checkbox",
+                            checked: persona_enabled(),
+                            oninput: move |e| persona_enabled.set(e.value() == "true")
+                        }
+                        if persona_enabled() { "✓ " } else { "✗ " }
+                        span { "{persona_section}" }
+                    }
+                    if persona_enabled() {
+                        div { class: "persona-actions",
+                            button { class: "btn btn-small",
+                                onclick: move |_| {
+                                    persona_enabled.set(true);
+                                    work_ocean.set(p.ocean.clone());
+                                    work_rep.set(p.rep_scores.clone());
+                                    work_motivations.set(p.motivations.clone());
+                                    work_biases.set(p.biases.clone());
+                                    work_patterns.set(p.behavioral_patterns.clone());
+                                    work_styles.set(p.styles.clone());
+                                    work_values.set(p.values.clone());
+                                    has_ocean.set(true);
+                                    has_rep.set(true);
+                                    has_motivations.set(true);
+                                    has_biases.set(true);
+                                    has_patterns.set(true);
+                                    has_styles.set(true);
+                                    has_values.set(true);
+                                },
+                                "{persona_copy_base}"
+                            }
+                            button { class: "btn btn-small",
+                                onclick: move |_| { persona_enabled.set(false); },
+                                "{persona_clear}"
+                            }
+                        }
+
+                        // OCEAN override
+                        fieldset { class: "ocean-inputs",
+                            legend { "{form_ocean_title}" }
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox",
+                                    checked: has_ocean(),
+                                    oninput: move |e| has_ocean.set(e.value() == "true")
+                                }
+                                if has_ocean() { "Override " } else { "Inherits base " }
+                            }
+                            if has_ocean() {
+                                OceanSlider {
+                                    label: crate::i18n::tr("ocean_openness", lang()),
+                                    val: work_ocean().openness,
+                                    onchange: move |v| { let mut o = work_ocean.write(); o.openness = v; },
+                                    low_hint: Some(crate::i18n::tr("ocean_o_low", lang()).into()),
+                                    high_hint: Some(crate::i18n::tr("ocean_o_high", lang()).into()),
+                                }
+                                OceanSlider {
+                                    label: crate::i18n::tr("ocean_conscientiousness", lang()),
+                                    val: work_ocean().conscientiousness,
+                                    onchange: move |v| { let mut o = work_ocean.write(); o.conscientiousness = v; },
+                                    low_hint: Some(crate::i18n::tr("ocean_c_low", lang()).into()),
+                                    high_hint: Some(crate::i18n::tr("ocean_c_high", lang()).into()),
+                                }
+                                OceanSlider {
+                                    label: crate::i18n::tr("ocean_extraversion", lang()),
+                                    val: work_ocean().extraversion,
+                                    onchange: move |v| { let mut o = work_ocean.write(); o.extraversion = v; },
+                                    low_hint: Some(crate::i18n::tr("ocean_e_low", lang()).into()),
+                                    high_hint: Some(crate::i18n::tr("ocean_e_high", lang()).into()),
+                                }
+                                OceanSlider {
+                                    label: crate::i18n::tr("ocean_agreeableness", lang()),
+                                    val: work_ocean().agreeableness,
+                                    onchange: move |v| { let mut o = work_ocean.write(); o.agreeableness = v; },
+                                    low_hint: Some(crate::i18n::tr("ocean_a_low", lang()).into()),
+                                    high_hint: Some(crate::i18n::tr("ocean_a_high", lang()).into()),
+                                }
+                                OceanSlider {
+                                    label: crate::i18n::tr("ocean_neuroticism", lang()),
+                                    val: work_ocean().neuroticism,
+                                    onchange: move |v| { let mut o = work_ocean.write(); o.neuroticism = v; },
+                                    low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
+                                    high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
+                                }
+                            }
+                        }
+
+                        // Reputation override
+                        div { class: "persona-bucket",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox", checked: has_rep(), oninput: move |e| has_rep.set(e.value() == "true") }
+                                if has_rep() { "Override " } else { "Inherits base " }
+                                span { "{edit_reputation}" }
+                            }
+                            if has_rep() { RepEditPanel { rep_scores: work_rep, lang: cl } }
+                        }
+
+                        // Motivations override
+                        div { class: "persona-bucket",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox", checked: has_motivations(), oninput: move |e| has_motivations.set(e.value() == "true") }
+                                if has_motivations() { "Override " } else { "Inherits base " }
+                                span { "{edit_motivations}" }
+                            }
+                            if has_motivations() { MotEditPanel { motivations: work_motivations, lang: cl } }
+                        }
+
+                        // Biases override
+                        div { class: "persona-bucket",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox", checked: has_biases(), oninput: move |e| has_biases.set(e.value() == "true") }
+                                if has_biases() { "Override " } else { "Inherits base " }
+                                span { "{edit_biases}" }
+                            }
+                            if has_biases() { BiasEditPanel { biases: work_biases, lang: cl } }
+                        }
+
+                        // Patterns override
+                        div { class: "persona-bucket",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox", checked: has_patterns(), oninput: move |e| has_patterns.set(e.value() == "true") }
+                                if has_patterns() { "Override " } else { "Inherits base " }
+                                span { "{edit_patterns}" }
+                            }
+                            if has_patterns() { PatternEditPanel { patterns: work_patterns, lang: lang() } }
+                        }
+
+                        // Styles override
+                        div { class: "persona-bucket",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox", checked: has_styles(), oninput: move |e| has_styles.set(e.value() == "true") }
+                                if has_styles() { "Override " } else { "Inherits base " }
+                                span { "{edit_styles}" }
+                            }
+                            if has_styles() { StyleEditPanel { styles: work_styles, lang: cl } }
+                        }
+
+                        // Values override
+                        div { class: "persona-bucket",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox", checked: has_values(), oninput: move |e| has_values.set(e.value() == "true") }
+                                if has_values() { "Override " } else { "Inherits base " }
+                                span { "{edit_values}" }
+                            }
+                            if has_values() { ValEditPanel { values: work_values, lang: cl } }
+                        }
+                    }
+                }
 
                 div { class: "form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }

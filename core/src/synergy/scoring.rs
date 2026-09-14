@@ -12,8 +12,8 @@ use super::{RelContext, SynergyBreakdown};
 use crate::insights::InsightContext;
 use crate::model_config::{BiasTarget, CFG};
 use crate::models::{
-    BehavioralPattern, BiasType, MotivationType, OceanScores, Person, Prediction, RelationType,
-    RepDim,
+    BehavioralPattern, BiasType, FacetKind, MotivationType, OceanScores, Person, Prediction,
+    RelationType, RepDim,
 };
 use std::collections::HashSet;
 
@@ -32,6 +32,12 @@ pub fn compute_synergy_score_with_preds(
 
 /// Relationship-aware synergy. `ctx = None` behaves exactly like the legacy
 /// `compute_synergy_score_with_preds`.
+///
+/// The work facet is applied automatically: work-type relationships
+/// (`WorksWith`, `Manages`, `ReportsTo`, `Mentors`, `Collaborates`) score the
+/// persons' work personas (inheriting base channels where a persona bucket is
+/// unset); personal relationships (`Friends`, `Family`, `Partner`) and
+/// context-free scoring always use the base profile.
 pub fn compute_synergy_score_ctx(
     a: &Person,
     b: &Person,
@@ -39,7 +45,29 @@ pub fn compute_synergy_score_ctx(
     a_preds: &[Prediction],
     b_preds: &[Prediction],
 ) -> SynergyBreakdown {
-    compute_synergy_score_inner(a, b, ctx, a_preds, b_preds)
+    let kind = ctx.map(|r| r.rtype.facet()).unwrap_or(FacetKind::Base);
+    compute_synergy_score_facet(a, b, ctx, kind, a_preds, b_preds)
+}
+
+/// Synergy with an explicitly chosen facet. `FacetKind::Base` reproduces the
+/// legacy context-free behavior exactly; `FacetKind::Work` scores both persons
+/// through their work personas (base channels inherited where unset).
+pub fn compute_synergy_score_facet(
+    a: &Person,
+    b: &Person,
+    ctx: Option<&RelContext>,
+    facet: FacetKind,
+    a_preds: &[Prediction],
+    b_preds: &[Prediction],
+) -> SynergyBreakdown {
+    let merged = facet == FacetKind::Work && (a.persona.is_some() || b.persona.is_some());
+    if merged {
+        let am = a.facet_person(FacetKind::Work);
+        let bm = b.facet_person(FacetKind::Work);
+        compute_synergy_score_inner(&am, &bm, ctx, a_preds, b_preds)
+    } else {
+        compute_synergy_score_inner(a, b, ctx, a_preds, b_preds)
+    }
 }
 
 /// Phase 4: per-context inputs re-weighted from the final bucket scores.

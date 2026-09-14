@@ -1,4 +1,5 @@
 pub mod components;
+mod mask;
 mod profile;
 pub mod rel_weights;
 mod scoring;
@@ -17,6 +18,7 @@ pub use components::{
 #[allow(unused_imports)]
 pub(crate) use components::{bias_count_bonus, motivation_count_penalty};
 pub use components::{sim, synergy_bands, value_self_score};
+pub use mask::{MaskBand, MaskGap, mask_gap};
 #[allow(unused_imports)]
 pub(crate) use profile::{
     avg_prediction_accuracy, has_pattern_contradiction, has_style_contradiction,
@@ -30,9 +32,10 @@ pub use rel_weights::rel_weights;
 #[allow(unused_imports)]
 pub(crate) use scoring::{PerContextInputs, compute_synergy_score_inner, per_context_breakdown};
 pub use scoring::{
-    compute_synergy_score, compute_synergy_score_ctx, compute_synergy_score_with_preds,
+    compute_synergy_score, compute_synergy_score_ctx, compute_synergy_score_facet,
+    compute_synergy_score_with_preds,
 };
-pub use team::{PairResult, TeamSynergy, compute_team_synergy};
+pub use team::{PairResult, TeamSynergy, compute_team_synergy, compute_team_synergy_facet};
 #[allow(unused_imports)]
 pub(crate) use trajectory::trajectory_from;
 pub use trajectory::{pair_trajectory, personal_trajectory};
@@ -123,6 +126,7 @@ mod tests {
         neuroticism: Option<u8>,
     ) -> Person {
         Person {
+            persona: None,
             id: "test".into(),
             name: "Test".into(),
             role: String::new(),
@@ -9873,5 +9877,130 @@ mod tests {
         let min = *scores.iter().min().unwrap();
         let max = *scores.iter().max().unwrap();
         assert!(max > min, "context averages must vary: {:?}", scores);
+    }
+
+    // --- work persona / facet (mask) tests ---
+
+    #[test]
+    fn relation_type_facet_maps_work_and_personal_rels() {
+        for r in [
+            RelationType::WorksWith,
+            RelationType::Manages,
+            RelationType::ReportsTo,
+            RelationType::Mentors,
+            RelationType::Collaborates,
+        ] {
+            assert_eq!(r.facet(), FacetKind::Work, "{r:?}");
+        }
+        for r in [
+            RelationType::Friends,
+            RelationType::Family,
+            RelationType::Partner,
+        ] {
+            assert_eq!(r.facet(), FacetKind::Base, "{r:?}");
+        }
+    }
+
+    fn masked_person() -> Person {
+        let mut p = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        p.motivations = vec![Motivation {
+            r#type: MotivationType::Achievement,
+            intensity: 8,
+            notes: String::new(),
+        }];
+        // Work persona flips OCEAN to the opposite pole of the base profile.
+        p.persona = Some(WorkPersona {
+            ocean: Some(OceanScores {
+                openness: Some(1),
+                conscientiousness: Some(1),
+                extraversion: Some(1),
+                agreeableness: Some(1),
+                neuroticism: Some(9),
+            }),
+            ..WorkPersona::default()
+        });
+        p
+    }
+
+    #[test]
+    fn work_relationships_score_through_persona() {
+        let a = masked_person();
+        let b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let ctx = |rt: RelationType| RelContext {
+            rtype: rt,
+            strength: 5,
+        };
+        let work = compute_synergy_score_ctx(&a, &b, Some(&ctx(RelationType::WorksWith)), &[], &[]);
+        let base = compute_synergy_score_ctx(&a, &b, Some(&ctx(RelationType::Partner)), &[], &[]);
+        assert!(
+            work.total < base.total,
+            "work {} should be lower than base {} (work persona diverges)",
+            work.total,
+            base.total
+        );
+        assert!(work.ocean < base.ocean);
+    }
+
+    #[test]
+    fn explicit_facet_matches_legacy_and_masks() {
+        let a = masked_person();
+        let b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let legacy = compute_synergy_score(&a, &b);
+        let base = compute_synergy_score_facet(&a, &b, None, FacetKind::Base, &[], &[]);
+        assert_eq!(legacy.total, base.total);
+        let work = compute_synergy_score_facet(&a, &b, None, FacetKind::Work, &[], &[]);
+        assert!(work.total < legacy.total);
+    }
+
+    #[test]
+    fn inherited_persona_bucket_matches_base_score_exactly() {
+        // An empty persona must not change any score vs. no persona at all.
+        let a = masked_person();
+        let base_b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let mut masked_b = base_b.clone();
+        masked_b.persona = Some(WorkPersona::default());
+        let ctx = RelContext {
+            rtype: RelationType::WorksWith,
+            strength: 5,
+        };
+        let plain = compute_synergy_score_ctx(&a, &base_b, Some(&ctx), &[], &[]);
+        let with_empty_mask = compute_synergy_score_ctx(&a, &masked_b, Some(&ctx), &[], &[]);
+        assert_eq!(plain.total, with_empty_mask.total);
+    }
+
+    #[test]
+    fn team_synergy_supports_facet_override() {
+        let mut a = masked_person();
+        a.id = "a".into();
+        let mut b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        b.id = "b".into();
+        let rels = vec![Relationship {
+            id: "r1".into(),
+            source_id: "a".into(),
+            target_id: "b".into(),
+            r#type: RelationType::WorksWith,
+            strength: 5,
+            notes: String::new(),
+            created_at: 0,
+        }];
+        let preds = std::collections::HashMap::new();
+        let auto = compute_team_synergy(&[a.clone(), b.clone()], &rels, &preds).unwrap();
+        let forced_work = compute_team_synergy_facet(
+            &[a.clone(), b.clone()],
+            &rels,
+            &preds,
+            Some(FacetKind::Work),
+        )
+        .unwrap();
+        let forced_base = compute_team_synergy_facet(
+            &[a.clone(), b.clone()],
+            &rels,
+            &preds,
+            Some(FacetKind::Base),
+        )
+        .unwrap();
+        // WorksWith is a work relationship: auto derivation picks the Work facet.
+        assert_eq!(auto.avg_score, forced_work.avg_score);
+        assert!(forced_base.avg_score > auto.avg_score);
     }
 }

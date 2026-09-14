@@ -3,7 +3,8 @@ use peoplemodeler_core::insights::InsightContext;
 use peoplemodeler_core::models::{BehaviorTrigger, Person, RelationType};
 
 use peoplemodeler_core::synergy::{
-    RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds, synergy_bands,
+    MaskBand, RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds,
+    mask_gap, synergy_bands,
 };
 
 use crate::db;
@@ -225,7 +226,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
                     div { class: "compare-grid",
                         div { class: "compare-card",
-                            PersonCard { person: a.clone() }
+                            PersonCard { person: a.clone(), mask: mask_badge(&a, lang()) }
                             div { class: "compare-section",
                                 h4 { "{top_mot_label}" }
                                 if let Some(m) = a.top_motivation() {
@@ -387,7 +388,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                         }
 
                         div { class: "compare-card",
-                            PersonCard { person: b.clone() }
+                            PersonCard { person: b.clone(), mask: mask_badge(&b, lang()) }
                             div { class: "compare-section",
                                 h4 { "{top_mot_label}" }
                                 if let Some(m) = b.top_motivation() {
@@ -520,12 +521,30 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 }
 
 #[component]
-fn PersonCard(person: Person) -> Element {
+fn PersonCard(person: Person, mask: Option<(String, String, String)>) -> Element {
     rsx! {
         div { class: "compare-avatar", "{person.avatar_emoji}" }
         h3 { "{person.name}" }
         p { "{person.role}" }
+        if let Some((label, cls, pct)) = mask {
+            span { class: "mask-badge {cls}", title: "Δ {pct}", "{label}" }
+        }
     }
+}
+
+fn mask_badge(p: &Person, lang: Lang) -> Option<(String, String, String)> {
+    mask_gap(p).map(|m| {
+        let (label, cls) = match m.band {
+            MaskBand::Low => (crate::i18n::tr("mask_gap_low", lang), "mask-low"),
+            MaskBand::Moderate => (crate::i18n::tr("mask_gap_moderate", lang), "mask-moderate"),
+            MaskBand::High => (crate::i18n::tr("mask_gap_high", lang), "mask-high"),
+        };
+        (
+            label.to_string(),
+            cls.to_string(),
+            format!("{:.0}%", m.gap * 100.0),
+        )
+    })
 }
 
 #[component]
@@ -1097,6 +1116,7 @@ mod tests {
 
     fn p(name: &str) -> Person {
         Person {
+            persona: None,
             id: name.into(),
             name: name.into(),
             role: String::new(),

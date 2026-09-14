@@ -1,7 +1,7 @@
-use super::scoring::compute_synergy_score_ctx;
+use super::scoring::compute_synergy_score_facet;
 use super::{RelContext, SynergyBreakdown};
 use crate::insights::InsightContext;
-use crate::models::{Person, Prediction, Relationship};
+use crate::models::{FacetKind, Person, Prediction, Relationship};
 
 /// A single pair result inside the team matrix.
 #[derive(serde::Serialize, Clone)]
@@ -40,10 +40,37 @@ pub struct TeamSynergy {
 /// `rels` is the full relationship list (typically `db::all_relationships()`).
 /// `preds` maps person_id → predictions for that person.
 /// Pairs without a matching Relationship are scored context-free.
+/// Compute team-level synergy over all persons, using relationship data to
+/// build per-pair `RelContext`.
+///
+/// `rels` is the full relationship list (typically `db::all_relationships()`).
+/// `preds` maps person_id → predictions for that person.
+/// Pairs without a matching Relationship are scored context-free.
 pub fn compute_team_synergy(
     persons: &[Person],
     rels: &[Relationship],
     preds: &std::collections::HashMap<String, Vec<Prediction>>,
+) -> Option<TeamSynergy> {
+    compute_team_synergy_inner(persons, rels, preds, None)
+}
+
+/// Team synergy with an optional facet override. `None` derives each pair's
+/// facet from its relationship type (work personas for work-type relations);
+/// `Some(kind)` forces the same facet for every pair (the Work/Life toggle).
+pub fn compute_team_synergy_facet(
+    persons: &[Person],
+    rels: &[Relationship],
+    preds: &std::collections::HashMap<String, Vec<Prediction>>,
+    facet: Option<FacetKind>,
+) -> Option<TeamSynergy> {
+    compute_team_synergy_inner(persons, rels, preds, facet)
+}
+
+fn compute_team_synergy_inner(
+    persons: &[Person],
+    rels: &[Relationship],
+    preds: &std::collections::HashMap<String, Vec<Prediction>>,
+    force_facet: Option<FacetKind>,
 ) -> Option<TeamSynergy> {
     if persons.len() < 2 {
         return None;
@@ -86,7 +113,10 @@ pub fn compute_team_synergy(
             let a_preds = preds.get(&a.id).unwrap_or(&empty_preds);
             let b_preds = preds.get(&b.id).unwrap_or(&empty_preds);
 
-            let breakdown = compute_synergy_score_ctx(a, b, ctx.as_ref(), a_preds, b_preds);
+            let kind = force_facet
+                .or_else(|| ctx.map(|r| r.rtype.facet()))
+                .unwrap_or(FacetKind::Base);
+            let breakdown = compute_synergy_score_facet(a, b, ctx.as_ref(), kind, a_preds, b_preds);
 
             pairs.push(PairResult {
                 id_a: a.id.clone(),

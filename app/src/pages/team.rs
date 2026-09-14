@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use peoplemodeler_core::models::AVATAR_EMOJIS;
-use peoplemodeler_core::synergy::{compute_team_synergy, synergy_bands};
+use peoplemodeler_core::models::{AVATAR_EMOJIS, FacetKind};
+use peoplemodeler_core::synergy::{compute_team_synergy_facet, synergy_bands};
 
 use crate::Route;
 use crate::db;
@@ -30,6 +30,10 @@ pub fn TeamDetail(id: String) -> Element {
     let no_danger = crate::i18n::tr("team_no_danger", lang());
     let tab_synergy = crate::i18n::tr("team_tab_synergy", lang());
     let tab_members = crate::i18n::tr("team_tab_members", lang());
+    let facet_toggle_label = crate::i18n::tr("team_facet_toggle", lang());
+    let facet_auto_label = crate::i18n::tr("facet_auto", lang());
+    let facet_base_label = crate::i18n::tr("facet_base", lang());
+    let facet_work_label = crate::i18n::tr("facet_work", lang());
     let all_no_edit = crate::i18n::tr("team_all_no_edit", lang());
     let members_count_fmt = crate::i18n::tr("team_members_count", lang());
     let team_rename_label = crate::i18n::tr("team_rename", lang());
@@ -48,6 +52,7 @@ pub fn TeamDetail(id: String) -> Element {
     };
 
     let mut tab = use_signal(|| Tab::Synergy);
+    let mut facet_filter = use_signal(|| None::<FacetKind>);
     let mut team_sig = use_signal(|| db::team(&id));
     let all_persons = use_signal(db::all_persons);
     let mut editing = use_signal(|| false);
@@ -98,7 +103,7 @@ pub fn TeamDetail(id: String) -> Element {
         }
         m
     };
-    let team = compute_team_synergy(&persons, &rels, &preds_map);
+    let team = compute_team_synergy_facet(&persons, &rels, &preds_map, facet_filter());
 
     rsx! {
         div { class: "page",
@@ -192,6 +197,29 @@ pub fn TeamDetail(id: String) -> Element {
             }
 
             if tab() == Tab::Synergy {
+                div { class: "facet-bar", role: "radiogroup", aria_label: "{facet_toggle_label}",
+                    button {
+                        class: if facet_filter().is_none() { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if facet_filter().is_none() { "true" } else { "false" },
+                        onclick: move |_| facet_filter.set(None),
+                        "{facet_auto_label}"
+                    }
+                    button {
+                        class: if facet_filter() == Some(FacetKind::Base) { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if facet_filter() == Some(FacetKind::Base) { "true" } else { "false" },
+                        onclick: move |_| facet_filter.set(Some(FacetKind::Base)),
+                        "{facet_base_label}"
+                    }
+                    button {
+                        class: if facet_filter() == Some(FacetKind::Work) { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if facet_filter() == Some(FacetKind::Work) { "true" } else { "false" },
+                        onclick: move |_| facet_filter.set(Some(FacetKind::Work)),
+                        "{facet_work_label}"
+                    }
+                }
                 {
                     match team {
                         None => rsx! {

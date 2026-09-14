@@ -852,6 +852,27 @@ fn en(key: &'static str) -> &'static str {
         "common_skip" => "Skip",
         "common_finish" => "Finish",
 
+        // Work persona (mask)
+        "persona_section" => "Work Persona",
+        "persona_hint" => {
+            "Define a different work persona. OCEAN and reputation scores can diverge from the base profile."
+        }
+        "persona_copy_base" => "Copy from base profile",
+        "persona_clear" => "Clear mask",
+
+        // Facet toggle
+        "facet_auto" => "Automatic",
+        "facet_base" => "Personal life",
+        "facet_work" => "At work",
+
+        // Mask badge (person detail / compare / team)
+        "mask_gap_low" => "No mask",
+        "mask_gap_moderate" => "Moderate mask",
+        "mask_gap_high" => "Strong mask",
+
+        // Team facet override
+        "team_facet_toggle" => "Filter by facet",
+
         _ => key,
     }
 }
@@ -1633,6 +1654,27 @@ fn fr(key: &'static str) -> &'static str {
         "common_skip" => "Passer",
         "common_finish" => "Terminer",
 
+        // Work persona (mask)
+        "persona_section" => "Persona de travail",
+        "persona_hint" => {
+            "Définissez une persona de travail différente. Les scores OCEAN et réputation peuvent diverger du profil de base."
+        }
+        "persona_copy_base" => "Copier depuis le profil de base",
+        "persona_clear" => "Effacer le masque",
+
+        // Facet toggle
+        "facet_auto" => "Automatique",
+        "facet_base" => "Vie privée",
+        "facet_work" => "Au travail",
+
+        // Mask badge (person detail / compare / team)
+        "mask_gap_low" => "Pas de masque",
+        "mask_gap_moderate" => "Masque modéré",
+        "mask_gap_high" => "Fort masque",
+
+        // Team facet override
+        "team_facet_toggle" => "Filtrer par facette",
+
         _ => key,
     }
 }
@@ -2089,6 +2131,17 @@ mod tests {
         "values_title",
         "value_intensity_helper",
         "value_priority_helper",
+        "persona_section",
+        "persona_hint",
+        "persona_copy_base",
+        "persona_clear",
+        "facet_base",
+        "facet_work",
+        "facet_auto",
+        "mask_gap_low",
+        "mask_gap_moderate",
+        "mask_gap_high",
+        "team_facet_toggle",
     ];
 
     const IDENTITY_KEYS: &[&str] = &[

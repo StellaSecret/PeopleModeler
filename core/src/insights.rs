@@ -1,5 +1,5 @@
 use crate::advice;
-use crate::models::Person;
+use crate::models::{FacetKind, Person};
 use crate::synergy::PersonProfile;
 use crate::validation;
 
@@ -84,6 +84,33 @@ fn fmt_advice(advice_list: &[advice::FlagAdvice]) -> String {
 pub fn generate_insight(ctx: InsightContext, p: &Person, lang: crate::i18n::Lang) -> String {
     let profile = crate::synergy::compute_person_profile(p);
     generate_insight_with_profile(ctx, p, &profile, lang)
+}
+
+/// Insight for a specific facet. The `Work` facet runs the whole pipeline on
+/// the masked (persona-merged) profile and appends a mask-gap line when the
+/// person has a work persona.
+pub fn generate_insight_facet(
+    ctx: InsightContext,
+    p: &Person,
+    kind: FacetKind,
+    lang: crate::i18n::Lang,
+) -> String {
+    let pm = p.facet_person(kind);
+    let out = generate_insight(ctx, &pm, lang);
+    if kind == FacetKind::Work
+        && let Some(gap) = crate::synergy::mask_gap(p)
+    {
+        let band = match gap.band {
+            crate::synergy::MaskBand::Low => "faible",
+            crate::synergy::MaskBand::Moderate => "modéré",
+            crate::synergy::MaskBand::High => "élevé",
+        };
+        return format!(
+            "{out}\n\n🎭 Masque professionnel : écart base/travail {:.0}% ({band})",
+            gap.gap * 100.0
+        );
+    }
+    out
 }
 
 pub fn generate_insight_with_profile(

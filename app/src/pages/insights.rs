@@ -398,6 +398,7 @@ mod tests {
 
     fn p(name: &str) -> Person {
         Person {
+            persona: None,
             id: "id".into(),
             name: name.into(),
             role: "Engineer".into(),
