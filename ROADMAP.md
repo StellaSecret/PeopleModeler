@@ -241,6 +241,35 @@ exists — insights "team" context is a single-person template.
 
 ---
 
+## Phase 10 — Facets / masks (work persona) ✅ DONE
+
+**Goal:** model the gap between a person's authentic self and the persona they
+wear in a specific arena, and score through the right facet.
+
+**Shipped**
+- `FacetKind` (`Base` / `Work`) + `RelationType::facet()` — work-type
+  relationships (`WorksWith, Manages, ReportsTo, Mentors, Collaborates`) score
+  through the Work facet; private relationships (`Friends/Family/Partner`) and
+  explicit overrides use Base.
+- `Person.persona: Option<WorkPersona>` — optional masked facet as bucket-level
+  deltas (ocean, reputation, motivations, biases, patterns, styles, values);
+  unset buckets inherit from base via `Person::facet_person(kind)`.
+- `mask_gap(p)` → weighted 7-channel divergence + band (Low < 15%, Moderate < 35%,
+  High), thresholds in `CFG.mask`.
+- Facet-aware consumers: `compute_synergy_score_ctx` (auto), `compute_synergy_score_facet`,
+  `compute_team_synergy_facet`, `generate_insight_facet` (mask line), wasm bindings
+  `generate_insight_facet` / `mask_gap` / `suggest_prediction_facet`.
+- App UI: work persona edit fieldset (copy-from-base), Work/Life toggle + mask
+  badge on detail, mask badges on Compare, Auto/Personal/Work team facet filter.
+
+**Next (unscoped): other masks.** Work is one arena; `FacetKind` is the extension
+point for Family, Romantic/Partner, Social, Online personas. Generalizing to N
+masks means turning `persona` into a per-facet map (serde schema evolution),
+re-keying scoring / `mask_gap` / wasm off the facet enum, and per-arena edit
+forms. Do not generalize until a second arena is actually wanted.
+
+---
+
 ## Suggested sequencing
 
 ```
@@ -252,4 +281,5 @@ v2.x  Phase 4 (context output)                ✅ done
 v2.y  Phase 5 (Rep rebalance) + Phase 8 (opposite biases)  ✅ done
 v3.x  Phase 6 (values) + Phase 7 (coaching)
 v3.y  Phase 9b (team aggregation)                   ✅ done — `compute_team_synergy` in synergy.rs
+v4.0  Phase 10 (facets / work persona)               ✅ done — `FacetKind`, WorkPersona, mask_gap
 ```

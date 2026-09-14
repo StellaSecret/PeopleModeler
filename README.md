@@ -22,9 +22,13 @@ PeopleModeler/
 ├── core/                       # Rust engine (WASM)
 │   ├── src/
 │   │   ├── lib.rs              # Entry point, WASM exports
-│   │   ├── models.rs           # Types: Person, Motivation, Bias, BehaviorPattern, StyleType, Value...
-│   │   ├── model_config.rs     # Central config: weights, thresholds, formulas
-│   │   ├── synergy.rs          # Synergy scoring (OCEAN, Rep, Mot, Pat, Bias, Style, Values)
+│   │   ├── models.rs           # Types: Person, Motivation, Bias, BehaviorPattern, StyleType, Value, FacetKind, WorkPersona...
+│   │   ├── model_config.rs     # Central config: weights, thresholds, formulas (incl. mask bands)
+│   │   ├── synergy/            # Synergy scoring (OCEAN, Rep, Mot, Pat, Bias, Style, Values)
+│   │   │   ├── scoring.rs          # Per-pair scoring (base / facet-aware)
+│   │   │   ├── team.rs             # N-person team aggregation
+│   │   │   ├── components.rs       # Channel-level similarity functions
+│   │   │   └── mask.rs             # mask_gap: base↔work divergence + band
 │   │   ├── insights.rs         # Behavioral insight generation (profile-aware)
 │   │   ├── advice.rs           # Prescriptive coaching: flag→actionable advice (EN/FR)
 │   │   ├── predictions.rs      # Prediction logic
@@ -107,10 +111,10 @@ Features have been migrated to the Dioxus Web/WASM app.
 
 ### Pages
 1. **List** — Search, cards with OCEAN/motivations/biases chips
-2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Values, Predictions, Insights, Journal, Relationships, Personal Styles
-3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10)
-4. **Compare** — Synergy score with per-category breakdown
-5. **Teams** — Named teams with create/delete/rename; `/team/all` virtual team shows all persons; `/team/:id` shows synergy grid for team members only
+2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Values, Predictions, Insights, Journal, Relationships, Personal Styles; Work/Life facet toggle + mask badge
+3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10); work persona fieldset (OCEAN / reputation / patterns / styles / biases deltas, copy-from-base)
+4. **Compare** — Synergy score with per-category breakdown; per-profile mask badge
+5. **Teams** — Named teams with create/delete/rename; `/team/all` virtual team shows all persons; `/team/:id` shows synergy grid for team members only; facet filter (Auto / Personal life / At work)
 6. **Predictions** — Feedback and accuracy
 7. **Insights** — Global analysis and statistics
 8. **Sync** — Google Drive backup
@@ -175,6 +179,9 @@ Person
 ├── predictions[]        # context, predicted, actual, accuracy, resolvedAt
 ├── relationships[]      # sourceId, targetId, type, strength
 ├── log[]                # InteractionEntry: type, description, timestamp
+├── persona              # Option<WorkPersona> — masked (work) facet, bucket-level
+│                        #   deltas vs base: ocean, rep_scores, motivations,
+│                        #   biases, behavioralPatterns, styles, values (each Option)
 └── confidence           # 1-10, profile reliability
 
 Team (stored separately)
@@ -934,6 +941,46 @@ The `danger` field in `SynergyBreakdown` exposes this value for transparency
 
 The UI displays three scores: `{A}% – {total}% – {B}%` with directional
 arrows showing who benefits more.
+
+---
+
+## 🎭 Facets & the Work Persona
+
+A person can carry two **facets**:
+
+- **Base** — the authentic self / personal life (motivations, biases, patterns… as stored).
+- **Work** — the professional arena, optionally masked by a **work persona**
+  (`Person.persona: Option<WorkPersona>`): bucket-level deltas over the base for
+  ocean, reputation, motivations, biases, behavioral patterns, styles, and values.
+  Each bucket is optional — unset buckets **inherit from the base profile**.
+
+**Facet resolution** (`RelationType::facet()`):
+
+| Relation type | Facet |
+|---|---|
+| WorksWith, Manages, ReportsTo, Mentors, Collaborates | **Work** |
+| Friends, Family, Partner | **Base** |
+
+Work-type relationships are scored through the Work facet automatically — but only
+when at least one person actually has a persona (otherwise both people are scored
+from their base profiles). Private relationships and any explicit facet override
+`compute_synergy_score_facet` / `compute_team_synergy_facet` use the Base facet.
+
+**Mask gap** — `mask_gap(p)` measures how far the work persona diverges from the
+authentic self, as a weighted mean over the seven behavior channels using the
+engine's own similarity functions:
+
+```
+mask_gap = weighted_mean( Δ(ocean), Δ(rep), Δ(mot), Δ(pat), Δ(bias), Δ(style), Δ(values) )
+band = Low      if gap < 15%
+       Moderate if gap < 35%
+       High     otherwise            (thresholds in CFG.mask)
+```
+
+`mask_gap` returns `None` for people without a persona. It is surfaced as a mask
+line in Work-facet insights and as badges in the UI: a Work/Life toggle + band
+badge on the person detail page, per-profile badges on Compare, and an
+Auto/Personal-life/At-work facet filter on the team synergy view.
 
 ---
 
