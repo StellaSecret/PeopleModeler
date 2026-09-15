@@ -45,12 +45,12 @@ body:has(.app[data-theme="light"]),
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-html{scroll-behavior:smooth;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:clip}
 
 body{
   background:var(--bg);color:var(--text);
   font-family:var(--font-body);font-size:15px;line-height:1.6;
-  overflow-x:hidden
+  overflow-x:clip
 }
 
 ::selection{background:rgba(233,69,96,0.3);color:var(--text)}
@@ -101,7 +101,7 @@ body{
 
 /* ── LAYOUT ── */
 .content{flex:1;padding:1.5rem;padding-bottom:5rem}
-.page{position:relative;min-height:calc(100vh - 60px);overflow-x:hidden}
+.page{position:relative;min-height:calc(100vh - 60px);overflow-x:clip}
 
 /* ── TOOLBAR ── */
 .toolbar{display:flex;gap:0.75rem;margin-bottom:1.5rem;align-items:center}
@@ -243,6 +243,12 @@ body{
 .person-header .facet-btn{background:transparent;border:none;color:var(--text-muted);font-family:var(--font-body);font-size:0.78rem;padding:0.25rem 0.8rem;border-radius:100px;cursor:pointer}
 .facet-btn{background:transparent;border:none;color:var(--text-muted);font-family:var(--font-body);font-size:0.78rem;padding:0.25rem 0.8rem;border-radius:100px;cursor:pointer}
 .facet-btn.active{background:var(--accent);color:var(--on-accent)}
+.edit-mode-bar{position:-webkit-sticky;position:sticky;top:var(--top-bar-h,calc(64px + env(safe-area-inset-top,0px)));z-index:200;width:100%;padding:0.35rem 0;background:var(--nav-bg);display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap}
+.persona-actions{display:flex;align-items:center;gap:0.4rem}
+.persona-panel.readonly{opacity:0.45;pointer-events:none}
+.persona-panel.readonly .bucket-toggle{pointer-events:auto}
+.bucket-toggle{font-size:0.72rem;color:var(--text-muted);cursor:pointer}
+.bucket-toggle input{vertical-align:middle;margin-right:0.25rem;accent-color:var(--cyan);cursor:pointer}
 .mask-badge{display:inline-block;font-size:0.72rem;font-weight:700;font-family:var(--font-mono);letter-spacing:0.02em;padding:0.15rem 0.7rem;border-radius:100px;margin-top:0.35rem}
 .mask-badge.mask-low{color:var(--score-good);border:1px solid currentColor}
 .mask-badge.mask-moderate{color:var(--score-friction);border:1px solid currentColor}
@@ -350,7 +356,7 @@ fieldset.section legend{
 /* ── OCEAN INPUTS ── */
 fieldset.ocean-inputs{
   border:1px solid var(--border);border-radius:var(--radius-lg);
-  padding:1.25rem;margin-top:0.75rem;background:var(--surface)
+  padding:1.25rem;margin-top:1.25rem;background:var(--surface)
 }
 fieldset.ocean-inputs legend{
   color:var(--text-muted);font-size:0.78rem;
@@ -663,6 +669,22 @@ fieldset.ocean-inputs legend{
 
 /* Helper text for selectors */
 .helper-text{font-size:0.75rem;color:var(--text-muted);margin:0.2rem 0 0.5rem 0;font-style:italic;padding-left:0.2rem}
+
+/* ── SECTION ITEMS (fixed-height scroll window) ──
+   Keeps each editable list/slider-set the same height regardless of how
+   many entries it holds, so Personal life and Work Persona sections start
+   at the same vertical offset when the person toggles between the two
+   facet tabs. Without this, a section with 5 items on one facet and 1 on
+   the other would push everything below it out of alignment. */
+.section-items{
+  max-height:300px;overflow-y:auto;
+  margin-right:-0.25rem;padding-right:0.25rem;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent
+}
+.section-items::-webkit-scrollbar{width:6px}
+.section-items::-webkit-scrollbar-track{background:transparent}
+.section-items::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.section-items:empty{max-height:0;overflow:visible}
 
 /* Drag reorder buttons */
 .reorder-btn{background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:1px 6px;font-size:0.75rem;color:var(--text-muted);line-height:1;margin-right:0.25rem;transition:color 0.15s,border-color 0.15s}

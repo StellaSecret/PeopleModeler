@@ -859,6 +859,7 @@ fn en(key: &'static str) -> &'static str {
         }
         "persona_copy_base" => "Copy from base profile",
         "persona_clear" => "Clear mask",
+        "persona_balance_title" => "Resilience & Risk Appetite",
 
         // Facet toggle
         "facet_auto" => "Automatic",
@@ -1661,6 +1662,7 @@ fn fr(key: &'static str) -> &'static str {
         }
         "persona_copy_base" => "Copier depuis le profil de base",
         "persona_clear" => "Effacer le masque",
+        "persona_balance_title" => "Résilience & Appétence Risque",
 
         // Facet toggle
         "facet_auto" => "Automatique",
@@ -2135,6 +2137,7 @@ mod tests {
         "persona_hint",
         "persona_copy_base",
         "persona_clear",
+        "persona_balance_title",
         "facet_base",
         "facet_work",
         "facet_auto",

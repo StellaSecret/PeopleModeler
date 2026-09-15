@@ -382,6 +382,22 @@ impl StorageBackend for WebStorage {
                 all.retain(|p| p.id != id);
             }
         });
+        let dropped = with_rels_cache(|cache| {
+            if let Some(ref mut all) = *cache {
+                let gone: Vec<String> = all
+                    .iter()
+                    .filter(|r| r.source_id == id || r.target_id == id)
+                    .map(|r| r.id.clone())
+                    .collect();
+                all.retain(|r| r.source_id != id && r.target_id != id);
+                gone
+            } else {
+                Vec::new()
+            }
+        });
+        for rid in dropped {
+            remove_individual(&relationship_key(&rid));
+        }
         Ok(())
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
@@ -565,6 +581,30 @@ impl StorageBackend for SqliteStorage {
             .map_err(|e| format!("DB write error [delete_person {id}]: {e}"))?;
         conn.execute("DELETE FROM predictions WHERE person_id = ?1", [id])
             .map_err(|e| format!("DB write error [delete_person predictions {id}]: {e}"))?;
+        let mut stmt = conn
+            .prepare("SELECT id, data FROM relationships")
+            .map_err(|e| format!("DB write error [delete_person rels select {id}]: {e}"))?;
+        let touched: Vec<String> = stmt
+            .query_map([], |row| {
+                let rid: String = row.get(0)?;
+                let data: String = row.get(1)?;
+                Ok((rid, data))
+            })
+            .map_err(|e| format!("DB write error [delete_person rels query {id}]: {e}"))?
+            .filter_map(|r| r.ok())
+            .filter_map(|(rid, data)| {
+                let rel: Relationship = serde_json::from_str(&data).ok()?;
+                if rel.source_id == id || rel.target_id == id {
+                    Some(rid)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for rid in &touched {
+            conn.execute("DELETE FROM relationships WHERE id = ?1", [rid])
+                .map_err(|e| format!("DB write error [delete_person rel {rid}]: {e}"))?;
+        }
         Ok(())
     }
     fn load_all_predictions(&self) -> Vec<Prediction> {
@@ -981,6 +1021,46 @@ mod tests {
         let _ = db.delete_person("p-cascade");
         assert!(db.load_person("p-cascade").is_none());
         assert_eq!(db.load_all_predictions().len(), 0);
+    }
+
+    #[test]
+    fn test_delete_person_cascades_to_relationships() {
+        let db = test_db();
+        let _ = db.save_person(&sample_person("p-rel"));
+        let _ = db.save_person(&sample_person("p-other"));
+        let _ = db.save_relationship(&Relationship {
+            id: "rel-src".into(),
+            source_id: "p-rel".into(),
+            target_id: "p-other".into(),
+            r#type: RelationType::WorksWith,
+            strength: 7,
+            notes: String::new(),
+            created_at: 0,
+        });
+        let _ = db.save_relationship(&Relationship {
+            id: "rel-tgt".into(),
+            source_id: "p-other".into(),
+            target_id: "p-rel".into(),
+            r#type: RelationType::Friends,
+            strength: 5,
+            notes: String::new(),
+            created_at: 0,
+        });
+        let _ = db.save_relationship(&Relationship {
+            id: "rel-keep".into(),
+            source_id: "p-other".into(),
+            target_id: "p-other".into(),
+            r#type: RelationType::Manages,
+            strength: 3,
+            notes: String::new(),
+            created_at: 0,
+        });
+        assert_eq!(db.load_all_relationships().len(), 3);
+        let _ = db.delete_person("p-rel");
+        assert!(db.load_person("p-rel").is_none());
+        let remaining = db.load_all_relationships();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, "rel-keep");
     }
 
     // --- Relationship CRUD ---
@@ -1627,6 +1707,46 @@ mod wasm_dispatch_tests {
         super::save_person(&p).unwrap();
         super::delete_person("w3").unwrap();
         assert!(super::person("w3").is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_dispatch_delete_person_cascades_relationships() {
+        init_db();
+        super::save_relationship(&Relationship {
+            id: "wr-a".into(),
+            source_id: "w-del".into(),
+            target_id: "w-keep".into(),
+            r#type: RelationType::WorksWith,
+            strength: 6,
+            notes: String::new(),
+            created_at: 0,
+        })
+        .unwrap();
+        super::save_relationship(&Relationship {
+            id: "wr-b".into(),
+            source_id: "w-keep".into(),
+            target_id: "w-del".into(),
+            r#type: RelationType::Friends,
+            strength: 4,
+            notes: String::new(),
+            created_at: 0,
+        })
+        .unwrap();
+        super::save_relationship(&Relationship {
+            id: "wr-c".into(),
+            source_id: "w-keep".into(),
+            target_id: "w-other".into(),
+            r#type: RelationType::Manages,
+            strength: 3,
+            notes: String::new(),
+            created_at: 0,
+        })
+        .unwrap();
+        assert_eq!(super::all_relationships().len(), 3);
+        super::delete_person("w-del").unwrap();
+        let remaining = super::all_relationships();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, "wr-c");
     }
 
     #[wasm_bindgen_test]

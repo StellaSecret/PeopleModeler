@@ -7,5 +7,21 @@
     </head>
     <body>
         <div id="main"></div>
+        <script>
+            (function () {
+                var done = false;
+                function set(h) { if (h > 0) { document.documentElement.style.setProperty("--top-bar-h", h + "px"); } }
+                function measure() {
+                    var bar = document.querySelector(".top-bar");
+                    if (!bar || done) { return; }
+                    done = true;
+                    set(bar.offsetHeight);
+                    if (window.ResizeObserver) { new ResizeObserver(function () { set(bar.offsetHeight); }).observe(bar); }
+                }
+                setInterval(measure, 200);
+                window.addEventListener("resize", measure);
+                if (document.readyState !== "loading") { measure(); } else { document.addEventListener("DOMContentLoaded", measure); }
+            })();
+        </script>
     </body>
 </html>
