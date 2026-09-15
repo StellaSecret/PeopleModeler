@@ -285,3 +285,75 @@ pub fn generate_insight_with_profile(
         ),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::i18n::Lang;
+    use crate::models::{FacetKind, Person};
+
+    fn masked_person() -> Person {
+        // Base profile + a work persona that differs on at least one bucket,
+        // so the work facet yields a nonzero mask gap.
+        serde_json::from_str(
+            r#"{
+                "id": "insight-test",
+                "name": "Insight Test",
+                "role": "Tester",
+                "context": "test",
+                "avatar_emoji": "🧑",
+                "tags": [],
+                "notes": "",
+                "motivations": [{"type":"Power","intensity":8,"notes":"ambitious"}],
+                "biases": [{"type":"Anchoring","intensity":7,"evidence":"sticky"}],
+                "rep_scores": {"hardworker_lazy":6},
+                "behavioral_patterns": [{"trigger":"Change","predicted_behavior":"embraces_change"}],
+                "ocean": {"openness":7,"conscientiousness":6,"extraversion":8,"agreeableness":5,"neuroticism":4},
+                "log": [],
+                "predictions": [],
+                "confidence": 5,
+                "created_at": 0,
+                "updated_at": 0,
+                "persona": {
+                    "ocean": {"openness":4}
+                }
+            }"#,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn facet_insight_base_outlines_profile_without_mask() {
+        let p = masked_person();
+        let out = generate_insight_facet(InsightContext::Decision, &p, FacetKind::Base, Lang::Fr);
+        assert!(
+            out.contains("Insight Test"),
+            "base insight missing name: {out}"
+        );
+        assert!(
+            !out.contains("🎭 Masque professionnel"),
+            "base facet must not append the mask-gap line: {out}"
+        );
+    }
+
+    #[test]
+    fn facet_insight_work_appends_mask_gap() {
+        let p = masked_person();
+        let out = generate_insight_facet(InsightContext::Decision, &p, FacetKind::Work, Lang::Fr);
+        assert!(
+            out.contains("🎭 Masque professionnel"),
+            "work facet must append the mask-gap line: {out}"
+        );
+    }
+
+    #[test]
+    fn facet_insight_work_without_persona_has_no_mask() {
+        let mut p = masked_person();
+        p.persona = None;
+        let out = generate_insight_facet(InsightContext::Decision, &p, FacetKind::Work, Lang::Fr);
+        assert!(
+            !out.contains("🎭 Masque professionnel"),
+            "no persona, no mask: {out}"
+        );
+    }
+}

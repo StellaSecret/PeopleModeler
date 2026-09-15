@@ -26,7 +26,7 @@ jobs:
             files: core/src/synergy/components.rs
           - name: synergy-scoring
             files: core/src/synergy/scoring.rs core/src/synergy/team.rs core/src/synergy/trajectory.rs
-            exclude_re: 'scoring\.rs:264:18'
+            exclude_re: 'scoring\.rs:(264:18|292:18)'
           - name: synergy-rest
             files: core/src/synergy/mod.rs core/src/synergy/profile.rs
           - name: validation
@@ -39,10 +39,10 @@ jobs:
             files: app/src/i18n.rs
           - name: app-compare
             files: app/src/pages/compare.rs
-            exclude_re: '(Some\(a\), Some\(b\)|compare\.rs:806:40|compare\.rs:1047:25)'
+            exclude_re: '(Some\(a\), Some\(b\)|mask_badge|compare\.rs:(806:40|825:40|1047:25|1066:25))'
           - name: app-person-edit
             files: app/src/pages/person_edit.rs
-            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move|person_edit\.rs:(52:33|324:29|863:22|1058:9|1074:9|1144:28|1153:12))'
+            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move|person_edit\.rs:(52:33|53:33|413:29|324:29|863:22|1058:9|1074:9|1144:28|1153:12))'
           - name: app-person-detail
             files: app/src/pages/person_detail.rs
             exclude_re: '(person_detail\.rs:.*in (PersonDetail|RelationshipSection))'

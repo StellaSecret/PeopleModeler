@@ -1442,4 +1442,192 @@ mod tests {
         let msg = err.to_string();
         assert!(msg.contains("a behavior response variant"), "got: {msg}");
     }
+
+    #[test]
+    fn facet_kind_label_covers_all_modes() {
+        assert_eq!(FacetKind::Base.label(crate::i18n::Lang::Fr), "Vie privée");
+        assert_eq!(
+            FacetKind::Base.label(crate::i18n::Lang::En),
+            "Personal life"
+        );
+        assert_eq!(FacetKind::Work.label(crate::i18n::Lang::Fr), "Au travail");
+        assert_eq!(FacetKind::Work.label(crate::i18n::Lang::En), "At work");
+    }
+
+    #[test]
+    fn facet_person_merges_persona_buckets() {
+        let base = Person {
+            id: "p1".into(),
+            name: "Base".into(),
+            role: "r".into(),
+            context: "c".into(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![Motivation {
+                r#type: MotivationType::Power,
+                intensity: 8,
+                notes: "base".into(),
+            }],
+            biases: vec![Bias {
+                r#type: BiasType::Anchoring,
+                intensity: 7,
+                evidence: "base".into(),
+            }],
+            rep_scores: RepScores {
+                hardworker_lazy: Some(5),
+                ..RepScores::default()
+            },
+            behavioral_patterns: vec![BehavioralPattern {
+                trigger: BehaviorTrigger::Change,
+                predicted_behavior: BehaviorResponse::StaysFocused,
+                notes: String::new(),
+            }],
+            styles: vec![PersonalStyle {
+                r#type: StyleType::DirectCommunicator,
+                intensity: 6,
+                notes: String::new(),
+            }],
+            values: vec![Value {
+                r#type: ValueType::Career,
+                intensity: 7,
+                priority: 8,
+                notes: String::new(),
+            }],
+            persona: Some(WorkPersona {
+                ocean: Some(OceanScores {
+                    openness: Some(3),
+                    conscientiousness: Some(9),
+                    extraversion: Some(2),
+                    agreeableness: Some(8),
+                    neuroticism: Some(6),
+                }),
+                rep_scores: Some(RepScores {
+                    hardworker_lazy: Some(1),
+                    ..RepScores::default()
+                }),
+                motivations: Some(vec![Motivation {
+                    r#type: MotivationType::Security,
+                    intensity: 9,
+                    notes: "work".into(),
+                }]),
+                biases: Some(vec![Bias {
+                    r#type: BiasType::Confirmation,
+                    intensity: 9,
+                    evidence: "work".into(),
+                }]),
+                behavioral_patterns: Some(vec![BehavioralPattern {
+                    trigger: BehaviorTrigger::Conflict,
+                    predicted_behavior: BehaviorResponse::Escalates,
+                    notes: String::new(),
+                }]),
+                styles: Some(vec![PersonalStyle {
+                    r#type: StyleType::ExpressiveCommunicator,
+                    intensity: 9,
+                    notes: String::new(),
+                }]),
+                values: Some(vec![Value {
+                    r#type: ValueType::Health,
+                    intensity: 9,
+                    priority: 9,
+                    notes: String::new(),
+                }]),
+            }),
+            ocean: OceanScores {
+                openness: Some(7),
+                conscientiousness: Some(6),
+                extraversion: Some(8),
+                agreeableness: Some(5),
+                neuroticism: Some(4),
+            },
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 1,
+            updated_at: 2,
+        };
+
+        let merged = base.facet_person(FacetKind::Work);
+        assert_eq!(merged.id, "p1", "identity must be kept");
+        assert_eq!(merged.name, "Base");
+        assert_eq!(
+            merged.persona, None,
+            "merged clone must be persona-agnostic"
+        );
+        assert_eq!(
+            merged.ocean,
+            base.persona.as_ref().unwrap().ocean.clone().unwrap()
+        );
+        assert_eq!(
+            merged.rep_scores,
+            base.persona.as_ref().unwrap().rep_scores.clone().unwrap()
+        );
+        assert_eq!(
+            merged.motivations,
+            base.persona.as_ref().unwrap().motivations.clone().unwrap()
+        );
+        assert_eq!(
+            merged.biases,
+            base.persona.as_ref().unwrap().biases.clone().unwrap()
+        );
+        assert_eq!(
+            merged.behavioral_patterns,
+            base.persona
+                .as_ref()
+                .unwrap()
+                .behavioral_patterns
+                .clone()
+                .unwrap()
+        );
+        assert_eq!(
+            merged.styles,
+            base.persona.as_ref().unwrap().styles.clone().unwrap()
+        );
+        assert_eq!(
+            merged.values,
+            base.persona.as_ref().unwrap().values.clone().unwrap()
+        );
+    }
+
+    #[test]
+    fn facet_person_base_ignores_persona() {
+        let base = Person {
+            id: "p2".into(),
+            name: "Base".into(),
+            role: "r".into(),
+            context: "c".into(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![Motivation {
+                r#type: MotivationType::Power,
+                intensity: 8,
+                notes: "base".into(),
+            }],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            persona: Some(WorkPersona {
+                ocean: Some(OceanScores {
+                    openness: Some(3),
+                    ..OceanScores::default()
+                }),
+                ..WorkPersona::default()
+            }),
+            ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 1,
+            updated_at: 2,
+        };
+
+        let merged = base.facet_person(FacetKind::Base);
+        assert_eq!(merged, base, "base facet must return an identical clone");
+        assert_eq!(merged.persona, base.persona.clone());
+    }
 }

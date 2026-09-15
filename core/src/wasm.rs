@@ -583,4 +583,124 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&result).expect("valid JSON output");
         assert_eq!(v["band"], 0, "no recognized type → no banding");
     }
+
+    // --- persona overrides ---
+
+    fn persona_person_json() -> String {
+        r#"{
+            "id": "wasm-test",
+            "name": "Wasm Test",
+            "role": "Tester",
+            "context": "test",
+            "avatar_emoji": "🧑",
+            "tags": [],
+            "notes": "",
+            "motivations": [
+                {"type": "Power", "intensity": 8, "notes": "driven"}
+            ],
+            "biases": [
+                {"type": "Anchoring", "intensity": 7, "evidence": "sticky"}
+            ],
+            "rep_scores": {},
+            "behavioral_patterns": [
+                {"trigger": "Change", "predicted_behavior": "embraces_change"}
+            ],
+            "ocean": {
+                "openness": 7,
+                "conscientiousness": 6,
+                "extraversion": 8,
+                "agreeableness": 5,
+                "neuroticism": 4
+            },
+            "log": [],
+            "predictions": [],
+            "confidence": 5,
+            "created_at": 0,
+            "updated_at": 0,
+            "persona": {
+                "ocean": {"openness": 3},
+                "motivations": [{"type": "Security", "intensity": 9, "notes": "work focus"}]
+            }
+        }"#
+        .into()
+    }
+
+    #[test]
+    fn test_generate_insight_facet_all_contexts() {
+        for ctx in [
+            "decision",
+            "team",
+            "stress",
+            "communication",
+            "leadership",
+            "growth",
+        ] {
+            let out = generate_insight_facet(ctx, &persona_person_json(), "work");
+            assert!(
+                !out.contains("Contexte inconnu"),
+                "context {ctx} not recognized, got: {out}"
+            );
+            assert!(!out.is_empty(), "context {ctx} yielded empty insight");
+        }
+    }
+
+    #[test]
+    fn test_generate_insight_facet_unknown_context() {
+        let out = generate_insight_facet("nope", &persona_person_json(), "work");
+        assert_eq!(out, "Contexte inconnu");
+    }
+
+    #[test]
+    fn test_generate_insight_facet_work_appends_mask() {
+        let out = generate_insight_facet("decision", &persona_person_json(), "work");
+        assert!(
+            out.contains("🎭 Masque professionnel"),
+            "work facet must append the mask line, got: {out}"
+        );
+    }
+
+    #[test]
+    fn test_generate_insight_facet_base_has_no_mask() {
+        let out = generate_insight_facet("decision", &persona_person_json(), "base");
+        assert!(
+            out.contains("Wasm Test"),
+            "base insight missing name, got: {out}"
+        );
+        assert!(
+            !out.contains("🎭 Masque professionnel"),
+            "base facet must not append the mask line, got: {out}"
+        );
+    }
+
+    #[test]
+    fn test_mask_gap_with_persona() {
+        let out = mask_gap(&persona_person_json());
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap_or(serde_json::Value::Null);
+        assert!(v["gap"].is_number(), "gap missing, got: {out}");
+        assert!(
+            v["gap"].as_f64().unwrap_or(0.0) > 0.0,
+            "differing persona must yield a positive gap, got: {out}"
+        );
+    }
+
+    #[test]
+    fn test_mask_gap_without_persona_is_null() {
+        let out = mask_gap(&demo_person_json());
+        assert_eq!(out, "null", "no persona must serialize to null, got: {out}");
+    }
+
+    #[test]
+    fn test_suggest_prediction_facet_uses_facet_motivation() {
+        let base = suggest_prediction_facet(&persona_person_json(), "meeting", "base");
+        let work = suggest_prediction_facet(&persona_person_json(), "meeting", "work");
+        assert!(
+            base.contains("Pouvoir"),
+            "base motivation expected, got: {base}"
+        );
+        assert!(
+            work.contains("Sécurité"),
+            "work motivation expected, got: {work}"
+        );
+        assert_ne!(work, base);
+    }
 }
