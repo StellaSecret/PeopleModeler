@@ -112,7 +112,7 @@ Features have been migrated to the Dioxus Web/WASM app.
 ### Pages
 1. **List** — Search, cards with OCEAN/motivations/biases chips
 2. **Detail** — Full profile with tabs: Motivations, Biases, OCEAN, Reputation, Values, Predictions, Insights, Journal, Relationships, Personal Styles; Work/Life facet toggle + mask badge
-3. **Edit** — Full form: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10); work persona fieldset (OCEAN / reputation / patterns / styles / biases deltas, copy-from-base)
+3. **Edit** — Sticky Personal life / Work Persona mode toggle; base mode: OCEAN, motivations, biases, reputation (13 dimensions), behavioral patterns (9 triggers, 28 responses), personal styles (8 categories, 41 variants), resilience (1-10), risk appetite (1-10); persona mode: work persona deltas (OCEAN / reputation / patterns / styles / biases, copy-from-base, clear)
 4. **Compare** — Synergy score with per-category breakdown; per-profile mask badge
 5. **Teams** — Named teams with create/delete/rename; `/team/all` virtual team shows all persons; `/team/:id` shows synergy grid for team members only; facet filter (Auto / Personal life / At work)
 6. **Predictions** — Feedback and accuracy

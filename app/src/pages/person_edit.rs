@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
-    AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
+    AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, FacetKind,
     Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores,
     StyleCategory, StyleType, Tag, Value, ValueType, WorkPersona,
 };
@@ -145,6 +145,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let patterns = use_signal(|| p.behavioral_patterns.clone());
     let styles = use_signal(|| p.styles.clone());
     let values = use_signal(|| p.values.clone());
+    let mut edit_mode = use_signal(|| FacetKind::Base);
 
     // --- Work persona (mask) state ---
     // Each bucket has a data signal + a defined flag. A bucket that is not
@@ -463,20 +464,65 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_cancel = crate::i18n::tr("form_cancel", lang());
     let cl = core_lang(lang());
     let persona_section = crate::i18n::tr("persona_section", lang());
-    let persona_hint = crate::i18n::tr("persona_hint", lang());
     let persona_copy_base = crate::i18n::tr("persona_copy_base", lang());
     let persona_clear = crate::i18n::tr("persona_clear", lang());
-    let edit_reputation = crate::i18n::tr("edit_reputation", lang());
-    let edit_motivations = crate::i18n::tr("edit_motivations", lang());
-    let edit_biases = crate::i18n::tr("edit_biases", lang());
-    let edit_patterns = crate::i18n::tr("edit_patterns", lang());
-    let edit_styles = crate::i18n::tr("edit_styles", lang());
-    let edit_values = crate::i18n::tr("edit_values", lang());
+    let facet_base = crate::i18n::tr("facet_base", lang());
 
     rsx! {
         div { class: "page",
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
+                div { class: "facet-bar edit-mode-bar",
+                    div { role: "radiogroup", class: "facet-toggle",
+                        div {
+                            class: if edit_mode() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
+                            onclick: move |_| edit_mode.set(FacetKind::Base),
+                            "{facet_base}",
+                        }
+                        div {
+                            class: if edit_mode() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
+                            onclick: move |_| edit_mode.set(FacetKind::Work),
+                            "{persona_section}",
+                        }
+                    }
+                    if edit_mode() == FacetKind::Work {
+                        div { class: "persona-actions",
+                            label { class: "dim-toggle",
+                                input { r#type: "checkbox",
+                                    checked: persona_enabled(),
+                                    oninput: move |e| persona_enabled.set(e.value() == "true")
+                                }
+                                if persona_enabled() { "✓ " } else { "✗ " }
+                                "{persona_section}"
+                            }
+                            button { class: "btn btn-small",
+                                onclick: move |_| {
+                                    persona_enabled.set(true);
+                                    work_ocean.set(p.ocean.clone());
+                                    work_rep.set(p.rep_scores.clone());
+                                    work_motivations.set(p.motivations.clone());
+                                    work_biases.set(p.biases.clone());
+                                    work_patterns.set(p.behavioral_patterns.clone());
+                                    work_styles.set(p.styles.clone());
+                                    work_values.set(p.values.clone());
+                                    has_ocean.set(true);
+                                    has_rep.set(true);
+                                    has_motivations.set(true);
+                                    has_biases.set(true);
+                                    has_patterns.set(true);
+                                    has_styles.set(true);
+                                    has_values.set(true);
+                                },
+                                "{persona_copy_base}"
+                            }
+                            button { class: "btn btn-small",
+                                onclick: move |_| { persona_enabled.set(false); },
+                                "{persona_clear}"
+                            }
+                        }
+                    }
+                }
+
                 label { "{form_name}" }
                 input { aria_label: "{form_name}", value: "{name}", oninput: move |e| name.set(e.value()) }
 
@@ -535,6 +581,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     }
                 }
 
+                if edit_mode() == FacetKind::Base {
+
                 fieldset { class: "ocean-inputs",
                     legend { "{form_ocean_title}" }
                     OceanSlider {
@@ -577,160 +625,101 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     div { class: "danger-warning", "⚠ {crate::i18n::tr(key, lang())}" }
                 }
 
-                MotEditPanel { motivations, lang: cl }
-                BiasEditPanel { biases, lang: cl }
-                RepEditPanel { rep_scores, lang: cl }
-                PatternEditPanel { patterns, lang: lang() }
-                StyleEditPanel { styles, lang: cl }
-                ValEditPanel { values, lang: cl }
+                MotEditPanel { motivations, lang: cl, has_override: None }
+                BiasEditPanel { biases, lang: cl, has_override: None }
+                RepEditPanel { rep_scores, lang: cl, has_override: None }
+                PatternEditPanel { patterns, lang: lang(), has_override: None }
+                StyleEditPanel { styles, lang: cl, has_override: None }
+                ValEditPanel { values, lang: cl, has_override: None }
+                }
 
+                if edit_mode() == FacetKind::Work {
                 // ---- Work persona (mask) ----
-                fieldset { class: "section persona-panel",
-                    legend { "🎭 {persona_section}" }
-                    div { class: "helper-text", "{persona_hint}" }
-                    label { class: "dim-toggle persona-master",
-                        input { r#type: "checkbox",
-                            checked: persona_enabled(),
-                            oninput: move |e| persona_enabled.set(e.value() == "true")
-                        }
-                        if persona_enabled() { "✓ " } else { "✗ " }
-                        span { "{persona_section}" }
-                    }
-                    if persona_enabled() {
-                        div { class: "persona-actions",
-                            button { class: "btn btn-small",
-                                onclick: move |_| {
-                                    persona_enabled.set(true);
-                                    work_ocean.set(p.ocean.clone());
-                                    work_rep.set(p.rep_scores.clone());
-                                    work_motivations.set(p.motivations.clone());
-                                    work_biases.set(p.biases.clone());
-                                    work_patterns.set(p.behavioral_patterns.clone());
-                                    work_styles.set(p.styles.clone());
-                                    work_values.set(p.values.clone());
-                                    has_ocean.set(true);
-                                    has_rep.set(true);
-                                    has_motivations.set(true);
-                                    has_biases.set(true);
-                                    has_patterns.set(true);
-                                    has_styles.set(true);
-                                    has_values.set(true);
-                                },
-                                "{persona_copy_base}"
-                            }
-                            button { class: "btn btn-small",
-                                onclick: move |_| { persona_enabled.set(false); },
-                                "{persona_clear}"
-                            }
-                        }
-
-                        // OCEAN override
-                        fieldset { class: "ocean-inputs",
-                            legend { "{form_ocean_title}" }
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox",
-                                    checked: has_ocean(),
-                                    oninput: move |e| has_ocean.set(e.value() == "true")
-                                }
-                                if has_ocean() { "Override " } else { "Inherits base " }
-                            }
-                            if has_ocean() {
-                                OceanSlider {
-                                    label: crate::i18n::tr("ocean_openness", lang()),
-                                    val: work_ocean().openness,
-                                    onchange: move |v| { let mut o = work_ocean.write(); o.openness = v; },
-                                    low_hint: Some(crate::i18n::tr("ocean_o_low", lang()).into()),
-                                    high_hint: Some(crate::i18n::tr("ocean_o_high", lang()).into()),
-                                }
-                                OceanSlider {
-                                    label: crate::i18n::tr("ocean_conscientiousness", lang()),
-                                    val: work_ocean().conscientiousness,
-                                    onchange: move |v| { let mut o = work_ocean.write(); o.conscientiousness = v; },
-                                    low_hint: Some(crate::i18n::tr("ocean_c_low", lang()).into()),
-                                    high_hint: Some(crate::i18n::tr("ocean_c_high", lang()).into()),
-                                }
-                                OceanSlider {
-                                    label: crate::i18n::tr("ocean_extraversion", lang()),
-                                    val: work_ocean().extraversion,
-                                    onchange: move |v| { let mut o = work_ocean.write(); o.extraversion = v; },
-                                    low_hint: Some(crate::i18n::tr("ocean_e_low", lang()).into()),
-                                    high_hint: Some(crate::i18n::tr("ocean_e_high", lang()).into()),
-                                }
-                                OceanSlider {
-                                    label: crate::i18n::tr("ocean_agreeableness", lang()),
-                                    val: work_ocean().agreeableness,
-                                    onchange: move |v| { let mut o = work_ocean.write(); o.agreeableness = v; },
-                                    low_hint: Some(crate::i18n::tr("ocean_a_low", lang()).into()),
-                                    high_hint: Some(crate::i18n::tr("ocean_a_high", lang()).into()),
-                                }
-                                OceanSlider {
-                                    label: crate::i18n::tr("ocean_neuroticism", lang()),
-                                    val: work_ocean().neuroticism,
-                                    onchange: move |v| { let mut o = work_ocean.write(); o.neuroticism = v; },
-                                    low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
-                                    high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
+                if persona_enabled() {
+                        // OCEAN
+                        div { class: "persona-bucket",
+                            div { class: if has_ocean() { "persona-panel" } else { "persona-panel readonly" },
+                                fieldset { class: "ocean-inputs",
+                                    legend { "{form_ocean_title}" BucketToggle { has: has_ocean } }
+                                    OceanSlider {
+                                        label: crate::i18n::tr("ocean_openness", lang()),
+                                        val: work_ocean().openness,
+                                        onchange: move |v| { let mut o = work_ocean.write(); o.openness = v; },
+                                        low_hint: Some(crate::i18n::tr("ocean_o_low", lang()).into()),
+                                        high_hint: Some(crate::i18n::tr("ocean_o_high", lang()).into()),
+                                    }
+                                    OceanSlider {
+                                        label: crate::i18n::tr("ocean_conscientiousness", lang()),
+                                        val: work_ocean().conscientiousness,
+                                        onchange: move |v| { let mut o = work_ocean.write(); o.conscientiousness = v; },
+                                        low_hint: Some(crate::i18n::tr("ocean_c_low", lang()).into()),
+                                        high_hint: Some(crate::i18n::tr("ocean_c_high", lang()).into()),
+                                    }
+                                    OceanSlider {
+                                        label: crate::i18n::tr("ocean_extraversion", lang()),
+                                        val: work_ocean().extraversion,
+                                        onchange: move |v| { let mut o = work_ocean.write(); o.extraversion = v; },
+                                        low_hint: Some(crate::i18n::tr("ocean_e_low", lang()).into()),
+                                        high_hint: Some(crate::i18n::tr("ocean_e_high", lang()).into()),
+                                    }
+                                    OceanSlider {
+                                        label: crate::i18n::tr("ocean_agreeableness", lang()),
+                                        val: work_ocean().agreeableness,
+                                        onchange: move |v| { let mut o = work_ocean.write(); o.agreeableness = v; },
+                                        low_hint: Some(crate::i18n::tr("ocean_a_low", lang()).into()),
+                                        high_hint: Some(crate::i18n::tr("ocean_a_high", lang()).into()),
+                                    }
+                                    OceanSlider {
+                                        label: crate::i18n::tr("ocean_neuroticism", lang()),
+                                        val: work_ocean().neuroticism,
+                                        onchange: move |v| { let mut o = work_ocean.write(); o.neuroticism = v; },
+                                        low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
+                                        high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
+                                    }
                                 }
                             }
                         }
 
-                        // Reputation override
+                        // Motivations
                         div { class: "persona-bucket",
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox", checked: has_rep(), oninput: move |e| has_rep.set(e.value() == "true") }
-                                if has_rep() { "Override " } else { "Inherits base " }
-                                span { "{edit_reputation}" }
+                            div { class: if has_motivations() { "persona-panel" } else { "persona-panel readonly" },
+                                MotEditPanel { motivations: work_motivations, lang: cl, has_override: Some(has_motivations) }
                             }
-                            if has_rep() { RepEditPanel { rep_scores: work_rep, lang: cl } }
                         }
 
-                        // Motivations override
+                        // Biases
                         div { class: "persona-bucket",
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox", checked: has_motivations(), oninput: move |e| has_motivations.set(e.value() == "true") }
-                                if has_motivations() { "Override " } else { "Inherits base " }
-                                span { "{edit_motivations}" }
+                            div { class: if has_biases() { "persona-panel" } else { "persona-panel readonly" },
+                                BiasEditPanel { biases: work_biases, lang: cl, has_override: Some(has_biases) }
                             }
-                            if has_motivations() { MotEditPanel { motivations: work_motivations, lang: cl } }
                         }
 
-                        // Biases override
+                        // Reputation
                         div { class: "persona-bucket",
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox", checked: has_biases(), oninput: move |e| has_biases.set(e.value() == "true") }
-                                if has_biases() { "Override " } else { "Inherits base " }
-                                span { "{edit_biases}" }
+                            div { class: if has_rep() { "persona-panel" } else { "persona-panel readonly" },
+                                RepEditPanel { rep_scores: work_rep, lang: cl, has_override: Some(has_rep) }
                             }
-                            if has_biases() { BiasEditPanel { biases: work_biases, lang: cl } }
                         }
 
-                        // Patterns override
+                        // Patterns
                         div { class: "persona-bucket",
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox", checked: has_patterns(), oninput: move |e| has_patterns.set(e.value() == "true") }
-                                if has_patterns() { "Override " } else { "Inherits base " }
-                                span { "{edit_patterns}" }
+                            div { class: if has_patterns() { "persona-panel" } else { "persona-panel readonly" },
+                                PatternEditPanel { patterns: work_patterns, lang: lang(), has_override: Some(has_patterns) }
                             }
-                            if has_patterns() { PatternEditPanel { patterns: work_patterns, lang: lang() } }
                         }
 
-                        // Styles override
+                        // Styles
                         div { class: "persona-bucket",
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox", checked: has_styles(), oninput: move |e| has_styles.set(e.value() == "true") }
-                                if has_styles() { "Override " } else { "Inherits base " }
-                                span { "{edit_styles}" }
+                            div { class: if has_styles() { "persona-panel" } else { "persona-panel readonly" },
+                                StyleEditPanel { styles: work_styles, lang: cl, has_override: Some(has_styles) }
                             }
-                            if has_styles() { StyleEditPanel { styles: work_styles, lang: cl } }
                         }
 
-                        // Values override
+                        // Values
                         div { class: "persona-bucket",
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox", checked: has_values(), oninput: move |e| has_values.set(e.value() == "true") }
-                                if has_values() { "Override " } else { "Inherits base " }
-                                span { "{edit_values}" }
+                            div { class: if has_values() { "persona-panel" } else { "persona-panel readonly" },
+                                ValEditPanel { values: work_values, lang: cl, has_override: Some(has_values) }
                             }
-                            if has_values() { ValEditPanel { values: work_values, lang: cl } }
                         }
                     }
                 }
@@ -745,9 +734,23 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 }
 
 #[component]
+fn BucketToggle(has: Signal<bool>) -> Element {
+    rsx! {
+        label { class: "dim-toggle bucket-toggle",
+            input { r#type: "checkbox",
+                checked: has(),
+                oninput: move |e| has.set(e.value() == "true")
+            }
+            if has() { "Override" } else { "Inherits base" }
+        }
+    }
+}
+
+#[component]
 fn MotEditPanel(
     motivations: Signal<Vec<Motivation>>,
     lang: peoplemodeler_core::i18n::Lang,
+    has_override: Option<Signal<bool>>,
 ) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| MotivationType::Achievement);
@@ -762,7 +765,7 @@ fn MotEditPanel(
 
     rsx! {
         fieldset { class: "section",
-            legend { "{edit_motivations}" }
+            legend { "{edit_motivations}" if let Some(h) = has_override { BucketToggle { has: h } } }
             div { class: "helper-text", "{mot_undefined_warning}" }
             div { class: "add-row",
                 select { value: "{sel_type}",
@@ -826,7 +829,11 @@ fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
 }
 
 #[component]
-fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+fn ValEditPanel(
+    values: Signal<Vec<Value>>,
+    lang: peoplemodeler_core::i18n::Lang,
+    has_override: Option<Signal<bool>>,
+) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| ValueType::Career);
     let mut sel_intensity = use_signal(|| 5u8);
@@ -843,7 +850,7 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
 
     rsx! {
         fieldset { class: "section",
-            legend { "{edit_values}" }
+            legend { "{edit_values}" if let Some(h) = has_override { BucketToggle { has: h } } }
             div { class: "add-row",
                 select { value: "{sel_type}",
                     onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
@@ -911,7 +918,11 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: peoplemodeler_core::i18n::Lang
 }
 
 #[component]
-fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+fn BiasEditPanel(
+    biases: Signal<Vec<Bias>>,
+    lang: peoplemodeler_core::i18n::Lang,
+    has_override: Option<Signal<bool>>,
+) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let mut sel_type = use_signal(|| BiasType::Confirmation);
     let mut sel_intensity = use_signal(|| 5u8);
@@ -926,7 +937,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
 
     rsx! {
         fieldset { class: "section",
-            legend { "{edit_biases}" }
+            legend { "{edit_biases}" if let Some(h) = has_override { BucketToggle { has: h } } }
             div { class: "helper-text", "{bias_undefined_warning}" }
             div { class: "helper-text", "{bias_scale_hint}" }
             div { class: "add-row",
@@ -982,7 +993,11 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: peoplemodeler_core::i18n::Lang
 }
 
 #[component]
-fn RepEditPanel(rep_scores: Signal<RepScores>, lang: peoplemodeler_core::i18n::Lang) -> Element {
+fn RepEditPanel(
+    rep_scores: Signal<RepScores>,
+    lang: peoplemodeler_core::i18n::Lang,
+    has_override: Option<Signal<bool>>,
+) -> Element {
     let app_lang = use_context::<Signal<Lang>>();
     let edit_rep = crate::i18n::tr("edit_reputation", app_lang());
     let rep_undefined_warning = crate::i18n::tr("rep_undefined_warning", app_lang());
@@ -1000,7 +1015,7 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: peoplemodeler_core::i18n::L
 
     rsx! {
         fieldset { class: "ocean-inputs",
-            legend { "{edit_rep}" }
+            legend { "{edit_rep}" if let Some(h) = has_override { BucketToggle { has: h } } }
             div { class: "helper-text", "{rep_undefined_warning}" }
             div { class: "helper-text", "{rep_scale_hint}" }
             {rep_data.into_iter().map(|(dim, ri, cur)| {
@@ -1093,7 +1108,11 @@ fn RepDimSlider(
 }
 
 #[component]
-fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Element {
+fn PatternEditPanel(
+    patterns: Signal<Vec<BehavioralPattern>>,
+    lang: Lang,
+    has_override: Option<Signal<bool>>,
+) -> Element {
     let ctx_stress = crate::i18n::tr("ctx_stress", lang);
     let ctx_conflict = crate::i18n::tr("ctx_conflict", lang);
     let ctx_success = crate::i18n::tr("ctx_success", lang);
@@ -1130,7 +1149,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
 
     rsx! {
         fieldset { class: "section",
-            legend { "{edit_patterns}" }
+            legend { "{edit_patterns}" if let Some(h) = has_override { BucketToggle { has: h } } }
             div { class: "add-row",
                 select { value: "{sel_trigger}",
                     onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]); },
@@ -1392,6 +1411,7 @@ fn style_selection_reconcile(cat: StyleCategory, sel: StyleType) -> Option<Style
 fn StyleEditPanel(
     styles: Signal<Vec<PersonalStyle>>,
     lang: peoplemodeler_core::i18n::Lang,
+    has_override: Option<Signal<bool>>,
 ) -> Element {
     use peoplemodeler_core::models::StyleCategory;
 
@@ -1418,7 +1438,7 @@ fn StyleEditPanel(
 
     rsx! {
         fieldset { class: "section",
-            legend { "{panel_title}" }
+            legend { "{panel_title}" if let Some(h) = has_override { BucketToggle { has: h } } }
             div { class: "add-row",
                 select {
                     value: "{sel_category():?}",
