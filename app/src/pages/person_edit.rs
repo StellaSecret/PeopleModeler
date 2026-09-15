@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
-    AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType,
+    AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, FacetKind,
     Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores,
     StyleCategory, StyleType, Tag, Value, ValueType, WorkPersona,
 };
@@ -145,6 +145,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let patterns = use_signal(|| p.behavioral_patterns.clone());
     let styles = use_signal(|| p.styles.clone());
     let values = use_signal(|| p.values.clone());
+    let mut edit_mode = use_signal(|| FacetKind::Base);
 
     // --- Work persona (mask) state ---
     // Each bucket has a data signal + a defined flag. A bucket that is not
@@ -466,6 +467,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let persona_hint = crate::i18n::tr("persona_hint", lang());
     let persona_copy_base = crate::i18n::tr("persona_copy_base", lang());
     let persona_clear = crate::i18n::tr("persona_clear", lang());
+    let facet_base = crate::i18n::tr("facet_base", lang());
     let edit_reputation = crate::i18n::tr("edit_reputation", lang());
     let edit_motivations = crate::i18n::tr("edit_motivations", lang());
     let edit_biases = crate::i18n::tr("edit_biases", lang());
@@ -477,6 +479,21 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         div { class: "page",
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
+                div { class: "facet-bar edit-mode-bar",
+                    div { role: "radiogroup", class: "facet-toggle",
+                        div {
+                            class: if edit_mode() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
+                            onclick: move |_| edit_mode.set(FacetKind::Base),
+                            "{facet_base}",
+                        }
+                        div {
+                            class: if edit_mode() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
+                            onclick: move |_| edit_mode.set(FacetKind::Work),
+                            "{persona_section}",
+                        }
+                    }
+                }
+
                 label { "{form_name}" }
                 input { aria_label: "{form_name}", value: "{name}", oninput: move |e| name.set(e.value()) }
 
@@ -535,6 +552,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     }
                 }
 
+                if edit_mode() == FacetKind::Base {
+
                 fieldset { class: "ocean-inputs",
                     legend { "{form_ocean_title}" }
                     OceanSlider {
@@ -583,7 +602,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 PatternEditPanel { patterns, lang: lang() }
                 StyleEditPanel { styles, lang: cl }
                 ValEditPanel { values, lang: cl }
+                }
 
+                if edit_mode() == FacetKind::Work {
                 // ---- Work persona (mask) ----
                 fieldset { class: "section persona-panel",
                     legend { "🎭 {persona_section}" }
@@ -733,6 +754,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             if has_values() { ValEditPanel { values: work_values, lang: cl } }
                         }
                     }
+                }
                 }
 
                 div { class: "form-actions",
