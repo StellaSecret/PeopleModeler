@@ -1490,6 +1490,25 @@ mod tests {
     }
 
     #[test]
+    fn personal_analyses_follow_work_persona() {
+        let mut base = with_ocean(p("A"), 5, 5, 5, 5, 5);
+        base.persona = Some(WorkPersona {
+            ocean: Some(OceanScores {
+                neuroticism: Some(8),
+                ..OceanScores::default()
+            }),
+            ..WorkPersona::default()
+        });
+        let base_out = stress_strategy(&base, Lang::En);
+        assert!(has(&base_out, "strategy_stress_fallback", Lang::En));
+
+        let work = base.facet_person(FacetKind::Work);
+        let work_out = stress_strategy(&work, Lang::En);
+        assert!(has(&work_out, "strategy_stress_high_n", Lang::En));
+        assert!(!has(&work_out, "strategy_stress_fallback", Lang::En));
+    }
+
+    #[test]
     fn all_strategies_active_high_ocean() {
         let person = with_ocean(p("A"), 8, 8, 8, 8, 8);
         assert_eq!(stress_strategy(&person, Lang::En).len(), 4);

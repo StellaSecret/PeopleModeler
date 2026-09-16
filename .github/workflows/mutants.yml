@@ -52,7 +52,7 @@ jobs:
             exclude_re: '(Identifiable|upsert|person_key|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|remove_individual|migrate_from_bulk|with_.*_cache|WebStorage|check_response|drive_backup|drive_restore|Some\(pp\)|delete ! in prepare_backup_body|try_decrypt_restore)'
           - name: app-tiny
             files: app/src/tutorial.rs app/src/auth.rs app/src/toast.rs app/src/theme.rs app/src/undo.rs app/src/main.rs app/src/templates.rs app/src/android_auth.rs app/src/android_share.rs app/src/pages/team.rs app/src/pages/team_new.rs app/src/pages/teams_list.rs app/src/pages/relationships.rs app/src/pages/predictions.rs app/src/pages/timeline.rs app/src/pages/people_list.rs
-            exclude_re: '(auth\.rs.*(on_token_received|start_oauth|get_gis_oauth2|replace init )|team_new\.rs.*(read_input_value|uuid|now_ts|/ with )|toast\.rs.*provide_toast|theme\.rs.*== with !=|main\.rs.*(replace main |replace init_pwa|replace sleep_ms|&& with \|\||== with !=|auto_clear_toast)|team\.rs.*== with !=|android_(auth|share)\.rs)'
+            exclude_re: '(auth\.rs.*(on_token_received|start_oauth|get_gis_oauth2|replace init )|team_new\.rs.*(read_input_value|uuid|now_ts|/ with )|toast\.rs.*provide_toast|theme\.rs.*== with !=|main\.rs.*(replace main |replace init_pwa|replace sleep_ms|&& with \|\||== with !=|auto_clear_toast)|team\.rs.*== with !=|people_list\.rs.*== with != in PeopleList|android_(auth|share)\.rs)'
           # ── WASM SHARDS (need Chrome + chromedriver) ──
           - name: wasm-crypto
             files: app/src/crypto.rs

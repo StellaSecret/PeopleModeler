@@ -927,6 +927,18 @@ pub struct WorkPersona {
     pub styles: Option<Vec<PersonalStyle>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub values: Option<Vec<Value>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "clamp_u8_opt_1_10"
+    )]
+    pub resilience: Option<u8>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "clamp_u8_opt_1_10"
+    )]
+    pub risk_appetite: Option<u8>,
 }
 
 /// Effective view of a person's behavior channels under a given facet. When a
@@ -941,6 +953,8 @@ pub struct FacetView {
     pub behavioral_patterns: Vec<BehavioralPattern>,
     pub styles: Vec<PersonalStyle>,
     pub values: Vec<Value>,
+    pub resilience: Option<u8>,
+    pub risk_appetite: Option<u8>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1096,6 +1110,8 @@ impl Person {
                 behavioral_patterns: self.behavioral_patterns.clone(),
                 styles: self.styles.clone(),
                 values: self.values.clone(),
+                resilience: self.resilience,
+                risk_appetite: self.risk_appetite,
             },
             FacetKind::Work => {
                 let wp = self.persona.as_ref();
@@ -1122,6 +1138,8 @@ impl Person {
                     values: wp
                         .and_then(|w| w.values.clone())
                         .unwrap_or_else(|| self.values.clone()),
+                    resilience: wp.and_then(|w| w.resilience).or(self.resilience),
+                    risk_appetite: wp.and_then(|w| w.risk_appetite).or(self.risk_appetite),
                 }
             }
         }
@@ -1146,6 +1164,8 @@ impl Person {
             behavioral_patterns: v.behavioral_patterns,
             styles: v.styles,
             values: v.values,
+            resilience: v.resilience,
+            risk_appetite: v.risk_appetite,
             ..self.clone()
         }
     }
@@ -1527,11 +1547,13 @@ mod tests {
                     notes: String::new(),
                 }]),
                 values: Some(vec![Value {
-                    r#type: ValueType::Health,
-                    intensity: 9,
-                    priority: 9,
+                    r#type: ValueType::Career,
+                    intensity: 7,
+                    priority: 8,
                     notes: String::new(),
                 }]),
+                resilience: Some(4),
+                risk_appetite: Some(6),
             }),
             ocean: OceanScores {
                 openness: Some(7),
@@ -1588,6 +1610,8 @@ mod tests {
             merged.values,
             base.persona.as_ref().unwrap().values.clone().unwrap()
         );
+        assert_eq!(merged.resilience, Some(4));
+        assert_eq!(merged.risk_appetite, Some(6));
     }
 
     #[test]

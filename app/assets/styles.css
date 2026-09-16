@@ -363,6 +363,19 @@ fieldset.ocean-inputs legend{
   text-transform:uppercase;letter-spacing:0.5px;padding:0 0.5rem;
   font-family:var(--font-display)
 }
+/* ── PERSONA BALANCE (Resilience & Risk Appetite) ──
+   Visually identical to fieldset.ocean-inputs but kept as its own class so
+   it isn't picked up by `.ocean-inputs` selectors (e.g. in tests) that
+   target the Big Five OCEAN fieldset specifically. */
+fieldset.persona-balance{
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:1.25rem;margin-top:1.25rem;background:var(--surface)
+}
+fieldset.persona-balance legend{
+  color:var(--text-muted);font-size:0.78rem;
+  text-transform:uppercase;letter-spacing:0.5px;padding:0 0.5rem;
+  font-family:var(--font-display)
+}
 .ocean-slider{display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;margin:0.5rem 0}
 .ocean-slider label{width:140px;font-size:0.82rem;color:var(--text-muted);text-transform:none;letter-spacing:normal;font-weight:400}
 .ocean-slider input[type="range"]{

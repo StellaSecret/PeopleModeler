@@ -1,9 +1,18 @@
 use dioxus::prelude::*;
+use peoplemodeler_core::models::{FacetKind, Person};
 use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
+
+fn list_profile_src(p: &Person, facet: FacetKind) -> Person {
+    if facet == FacetKind::Work {
+        p.facet_person(FacetKind::Work)
+    } else {
+        p.clone()
+    }
+}
 
 #[component]
 pub fn PeopleList() -> Element {
@@ -11,6 +20,7 @@ pub fn PeopleList() -> Element {
     let nav = use_navigator();
     let persons = use_signal(db::all_persons);
     let mut search = use_signal(String::new);
+    let mut facet = use_signal(|| FacetKind::Base);
 
     let profiles = use_memo(move || {
         let all = persons();
@@ -20,7 +30,7 @@ pub fn PeopleList() -> Element {
                     p.id.clone(),
                     p.name.clone(),
                     p.avatar_emoji.clone(),
-                    compute_person_profile(p),
+                    compute_person_profile(&list_profile_src(p, facet())),
                 )
             })
             .collect::<Vec<_>>()
@@ -29,6 +39,8 @@ pub fn PeopleList() -> Element {
     let search_placeholder = crate::i18n::tr("search_placeholder", lang());
     let no_people = crate::i18n::tr("no_people_yet", lang());
     let no_search_results = crate::i18n::tr("no_search_results", lang());
+    let facet_base = crate::i18n::tr("facet_base", lang());
+    let facet_work = crate::i18n::tr("facet_work", lang());
     let name_hdr = crate::i18n::tr("pl_name", lang());
     let ps_hdr = crate::i18n::tr("person_self_score", lang());
     let ocean_hdr = crate::i18n::tr("compare_cat_ocean", lang());
@@ -47,6 +59,22 @@ pub fn PeopleList() -> Element {
                     aria_label: "Search people",
                     value: "{search}",
                     oninput: move |e| search.set(e.value()),
+                }
+                div { class: "facet-toggle", role: "radiogroup", aria_label: "{facet_base} / {facet_work}",
+                    button {
+                        class: if facet() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if facet() == FacetKind::Base { "true" } else { "false" },
+                        onclick: move |_| facet.set(FacetKind::Base),
+                        "{facet_base}"
+                    }
+                    button {
+                        class: if facet() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if facet() == FacetKind::Work { "true" } else { "false" },
+                        onclick: move |_| facet.set(FacetKind::Work),
+                        "{facet_work}"
+                    }
                 }
             }
             {
@@ -127,5 +155,60 @@ pub fn PeopleList() -> Element {
             }
             Link { to: Route::PersonNew {}, class: "fab", aria_label: "Add new person", "＋" }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use peoplemodeler_core::models::{OceanScores, RepScores, WorkPersona};
+
+    fn fixture_person() -> Person {
+        Person {
+            id: "i".into(),
+            name: "A".into(),
+            role: String::new(),
+            context: String::new(),
+            avatar_emoji: "🧩".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            persona: Some(WorkPersona {
+                ocean: Some(OceanScores {
+                    extraversion: Some(9),
+                    ..OceanScores::default()
+                }),
+                ..WorkPersona::default()
+            }),
+            ocean: OceanScores {
+                extraversion: Some(2),
+                ..OceanScores::default()
+            },
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 0,
+            updated_at: 0,
+        }
+    }
+
+    #[test]
+    fn list_profile_src_switches_to_merged_persona_on_work() {
+        let p = fixture_person();
+        let base_src = list_profile_src(&p, FacetKind::Base);
+        assert!(base_src.persona.is_some(), "base facet keeps the persona");
+        assert_eq!(base_src.ocean.extraversion, Some(2));
+        let work_src = list_profile_src(&p, FacetKind::Work);
+        assert!(
+            work_src.persona.is_none(),
+            "merged work facet drops the mask"
+        );
+        assert_eq!(work_src.ocean.extraversion, Some(9));
     }
 }

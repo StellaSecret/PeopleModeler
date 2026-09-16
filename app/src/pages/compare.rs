@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::insights::InsightContext;
-use peoplemodeler_core::models::{BehaviorTrigger, Person, RelationType};
+use peoplemodeler_core::models::{BehaviorTrigger, FacetKind, Person, RelationType};
 
 use peoplemodeler_core::synergy::{
     MaskBand, RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds,
@@ -128,8 +128,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let score = brk.total;
             let na = a.name.clone();
             let nb = b.name.clone();
+            let kind = ctx.map(|rc| rc.rtype.facet()).unwrap_or(FacetKind::Base);
+            let (pa, pb) = analysis_pair(&a, &b, kind);
             let (synergies, frictions, (top_strategy, all_strategies)) =
-                compare_analysis(&a, &b, lang());
+                compare_analysis(&pa, &pb, lang());
             let compare_sub = crate::i18n::tr("compare_sub", lang());
             let compare_vs = crate::i18n::tr("compare_vs", lang());
             let compare_asymmetric = crate::i18n::tr("compare_asymmetric", lang());
@@ -649,6 +651,17 @@ fn MiniBars(scores: [Option<u8>; 5]) -> Element {
     }
 }
 
+fn analysis_pair(a: &Person, b: &Person, kind: FacetKind) -> (Person, Person) {
+    if kind == FacetKind::Work {
+        (
+            a.facet_person(FacetKind::Work),
+            b.facet_person(FacetKind::Work),
+        )
+    } else {
+        (a.clone(), b.clone())
+    }
+}
+
 fn compare_analysis(
     a: &Person,
     b: &Person,
@@ -1113,6 +1126,30 @@ fn compare_analysis(
 mod tests {
     use super::*;
     use peoplemodeler_core::models::*;
+
+    #[test]
+    fn analysis_pair_uses_persona_for_work_kind() {
+        let mut a = p("a");
+        a.persona = Some(WorkPersona {
+            ocean: Some(OceanScores {
+                openness: Some(1),
+                ..OceanScores::default()
+            }),
+            resilience: Some(3),
+            risk_appetite: Some(9),
+            ..WorkPersona::default()
+        });
+        let (pa, _) = analysis_pair(&a, &p("b"), FacetKind::Work);
+        assert_eq!(pa.persona, None, "merged work person is persona-agnostic");
+        assert_eq!(pa.ocean.openness, Some(1), "uses persona ocean");
+        assert_eq!(pa.resilience, Some(3), "uses persona resilience");
+        assert_eq!(pa.risk_appetite, Some(9), "uses persona risk appetite");
+        assert_eq!(pa.name, "a", "identity fields carried over");
+
+        let (ba, _) = analysis_pair(&a, &p("b"), FacetKind::Base);
+        assert_eq!(ba.ocean.openness, a.ocean.openness, "base keeps base ocean");
+        assert!(ba.persona.is_some(), "base facet keeps persona");
+    }
 
     fn p(name: &str) -> Person {
         Person {

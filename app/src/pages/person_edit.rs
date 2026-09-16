@@ -199,6 +199,16 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             .and_then(|w| w.values.clone())
             .unwrap_or_else(|| p.values.clone())
     });
+    let mut work_resilience = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.resilience)
+            .unwrap_or_else(|| p.resilience.unwrap_or(5))
+    });
+    let mut work_risk_appetite = use_signal(|| {
+        wp.as_ref()
+            .and_then(|w| w.risk_appetite)
+            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5))
+    });
     let mut has_ocean = use_signal(|| wp.as_ref().is_some_and(|w| w.ocean.is_some()));
     let mut has_rep = use_signal(|| wp.as_ref().is_some_and(|w| w.rep_scores.is_some()));
     let mut has_motivations = use_signal(|| wp.as_ref().is_some_and(|w| w.motivations.is_some()));
@@ -207,6 +217,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         use_signal(|| wp.as_ref().is_some_and(|w| w.behavioral_patterns.is_some()));
     let mut has_styles = use_signal(|| wp.as_ref().is_some_and(|w| w.styles.is_some()));
     let mut has_values = use_signal(|| wp.as_ref().is_some_and(|w| w.values.is_some()));
+    let mut has_resilience = use_signal(|| wp.as_ref().is_some_and(|w| w.resilience.is_some()));
+    let mut has_risk_appetite =
+        use_signal(|| wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()));
 
     let ocean_rep_flags = use_memo(move || {
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
@@ -410,6 +423,16 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     } else {
                         None
                     },
+                    resilience: if has_resilience() {
+                        Some(work_resilience())
+                    } else {
+                        None
+                    },
+                    risk_appetite: if has_risk_appetite() {
+                        Some(work_risk_appetite())
+                    } else {
+                        None
+                    },
                 })
             } else {
                 None
@@ -512,6 +535,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                                     work_patterns.set(p.behavioral_patterns.clone());
                                     work_styles.set(p.styles.clone());
                                     work_values.set(p.values.clone());
+                                    work_resilience.set(p.resilience.unwrap_or(5));
+                                    work_risk_appetite.set(p.risk_appetite.unwrap_or(5));
                                     has_ocean.set(true);
                                     has_rep.set(true);
                                     has_motivations.set(true);
@@ -519,6 +544,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                                     has_patterns.set(true);
                                     has_styles.set(true);
                                     has_values.set(true);
+                                    has_resilience.set(true);
+                                    has_risk_appetite.set(true);
                                 },
                                 "{persona_copy_base}"
                             }
@@ -573,7 +600,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 }
 
                 if edit_mode() == FacetKind::Base {
-                fieldset { class: "ocean-inputs",
+                fieldset { class: "persona-balance",
                     legend { "{persona_balance}" }
                     label { "{form_resilience}" }
                     div { class: "ocean-slider",
@@ -648,7 +675,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         // Resilience & risk appetite
                         div { class: "persona-bucket",
                             div { class: if persona_panel_active(has_resilience(), has_risk_appetite()) { "persona-panel" } else { "persona-panel readonly" },
-                                fieldset { class: "ocean-inputs",
+                                fieldset { class: "persona-balance",
                                     legend { "{persona_balance}" BucketToggle { has: has_resilience } BucketToggle { has: has_risk_appetite } }
                                     label { "{form_resilience}" }
                                     div { class: "ocean-slider",
@@ -1363,6 +1390,10 @@ fn parse_tags(s: &str) -> Vec<Tag> {
         .collect()
 }
 
+fn persona_panel_active(a: bool, b: bool) -> bool {
+    a || b
+}
+
 fn parse_mot_type(s: &str) -> MotivationType {
     match s {
         "Power" => MotivationType::Power,
@@ -2038,5 +2069,13 @@ mod tests {
             parse_tags("").is_empty(),
             "empty input must produce no tags"
         );
+    }
+
+    #[test]
+    fn persona_panel_active_truth_table() {
+        assert!(!persona_panel_active(false, false));
+        assert!(persona_panel_active(true, false));
+        assert!(persona_panel_active(false, true));
+        assert!(persona_panel_active(true, true));
     }
 }
