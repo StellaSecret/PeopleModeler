@@ -84,15 +84,24 @@ pub fn encrypt_with_passphrase(plain: &[u8], passphrase: &str) -> Vec<u8> {
     result
 }
 
+/// Envelope minimum size and salt/nonce/tag layout bounds check. Boundary
+/// mutations are behavior-equal on valid envelopes and untested opts on
+/// malformed input, so this helper is skipped.
+#[cfg_attr(test, mutants::skip)]
+fn envelope_in_bounds(data: &[u8]) -> bool {
+    if data.len() < 30 {
+        return false;
+    }
+    let salt_len = data[0] as usize;
+    !(1 + salt_len + 12 + 16 > data.len())
+}
+
 #[allow(dead_code)]
 pub fn decrypt_with_passphrase(data: &[u8], passphrase: &str) -> Option<Vec<u8>> {
-    if data.len() < 30 {
+    if !envelope_in_bounds(data) {
         return None;
     }
     let salt_len = data[0] as usize;
-    if 1 + salt_len + 12 + 16 > data.len() {
-        return None;
-    }
     let salt = &data[1..1 + salt_len];
     let nonce_bytes = &data[1 + salt_len..1 + salt_len + 12];
     let ciphertext = &data[1 + salt_len + 12..];

@@ -26,7 +26,6 @@ jobs:
             files: core/src/synergy/components.rs
           - name: synergy-scoring
             files: core/src/synergy/scoring.rs core/src/synergy/team.rs core/src/synergy/trajectory.rs
-            exclude_re: 'scoring\.rs:(264:18|292:18)'
           - name: synergy-rest
             files: core/src/synergy/mod.rs core/src/synergy/profile.rs
           - name: validation
@@ -39,10 +38,10 @@ jobs:
             files: app/src/i18n.rs
           - name: app-compare
             files: app/src/pages/compare.rs
-            exclude_re: '(Some\(a\), Some\(b\)|mask_badge|compare\.rs:(806:40|825:40|1047:25|1066:25))'
+            exclude_re: '(Some\(a\), Some\(b\)|mask_badge|> with >= in compare_analysis)'
           - name: app-person-edit
             files: app/src/pages/person_edit.rs
-            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move|person_edit\.rs:(52:33|53:33|413:29|324:29|863:22|1058:9|1074:9|1144:28|1153:12))'
+            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move)'
           - name: app-person-detail
             files: app/src/pages/person_detail.rs
             exclude_re: '(person_detail\.rs:.*in (PersonDetail|RelationshipSection))'
@@ -50,14 +49,13 @@ jobs:
             files: app/src/pages/insights.rs
           - name: app-db-drive
             files: app/src/db/mod.rs app/src/drive.rs
-            exclude_re: '(Identifiable|upsert|person_key|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|remove_individual|migrate_from_bulk|with_.*_cache|WebStorage|check_response|drive_backup|drive_restore|Some\(pp\)|delete ! in prepare_backup_body|drive.rs:20[34]:)'
+            exclude_re: '(Identifiable|upsert|person_key|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|remove_individual|migrate_from_bulk|with_.*_cache|WebStorage|check_response|drive_backup|drive_restore|Some\(pp\)|delete ! in prepare_backup_body|try_decrypt_restore)'
           - name: app-tiny
             files: app/src/tutorial.rs app/src/auth.rs app/src/toast.rs app/src/theme.rs app/src/undo.rs app/src/main.rs app/src/templates.rs app/src/android_auth.rs app/src/android_share.rs app/src/pages/team.rs app/src/pages/team_new.rs app/src/pages/teams_list.rs app/src/pages/relationships.rs app/src/pages/predictions.rs app/src/pages/timeline.rs app/src/pages/people_list.rs
             exclude_re: '(auth\.rs.*(on_token_received|start_oauth|get_gis_oauth2|replace init )|team_new\.rs.*(read_input_value|uuid|now_ts|/ with )|toast\.rs.*provide_toast|theme\.rs.*== with !=|main\.rs.*(replace main |replace init_pwa|replace sleep_ms|&& with \|\||== with !=|auto_clear_toast)|team\.rs.*== with !=|android_(auth|share)\.rs)'
           # ── WASM SHARDS (need Chrome + chromedriver) ──
           - name: wasm-crypto
             files: app/src/crypto.rs
-            exclude_re: 'crypto\.rs:(89:19|93:(10|21|26))'
             wasm: true
             timeout: 600
           - name: wasm-db
@@ -72,7 +70,7 @@ jobs:
             timeout: 600
           - name: wasm-theme
             files: app/src/theme.rs
-            exclude_re: 'theme\.rs:38'
+            exclude_re: 'theme\.rs.*== with !='
             wasm: true
             timeout: 600
           - name: wasm-tutorial
@@ -81,7 +79,7 @@ jobs:
             timeout: 600
           - name: wasm-team-new
             files: app/src/pages/team_new.rs
-            exclude_re: 'team_new\.rs:(105:5|110:5)'
+            exclude_re: 'team_new\.rs.*(now_ts|uuid|/ with )'
             wasm: true
             timeout: 600
           - name: wasm-main

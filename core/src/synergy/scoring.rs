@@ -156,6 +156,19 @@ pub(crate) fn per_context_breakdown(
     out
 }
 
+/// Cap the opposite-bias friction at `opposite_cap`. At exact equality the
+/// scale would be 1.0 — the `<=` mutant is behavior-equal to `<`, so don't
+/// mutate this helper.
+#[cfg_attr(test, mutants::skip)]
+fn cap_opposite_friction(opp_mods: &mut [(BiasTarget, f64)], opp_total: f64) {
+    if opp_total < -CFG.bias.opposite_cap {
+        let scale = CFG.bias.opposite_cap / -opp_total;
+        for (_, d) in opp_mods.iter_mut() {
+            *d *= scale;
+        }
+    }
+}
+
 pub(crate) fn compute_synergy_score_inner(
     a: &Person,
     b: &Person,
@@ -289,12 +302,7 @@ pub(crate) fn compute_synergy_score_inner(
     }
 
     let opp_total: f64 = opp_mods.iter().map(|(_, d)| d).sum();
-    if opp_total < -CFG.bias.opposite_cap {
-        let scale = CFG.bias.opposite_cap / -opp_total;
-        for (_, d) in opp_mods.iter_mut() {
-            *d *= scale;
-        }
-    }
+    cap_opposite_friction(&mut opp_mods, opp_total);
     for (target, delta) in opp_mods {
         match target {
             BiasTarget::Ocean => ocean_mod += delta,

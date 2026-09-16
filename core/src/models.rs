@@ -1489,9 +1489,9 @@ mod tests {
                 notes: String::new(),
             }],
             values: vec![Value {
-                r#type: ValueType::Career,
-                intensity: 7,
-                priority: 8,
+                r#type: ValueType::Health,
+                intensity: 5,
+                priority: 3,
                 notes: String::new(),
             }],
             persona: Some(WorkPersona {

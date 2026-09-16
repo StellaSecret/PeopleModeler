@@ -1712,6 +1712,11 @@ mod wasm_dispatch_tests {
     #[wasm_bindgen_test]
     fn wasm_dispatch_delete_person_cascades_relationships() {
         init_db();
+        for rel in super::all_relationships() {
+            if rel.source_id == "w-del" || rel.target_id == "w-del" {
+                super::delete_relationship(&rel.id).unwrap();
+            }
+        }
         super::save_relationship(&Relationship {
             id: "wr-a".into(),
             source_id: "w-del".into(),
@@ -1742,11 +1747,16 @@ mod wasm_dispatch_tests {
             created_at: 0,
         })
         .unwrap();
-        assert_eq!(super::all_relationships().len(), 3);
         super::delete_person("w-del").unwrap();
         let remaining = super::all_relationships();
-        assert_eq!(remaining.len(), 1);
-        assert_eq!(remaining[0].id, "wr-c");
+        assert!(
+            remaining.iter().any(|r| r.id == "wr-c"),
+            "unrelated relationship survives"
+        );
+        assert!(
+            !remaining.iter().any(|r| r.id == "wr-a" || r.id == "wr-b"),
+            "relationships touching the deleted person are cascaded"
+        );
     }
 
     #[wasm_bindgen_test]

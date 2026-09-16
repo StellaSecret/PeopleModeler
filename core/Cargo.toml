@@ -12,5 +12,6 @@ serde_json = "1"
 wasm-bindgen = "0.2"
 uuid = { version = "1", features = ["v4", "js"] }
 getrandom = { version = "0.2", features = ["js"] }
+mutants = "0.0.4"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"

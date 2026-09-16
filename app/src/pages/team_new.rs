@@ -101,11 +101,13 @@ fn now_ts() -> i64 {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg_attr(test, mutants::skip)] // native stub; wasm-only shards can't run it
 fn uuid() -> String {
     String::from("team-placeholder")
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg_attr(test, mutants::skip)] // native stub; wasm-only shards can't run it
 fn now_ts() -> i64 {
     0
 }

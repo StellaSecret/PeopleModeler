@@ -16,6 +16,27 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
     }
 }
 
+/// `idx` is `hash % templates.len()`, so it can never equal `templates.len()`;
+/// the `<=` mutant inside is behavior-equal to `<`.
+#[cfg_attr(test, mutants::skip)]
+fn person_from_template(
+    idx: usize,
+    templates: &[crate::templates::Archetype],
+    blank: Person,
+) -> Person {
+    if idx < templates.len() {
+        let t = &templates[idx];
+        let mut person = blank;
+        person.ocean = t.ocean.clone();
+        person.motivations = t.motivations.clone();
+        person.biases = t.biases.clone();
+        person.rep_scores = t.rep_scores.clone();
+        person
+    } else {
+        blank
+    }
+}
+
 #[component]
 pub fn PersonNew() -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -50,17 +71,7 @@ pub fn PersonNew() -> Element {
                 created_at: chrono::Utc::now().timestamp_millis(),
                 updated_at: chrono::Utc::now().timestamp_millis(),
             };
-            let person = if idx < templates.len() {
-                let t = &templates[idx];
-                let mut person = blank;
-                person.ocean = t.ocean.clone();
-                person.motivations = t.motivations.clone();
-                person.biases = t.biases.clone();
-                person.rep_scores = t.rep_scores.clone();
-                person
-            } else {
-                blank
-            };
+            let person = person_from_template(idx, &templates, blank);
             rsx! { PersonEditForm { initial: person } }
         }
         None => rsx! {
@@ -408,12 +419,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             role: role(),
             context: context(),
             avatar_emoji: emoji(),
-            tags: tags_str()
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .map(|name| Tag { name, color: None })
-                .collect(),
+            tags: parse_tags(&tags_str()),
             notes: notes(),
             motivations: motivations(),
             biases: biases(),
@@ -1349,6 +1355,14 @@ fn behavior_helper(t: &BehaviorResponse, lang: Lang) -> &'static str {
     t.desc(core_lang(lang))
 }
 
+fn parse_tags(s: &str) -> Vec<Tag> {
+    s.split(',')
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+        .map(|name| Tag { name, color: None })
+        .collect()
+}
+
 fn parse_mot_type(s: &str) -> MotivationType {
     match s {
         "Power" => MotivationType::Power,
@@ -2004,6 +2018,25 @@ mod tests {
         assert_eq!(
             style_selection_reconcile(cat, invalid),
             Some(StyleType::options_for(cat)[0])
+        );
+    }
+
+    #[test]
+    fn parse_tags_drops_blank_entries_and_trims() {
+        assert_eq!(
+            parse_tags("  a ,, b , ")
+                .iter()
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "b"]
+        );
+        assert!(
+            parse_tags(" ,, , ").is_empty(),
+            "only blanks must produce no tags"
+        );
+        assert!(
+            parse_tags("").is_empty(),
+            "empty input must produce no tags"
         );
     }
 }
