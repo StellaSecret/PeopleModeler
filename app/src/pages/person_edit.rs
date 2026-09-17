@@ -150,12 +150,12 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut confidence = use_signal(|| p.confidence);
     let mut resilience = use_signal(|| p.resilience.unwrap_or(5));
     let mut risk_appetite = use_signal(|| p.risk_appetite.unwrap_or(5));
-    let motivations = use_signal(|| p.motivations.clone());
-    let biases = use_signal(|| p.biases.clone());
-    let rep_scores = use_signal(|| p.rep_scores.clone());
-    let patterns = use_signal(|| p.behavioral_patterns.clone());
-    let styles = use_signal(|| p.styles.clone());
-    let values = use_signal(|| p.values.clone());
+    let mut motivations = use_signal(|| p.motivations.clone());
+    let mut biases = use_signal(|| p.biases.clone());
+    let mut rep_scores = use_signal(|| p.rep_scores.clone());
+    let mut patterns = use_signal(|| p.behavioral_patterns.clone());
+    let mut styles = use_signal(|| p.styles.clone());
+    let mut values = use_signal(|| p.values.clone());
     let mut edit_mode = use_signal(|| FacetKind::Base);
 
     // --- Work persona (mask) state ---
@@ -497,9 +497,164 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let persona_clear = crate::i18n::tr("persona_clear", lang());
     let persona_balance = crate::i18n::tr("persona_balance_title", lang());
     let facet_base = crate::i18n::tr("facet_base", lang());
+    let edit_motivations = crate::i18n::tr("edit_motivations", lang());
+    let edit_biases = crate::i18n::tr("edit_biases", lang());
+    let edit_reputation = crate::i18n::tr("edit_reputation", lang());
+    let edit_patterns = crate::i18n::tr("edit_patterns", lang());
+    let edit_styles = crate::i18n::tr("edit_styles", lang());
+    let edit_values = crate::i18n::tr("edit_values", lang());
+
+    // Built from the originally-loaded person (`p`/`wp`), NOT from the live
+    // signals — those change on every keystroke/slider move, and since this
+    // whole component body re-runs on every such change (Dioxus reactivity),
+    // reading the live signals here would make "saved" always equal to
+    // whatever was just edited, so Discard would revert a section to itself
+    // and appear to do nothing. `p` and `wp` are derived from the `initial`
+    // prop each render but that prop itself never changes during editing,
+    // so they reliably still hold the values as-loaded.
+    let saved = SavedSections {
+        ocean: p.ocean.clone(),
+        resilience: p.resilience.unwrap_or(5),
+        risk_appetite: p.risk_appetite.unwrap_or(5),
+        motivations: p.motivations.clone(),
+        biases: p.biases.clone(),
+        rep_scores: p.rep_scores.clone(),
+        patterns: p.behavioral_patterns.clone(),
+        styles: p.styles.clone(),
+        values: p.values.clone(),
+        work_ocean: wp
+            .as_ref()
+            .and_then(|w| w.ocean.clone())
+            .unwrap_or_else(|| p.ocean.clone()),
+        work_resilience: wp
+            .as_ref()
+            .and_then(|w| w.resilience)
+            .unwrap_or_else(|| p.resilience.unwrap_or(5)),
+        work_risk_appetite: wp
+            .as_ref()
+            .and_then(|w| w.risk_appetite)
+            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5)),
+        work_motivations: wp
+            .as_ref()
+            .and_then(|w| w.motivations.clone())
+            .unwrap_or_else(|| p.motivations.clone()),
+        work_biases: wp
+            .as_ref()
+            .and_then(|w| w.biases.clone())
+            .unwrap_or_else(|| p.biases.clone()),
+        work_rep: wp
+            .as_ref()
+            .and_then(|w| w.rep_scores.clone())
+            .unwrap_or_else(|| p.rep_scores.clone()),
+        work_patterns: wp
+            .as_ref()
+            .and_then(|w| w.behavioral_patterns.clone())
+            .unwrap_or_else(|| p.behavioral_patterns.clone()),
+        work_styles: wp
+            .as_ref()
+            .and_then(|w| w.styles.clone())
+            .unwrap_or_else(|| p.styles.clone()),
+        work_values: wp
+            .as_ref()
+            .and_then(|w| w.values.clone())
+            .unwrap_or_else(|| p.values.clone()),
+        has_ocean: wp.as_ref().is_some_and(|w| w.ocean.is_some()),
+        has_rep: wp.as_ref().is_some_and(|w| w.rep_scores.is_some()),
+        has_motivations: wp.as_ref().is_some_and(|w| w.motivations.is_some()),
+        has_biases: wp.as_ref().is_some_and(|w| w.biases.is_some()),
+        has_patterns: wp.as_ref().is_some_and(|w| w.behavioral_patterns.is_some()),
+        has_styles: wp.as_ref().is_some_and(|w| w.styles.is_some()),
+        has_values: wp.as_ref().is_some_and(|w| w.values.is_some()),
+        has_resilience: wp.as_ref().is_some_and(|w| w.resilience.is_some()),
+        has_risk_appetite: wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()),
+    };
+
+    // Wrapped in Rc<RefCell<...>> so it can be cheaply cloned into each
+    // section's own "discard" button handler below (it needs FnMut, since
+    // calling .set() on the captured signals requires mutable access to
+    // this closure's own captured copies), instead of being moved/consumed
+    // by the first one.
+    let discard: std::rc::Rc<std::cell::RefCell<dyn FnMut(EditSectionId)>> =
+        std::rc::Rc::new(std::cell::RefCell::new(move |section: EditSectionId| {
+            let base = is_base_facet(edit_mode());
+            match section {
+                EditSectionId::ResilienceRisk => {
+                    if base {
+                        resilience.set(saved.resilience);
+                        risk_appetite.set(saved.risk_appetite);
+                    } else {
+                        work_resilience.set(saved.work_resilience);
+                        work_risk_appetite.set(saved.work_risk_appetite);
+                        has_resilience.set(saved.has_resilience);
+                        has_risk_appetite.set(saved.has_risk_appetite);
+                    }
+                }
+                EditSectionId::Ocean => {
+                    if base {
+                        ocean.set(saved.ocean.clone());
+                    } else {
+                        work_ocean.set(saved.work_ocean.clone());
+                        has_ocean.set(saved.has_ocean);
+                    }
+                }
+                EditSectionId::Motivations => {
+                    if base {
+                        motivations.set(saved.motivations.clone());
+                    } else {
+                        work_motivations.set(saved.work_motivations.clone());
+                        has_motivations.set(saved.has_motivations);
+                    }
+                }
+                EditSectionId::Biases => {
+                    if base {
+                        biases.set(saved.biases.clone());
+                    } else {
+                        work_biases.set(saved.work_biases.clone());
+                        has_biases.set(saved.has_biases);
+                    }
+                }
+                EditSectionId::Reputation => {
+                    if base {
+                        rep_scores.set(saved.rep_scores.clone());
+                    } else {
+                        work_rep.set(saved.work_rep.clone());
+                        has_rep.set(saved.has_rep);
+                    }
+                }
+                EditSectionId::Patterns => {
+                    if base {
+                        patterns.set(saved.patterns.clone());
+                    } else {
+                        work_patterns.set(saved.work_patterns.clone());
+                        has_patterns.set(saved.has_patterns);
+                    }
+                }
+                EditSectionId::Styles => {
+                    if base {
+                        styles.set(saved.styles.clone());
+                    } else {
+                        work_styles.set(saved.work_styles.clone());
+                        has_styles.set(saved.has_styles);
+                    }
+                }
+                EditSectionId::Values => {
+                    if base {
+                        values.set(saved.values.clone());
+                    } else {
+                        work_values.set(saved.work_values.clone());
+                        has_values.set(saved.has_values);
+                    }
+                }
+            }
+        }));
+
+    // All sections start expanded so the form is fully usable/testable
+    // without first clicking through an accordion; collapsing a section
+    // is an opt-in convenience, not the default state.
+    let open_sec = use_signal(|| ALL_EDIT_SECTIONS.to_vec());
 
     rsx! {
-        div { class: "page",
+        div { class: "page page-edit",
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
                 div { class: "facet-bar edit-mode-bar",
@@ -515,8 +670,8 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             "{persona_section}",
                         }
                     }
-                    if edit_mode() == FacetKind::Work {
-                        div { class: "persona-actions",
+                    div { class: "persona-actions",
+                        if edit_mode() == FacetKind::Work {
                             label { class: "dim-toggle",
                                 input { r#type: "checkbox",
                                     checked: persona_enabled(),
@@ -600,27 +755,58 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 }
 
                 if edit_mode() == FacetKind::Base {
-                fieldset { class: "persona-balance",
-                    legend { "{persona_balance}" }
-                    label { "{form_resilience}" }
-                    div { class: "ocean-slider",
-                        StepperSlider {
-                            min: 1, max: 10, value: resilience(), display: format!("{}/10", resilience()),
-                            onchange: move |v| resilience.set(v),
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::ResilienceRisk,
+                    title: persona_balance,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::ResilienceRisk) })),
+                    fieldset { class: "persona-balance",
+                        legend { "{persona_balance}" }
+                        label { "{form_resilience}" }
+                        div { class: "ocean-slider",
+                            StepperSlider {
+                                min: 1, max: 10, value: resilience(), display: format!("{}/10", resilience()),
+                                onchange: move |v| resilience.set(v),
+                            }
                         }
-                    }
 
-                    label { "{form_risk_appetite}" }
-                    div { class: "ocean-slider",
-                        StepperSlider {
-                            min: 1, max: 10, value: risk_appetite(), display: format!("{}/10", risk_appetite()),
-                            onchange: move |v| risk_appetite.set(v),
+                        label { "{form_risk_appetite}" }
+                        div { class: "ocean-slider",
+                            StepperSlider {
+                                min: 1, max: 10, value: risk_appetite(), display: format!("{}/10", risk_appetite()),
+                                onchange: move |v| risk_appetite.set(v),
+                            }
                         }
                     }
                 }
 
-                fieldset { class: "ocean-inputs",
-                    legend { "{form_ocean_title}" }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Ocean,
+                    title: form_ocean_title,
+                    header: {
+                        let flags = ocean_rep_flags();
+                        if flags.is_empty() {
+                            None
+                        } else {
+                            let tooltip = flags
+                                .iter()
+                                .map(|k| crate::i18n::tr(k, lang()))
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            Some(rsx! {
+                                span {
+                                    class: "warning-badge",
+                                    title: "{tooltip}",
+                                    "⚠ {flags.len()}"
+                                }
+                            })
+                        }
+                    },
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
+                    fieldset { class: "ocean-inputs",
+                        legend { "{form_ocean_title}" }
                     OceanSlider {
                         label: crate::i18n::tr("ocean_openness", lang()),
                         val: ocean().openness,
@@ -656,27 +842,75 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
                         high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
                     }
-                }
-                for key in ocean_rep_flags() {
-                    div { class: "danger-warning", "⚠ {crate::i18n::tr(key, lang())}" }
+                    }
                 }
 
-                MotEditPanel { motivations, lang: cl, has_override: None }
-                BiasEditPanel { biases, lang: cl, has_override: None }
-                RepEditPanel { rep_scores, lang: cl, has_override: None }
-                PatternEditPanel { patterns, lang: lang(), has_override: None }
-                StyleEditPanel { styles, lang: cl, has_override: None }
-                ValEditPanel { values, lang: cl, has_override: None }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Motivations,
+                    title: edit_motivations,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
+                    MotEditPanel { motivations, lang: cl, has_override: None }
+                }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Biases,
+                    title: edit_biases,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
+                    BiasEditPanel { biases, lang: cl, has_override: None }
+                }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Reputation,
+                    title: edit_reputation,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
+                    RepEditPanel { rep_scores, lang: cl, has_override: None }
+                }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Patterns,
+                    title: edit_patterns,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
+                    PatternEditPanel { patterns, lang: lang(), has_override: None }
+                }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Styles,
+                    title: edit_styles,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
+                    StyleEditPanel { styles, lang: cl, has_override: None }
+                }
+                EditSection {
+                    open: open_sec,
+                    id: EditSectionId::Values,
+                    title: edit_values,
+                    header: None,
+                    on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
+                    ValEditPanel { values, lang: cl, has_override: None }
+                }
                 }
 
                 if edit_mode() == FacetKind::Work {
                 // ---- Work persona (mask) ----
                 if persona_enabled() {
                         // Resilience & risk appetite
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::ResilienceRisk,
+                            title: persona_balance,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_resilience }
+                                BucketToggle { has: has_risk_appetite }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::ResilienceRisk) })),
                             div { class: if persona_panel_active(has_resilience(), has_risk_appetite()) { "persona-panel" } else { "persona-panel readonly" },
                                 fieldset { class: "persona-balance",
-                                    legend { "{persona_balance}" BucketToggle { has: has_resilience } BucketToggle { has: has_risk_appetite } }
+                                    legend { "{persona_balance}" }
                                     label { "{form_resilience}" }
                                     div { class: "ocean-slider",
                                         StepperSlider {
@@ -696,10 +930,17 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         }
 
                         // OCEAN
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Ocean,
+                            title: form_ocean_title,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_ocean }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
                             div { class: if has_ocean() { "persona-panel" } else { "persona-panel readonly" },
                                 fieldset { class: "ocean-inputs",
-                                    legend { "{form_ocean_title}" BucketToggle { has: has_ocean } }
+                                    legend { "{form_ocean_title}" }
                                     OceanSlider {
                                         label: crate::i18n::tr("ocean_openness", lang()),
                                         val: work_ocean().openness,
@@ -740,50 +981,92 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         }
 
                         // Motivations
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Motivations,
+                            title: edit_motivations,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_motivations }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
                             div { class: if has_motivations() { "persona-panel" } else { "persona-panel readonly" },
-                                MotEditPanel { motivations: work_motivations, lang: cl, has_override: Some(has_motivations) }
+                                MotEditPanel { motivations: work_motivations, lang: cl, has_override: None }
                             }
                         }
 
                         // Biases
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Biases,
+                            title: edit_biases,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_biases }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
                             div { class: if has_biases() { "persona-panel" } else { "persona-panel readonly" },
-                                BiasEditPanel { biases: work_biases, lang: cl, has_override: Some(has_biases) }
+                                BiasEditPanel { biases: work_biases, lang: cl, has_override: None }
                             }
                         }
 
                         // Reputation
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Reputation,
+                            title: edit_reputation,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_rep }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
                             div { class: if has_rep() { "persona-panel" } else { "persona-panel readonly" },
-                                RepEditPanel { rep_scores: work_rep, lang: cl, has_override: Some(has_rep) }
+                                RepEditPanel { rep_scores: work_rep, lang: cl, has_override: None }
                             }
                         }
 
                         // Patterns
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Patterns,
+                            title: edit_patterns,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_patterns }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
                             div { class: if has_patterns() { "persona-panel" } else { "persona-panel readonly" },
-                                PatternEditPanel { patterns: work_patterns, lang: lang(), has_override: Some(has_patterns) }
+                                PatternEditPanel { patterns: work_patterns, lang: lang(), has_override: None }
                             }
                         }
 
                         // Styles
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Styles,
+                            title: edit_styles,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_styles }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
                             div { class: if has_styles() { "persona-panel" } else { "persona-panel readonly" },
-                                StyleEditPanel { styles: work_styles, lang: cl, has_override: Some(has_styles) }
+                                StyleEditPanel { styles: work_styles, lang: cl, has_override: None }
                             }
                         }
 
                         // Values
-                        div { class: "persona-bucket",
+                        EditSection {
+                            open: open_sec,
+                            id: EditSectionId::Values,
+                            title: edit_values,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_values }
+                            }),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
                             div { class: if has_values() { "persona-panel" } else { "persona-panel readonly" },
-                                ValEditPanel { values: work_values, lang: cl, has_override: Some(has_values) }
+                                ValEditPanel { values: work_values, lang: cl, has_override: None }
                             }
                         }
                     }
                 }
 
-                div { class: "form-actions",
+                div { class: "edit-actions-bar form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
                     Link { to: Route::PeopleList {}, class: "btn", aria_label: "{form_cancel}", "{form_cancel}" }
                 }
@@ -801,6 +1084,50 @@ fn BucketToggle(has: Signal<bool>) -> Element {
                 oninput: move |e| has.set(e.value() == "true")
             }
             if has() { "Override" } else { "Inherits base" }
+        }
+    }
+}
+
+#[component]
+fn EditSection(
+    open: Signal<Vec<EditSectionId>>,
+    id: EditSectionId,
+    title: &'static str,
+    header: Option<Element>,
+    on_discard: Option<EventHandler<()>>,
+    children: Element,
+) -> Element {
+    let is_open = open().contains(&id);
+    rsx! {
+        div {
+            class: "edit-section",
+            class: if is_open { "open" },
+            div { class: "edit-section-header",
+                button {
+                    class: "edit-section-toggle",
+                    aria_label: "{title}",
+                    aria_expanded: is_open,
+                    onclick: move |_| open.set(toggle_section(open(), id)),
+                    span { class: "chevron", if is_open { "▾" } else { "▸" } }
+                    span { "{title}" }
+                }
+                if let Some(h) = header {
+                    div { class: "edit-section-badge", { h } }
+                }
+                if let Some(d) = on_discard {
+                    button {
+                        class: "btn btn-small edit-section-discard",
+                        r#type: "button",
+                        aria_label: "Discard {title}",
+                        onclick: move |_| d.call(()),
+                        "↺"
+                    }
+                }
+            }
+            // Kept mounted (just visually collapsed) rather than unmounted
+            // when closed, so section content stays in the DOM for
+            // scripts/tests/accessibility tools that query it directly.
+            div { class: if is_open { "edit-section-body" } else { "edit-section-body collapsed" }, { children } }
         }
     }
 }
@@ -1392,6 +1719,81 @@ fn parse_tags(s: &str) -> Vec<Tag> {
 
 fn persona_panel_active(a: bool, b: bool) -> bool {
     a || b
+}
+
+// Extracted so it's directly unit-testable: the discard closure that uses
+// this lives inside a Dioxus component and needs a live render context, so
+// cargo-mutants had no test able to exercise this comparison in isolation
+// (== -> != survived as an undetected mutant). A plain function keeps the
+// same behavior but can be called straight from a #[test].
+fn is_base_facet(mode: FacetKind) -> bool {
+    mode == FacetKind::Base
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum EditSectionId {
+    ResilienceRisk,
+    Ocean,
+    Motivations,
+    Biases,
+    Reputation,
+    Patterns,
+    Styles,
+    Values,
+}
+
+const ALL_EDIT_SECTIONS: [EditSectionId; 8] = [
+    EditSectionId::ResilienceRisk,
+    EditSectionId::Ocean,
+    EditSectionId::Motivations,
+    EditSectionId::Biases,
+    EditSectionId::Reputation,
+    EditSectionId::Patterns,
+    EditSectionId::Styles,
+    EditSectionId::Values,
+];
+
+// Sections open independently (not a single-open accordion): toggling one
+// section never hides the others, so the whole form stays usable/testable
+// at once. Each id just gets added to / removed from the open set.
+fn toggle_section(mut current: Vec<EditSectionId>, target: EditSectionId) -> Vec<EditSectionId> {
+    if let Some(pos) = current.iter().position(|x| *x == target) {
+        current.remove(pos);
+    } else {
+        current.push(target);
+    }
+    current
+}
+
+#[derive(Clone)]
+struct SavedSections {
+    ocean: OceanScores,
+    resilience: u8,
+    risk_appetite: u8,
+    motivations: Vec<Motivation>,
+    biases: Vec<Bias>,
+    rep_scores: RepScores,
+    patterns: Vec<BehavioralPattern>,
+    styles: Vec<PersonalStyle>,
+    values: Vec<Value>,
+    work_ocean: OceanScores,
+    work_resilience: u8,
+    work_risk_appetite: u8,
+    work_motivations: Vec<Motivation>,
+    work_biases: Vec<Bias>,
+    work_rep: RepScores,
+    work_patterns: Vec<BehavioralPattern>,
+    work_styles: Vec<PersonalStyle>,
+    work_values: Vec<Value>,
+    has_ocean: bool,
+    has_rep: bool,
+    has_motivations: bool,
+    has_biases: bool,
+    has_patterns: bool,
+    has_styles: bool,
+    has_values: bool,
+    has_resilience: bool,
+    has_risk_appetite: bool,
 }
 
 fn parse_mot_type(s: &str) -> MotivationType {
@@ -2077,5 +2479,25 @@ mod tests {
         assert!(persona_panel_active(true, false));
         assert!(persona_panel_active(false, true));
         assert!(persona_panel_active(true, true));
+    }
+
+    #[test]
+    fn is_base_facet_distinguishes_base_and_work() {
+        assert!(is_base_facet(FacetKind::Base), "Base facet is base");
+        assert!(!is_base_facet(FacetKind::Work), "Work facet is not base");
+    }
+
+    #[test]
+    fn toggle_section_opens_and_closes_independently() {
+        let a = EditSectionId::Ocean;
+        let b = EditSectionId::ResilienceRisk;
+        let open = toggle_section(vec![], a);
+        assert_eq!(open, vec![a], "opens a from nothing open");
+        let open = toggle_section(open, b);
+        assert_eq!(open, vec![a, b], "opening b leaves a open too");
+        let open = toggle_section(open, a);
+        assert_eq!(open, vec![b], "closing a leaves b open");
+        let open = toggle_section(open, b);
+        assert!(open.is_empty(), "closing the last one leaves nothing open");
     }
 }

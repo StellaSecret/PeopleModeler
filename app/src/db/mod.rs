@@ -156,6 +156,15 @@ fn person_key(id: &str) -> String {
     format!("person_{id}")
 }
 
+// Not cfg-gated (unlike its only caller, WebStorage::delete_person, which
+// is wasm32-only) so it's directly exercised by the native `#[cfg(test)]`
+// unit tests below rather than only reachable via a wasm test harness.
+// dead_code fires on native builds where the wasm-only caller is absent.
+#[allow(dead_code)]
+fn relationship_touches_person(rel: &Relationship, id: &str) -> bool {
+    rel.source_id == id || rel.target_id == id
+}
+
 #[cfg(target_arch = "wasm32")]
 fn prediction_key(id: &str) -> String {
     format!("pred_{id}")
@@ -386,10 +395,10 @@ impl StorageBackend for WebStorage {
             if let Some(ref mut all) = *cache {
                 let gone: Vec<String> = all
                     .iter()
-                    .filter(|r| r.source_id == id || r.target_id == id)
+                    .filter(|r| relationship_touches_person(r, id))
                     .map(|r| r.id.clone())
                     .collect();
-                all.retain(|r| r.source_id != id && r.target_id != id);
+                all.retain(|r| !relationship_touches_person(r, id));
                 gone
             } else {
                 Vec::new()
@@ -818,6 +827,36 @@ mod tests {
             notes: String::new(),
             created_at: 400,
         }
+    }
+
+    // Covers all four branches of `a == id || b == id` (both match, only
+    // source matches, only target matches, neither matches) so mutating
+    // either `==` to `!=`, or the `||` to `&&`, is caught.
+    #[test]
+    fn test_relationship_touches_person() {
+        let rel = sample_relationship(); // source_id "src-1", target_id "tgt-1"
+        assert!(
+            relationship_touches_person(&rel, "src-1"),
+            "matches as source"
+        );
+        assert!(
+            relationship_touches_person(&rel, "tgt-1"),
+            "matches as target"
+        );
+        assert!(
+            !relationship_touches_person(&rel, "someone-else"),
+            "matches neither source nor target"
+        );
+
+        let self_rel = Relationship {
+            source_id: "same".into(),
+            target_id: "same".into(),
+            ..sample_relationship()
+        };
+        assert!(
+            relationship_touches_person(&self_rel, "same"),
+            "matches both source and target"
+        );
     }
 
     // --- Person CRUD ---
