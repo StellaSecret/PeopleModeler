@@ -243,11 +243,17 @@ body{
 .person-header .facet-btn{background:transparent;border:none;color:var(--text-muted);font-family:var(--font-body);font-size:0.78rem;padding:0.25rem 0.8rem;border-radius:100px;cursor:pointer}
 .facet-btn{background:transparent;border:none;color:var(--text-muted);font-family:var(--font-body);font-size:0.78rem;padding:0.25rem 0.8rem;border-radius:100px;cursor:pointer}
 .facet-btn.active{background:var(--accent);color:var(--on-accent)}
-.edit-mode-bar{position:-webkit-sticky;position:sticky;top:var(--top-bar-h,calc(64px + env(safe-area-inset-top,0px)));z-index:200;width:100%;padding:0.35rem 0;background:var(--nav-bg);display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap}
-.persona-actions{display:flex;align-items:center;gap:0.4rem}
+.edit-mode-bar{position:-webkit-sticky;position:sticky;top:var(--top-bar-h,calc(64px + env(safe-area-inset-top,0px)));z-index:200;width:100%;padding:0.35rem 0;background:var(--nav-bg);display:flex;flex-direction:column;align-items:stretch;gap:0.45rem}
+.edit-mode-bar .facet-toggle{align-self:flex-start}
+/* The persona actions row is rendered in BOTH facets (empty in Personal
+   life) so the bar keeps the same height in Personal life vs At work even
+   on narrow screens — previously At work only rendered this row, which
+   wrapped the toolbar to a second line on mobile and pushed every section
+   below it down by that extra height. */
+.persona-actions{width:100%;display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;flex-wrap:nowrap;min-height:2.4rem}
 .persona-panel.readonly{opacity:0.45;pointer-events:none}
 .persona-panel.readonly .bucket-toggle{pointer-events:auto}
-.bucket-toggle{font-size:0.72rem;color:var(--text-muted);cursor:pointer}
+.bucket-toggle{flex:none;white-space:nowrap;font-size:0.72rem;color:var(--text-muted);cursor:pointer}
 .bucket-toggle input{vertical-align:middle;margin-right:0.25rem;accent-color:var(--cyan);cursor:pointer}
 .mask-badge{display:inline-block;font-size:0.72rem;font-weight:700;font-family:var(--font-mono);letter-spacing:0.02em;padding:0.15rem 0.7rem;border-radius:100px;margin-top:0.35rem}
 .mask-badge.mask-low{color:var(--score-good);border:1px solid currentColor}
@@ -352,6 +358,54 @@ fieldset.section legend{
 .form textarea{font-family:var(--font-body);resize:vertical}
 .form input::placeholder,.form textarea::placeholder{color:var(--text-muted)}
 .form-actions{display:flex;gap:0.75rem;margin-top:1.5rem;justify-content:flex-end}
+
+/* ── EDIT SECTIONS (drill-down accordion) ── */
+.edit-section{
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  background:var(--surface);margin-top:0.75rem;overflow:hidden
+}
+.edit-section-header{display:flex;align-items:center;gap:0.4rem;min-height:2.6rem;padding:0 0.6rem}
+.edit-section-toggle{
+  flex:1;min-width:0;display:flex;align-items:center;gap:0.5rem;text-align:left;
+  background:none;border:none;color:var(--text);font:inherit;font-weight:600;
+  padding:0.6rem 0.4rem;cursor:pointer
+}
+.edit-section-toggle:hover{color:var(--cyan)}
+/* The title must never wrap: on narrow (mobile) widths the header badges
+   (e.g. two "Inherits base" checkboxes in Work Persona, absent in
+   Personal life) squeeze the title's available space, and without this
+   it wraps to multiple lines — giving the two facet tabs different
+   header heights and breaking the pixel alignment between them. Truncate
+   with an ellipsis instead; the full text is still on the button via
+   aria-label/title for anyone who needs it. */
+.edit-section-toggle span:last-child{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0
+}
+.chevron{flex:none;width:1rem;color:var(--text-muted);font-size:0.8rem;transition:transform 0.15s}
+.edit-section.open .chevron{transform:rotate(90deg)}
+.edit-section-badge{flex:none;display:flex;align-items:center;gap:0.5rem}
+.edit-section-discard{flex:none}
+.edit-section-body{border-top:1px solid var(--border);padding:0.8rem}
+/* Collapsed sections stay mounted (so scripts/tests/a11y tools can still
+   query their contents) but are visually hidden and take no layout space. */
+.edit-section-body.collapsed{display:none}
+.edit-actions-bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:200;
+  display:flex;gap:0.75rem;align-items:center;justify-content:flex-end;
+  padding:0.6rem 1rem;background:var(--nav-bg);border-top:1px solid var(--border)
+}
+/* Small fixed-size indicator for section-level consistency warnings
+   (e.g. OCEAN vs Reputation self-report gaps). Lives in the section
+   header rather than the body so it never changes the section's height
+   — Personal life and Work Persona bodies stay pixel-aligned even when
+   only one of them has something to flag. Full text is on hover/tap via
+   the title attribute rather than inline, to keep the badge one line. */
+.warning-badge{
+  font-size:0.65rem;color:var(--accent);font-weight:600;letter-spacing:0.03em;
+  padding:0.1rem 0.4rem;border:1px solid var(--accent);border-radius:4px;
+  white-space:nowrap;cursor:help
+}
+.page-edit{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
 
 /* ── OCEAN INPUTS ── */
 fieldset.ocean-inputs{
@@ -540,6 +594,8 @@ fieldset.persona-balance legend{
   .nav-links a{font-size:0.75rem}
   .content{padding:0.75rem;padding-bottom:4rem}
   .table-wrap{overflow-x:auto}
+  .persona-actions{min-height:2.2rem}
+  .persona-actions .btn{font-size:0.7rem;padding:0.3rem 0.6rem}
 }
 @media(max-width:360px){
   .table-wrap{overflow-x:auto}
@@ -682,6 +738,16 @@ fieldset.persona-balance legend{
 
 /* Helper text for selectors */
 .helper-text{font-size:0.75rem;color:var(--text-muted);margin:0.2rem 0 0.5rem 0;font-style:italic;padding-left:0.2rem}
+/* Standard visually-hidden utility: keeps content in the DOM (and
+   announced by screen readers) without showing it on screen or affecting
+   layout. Used on the section fieldsets' own <legend> — the accordion
+   header above already shows the same title visibly, but a <fieldset>
+   should still have a real <legend> for accessibility and for anything
+   (tests included) that looks up the section by its semantic label. */
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
+}
 
 /* ── SECTION ITEMS (fixed-height scroll window) ──
    Keeps each editable list/slider-set the same height regardless of how

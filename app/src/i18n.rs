@@ -860,6 +860,7 @@ fn en(key: &'static str) -> &'static str {
         "persona_copy_base" => "Copy from base profile",
         "persona_clear" => "Clear mask",
         "persona_balance_title" => "Resilience & Risk Appetite",
+        "edit_discard_section" => "Discard",
 
         // Facet toggle
         "facet_auto" => "Automatic",
@@ -1663,6 +1664,7 @@ fn fr(key: &'static str) -> &'static str {
         "persona_copy_base" => "Copier depuis le profil de base",
         "persona_clear" => "Effacer le masque",
         "persona_balance_title" => "Résilience & Appétence Risque",
+        "edit_discard_section" => "Rétablir",
 
         // Facet toggle
         "facet_auto" => "Automatique",
@@ -1751,6 +1753,7 @@ mod tests {
         "delete_btn",
         "edit_biases",
         "edit_btn",
+        "edit_discard_section",
         "edit_evidence_placeholder",
         "edit_motivations",
         "edit_notes_placeholder",
