@@ -106,39 +106,42 @@ pub fn delete_team(id: &str) -> Result<(), String> {
     db().delete_team(id)
 }
 
-#[cfg(target_arch = "wasm32")]
+// Compiled on wasm and under native tests (where the web_sys boundary is
+// absent) so this pure logic is exercised by the ordinary `#[cfg(test)]`
+// suite instead of only a browser harness.
+#[cfg(any(target_arch = "wasm32", test))]
 trait Identifiable {
     fn id(&self) -> &str;
 }
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 impl Identifiable for Person {
     fn id(&self) -> &str {
         &self.id
     }
 }
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 impl Identifiable for Prediction {
     fn id(&self) -> &str {
         &self.id
     }
 }
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 impl Identifiable for Relationship {
     fn id(&self) -> &str {
         &self.id
     }
 }
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 impl Identifiable for Team {
     fn id(&self) -> &str {
         &self.id
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-fn upsert<T: Clone + PartialEq>(vec: &mut Vec<T>, item: &T)
+#[cfg(any(target_arch = "wasm32", test))]
+fn upsert<T>(vec: &mut Vec<T>, item: &T)
 where
-    T: Identifiable,
+    T: Clone + PartialEq + Identifiable,
 {
     if let Some(i) = vec.iter().position(|x| x.id() == item.id()) {
         vec[i] = item.clone();
@@ -151,33 +154,64 @@ where
 #[cfg(target_arch = "wasm32")]
 use gloo_storage::Storage;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 fn person_key(id: &str) -> String {
     format!("person_{id}")
 }
 
-// Not cfg-gated (unlike its only caller, WebStorage::delete_person, which
-// is wasm32-only) so it's directly exercised by the native `#[cfg(test)]`
-// unit tests below rather than only reachable via a wasm test harness.
-// dead_code fires on native builds where the wasm-only caller is absent.
-#[allow(dead_code)]
 fn relationship_touches_person(rel: &Relationship, id: &str) -> bool {
     rel.source_id == id || rel.target_id == id
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
+fn touched_relationship_ids(rels: &[Relationship], id: &str) -> Vec<String> {
+    rels.iter()
+        .filter(|r| relationship_touches_person(r, id))
+        .map(|r| r.id.clone())
+        .collect()
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
+fn filter_predictions_for_person(preds: &[Prediction], person_id: &str) -> Vec<Prediction> {
+    preds
+        .iter()
+        .filter(|p| p.person_id == person_id)
+        .cloned()
+        .collect()
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
 fn prediction_key(id: &str) -> String {
     format!("pred_{id}")
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 fn relationship_key(id: &str) -> String {
     format!("rel_{id}")
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 fn team_key(id: &str) -> String {
     format!("team_{id}")
+}
+
+/// Pure tail of the encrypted-storage read path: base64 decode, decrypt via
+/// `decrypt` (injected so native tests can substitute a fake), UTF-8, JSON.
+/// The caller keeps the `LocalStorage` access at the boundary.
+#[cfg(any(target_arch = "wasm32", test))]
+fn decode_encrypted_json<T, F>(b64: &str, decrypt: F) -> Option<T>
+where
+    T: serde::de::DeserializeOwned,
+    F: FnOnce(&[u8]) -> Option<Vec<u8>>,
+{
+    use base64::Engine;
+    if b64.is_empty() {
+        return None;
+    }
+    let enc = base64::engine::general_purpose::STANDARD.decode(b64).ok()?;
+    let dec = decrypt(&enc)?;
+    let json = String::from_utf8(dec).ok()?;
+    serde_json::from_str(&json).ok()
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -191,19 +225,8 @@ fn store_individual<T: serde::Serialize>(key: &str, val: &T) -> Result<(), Strin
 
 #[cfg(target_arch = "wasm32")]
 fn load_individual<T: serde::de::DeserializeOwned>(key: &str) -> Option<T> {
-    use base64::Engine;
-    let Ok(b64) = gloo_storage::LocalStorage::get::<String>(key) else {
-        return None;
-    };
-    if b64.is_empty() {
-        return None;
-    }
-    let enc = base64::engine::general_purpose::STANDARD
-        .decode(&b64)
-        .ok()?;
-    let dec = crate::crypto::decrypt(&enc)?;
-    let json = String::from_utf8(dec).ok()?;
-    serde_json::from_str(&json).ok()
+    let b64 = gloo_storage::LocalStorage::get::<String>(key).ok()?;
+    decode_encrypted_json(&b64, crate::crypto::decrypt)
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -239,64 +262,24 @@ fn remove_individual(key: &str) {
 /// Called once during init().
 #[cfg(target_arch = "wasm32")]
 fn migrate_from_bulk() {
-    use base64::Engine;
-
-    // Persons
-    let old_b64: Option<String> = gloo_storage::LocalStorage::get("pm_persons").ok();
-    if let Some(ref b64) = old_b64 {
-        if !b64.is_empty() {
-            if let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(b64) {
-                if let Some(dec) = crate::crypto::decrypt(&enc) {
-                    if let Ok(json) = String::from_utf8(dec) {
-                        if let Ok(persons) = serde_json::from_str::<Vec<Person>>(&json) {
-                            for p in &persons {
-                                let _ = store_individual(&person_key(&p.id), p);
-                            }
-                        }
-                    }
+    fn migrate<T>(bulk_key: &str, item_prefix: &str)
+    where
+        T: serde::de::DeserializeOwned + serde::Serialize + Identifiable,
+    {
+        let old_b64: Option<String> = gloo_storage::LocalStorage::get(bulk_key).ok();
+        if let Some(ref b64) = old_b64 {
+            if let Some(items) = decode_encrypted_json::<Vec<T>, _>(b64, crate::crypto::decrypt) {
+                for item in &items {
+                    let _ = store_individual(&format!("{item_prefix}{}", item.id()), item);
                 }
             }
+            gloo_storage::LocalStorage::delete(bulk_key);
         }
-        gloo_storage::LocalStorage::delete("pm_persons");
     }
 
-    // Predictions
-    let old_b64: Option<String> = gloo_storage::LocalStorage::get("pm_predictions").ok();
-    if let Some(ref b64) = old_b64 {
-        if !b64.is_empty() {
-            if let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(b64) {
-                if let Some(dec) = crate::crypto::decrypt(&enc) {
-                    if let Ok(json) = String::from_utf8(dec) {
-                        if let Ok(preds) = serde_json::from_str::<Vec<Prediction>>(&json) {
-                            for p in &preds {
-                                let _ = store_individual(&prediction_key(&p.id), p);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        gloo_storage::LocalStorage::delete("pm_predictions");
-    }
-
-    // Relationships
-    let old_b64: Option<String> = gloo_storage::LocalStorage::get("pm_relationships").ok();
-    if let Some(ref b64) = old_b64 {
-        if !b64.is_empty() {
-            if let Ok(enc) = base64::engine::general_purpose::STANDARD.decode(b64) {
-                if let Some(dec) = crate::crypto::decrypt(&enc) {
-                    if let Ok(json) = String::from_utf8(dec) {
-                        if let Ok(rels) = serde_json::from_str::<Vec<Relationship>>(&json) {
-                            for r in &rels {
-                                let _ = store_individual(&relationship_key(&r.id), r);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        gloo_storage::LocalStorage::delete("pm_relationships");
-    }
+    migrate::<Person>("pm_persons", "person_");
+    migrate::<Prediction>("pm_predictions", "pred_");
+    migrate::<Relationship>("pm_relationships", "rel_");
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -393,11 +376,7 @@ impl StorageBackend for WebStorage {
         });
         let dropped = with_rels_cache(|cache| {
             if let Some(ref mut all) = *cache {
-                let gone: Vec<String> = all
-                    .iter()
-                    .filter(|r| relationship_touches_person(r, id))
-                    .map(|r| r.id.clone())
-                    .collect();
+                let gone = touched_relationship_ids(all, id);
                 all.retain(|r| !relationship_touches_person(r, id));
                 gone
             } else {
@@ -421,10 +400,7 @@ impl StorageBackend for WebStorage {
         })
     }
     fn load_predictions_for_person(&self, person_id: &str) -> Vec<Prediction> {
-        self.load_all_predictions()
-            .into_iter()
-            .filter(|p| p.person_id == person_id)
-            .collect()
+        filter_predictions_for_person(&self.load_all_predictions(), person_id)
     }
     fn save_prediction(&self, prediction: &Prediction) -> Result<(), String> {
         store_individual(&prediction_key(&prediction.id), prediction)?;
@@ -603,7 +579,7 @@ impl StorageBackend for SqliteStorage {
             .filter_map(|r| r.ok())
             .filter_map(|(rid, data)| {
                 let rel: Relationship = serde_json::from_str(&data).ok()?;
-                if rel.source_id == id || rel.target_id == id {
+                if relationship_touches_person(&rel, id) {
                     Some(rid)
                 } else {
                     None
@@ -856,6 +832,103 @@ mod tests {
         assert!(
             relationship_touches_person(&self_rel, "same"),
             "matches both source and target"
+        );
+    }
+
+    // --- Extracted pure wasm-path logic ---
+
+    #[test]
+    fn test_storage_keys() {
+        assert_eq!(person_key("abc"), "person_abc");
+        assert_eq!(prediction_key("abc"), "pred_abc");
+        assert_eq!(relationship_key("abc"), "rel_abc");
+        assert_eq!(team_key("abc"), "team_abc");
+    }
+
+    #[test]
+    fn test_upsert_replaces_existing_and_appends_new() {
+        let mut vec = vec![sample_person("p1"), sample_person("p2")];
+        let mut edited = sample_person("p1");
+        edited.name = "Changed".into();
+        upsert(&mut vec, &edited);
+        assert_eq!(vec.len(), 2, "same id must replace, not append");
+        assert_eq!(vec[0].name, "Changed");
+        assert_eq!(vec[1].id, "p2");
+
+        let added = sample_person("p3");
+        upsert(&mut vec, &added);
+        assert_eq!(vec.len(), 3, "new id must append");
+        assert_eq!(vec[2].id, "p3");
+    }
+
+    #[test]
+    fn test_touched_relationship_ids() {
+        let rels = vec![
+            Relationship {
+                id: "rel-src".into(),
+                source_id: "p".into(),
+                target_id: "other".into(),
+                ..sample_relationship()
+            },
+            Relationship {
+                id: "rel-tgt".into(),
+                source_id: "other".into(),
+                target_id: "p".into(),
+                ..sample_relationship()
+            },
+            Relationship {
+                id: "rel-keep".into(),
+                source_id: "other".into(),
+                target_id: "other2".into(),
+                ..sample_relationship()
+            },
+        ];
+        let mut got = touched_relationship_ids(&rels, "p");
+        got.sort();
+        assert_eq!(got, vec!["rel-src".to_string(), "rel-tgt".to_string()]);
+        assert!(touched_relationship_ids(&rels, "nobody").is_empty());
+    }
+
+    #[test]
+    fn test_filter_predictions_for_person() {
+        let mut pred2 = sample_prediction("p2");
+        pred2.id = "pred-2".into();
+        let preds = vec![sample_prediction("p1"), pred2];
+        let got = filter_predictions_for_person(&preds, "p1");
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].id, "pred-1");
+        assert!(filter_predictions_for_person(&preds, "nobody").is_empty());
+    }
+
+    #[test]
+    fn test_decode_encrypted_json() {
+        let json = serde_json::to_string(&sample_person("p1")).unwrap();
+        let b64 = {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD.encode(json.as_bytes())
+        };
+        let decoded = decode_encrypted_json::<Person, _>(&b64, |d| Some(d.to_vec()));
+        assert_eq!(decoded.map(|p| p.id), Some("p1".to_string()));
+
+        assert!(
+            decode_encrypted_json::<Person, _>("", |d| Some(d.to_vec())).is_none(),
+            "empty payload yields None"
+        );
+        assert!(
+            decode_encrypted_json::<Person, _>("!!!not-base64!!!", |d| Some(d.to_vec())).is_none(),
+            "bad base64 yields None"
+        );
+        assert!(
+            decode_encrypted_json::<Person, _>(&b64, |_| None).is_none(),
+            "decrypt failure yields None"
+        );
+        let bad_json = {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD.encode(b"not json")
+        };
+        assert!(
+            decode_encrypted_json::<Person, _>(&bad_json, |d| Some(d.to_vec())).is_none(),
+            "non-JSON plaintext yields None"
         );
     }
 
