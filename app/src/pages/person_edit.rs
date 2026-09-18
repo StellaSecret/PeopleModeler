@@ -1149,62 +1149,69 @@ fn MotEditPanel(
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
     let mot_undefined_warning = crate::i18n::tr("mot_undefined_warning", app_lang());
 
-    rsx! {
-        fieldset { class: "section",
-            legend { class: "sr-only", "{edit_motivations}" }
-            div { class: "helper-text", "{mot_undefined_warning}" }
-            div { class: "add-row",
-                select { value: "{sel_type}",
-                    onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
-                    for t in MotivationType::ALL {
-                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
-                    }
-                }
-                StepperSlider {
-                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
-                    onchange: move |v| { sel_intensity.set(v); }
-                }
-                input { placeholder: "{notes_pl}", value: "{sel_notes}",
-                    oninput: move |e| { sel_notes.set(e.value()); }
-                }
-                button { class: "btn", aria_label: if edit_idx().is_some() { "Update motivation" } else { "Add motivation" }, onclick: move |_| {
-                    if let Some(idx) = edit_idx() {
-                        let mut items = motivations.write();
-                        if idx < items.len() {
-                            items[idx] = Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
-                        }
-                        edit_idx.set(None);
-                    } else {
-                        motivations.write().push(Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
-                    }
-                    sel_notes.set(String::new());
-                    sel_intensity.set(5);
-                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-            }
-            div { class: "helper-text", "{mot_helper(&sel_type(), app_lang())}" }
-            div { class: "section-items",
-                for (i, m) in motivations().iter().enumerate() {
-                    div { class: "list-item",
-                        button { class: "reorder-btn", aria_label: "Move motivation up", onclick: move |_| { swap_item_in_list(&mut motivations.write(), i, true); }, "▲" }
-                        button { class: "reorder-btn", aria_label: "Move motivation down", onclick: move |_| { swap_item_in_list(&mut motivations.write(), i, false); }, "▼" }
-                        button { class: "btn btn-small", aria_label: "Edit motivation", onclick: {
-                            let m = m.clone();
-                            move |_| {
-                                sel_type.set(m.r#type);
-                                sel_intensity.set(m.intensity);
-                                sel_notes.set(m.notes.clone());
-                                edit_idx.set(Some(i));
-                            }
-                        }, "✏" }
-                        strong { "{m.r#type.emoji()} {m.r#type.i18n(lang).label}" }
-                        span { " {m.intensity}/10" }
-                        span { " {m.notes}" }
-                        button { class: "btn btn-small", aria_label: "Delete motivation", onclick: move |_| { motivations.write().remove(i); }, "✕" }
-                    }
-                }
-            }
+    // Populate the add-row fields whenever the shared list section sets
+    // edit_idx to a row (its ✏ button only ever does `edit_idx.set(Some(i))`
+    // — it has no per-type knowledge of Motivation's fields, so syncing them
+    // here, reactively, is what keeps list_edit_section generic over T).
+    use_effect(move || {
+        if let Some(idx) = edit_idx()
+            && let Some(item) = motivations.read().get(idx)
+        {
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_notes.set(item.notes.clone());
         }
-    }
+    });
+
+    let add_row = rsx! {
+        div { class: "helper-text", "{mot_undefined_warning}" }
+        div { class: "add-row",
+            select { value: "{sel_type}",
+                onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
+                for t in MotivationType::ALL {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                }
+            }
+            StepperSlider {
+                min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                onchange: move |v| { sel_intensity.set(v); }
+            }
+            input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                oninput: move |e| { sel_notes.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { "Update motivation" } else { "Add motivation" }, onclick: move |_| {
+                if let Some(idx) = edit_idx() {
+                    let mut items = motivations.write();
+                    if idx < items.len() {
+                        items[idx] = Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
+                    }
+                    edit_idx.set(None);
+                } else {
+                    motivations.write().push(Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
+                }
+                sel_notes.set(String::new());
+                sel_intensity.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{mot_helper(&sel_type(), app_lang())}" }
+    };
+
+    list_edit_section(
+        motivations,
+        edit_idx,
+        "motivation",
+        edit_motivations,
+        add_row,
+        || {},
+        move |_i, m: &Motivation| {
+            let m = m.clone();
+            rsx! {
+                strong { "{m.r#type.emoji()} {m.r#type.i18n(lang).label}" }
+                span { " {m.intensity}/10" }
+                span { " {m.notes}" }
+            }
+        },
+    )
 }
 
 fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
@@ -1213,6 +1220,88 @@ fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
         list.swap(i, i - 1);
     } else if !up && i + 1 < len {
         list.swap(i, i + 1);
+    }
+}
+
+/// Shared "add a new X, then browse/edit/reorder/delete existing Xs" list
+/// section used by Motivations, Biases, Values, Patterns and Styles — the
+/// five panels that manage a user-editable `Vec<T>` with reorder buttons.
+/// (Reputation isn't included: its editor is a fixed set of sliders, not a
+/// user-managed list of items, so it's a genuinely different shape and
+/// keeps its own markup.)
+///
+/// This is a plain generic function, not a `#[component]`: it's called as
+/// `{list_edit_section(...)}` inside another component's `rsx!`, not as an
+/// `rsx!` tag, which sidesteps Dioxus's Props-derive machinery (and the
+/// Clone/PartialEq bounds that come with it) entirely — the closures here
+/// are just ordinary `Fn`/`FnMut`, nothing fancier.
+///
+/// `noun` must match the noun already baked into the pre-existing
+/// aria-labels exactly (e.g. "motivation", "pattern") — several Playwright
+/// tests locate these buttons by their exact aria-label text
+/// (`"Add motivation"`, `"Delete bias"`, etc.), so this isn't cosmetic.
+///
+/// The caller owns `edit_idx` and is expected to react to it (typically
+/// via `use_effect`) to populate its own add-row fields when the user
+/// clicks a row's edit button — this function only ever sets it to
+/// `Some(i)`, it never reads item fields itself, which is what keeps it
+/// generic over every item type without needing per-type closures wired
+/// through every row.
+fn list_edit_section<T: Clone + 'static>(
+    mut items: Signal<Vec<T>>,
+    mut edit_idx: Signal<Option<usize>>,
+    noun: &str,
+    legend_text: &str,
+    add_row: Element,
+    on_delete: impl FnMut() + 'static,
+    render_row: impl Fn(usize, &T) -> Element,
+) -> Element {
+    let on_delete = std::rc::Rc::new(std::cell::RefCell::new(on_delete));
+    let rows = items()
+        .iter()
+        .enumerate()
+        .map(|(i, item)| {
+            let row_on_delete = on_delete.clone();
+            rsx! {
+                div { class: "list-item",
+                    button {
+                        class: "reorder-btn",
+                        aria_label: "Move {noun} up",
+                        onclick: move |_| { swap_item_in_list(&mut items.write(), i, true); },
+                        "▲"
+                    }
+                    button {
+                        class: "reorder-btn",
+                        aria_label: "Move {noun} down",
+                        onclick: move |_| { swap_item_in_list(&mut items.write(), i, false); },
+                        "▼"
+                    }
+                    button {
+                        class: "btn btn-small",
+                        aria_label: "Edit {noun}",
+                        onclick: move |_| { edit_idx.set(Some(i)); },
+                        "✏"
+                    }
+                    {render_row(i, item)}
+                    button {
+                        class: "btn btn-small",
+                        aria_label: "Delete {noun}",
+                        onclick: move |_| { items.write().remove(i); (row_on_delete.borrow_mut())(); },
+                        "✕"
+                    }
+                }
+            }
+        })
+        .filter_map(|n| n.ok())
+        .collect::<Vec<_>>();
+    rsx! {
+        fieldset { class: "section",
+            legend { class: "sr-only", "{legend_text}" }
+            {add_row}
+            div { class: "section-items",
+                {rows.into_iter()}
+            }
+        }
     }
 }
 
@@ -1236,75 +1325,78 @@ fn ValEditPanel(
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
 
-    rsx! {
-        fieldset { class: "section",
-            legend { class: "sr-only", "{edit_values}" }
-            div { class: "add-row",
-                select { value: "{sel_type}",
-                    onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
-                    for t in ValueType::ALL {
-                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
-                    }
-                }
-                div { class: "dual-range",
-                    StepperSlider {
-                        min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
-                        onchange: move |v| { sel_intensity.set(v); }
-                    }
-                    span { class: "range-label", "I" }
-                    StepperSlider {
-                        min: 1, max: 10, value: sel_priority(), display: format!("{}", sel_priority()),
-                        onchange: move |v| { sel_priority.set(v); }
-                    }
-                    span { class: "range-label", "{priority_label}" }
-                }
-                input { placeholder: "{notes_pl}", value: "{sel_notes}",
-                    oninput: move |e| { sel_notes.set(e.value()); }
-                }
-                button { class: "btn", aria_label: if edit_idx().is_some() { "Update value" } else { "Add value" }, onclick: move |_| {
-                    if let Some(idx) = edit_idx() {
-                        let mut items = values.write();
-                        if idx < items.len() {
-                            items[idx] = Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() };
-                        }
-                        edit_idx.set(None);
-                    } else {
-                        values.write().push(Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() });
-                    }
-                    sel_notes.set(String::new());
-                    sel_intensity.set(5);
-                    sel_priority.set(5);
-                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-            }
-            div { class: "helper-text",
-                div { "{value_helper(&sel_type(), app_lang())}" }
-                div { "{value_intensity_helper}" }
-                div { "{value_priority_helper}" }
-            }
-            div { class: "section-items",
-                for (i, v) in values().iter().enumerate() {
-                    div { class: "list-item",
-                        button { class: "reorder-btn", aria_label: "Move value up", onclick: move |_| { swap_item_in_list(&mut values.write(), i, true); }, "▲" }
-                        button { class: "reorder-btn", aria_label: "Move value down", onclick: move |_| { swap_item_in_list(&mut values.write(), i, false); }, "▼" }
-                        button { class: "btn btn-small", aria_label: "Edit value", onclick: {
-                            let v = v.clone();
-                            move |_| {
-                                sel_type.set(v.r#type);
-                                sel_intensity.set(v.intensity);
-                                sel_priority.set(v.priority);
-                                sel_notes.set(v.notes.clone());
-                                edit_idx.set(Some(i));
-                            }
-                        }, "✏" }
-                        strong { "{v.r#type.emoji()} {v.r#type.i18n(lang).label}" }
-                        span { " I{v.intensity}/10 P{v.priority}/10" }
-                        span { " {v.notes}" }
-                        button { class: "btn btn-small", aria_label: "Delete value", onclick: move |_| { values.write().remove(i); }, "✕" }
-                    }
-                }
-            }
+    use_effect(move || {
+        if let Some(idx) = edit_idx()
+            && let Some(item) = values.read().get(idx)
+        {
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_priority.set(item.priority);
+            sel_notes.set(item.notes.clone());
         }
-    }
+    });
+
+    let add_row = rsx! {
+        div { class: "add-row",
+            select { value: "{sel_type}",
+                onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
+                for t in ValueType::ALL {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                }
+            }
+            div { class: "dual-range",
+                StepperSlider {
+                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                    onchange: move |v| { sel_intensity.set(v); }
+                }
+                span { class: "range-label", "I" }
+                StepperSlider {
+                    min: 1, max: 10, value: sel_priority(), display: format!("{}", sel_priority()),
+                    onchange: move |v| { sel_priority.set(v); }
+                }
+                span { class: "range-label", "{priority_label}" }
+            }
+            input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                oninput: move |e| { sel_notes.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { "Update value" } else { "Add value" }, onclick: move |_| {
+                if let Some(idx) = edit_idx() {
+                    let mut items = values.write();
+                    if idx < items.len() {
+                        items[idx] = Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() };
+                    }
+                    edit_idx.set(None);
+                } else {
+                    values.write().push(Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() });
+                }
+                sel_notes.set(String::new());
+                sel_intensity.set(5);
+                sel_priority.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text",
+            div { "{value_helper(&sel_type(), app_lang())}" }
+            div { "{value_intensity_helper}" }
+            div { "{value_priority_helper}" }
+        }
+    };
+
+    list_edit_section(
+        values,
+        edit_idx,
+        "value",
+        edit_values,
+        add_row,
+        || {},
+        move |_i, v: &Value| {
+            let v = v.clone();
+            rsx! {
+                strong { "{v.r#type.emoji()} {v.r#type.i18n(lang).label}" }
+                span { " I{v.intensity}/10 P{v.priority}/10" }
+                span { " {v.notes}" }
+            }
+        },
+    )
 }
 
 #[component]
@@ -1325,63 +1417,66 @@ fn BiasEditPanel(
     let add_btn = crate::i18n::tr("add_btn", app_lang());
     let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
 
-    rsx! {
-        fieldset { class: "section",
-            legend { class: "sr-only", "{edit_biases}" }
-            div { class: "helper-text", "{bias_undefined_warning}" }
-            div { class: "helper-text", "{bias_scale_hint}" }
-            div { class: "add-row",
-                select { value: "{sel_type}",
-                    onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
-                    for t in BiasType::ALL {
-                        option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
-                    }
-                }
-                StepperSlider {
-                    min: 0, max: 10, value: sel_intensity(), display: format!("{}/10", sel_intensity()),
-                    onchange: move |v| { sel_intensity.set(v); }
-                }
-                input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
-                    oninput: move |e| { sel_evidence.set(e.value()); }
-                }
-                button { class: "btn", aria_label: if edit_idx().is_some() { "Update bias" } else { "Add bias" }, onclick: move |_| {
-                    if let Some(idx) = edit_idx() {
-                        let mut items = biases.write();
-                        if idx < items.len() {
-                            items[idx] = Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
-                        }
-                        edit_idx.set(None);
-                    } else {
-                        biases.write().push(Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
-                    }
-                    sel_evidence.set(String::new());
-                    sel_intensity.set(5);
-                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-            }
-            div { class: "helper-text", "{bias_helper(&sel_type(), app_lang())}" }
-            div { class: "section-items",
-                for (i, b) in biases().iter().enumerate() {
-                    div { class: "list-item",
-                        button { class: "reorder-btn", aria_label: "Move bias up", onclick: move |_| { swap_item_in_list(&mut biases.write(), i, true); }, "▲" }
-                        button { class: "reorder-btn", aria_label: "Move bias down", onclick: move |_| { swap_item_in_list(&mut biases.write(), i, false); }, "▼" }
-                        button { class: "btn btn-small", aria_label: "Edit bias", onclick: {
-                            let b = b.clone();
-                            move |_| {
-                                sel_type.set(b.r#type);
-                                sel_intensity.set(b.intensity);
-                                sel_evidence.set(b.evidence.clone());
-                                edit_idx.set(Some(i));
-                            }
-                        }, "✏" }
-                        strong { "{b.r#type.emoji()} {b.r#type.i18n(lang).label}" }
-                        span { " {b.intensity}/10" }
-                        span { " {b.evidence}" }
-                        button { class: "btn btn-small", aria_label: "Delete bias", onclick: move |_| { biases.write().remove(i); }, "✕" }
-                    }
-                }
-            }
+    use_effect(move || {
+        if let Some(idx) = edit_idx()
+            && let Some(item) = biases.read().get(idx)
+        {
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_evidence.set(item.evidence.clone());
         }
-    }
+    });
+
+    let add_row = rsx! {
+        div { class: "helper-text", "{bias_undefined_warning}" }
+        div { class: "helper-text", "{bias_scale_hint}" }
+        div { class: "add-row",
+            select { value: "{sel_type}",
+                onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
+                for t in BiasType::ALL {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                }
+            }
+            StepperSlider {
+                min: 0, max: 10, value: sel_intensity(), display: format!("{}/10", sel_intensity()),
+                onchange: move |v| { sel_intensity.set(v); }
+            }
+            input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
+                oninput: move |e| { sel_evidence.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { "Update bias" } else { "Add bias" }, onclick: move |_| {
+                if let Some(idx) = edit_idx() {
+                    let mut items = biases.write();
+                    if idx < items.len() {
+                        items[idx] = Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
+                    }
+                    edit_idx.set(None);
+                } else {
+                    biases.write().push(Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
+                }
+                sel_evidence.set(String::new());
+                sel_intensity.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{bias_helper(&sel_type(), app_lang())}" }
+    };
+
+    list_edit_section(
+        biases,
+        edit_idx,
+        "bias",
+        edit_biases,
+        add_row,
+        || {},
+        move |_i, b: &Bias| {
+            let b = b.clone();
+            rsx! {
+                strong { "{b.r#type.emoji()} {b.r#type.i18n(lang).label}" }
+                span { " {b.intensity}/10" }
+                span { " {b.evidence}" }
+            }
+        },
+    )
 }
 
 #[component]
@@ -1527,7 +1622,7 @@ fn PatternEditPanel(
     let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
     let add_btn = crate::i18n::tr("add_btn", lang);
     let update_btn = crate::i18n::tr("edit_update_btn", lang);
-    let trigger_label = |t: BehaviorTrigger| -> &'static str {
+    let trigger_label = move |t: BehaviorTrigger| -> &'static str {
         match t {
             BehaviorTrigger::Stress => ctx_stress,
             BehaviorTrigger::Conflict => ctx_conflict,
@@ -1541,75 +1636,78 @@ fn PatternEditPanel(
         }
     };
 
-    rsx! {
-        fieldset { class: "section",
-            legend { class: "sr-only", "{edit_patterns}" }
-            div { class: "add-row",
-                select { value: "{sel_trigger}",
-                    onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]); },
-                    option { value: "Stress", "{ctx_stress}" }
-                    option { value: "Conflict", "{ctx_conflict}" }
-                    option { value: "Success", "{ctx_success}" }
-                    option { value: "Uncertainty", "{ctx_uncertainty}" }
-                    option { value: "Recognition", "{ctx_recognition}" }
-                    option { value: "Threatened", "{ctx_threatened}" }
-                    option { value: "Change", "{ctx_change}" }
-                    option { value: "Feedback", "{ctx_feedback}" }
-                    option { value: "Injustice", "{ctx_injustice}" }
-                }
-                select { value: "{sel_behavior().serde_name()}",
-                    onchange: move |e| { let _ = parse_response(&e.value()).map(|v| sel_behavior.set(v)); },
-                    for opt in BehaviorResponse::options_for(sel_trigger()) {
-                        option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
-                    }
-                }
-                input {
-                    r#type: "text",
-                    placeholder: "{notes_pl}",
-                    value: "{sel_notes()}",
-                    oninput: move |e| sel_notes.set(e.value()),
-                }
-                button { class: "btn", aria_label: if edit_idx().is_some() { "Update pattern" } else { "Add pattern" }, onclick: move |_| {
-                    if let Some(idx) = edit_idx() {
-                        let mut items = patterns.write();
-                        if idx < items.len() {
-                            items[idx] = BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() };
-                        }
-                        edit_idx.set(None);
-                    } else {
-                        patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() });
-                    }
-                    sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
-                    sel_notes.set(String::new());
-                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-            }
-            div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
-            div { class: "helper-text", "{behavior_helper(&sel_behavior(), lang)}" }
-            div { class: "section-items",
-                for (i, bp) in patterns().iter().enumerate() {
-                    div { class: "list-item",
-                        button { class: "reorder-btn", aria_label: "Move pattern up", onclick: move |_| { swap_item_in_list(&mut patterns.write(), i, true); }, "▲" }
-                        button { class: "reorder-btn", aria_label: "Move pattern down", onclick: move |_| { swap_item_in_list(&mut patterns.write(), i, false); }, "▼" }
-                        button { class: "btn btn-small", aria_label: "Edit pattern", onclick: {
-                            let bp = bp.clone();
-                            move |_| {
-                                sel_trigger.set(bp.trigger);
-                                sel_behavior.set(bp.predicted_behavior);
-                                sel_notes.set(bp.notes.clone());
-                                edit_idx.set(Some(i));
-                            }
-                        }, "✏" }
-                        strong { "{trigger_label(bp.trigger)}" }
-                        span { " {bp.predicted_behavior.label(cl)}" }
-                        if !bp.notes.is_empty() {
-                            span { class: "item-notes", " — {bp.notes}" }
-                        }
-                        button { class: "btn btn-small", aria_label: "Delete pattern", onclick: move |_| { patterns.write().remove(i); sel_notes.set(String::new()); }, "✕" }
-                    }
-                }
-            }
+    use_effect(move || {
+        if let Some(idx) = edit_idx()
+            && let Some(item) = patterns.read().get(idx)
+        {
+            sel_trigger.set(item.trigger);
+            sel_behavior.set(item.predicted_behavior);
+            sel_notes.set(item.notes.clone());
         }
-    }
+    });
+
+    let add_row = rsx! {
+        div { class: "add-row",
+            select { value: "{sel_trigger}",
+                onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]); },
+                option { value: "Stress", "{ctx_stress}" }
+                option { value: "Conflict", "{ctx_conflict}" }
+                option { value: "Success", "{ctx_success}" }
+                option { value: "Uncertainty", "{ctx_uncertainty}" }
+                option { value: "Recognition", "{ctx_recognition}" }
+                option { value: "Threatened", "{ctx_threatened}" }
+                option { value: "Change", "{ctx_change}" }
+                option { value: "Feedback", "{ctx_feedback}" }
+                option { value: "Injustice", "{ctx_injustice}" }
+            }
+            select { value: "{sel_behavior().serde_name()}",
+                onchange: move |e| { let _ = parse_response(&e.value()).map(|v| sel_behavior.set(v)); },
+                for opt in BehaviorResponse::options_for(sel_trigger()) {
+                    option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
+                }
+            }
+            input {
+                r#type: "text",
+                placeholder: "{notes_pl}",
+                value: "{sel_notes()}",
+                oninput: move |e| sel_notes.set(e.value()),
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { "Update pattern" } else { "Add pattern" }, onclick: move |_| {
+                if let Some(idx) = edit_idx() {
+                    let mut items = patterns.write();
+                    if idx < items.len() {
+                        items[idx] = BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() };
+                    }
+                    edit_idx.set(None);
+                } else {
+                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() });
+                }
+                sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
+                sel_notes.set(String::new());
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
+        div { class: "helper-text", "{behavior_helper(&sel_behavior(), lang)}" }
+    };
+
+    list_edit_section(
+        patterns,
+        edit_idx,
+        "pattern",
+        edit_patterns,
+        add_row,
+        move || sel_notes.set(String::new()),
+        move |_i, bp: &BehavioralPattern| {
+            let bp = bp.clone();
+            rsx! {
+                strong { "{trigger_label(bp.trigger)}" }
+                span { " {bp.predicted_behavior.label(cl)}" }
+                if !bp.notes.is_empty() {
+                    span { class: "item-notes", " — {bp.notes}" }
+                }
+            }
+        },
+    )
 }
 
 #[component]
@@ -1919,73 +2017,76 @@ fn StyleEditPanel(
         }
     });
 
-    rsx! {
-        fieldset { class: "section",
-            legend { class: "sr-only", "{panel_title}" }
-            div { class: "add-row",
-                select {
-                    value: "{sel_category():?}",
-                    onchange: move |e| {
-                        let cat = parse_style_category(&e.value());
-                        sel_category.set(cat);
-                    },
-                    for cat in StyleCategory::ALL {
-                        option { value: "{cat:?}", "{cat.i18n_label(cl)}" }
-                    }
-                }
-                select { value: "{sel_type()}",
-                    onchange: move |e| { sel_type.set(parse_style_type(&e.value())); },
-                    for t in StyleType::options_for(sel_category()) {
-                        option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
-                    }
-                }
-                StepperSlider {
-                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
-                    onchange: move |v| { sel_intensity.set(v); }
-                }
-                input { placeholder: "{notes_pl}", value: "{sel_notes}",
-                    oninput: move |e| { sel_notes.set(e.value()); }
-                }
-                button { class: "btn", aria_label: if edit_idx().is_some() { "Update style" } else { "Add style" }, onclick: move |_| {
-                    if let Some(idx) = edit_idx() {
-                        let mut items = styles.write();
-                        if idx < items.len() {
-                            items[idx] = PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
-                        }
-                        edit_idx.set(None);
-                    } else {
-                        styles.write().push(PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
-                    }
-                    sel_notes.set(String::new());
-                    sel_intensity.set(5);
-                }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-            }
-            div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
-            div { class: "section-items",
-                for (i, s) in styles().iter().enumerate() {
-                    div { class: "list-item",
-                        button { class: "reorder-btn", aria_label: "Move style up", onclick: move |_| { swap_item_in_list(&mut styles.write(), i, true); }, "▲" }
-                        button { class: "reorder-btn", aria_label: "Move style down", onclick: move |_| { swap_item_in_list(&mut styles.write(), i, false); }, "▼" }
-                        button { class: "btn btn-small", aria_label: "Edit style", onclick: {
-                            let s = s.clone();
-                            move |_| {
-                                sel_category.set(s.r#type.category());
-                                sel_type.set(s.r#type);
-                                sel_intensity.set(s.intensity);
-                                sel_notes.set(s.notes.clone());
-                                edit_idx.set(Some(i));
-                            }
-                        }, "✏" }
-                        span { class: "style-cat-badge", "{s.r#type.category().i18n_label(cl)}" }
-                        strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
-                        span { " {s.intensity}/10" }
-                        span { " {s.notes}" }
-                        button { class: "btn btn-small", aria_label: "Delete style", onclick: move |_| { styles.write().remove(i); }, "✕" }
-                    }
-                }
-            }
+    use_effect(move || {
+        if let Some(idx) = edit_idx()
+            && let Some(item) = styles.read().get(idx)
+        {
+            sel_category.set(item.r#type.category());
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_notes.set(item.notes.clone());
         }
-    }
+    });
+
+    let add_row = rsx! {
+        div { class: "add-row",
+            select {
+                value: "{sel_category():?}",
+                onchange: move |e| {
+                    let cat = parse_style_category(&e.value());
+                    sel_category.set(cat);
+                },
+                for cat in StyleCategory::ALL {
+                    option { value: "{cat:?}", "{cat.i18n_label(cl)}" }
+                }
+            }
+            select { value: "{sel_type()}",
+                onchange: move |e| { sel_type.set(parse_style_type(&e.value())); },
+                for t in StyleType::options_for(sel_category()) {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
+                }
+            }
+            StepperSlider {
+                min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                onchange: move |v| { sel_intensity.set(v); }
+            }
+            input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                oninput: move |e| { sel_notes.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { "Update style" } else { "Add style" }, onclick: move |_| {
+                if let Some(idx) = edit_idx() {
+                    let mut items = styles.write();
+                    if idx < items.len() {
+                        items[idx] = PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
+                    }
+                    edit_idx.set(None);
+                } else {
+                    styles.write().push(PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
+                }
+                sel_notes.set(String::new());
+                sel_intensity.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
+    };
+
+    list_edit_section(
+        styles,
+        edit_idx,
+        "style",
+        panel_title,
+        add_row,
+        || {},
+        move |_i, s: &PersonalStyle| {
+            let s = s.clone();
+            rsx! {
+                span { class: "style-cat-badge", "{s.r#type.category().i18n_label(cl)}" }
+                strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
+                span { " {s.intensity}/10" }
+                span { " {s.notes}" }
+            }
+        },
+    )
 }
 
 #[cfg(test)]
