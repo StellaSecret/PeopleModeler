@@ -489,7 +489,6 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_ocean_title = crate::i18n::tr("form_ocean_title", lang());
     let form_save = crate::i18n::tr("form_save", lang());
     let form_cancel = crate::i18n::tr("form_cancel", lang());
-    let cl = core_lang(lang());
     let persona_section = crate::i18n::tr("persona_section", lang());
     let persona_copy_base = crate::i18n::tr("persona_copy_base", lang());
     let persona_clear = crate::i18n::tr("persona_clear", lang());
@@ -796,7 +795,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Motivations,
                         title: edit_motivations,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
-                        MotEditPanel { motivations, lang: cl, has_override: None }
+                        MotEditPanel { motivations, lang: lang() }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -804,7 +803,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Biases,
                         title: edit_biases,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
-                        BiasEditPanel { biases, lang: cl, has_override: None }
+                        BiasEditPanel { biases, lang: lang() }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -812,7 +811,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Reputation,
                         title: edit_reputation,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                        RepEditPanel { rep_scores, lang: cl, has_override: None }
+                        RepEditPanel { rep_scores, lang: lang() }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -820,7 +819,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Patterns,
                         title: edit_patterns,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
-                        PatternEditPanel { patterns, lang: lang(), has_override: None }
+                        PatternEditPanel { patterns, lang: lang() }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -828,7 +827,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Styles,
                         title: edit_styles,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
-                        StyleEditPanel { styles, lang: cl, has_override: None }
+                        StyleEditPanel { styles, lang: lang() }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -836,7 +835,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Values,
                         title: edit_values,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
-                        ValEditPanel { values, lang: cl, has_override: None }
+                        ValEditPanel { values, lang: lang() }
                     }
                 }
 
@@ -876,7 +875,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_motivations,
                             has: Some(has_motivations),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
-                            MotEditPanel { motivations: work_motivations, lang: cl, has_override: None }
+                            MotEditPanel { motivations: work_motivations, lang: lang() }
                         }
 
                         FacetSection {
@@ -886,7 +885,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_biases,
                             has: Some(has_biases),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
-                            BiasEditPanel { biases: work_biases, lang: cl, has_override: None }
+                            BiasEditPanel { biases: work_biases, lang: lang() }
                         }
 
                         FacetSection {
@@ -896,7 +895,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_reputation,
                             has: Some(has_rep),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                            RepEditPanel { rep_scores: work_rep, lang: cl, has_override: None }
+                            RepEditPanel { rep_scores: work_rep, lang: lang() }
                         }
 
                         FacetSection {
@@ -906,7 +905,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_patterns,
                             has: Some(has_patterns),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
-                            PatternEditPanel { patterns: work_patterns, lang: lang(), has_override: None }
+                            PatternEditPanel { patterns: work_patterns, lang: lang() }
                         }
 
                         FacetSection {
@@ -916,7 +915,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_styles,
                             has: Some(has_styles),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
-                            StyleEditPanel { styles: work_styles, lang: cl, has_override: None }
+                            StyleEditPanel { styles: work_styles, lang: lang() }
                         }
 
                         FacetSection {
@@ -926,7 +925,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_values,
                             has: Some(has_values),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
-                            ValEditPanel { values: work_values, lang: cl, has_override: None }
+                            ValEditPanel { values: work_values, lang: lang() }
                         }
                     }
                 }
@@ -1109,21 +1108,17 @@ fn OceanInputs(ocean: Signal<OceanScores>) -> Element {
 }
 
 #[component]
-fn MotEditPanel(
-    motivations: Signal<Vec<Motivation>>,
-    lang: peoplemodeler_core::i18n::Lang,
-    has_override: Option<Signal<bool>>,
-) -> Element {
-    let app_lang = use_context::<Signal<Lang>>();
-    let edit_motivations = crate::i18n::tr("edit_motivations", app_lang());
+fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: Lang) -> Element {
+    let cl = core_lang(lang);
+    let edit_motivations = crate::i18n::tr("edit_motivations", lang);
     let mut sel_type = use_signal(|| MotivationType::Achievement);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
-    let add_btn = crate::i18n::tr("add_btn", app_lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
-    let mot_undefined_warning = crate::i18n::tr("mot_undefined_warning", app_lang());
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
+    let add_btn = crate::i18n::tr("add_btn", lang);
+    let update_btn = crate::i18n::tr("edit_update_btn", lang);
+    let mot_undefined_warning = crate::i18n::tr("mot_undefined_warning", lang);
 
     // Populate the add-row fields whenever the shared list section sets
     // edit_idx to a row (its ✏ button only ever does `edit_idx.set(Some(i))`
@@ -1145,7 +1140,7 @@ fn MotEditPanel(
             select { value: "{sel_type}",
                 onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
                 for t in MotivationType::ALL {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
                 }
             }
             StepperSlider {
@@ -1169,7 +1164,7 @@ fn MotEditPanel(
                 sel_intensity.set(5);
             }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
         }
-        div { class: "helper-text", "{mot_helper(&sel_type(), app_lang())}" }
+        div { class: "helper-text", "{mot_helper(&sel_type(), lang)}" }
     };
 
     list_edit_section(
@@ -1182,7 +1177,7 @@ fn MotEditPanel(
         move |_i, m: &Motivation| {
             let m = m.clone();
             rsx! {
-                strong { "{m.r#type.emoji()} {m.r#type.i18n(lang).label}" }
+                strong { "{m.r#type.emoji()} {m.r#type.i18n(cl).label}" }
                 span { " {m.intensity}/10" }
                 span { " {m.notes}" }
             }
@@ -1282,24 +1277,20 @@ fn list_edit_section<T: Clone + 'static>(
 }
 
 #[component]
-fn ValEditPanel(
-    values: Signal<Vec<Value>>,
-    lang: peoplemodeler_core::i18n::Lang,
-    has_override: Option<Signal<bool>>,
-) -> Element {
-    let app_lang = use_context::<Signal<Lang>>();
-    let edit_values = crate::i18n::tr("edit_values", app_lang());
+fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
+    let cl = core_lang(lang);
+    let edit_values = crate::i18n::tr("edit_values", lang);
     let mut sel_type = use_signal(|| ValueType::Career);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_priority = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
-    let priority_label = crate::i18n::tr("edit_priority", app_lang());
-    let value_intensity_helper = crate::i18n::tr("value_intensity_helper", app_lang());
-    let value_priority_helper = crate::i18n::tr("value_priority_helper", app_lang());
-    let add_btn = crate::i18n::tr("add_btn", app_lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
+    let priority_label = crate::i18n::tr("edit_priority", lang);
+    let value_intensity_helper = crate::i18n::tr("value_intensity_helper", lang);
+    let value_priority_helper = crate::i18n::tr("value_priority_helper", lang);
+    let add_btn = crate::i18n::tr("add_btn", lang);
+    let update_btn = crate::i18n::tr("edit_update_btn", lang);
 
     use_effect(move || {
         if let Some(idx) = edit_idx()
@@ -1317,7 +1308,7 @@ fn ValEditPanel(
             select { value: "{sel_type}",
                 onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
                 for t in ValueType::ALL {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
                 }
             }
             div { class: "dual-range",
@@ -1351,7 +1342,7 @@ fn ValEditPanel(
             }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
         }
         div { class: "helper-text",
-            div { "{value_helper(&sel_type(), app_lang())}" }
+            div { "{value_helper(&sel_type(), lang)}" }
             div { "{value_intensity_helper}" }
             div { "{value_priority_helper}" }
         }
@@ -1367,31 +1358,31 @@ fn ValEditPanel(
         move |_i, v: &Value| {
             let v = v.clone();
             rsx! {
-                strong { "{v.r#type.emoji()} {v.r#type.i18n(lang).label}" }
-                span { " I{v.intensity}/10 P{v.priority}/10" }
-                span { " {v.notes}" }
+            div { class: "helper-text",
+                div { "{value_helper(&sel_type(), lang)}" }
+                div { "{value_intensity_helper}" }
+                div { "{value_priority_helper}" }
             }
+                    span { " I{v.intensity}/10 P{v.priority}/10" }
+                    span { " {v.notes}" }
+                }
         },
     )
 }
 
 #[component]
-fn BiasEditPanel(
-    biases: Signal<Vec<Bias>>,
-    lang: peoplemodeler_core::i18n::Lang,
-    has_override: Option<Signal<bool>>,
-) -> Element {
-    let app_lang = use_context::<Signal<Lang>>();
-    let edit_biases = crate::i18n::tr("edit_biases", app_lang());
+fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
+    let cl = core_lang(lang);
+    let edit_biases = crate::i18n::tr("edit_biases", lang);
     let mut sel_type = use_signal(|| BiasType::Confirmation);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_evidence = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let bias_undefined_warning = crate::i18n::tr("bias_undefined_warning", app_lang());
-    let bias_scale_hint = crate::i18n::tr("bias_scale_hint", app_lang());
-    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", app_lang());
-    let add_btn = crate::i18n::tr("add_btn", app_lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
+    let bias_undefined_warning = crate::i18n::tr("bias_undefined_warning", lang);
+    let bias_scale_hint = crate::i18n::tr("bias_scale_hint", lang);
+    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", lang);
+    let add_btn = crate::i18n::tr("add_btn", lang);
+    let update_btn = crate::i18n::tr("edit_update_btn", lang);
 
     use_effect(move || {
         if let Some(idx) = edit_idx()
@@ -1410,7 +1401,7 @@ fn BiasEditPanel(
             select { value: "{sel_type}",
                 onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
                 for t in BiasType::ALL {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n(lang).label}" }
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
                 }
             }
             StepperSlider {
@@ -1434,7 +1425,7 @@ fn BiasEditPanel(
                 sel_intensity.set(5);
             }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
         }
-        div { class: "helper-text", "{bias_helper(&sel_type(), app_lang())}" }
+        div { class: "helper-text", "{bias_helper(&sel_type(), lang)}" }
     };
 
     list_edit_section(
@@ -1447,7 +1438,7 @@ fn BiasEditPanel(
         move |_i, b: &Bias| {
             let b = b.clone();
             rsx! {
-                strong { "{b.r#type.emoji()} {b.r#type.i18n(lang).label}" }
+                strong { "{b.r#type.emoji()} {b.r#type.i18n(cl).label}" }
                 span { " {b.intensity}/10" }
                 span { " {b.evidence}" }
             }
@@ -1456,16 +1447,11 @@ fn BiasEditPanel(
 }
 
 #[component]
-fn RepEditPanel(
-    rep_scores: Signal<RepScores>,
-    lang: peoplemodeler_core::i18n::Lang,
-    has_override: Option<Signal<bool>>,
-) -> Element {
-    let app_lang = use_context::<Signal<Lang>>();
-    let edit_rep = crate::i18n::tr("edit_reputation", app_lang());
-    let rep_undefined_warning = crate::i18n::tr("rep_undefined_warning", app_lang());
-    let rep_scale_hint = crate::i18n::tr("rep_scale_hint", app_lang());
-    let cl = core_lang(app_lang());
+fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang) -> Element {
+    let cl = core_lang(lang);
+    let edit_rep = crate::i18n::tr("edit_reputation", lang);
+    let rep_undefined_warning = crate::i18n::tr("rep_undefined_warning", lang);
+    let rep_scale_hint = crate::i18n::tr("rep_scale_hint", lang);
 
     let rep_data: Vec<_> = RepDim::ALL
         .iter()
@@ -1573,11 +1559,7 @@ fn RepDimSlider(
 }
 
 #[component]
-fn PatternEditPanel(
-    patterns: Signal<Vec<BehavioralPattern>>,
-    lang: Lang,
-    has_override: Option<Signal<bool>>,
-) -> Element {
+fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Element {
     let edit_patterns = crate::i18n::tr("edit_patterns", lang);
     let ctx_stress = crate::i18n::tr("ctx_stress", lang);
     let ctx_conflict = crate::i18n::tr("ctx_conflict", lang);
@@ -1965,25 +1947,19 @@ fn style_selection_reconcile(cat: StyleCategory, sel: StyleType) -> Option<Style
 }
 
 #[component]
-fn StyleEditPanel(
-    styles: Signal<Vec<PersonalStyle>>,
-    lang: peoplemodeler_core::i18n::Lang,
-    has_override: Option<Signal<bool>>,
-) -> Element {
+fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: Lang) -> Element {
     use peoplemodeler_core::models::StyleCategory;
 
-    let app_lang = use_context::<Signal<Lang>>();
-    let panel_title = crate::i18n::tr("edit_styles", app_lang());
+    let cl = core_lang(lang);
+    let panel_title = crate::i18n::tr("edit_styles", lang);
     let mut sel_category = use_signal(|| StyleCategory::Communication);
     let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", app_lang());
-    let add_btn = crate::i18n::tr("add_btn", app_lang());
-    let update_btn = crate::i18n::tr("edit_update_btn", app_lang());
-
-    let cl = core_lang(app_lang());
+    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
+    let add_btn = crate::i18n::tr("add_btn", lang);
+    let update_btn = crate::i18n::tr("edit_update_btn", lang);
 
     use_effect(move || {
         let cat = sel_category();
@@ -2043,7 +2019,7 @@ fn StyleEditPanel(
                 sel_intensity.set(5);
             }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
         }
-        div { class: "helper-text", "{style_helper(&sel_type(), app_lang())}" }
+        div { class: "helper-text", "{style_helper(&sel_type(), lang)}" }
     };
 
     list_edit_section(
