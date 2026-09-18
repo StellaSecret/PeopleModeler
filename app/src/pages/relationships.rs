@@ -86,9 +86,9 @@ pub fn Relationships() -> Element {
     let rels = use_signal(db::all_relationships);
     let persons = use_signal(db::all_persons);
 
-    let title = crate::i18n::tr("rel_title", lang());
-    let none = crate::i18n::tr("rel_none", lang());
-    let rel_search_placeholder = crate::i18n::tr("rel_search_placeholder", lang());
+    let title = crate::tr!("rel_title", lang());
+    let none = crate::tr!("rel_none", lang());
+    let rel_search_placeholder = crate::tr!("rel_search_placeholder", lang());
 
     let mut search = use_signal(String::new);
     let mut active_types = use_signal(|| RelationType::ALL.to_vec());

@@ -5,6 +5,7 @@ use peoplemodeler_core::models::{
 use peoplemodeler_core::synergy::{MaskBand, compute_person_profile, mask_gap, synergy_bands};
 
 use crate::Route;
+use crate::components::facet::FacetToggle;
 use crate::db;
 use crate::i18n::Lang;
 use crate::pages::predictions::{PredictionList, format_date};
@@ -39,7 +40,7 @@ pub fn PersonDetail(id: String) -> Element {
     }
     let mut tab = use_signal(|| Tab::Motivations);
     let mut toast_sig = use_context::<Signal<Option<String>>>();
-    let not_found = crate::i18n::tr("person_not_found", lang());
+    let not_found = crate::tr!("person_not_found", lang());
     let tag_filter = use_context::<Signal<Option<String>>>();
 
     let person_guard = person_sig.read();
@@ -47,16 +48,16 @@ pub fn PersonDetail(id: String) -> Element {
     match p {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
         Some(orig) => {
-            let facet_base_label = crate::i18n::tr("facet_base", lang());
-            let facet_work_label = crate::i18n::tr("facet_work", lang());
-            let persona_section_label = crate::i18n::tr("persona_section", lang());
+            let facet_base_label = crate::tr!("facet_base", lang());
+            let facet_work_label = crate::tr!("facet_work", lang());
+            let persona_section_label = crate::tr!("persona_section", lang());
             let has_persona = orig.persona.is_some();
             let mask_info = if has_persona { mask_gap(orig) } else { None };
             let mask_badge = mask_info.map(|m| {
                 let label = match m.band {
-                    MaskBand::Low => crate::i18n::tr("mask_gap_low", lang()),
-                    MaskBand::Moderate => crate::i18n::tr("mask_gap_moderate", lang()),
-                    MaskBand::High => crate::i18n::tr("mask_gap_high", lang()),
+                    MaskBand::Low => crate::tr!("mask_gap_low", lang()),
+                    MaskBand::Moderate => crate::tr!("mask_gap_moderate", lang()),
+                    MaskBand::High => crate::tr!("mask_gap_high", lang()),
                 };
                 let cls = match m.band {
                     MaskBand::Low => "mask-low",
@@ -65,69 +66,69 @@ pub fn PersonDetail(id: String) -> Element {
                 };
                 (label, cls, format!("{:.0}%", m.gap * 100.0))
             });
-            let mut facet = use_signal(|| FacetKind::Base);
+            let facet = use_signal(|| FacetKind::Base);
             let facet_person: Person = if facet() == FacetKind::Work {
                 orig.facet_person(FacetKind::Work)
             } else {
                 orig.clone()
             };
             let person = &facet_person;
-            let edit_btn = crate::i18n::tr("edit_btn", lang());
-            let delete_btn = crate::i18n::tr("delete_btn", lang());
-            let mot_title = crate::i18n::tr("motivations_title", lang());
-            let bias_title = crate::i18n::tr("biases_title", lang());
-            let ocean_title = crate::i18n::tr("ocean_title", lang());
-            let pred_title = crate::i18n::tr("pred_title", lang());
-            let insights_title = crate::i18n::tr("insights_title", lang());
-            let no_mot = crate::i18n::tr("no_motivations", lang());
-            let no_bias = crate::i18n::tr("no_biases", lang());
-            let rep_title = crate::i18n::tr("reputation_title", lang());
-            let no_rep = crate::i18n::tr("no_reputation", lang());
-            let pat_title = crate::i18n::tr("patterns_title", lang());
-            let conf_label = crate::i18n::tr("confidence_label", lang());
-            let conf_hint = crate::i18n::tr("confidence_hint", lang());
-            let reliability_title = crate::i18n::tr("reliability_title", lang());
-            let score_band = crate::i18n::tr("score_band", lang());
-            let res_label = crate::i18n::tr("resilience_label", lang());
-            let risk_label = crate::i18n::tr("risk_appetite_label", lang());
-            let comp_label = crate::i18n::tr("profile_completeness", lang());
-            let compare_btn = crate::i18n::tr("compare_btn", lang());
-            let confirm_delete_person = crate::i18n::tr("confirm_delete", lang());
-            let confirm_delete_log = crate::i18n::tr("confirm_delete_log", lang());
-            let no_pat = crate::i18n::tr("no_patterns", lang());
-            let log_title = crate::i18n::tr("log_title", lang());
-            let log_placeholder = crate::i18n::tr("log_placeholder", lang());
-            let log_add = crate::i18n::tr("log_add", lang());
-            let log_empty = crate::i18n::tr("log_empty", lang());
-            let log_valence = crate::i18n::tr("log_valence", lang());
-            let log_trigger = crate::i18n::tr("log_trigger", lang());
-            let log_target = crate::i18n::tr("log_target", lang());
-            let log_no_trigger = crate::i18n::tr("log_no_trigger", lang());
-            let log_no_target = crate::i18n::tr("log_no_target", lang());
-            let trend_hint = crate::i18n::tr("trend_hint", lang());
-            let rel_person_rel = crate::i18n::tr("rel_person_rel", lang());
-            let rel_none = crate::i18n::tr("rel_none", lang());
-            let rel_title = crate::i18n::tr("rel_title", lang());
-            let rel_notes = crate::i18n::tr("rel_notes", lang());
-            let rel_strength = crate::i18n::tr("rel_strength", lang());
-            let rel_confirm_delete = crate::i18n::tr("rel_confirm_delete", lang());
-            let rel_open_add = crate::i18n::tr("rel_open_add", lang());
-            let rel_close_add = crate::i18n::tr("rel_close_add", lang());
-            let rel_search_placeholder = crate::i18n::tr("rel_search_placeholder", lang());
-            let common_add = crate::i18n::tr("common_add", lang());
-            let common_save = crate::i18n::tr("common_save", lang());
-            let common_cancel = crate::i18n::tr("common_cancel", lang());
-            let common_edit = crate::i18n::tr("common_edit", lang());
-            let common_delete = crate::i18n::tr("common_delete", lang());
+            let edit_btn = crate::tr!("edit_btn", lang());
+            let delete_btn = crate::tr!("delete_btn", lang());
+            let mot_title = crate::tr!("motivations_title", lang());
+            let bias_title = crate::tr!("biases_title", lang());
+            let ocean_title = crate::tr!("ocean_title", lang());
+            let pred_title = crate::tr!("pred_title", lang());
+            let insights_title = crate::tr!("insights_title", lang());
+            let no_mot = crate::tr!("no_motivations", lang());
+            let no_bias = crate::tr!("no_biases", lang());
+            let rep_title = crate::tr!("reputation_title", lang());
+            let no_rep = crate::tr!("no_reputation", lang());
+            let pat_title = crate::tr!("patterns_title", lang());
+            let conf_label = crate::tr!("confidence_label", lang());
+            let conf_hint = crate::tr!("confidence_hint", lang());
+            let reliability_title = crate::tr!("reliability_title", lang());
+            let score_band = crate::tr!("score_band", lang());
+            let res_label = crate::tr!("resilience_label", lang());
+            let risk_label = crate::tr!("risk_appetite_label", lang());
+            let comp_label = crate::tr!("profile_completeness", lang());
+            let compare_btn = crate::tr!("compare_btn", lang());
+            let confirm_delete_person = crate::tr!("confirm_delete", lang());
+            let confirm_delete_log = crate::tr!("confirm_delete_log", lang());
+            let no_pat = crate::tr!("no_patterns", lang());
+            let log_title = crate::tr!("log_title", lang());
+            let log_placeholder = crate::tr!("log_placeholder", lang());
+            let log_add = crate::tr!("log_add", lang());
+            let log_empty = crate::tr!("log_empty", lang());
+            let log_valence = crate::tr!("log_valence", lang());
+            let log_trigger = crate::tr!("log_trigger", lang());
+            let log_target = crate::tr!("log_target", lang());
+            let log_no_trigger = crate::tr!("log_no_trigger", lang());
+            let log_no_target = crate::tr!("log_no_target", lang());
+            let trend_hint = crate::tr!("trend_hint", lang());
+            let rel_person_rel = crate::tr!("rel_person_rel", lang());
+            let rel_none = crate::tr!("rel_none", lang());
+            let rel_title = crate::tr!("rel_title", lang());
+            let rel_notes = crate::tr!("rel_notes", lang());
+            let rel_strength = crate::tr!("rel_strength", lang());
+            let rel_confirm_delete = crate::tr!("rel_confirm_delete", lang());
+            let rel_open_add = crate::tr!("rel_open_add", lang());
+            let rel_close_add = crate::tr!("rel_close_add", lang());
+            let rel_search_placeholder = crate::tr!("rel_search_placeholder", lang());
+            let common_add = crate::tr!("common_add", lang());
+            let common_save = crate::tr!("common_save", lang());
+            let common_cancel = crate::tr!("common_cancel", lang());
+            let common_edit = crate::tr!("common_edit", lang());
+            let common_delete = crate::tr!("common_delete", lang());
 
             let mut preds = use_signal(|| db::predictions_for_person(&id));
             let mut confirming_delete = use_signal(|| false);
             let mut confirming_log_del: Signal<Option<String>> = use_signal(|| None);
             let mut ctx = use_signal(String::new);
             let mut predicted = use_signal(String::new);
-            let ctx_pl = crate::i18n::tr("pred_context_placeholder", lang());
-            let outcome_pl = crate::i18n::tr("pred_outcome_placeholder", lang());
-            let add_btn = crate::i18n::tr("pred_add_btn", lang());
+            let ctx_pl = crate::tr!("pred_context_placeholder", lang());
+            let outcome_pl = crate::tr!("pred_outcome_placeholder", lang());
+            let add_btn = crate::tr!("pred_add_btn", lang());
 
             let mut comparing = use_signal(|| false);
             let other_persons = use_signal(db::all_persons);
@@ -137,14 +138,14 @@ pub fn PersonDetail(id: String) -> Element {
             let mut new_target = use_signal(|| None::<String>);
 
             let mut trigger = use_signal(|| BehaviorTrigger::Stress);
-            let observed_label = crate::i18n::tr("insights_observed", lang());
+            let observed_label = crate::tr!("insights_observed", lang());
             let insight_output =
                 crate::pages::insights::generate_insight(person, &trigger(), lang());
 
             let cl = core_lang(lang());
             let profile_score = compute_person_profile(person);
             let person_flags = peoplemodeler_core::validation::all_person_flags(person);
-            let self_score_label = crate::i18n::tr("person_self_score", lang());
+            let self_score_label = crate::tr!("person_self_score", lang());
             let bands = synergy_bands();
             let active_band =
                 peoplemodeler_core::ocean::active_band_index(profile_score.total, &bands, 2);
@@ -166,27 +167,27 @@ pub fn PersonDetail(id: String) -> Element {
             let ps_band_label = score_band.replacen("{}", &profile_score.band.to_string(), 1);
             let ps_breakdown: Vec<(&'static str, u8)> = vec![
                 (
-                    crate::i18n::tr("compare_cat_ocean", lang()),
+                    crate::tr!("compare_cat_ocean", lang()),
                     (profile_score.ocean * 100.0).round() as u8,
                 ),
                 (
-                    crate::i18n::tr("compare_cat_reputation", lang()),
+                    crate::tr!("compare_cat_reputation", lang()),
                     (profile_score.reputation * 100.0).round() as u8,
                 ),
                 (
-                    crate::i18n::tr("compare_cat_motivation", lang()),
+                    crate::tr!("compare_cat_motivation", lang()),
                     (profile_score.motivation * 100.0).round() as u8,
                 ),
                 (
-                    crate::i18n::tr("compare_cat_patterns", lang()),
+                    crate::tr!("compare_cat_patterns", lang()),
                     (profile_score.patterns * 100.0).round() as u8,
                 ),
                 (
-                    crate::i18n::tr("compare_cat_bias", lang()),
+                    crate::tr!("compare_cat_bias", lang()),
                     (profile_score.bias * 100.0).round() as u8,
                 ),
                 (
-                    crate::i18n::tr("compare_cat_values", lang()),
+                    crate::tr!("compare_cat_values", lang()),
                     (profile_score.values * 100.0).round() as u8,
                 ),
             ];
@@ -217,10 +218,7 @@ pub fn PersonDetail(id: String) -> Element {
                     resolved: false,
                 };
                 if let Err(e) = db::save_prediction(&pred) {
-                    toast_sig.set(Some(format!(
-                        "{}: {e}",
-                        crate::i18n::tr("toast_error", lang())
-                    )));
+                    toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
                     return;
                 }
                 ctx.set(String::new());
@@ -241,10 +239,10 @@ pub fn PersonDetail(id: String) -> Element {
                                     move |_| {
                                         match db::delete_person(&del_id) {
                                             Ok(()) => {
-                                                toast_sig.set(Some(crate::i18n::tr("toast_deleted", lang()).into()));
+                                                toast_sig.set(Some(crate::tr!("toast_deleted", lang()).into()));
                                                 navigator().push(Route::PeopleList {});
                                             }
-                                            Err(e) => toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang())))),
+                                            Err(e) => toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang())))),
                                         }
                                     }
                                 },
@@ -282,22 +280,7 @@ pub fn PersonDetail(id: String) -> Element {
                         p { class: "context", "{person.context}" }
                         if has_persona {
                             div { class: "facet-bar",
-                                div { class: "facet-toggle", role: "radiogroup", aria_label: "{persona_section_label}",
-                                    button {
-                                        class: if facet() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
-                                        role: "radio",
-                                        aria_checked: if facet() == FacetKind::Base { "true" } else { "false" },
-                                        onclick: move |_| facet.set(FacetKind::Base),
-                                        "{facet_base_label}"
-                                    }
-                                    button {
-                                        class: if facet() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
-                                        role: "radio",
-                                        aria_checked: if facet() == FacetKind::Work { "true" } else { "false" },
-                                        onclick: move |_| facet.set(FacetKind::Work),
-                                        "{facet_work_label}"
-                                    }
-                                }
+                                FacetToggle { facet, base_label: facet_base_label, work_label: facet_work_label, group_label: Some(persona_section_label.to_string()) }
                                 if let Some((mask_label, mask_cls, mask_pct)) = mask_badge {
                                     span { class: "mask-badge {mask_cls}", title: "Δ {mask_pct}", "{mask_label}" }
                                 }
@@ -373,7 +356,7 @@ pub fn PersonDetail(id: String) -> Element {
 
                     div { class: "tab-bar", role: "tablist",
                         button { role: "tab", aria_label: "{mot_title}", aria_selected: tab() == Tab::Motivations, class: if tab() == Tab::Motivations { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Motivations), "💡 {mot_title}" }
-                        button { role: "tab", aria_label: "{crate::i18n::tr(\"values_title\", lang())}", aria_selected: tab() == Tab::Values, class: if tab() == Tab::Values { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Values), "🧭 {crate::i18n::tr(\"values_title\", lang())}" }
+                        button { role: "tab", aria_label: "{crate::tr!(\"values_title\", lang())}", aria_selected: tab() == Tab::Values, class: if tab() == Tab::Values { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Values), "🧭 {crate::tr!(\"values_title\", lang())}" }
                         button { role: "tab", aria_label: "{bias_title}", aria_selected: tab() == Tab::Biases, class: if tab() == Tab::Biases { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Biases), "🧠 {bias_title}" }
                         button { role: "tab", aria_label: "{ocean_title}", aria_selected: tab() == Tab::Ocean, class: if tab() == Tab::Ocean { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Ocean), "🌊 {ocean_title}" }
                         button { role: "tab", aria_label: "{pred_title}", aria_selected: tab() == Tab::Predictions, class: if tab() == Tab::Predictions { "tab active" } else { "tab" }, onclick: move |_| tab.set(Tab::Predictions), "🔮 {pred_title}" }
@@ -414,7 +397,7 @@ pub fn PersonDetail(id: String) -> Element {
                             if person.behavioral_patterns.is_empty() { div { class: "empty-state", p { "{no_pat}" } } }
                         }
                         div { class: "section",
-                            h2 { "{crate::i18n::tr(\"style_panel_title\", lang())}" }
+                            h2 { "{crate::tr!(\"style_panel_title\", lang())}" }
                             for s in &person.styles {
                                 div { class: "motivation-item",
                                     div { class: "item-icon", "{s.r#type.emoji()}" }
@@ -430,13 +413,13 @@ pub fn PersonDetail(id: String) -> Element {
                                     }
                                 }
                             }
-                            if person.styles.is_empty() { div { class: "empty-state", p { "{crate::i18n::tr(\"style_no_styles\", lang())}" } } }
+                            if person.styles.is_empty() { div { class: "empty-state", p { "{crate::tr!(\"style_no_styles\", lang())}" } } }
                         }
                     }
 
                     if tab() == Tab::Values {
                         div { class: "section",
-                            h2 { "{crate::i18n::tr(\"values_title\", lang())}" }
+                            h2 { "{crate::tr!(\"values_title\", lang())}" }
                             for v in &person.values {
                                 div { class: "motivation-item",
                                     div { class: "item-icon", "{v.r#type.emoji()}" }
@@ -458,7 +441,7 @@ pub fn PersonDetail(id: String) -> Element {
                                     }
                                 }
                             }
-                            if person.values.is_empty() { div { class: "empty-state", p { "{crate::i18n::tr(\"no_values\", lang())}" } } }
+                            if person.values.is_empty() { div { class: "empty-state", p { "{crate::tr!(\"no_values\", lang())}" } } }
                         }
                     }
 
@@ -579,7 +562,7 @@ pub fn PersonDetail(id: String) -> Element {
                                 if insight_output.has_secondary {
                                     details { class: "more-recs",
                                         summary {
-                                            span { "{crate::i18n::tr(\"more_recs\", lang())} (" "{insight_output.secondary.len() - 1}" ")" }
+                                            span { "{crate::tr!(\"more_recs\", lang())} (" "{insight_output.secondary.len() - 1}" ")" }
                                         }
                                         ul {
                                             for s in &insight_output.secondary[1..] {
@@ -608,13 +591,13 @@ pub fn PersonDetail(id: String) -> Element {
                         let ptraj = peoplemodeler_core::synergy::personal_trajectory(person);
                         let trend_label = match ptraj.trend {
                             peoplemodeler_core::synergy::Trend::Improving => {
-                                crate::i18n::tr("trend_improving", lang())
+                                crate::tr!("trend_improving", lang())
                             }
                             peoplemodeler_core::synergy::Trend::Stable => {
-                                crate::i18n::tr("trend_stable", lang())
+                                crate::tr!("trend_stable", lang())
                             }
                             peoplemodeler_core::synergy::Trend::Deteriorating => {
-                                crate::i18n::tr("trend_deteriorating", lang())
+                                crate::tr!("trend_deteriorating", lang())
                             }
                         };
                         let trend_cls = match ptraj.trend {
@@ -727,7 +710,7 @@ pub fn PersonDetail(id: String) -> Element {
                                                     target_id: new_target(),
                                                 });
                                                 if let Err(e) = db::save_person(p) {
-                                                    toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                    toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
                                                     return;
                                                 }
                                                 person_sig.set(db::person(&pid));
@@ -770,7 +753,7 @@ pub fn PersonDetail(id: String) -> Element {
                                                                         if let Some(ref mut p) = p {
                                                                             p.log.retain(|e| e.id != eid);
                                                                             if let Err(e) = db::save_person(p) {
-                                                                                toast_sig.set(Some(format!("{}: {e}", crate::i18n::tr("toast_error", lang()))));
+                                                                                toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
                                                                                 return;
                                                                             }
                                                                             person_sig.set(db::person(&pid));
@@ -859,13 +842,13 @@ fn axis_label(cx: f64, cy: f64, r: f64, i: usize) -> (f64, f64) {
 #[component]
 fn OceanChart(person: Person) -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let ocean_title = crate::i18n::tr("ocean_title", lang());
+    let ocean_title = crate::tr!("ocean_title", lang());
     let labels = [
-        crate::i18n::tr("ocean_o", lang()),
-        crate::i18n::tr("ocean_c", lang()),
-        crate::i18n::tr("ocean_e", lang()),
-        crate::i18n::tr("ocean_a", lang()),
-        crate::i18n::tr("ocean_n", lang()),
+        crate::tr!("ocean_o", lang()),
+        crate::tr!("ocean_c", lang()),
+        crate::tr!("ocean_e", lang()),
+        crate::tr!("ocean_a", lang()),
+        crate::tr!("ocean_n", lang()),
     ];
     let scores = [
         person.ocean.openness,
@@ -1076,10 +1059,7 @@ fn RelationshipSection(
                 created_at: chrono::Utc::now().timestamp_millis(),
             };
             db::save_relationship(&rel).unwrap_or_else(|e| {
-                toast_sig.set(Some(format!(
-                    "{}: {e}",
-                    crate::i18n::tr("toast_error", lang())
-                )))
+                toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))))
             });
         }
         refresh();
@@ -1110,10 +1090,7 @@ fn RelationshipSection(
             updated.notes = edit_notes();
             updated.strength = edit_strength();
             db::save_relationship(&updated).unwrap_or_else(|e| {
-                toast_sig.set(Some(format!(
-                    "{}: {e}",
-                    crate::i18n::tr("toast_error", lang())
-                )))
+                toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))))
             });
             refresh();
         }
@@ -1128,10 +1105,7 @@ fn RelationshipSection(
         let id = confirm_del();
         if !id.is_empty() {
             db::delete_relationship(&id).unwrap_or_else(|e| {
-                toast_sig.set(Some(format!(
-                    "{}: {e}",
-                    crate::i18n::tr("toast_error", lang())
-                )))
+                toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))))
             });
             refresh();
             confirm_del.set(String::new());

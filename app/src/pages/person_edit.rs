@@ -6,6 +6,7 @@ use peoplemodeler_core::models::{
 };
 
 use crate::Route;
+use crate::components::facet::FacetToggle;
 use crate::db;
 use crate::i18n::Lang;
 
@@ -42,9 +43,9 @@ pub fn PersonNew() -> Element {
     let lang = use_context::<Signal<Lang>>();
     let mut selected = use_signal(|| None::<usize>);
     let templates = crate::templates::all();
-    let new_person_title = crate::i18n::tr("form_new_title", lang());
-    let template_title = crate::i18n::tr("template_title", lang());
-    let template_blank = crate::i18n::tr("template_blank", lang());
+    let new_person_title = crate::tr!("form_new_title", lang());
+    let template_title = crate::tr!("template_title", lang());
+    let template_blank = crate::tr!("template_blank", lang());
 
     match selected() {
         Some(idx) => {
@@ -98,7 +99,7 @@ pub fn PersonNew() -> Element {
 pub fn PersonEdit(id: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
     let existing = db::person(&id);
-    let not_found = crate::i18n::tr("person_not_found", lang());
+    let not_found = crate::tr!("person_not_found", lang());
     match existing {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
         Some(p) => rsx! { PersonEditForm { initial: p } },
@@ -156,7 +157,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut patterns = use_signal(|| p.behavioral_patterns.clone());
     let mut styles = use_signal(|| p.styles.clone());
     let mut values = use_signal(|| p.values.clone());
-    let mut edit_mode = use_signal(|| FacetKind::Base);
+    let edit_mode = use_signal(|| FacetKind::Base);
 
     // --- Work persona (mask) state ---
     // Each bucket has a data signal + a defined flag. A bucket that is not
@@ -463,43 +464,40 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             updated_at: chrono::Utc::now().timestamp_millis(),
         };
         if let Err(e) = db::save_person(&person) {
-            toast_sig.set(Some(format!(
-                "{}: {e}",
-                crate::i18n::tr("toast_error", lang())
-            )));
+            toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
             return;
         }
-        toast_sig.set(Some(crate::i18n::tr("toast_saved", lang()).into()));
+        toast_sig.set(Some(crate::tr!("toast_saved", lang()).into()));
         dioxus::prelude::navigator().push(Route::PersonDetail {
             id: pers_id.clone(),
         });
     };
 
-    let form_new_title = crate::i18n::tr("form_new_title", lang());
-    let form_edit_title = crate::i18n::tr("form_edit_title", lang());
-    let form_name = crate::i18n::tr("form_name", lang());
-    let form_role = crate::i18n::tr("form_role", lang());
-    let form_context = crate::i18n::tr("form_context", lang());
-    let form_avatar = crate::i18n::tr("form_avatar", lang());
-    let form_tags = crate::i18n::tr("form_tags", lang());
-    let form_notes = crate::i18n::tr("form_notes", lang());
-    let form_confidence = crate::i18n::tr("form_confidence", lang());
-    let confidence_hint = crate::i18n::tr("confidence_hint", lang());
-    let reliability_title = crate::i18n::tr("reliability_title", lang());
-    let form_ocean_title = crate::i18n::tr("form_ocean_title", lang());
-    let form_save = crate::i18n::tr("form_save", lang());
-    let form_cancel = crate::i18n::tr("form_cancel", lang());
-    let persona_section = crate::i18n::tr("persona_section", lang());
-    let persona_copy_base = crate::i18n::tr("persona_copy_base", lang());
-    let persona_clear = crate::i18n::tr("persona_clear", lang());
-    let persona_balance = crate::i18n::tr("persona_balance_title", lang());
-    let facet_base = crate::i18n::tr("facet_base", lang());
-    let edit_motivations = crate::i18n::tr("edit_motivations", lang());
-    let edit_biases = crate::i18n::tr("edit_biases", lang());
-    let edit_reputation = crate::i18n::tr("edit_reputation", lang());
-    let edit_patterns = crate::i18n::tr("edit_patterns", lang());
-    let edit_styles = crate::i18n::tr("edit_styles", lang());
-    let edit_values = crate::i18n::tr("edit_values", lang());
+    let form_new_title = crate::tr!("form_new_title", lang());
+    let form_edit_title = crate::tr!("form_edit_title", lang());
+    let form_name = crate::tr!("form_name", lang());
+    let form_role = crate::tr!("form_role", lang());
+    let form_context = crate::tr!("form_context", lang());
+    let form_avatar = crate::tr!("form_avatar", lang());
+    let form_tags = crate::tr!("form_tags", lang());
+    let form_notes = crate::tr!("form_notes", lang());
+    let form_confidence = crate::tr!("form_confidence", lang());
+    let confidence_hint = crate::tr!("confidence_hint", lang());
+    let reliability_title = crate::tr!("reliability_title", lang());
+    let form_ocean_title = crate::tr!("form_ocean_title", lang());
+    let form_save = crate::tr!("form_save", lang());
+    let form_cancel = crate::tr!("form_cancel", lang());
+    let persona_section = crate::tr!("persona_section", lang());
+    let persona_copy_base = crate::tr!("persona_copy_base", lang());
+    let persona_clear = crate::tr!("persona_clear", lang());
+    let persona_balance = crate::tr!("persona_balance_title", lang());
+    let facet_base = crate::tr!("facet_base", lang());
+    let edit_motivations = crate::tr!("edit_motivations", lang());
+    let edit_biases = crate::tr!("edit_biases", lang());
+    let edit_reputation = crate::tr!("edit_reputation", lang());
+    let edit_patterns = crate::tr!("edit_patterns", lang());
+    let edit_styles = crate::tr!("edit_styles", lang());
+    let edit_values = crate::tr!("edit_values", lang());
 
     // Built from the originally-loaded person (`p`/`wp`), NOT from the live
     // signals — those change on every keystroke/slider move, and since this
@@ -655,18 +653,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
                 div { class: "facet-bar edit-mode-bar",
-                    div { role: "radiogroup", class: "facet-toggle",
-                        div {
-                            class: if edit_mode() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
-                            onclick: move |_| edit_mode.set(FacetKind::Base),
-                            "{facet_base}",
-                        }
-                        div {
-                            class: if edit_mode() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
-                            onclick: move |_| edit_mode.set(FacetKind::Work),
-                            "{persona_section}",
-                        }
-                    }
+                    FacetToggle { facet: edit_mode, base_label: facet_base, work_label: persona_section }
                     div { class: "persona-actions",
                         if edit_mode() == FacetKind::Work {
                             label { class: "dim-toggle",
@@ -1039,11 +1026,11 @@ fn FacetSection(
 #[component]
 fn ResilienceRiskInputs(resilience: Signal<u8>, risk_appetite: Signal<u8>) -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let form_resilience = crate::i18n::tr("form_resilience", lang());
-    let form_risk_appetite = crate::i18n::tr("form_risk_appetite", lang());
+    let form_resilience = crate::tr!("form_resilience", lang());
+    let form_risk_appetite = crate::tr!("form_risk_appetite", lang());
     rsx! {
         fieldset { class: "persona-balance",
-            legend { class: "sr-only", "{crate::i18n::tr(\"persona_balance_title\", lang())}" }
+            legend { class: "sr-only", "{crate::tr!(\"persona_balance_title\", lang())}" }
             label { "{form_resilience}" }
             div { class: "ocean-slider",
                 StepperSlider {
@@ -1067,41 +1054,41 @@ fn OceanInputs(ocean: Signal<OceanScores>) -> Element {
     let lang = use_context::<Signal<Lang>>();
     rsx! {
         fieldset { class: "ocean-inputs",
-            legend { class: "sr-only", "{crate::i18n::tr(\"form_ocean_title\", lang())}" }
+            legend { class: "sr-only", "{crate::tr!(\"form_ocean_title\", lang())}" }
             OceanSlider {
-                label: crate::i18n::tr("ocean_openness", lang()),
+                label: crate::tr!("ocean_openness", lang()),
                 val: ocean().openness,
                 onchange: move |v| { let mut o = ocean.write(); o.openness = v; },
-                low_hint: Some(crate::i18n::tr("ocean_o_low", lang()).into()),
-                high_hint: Some(crate::i18n::tr("ocean_o_high", lang()).into()),
+                low_hint: Some(crate::tr!("ocean_o_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_o_high", lang()).into()),
             }
             OceanSlider {
-                label: crate::i18n::tr("ocean_conscientiousness", lang()),
+                label: crate::tr!("ocean_conscientiousness", lang()),
                 val: ocean().conscientiousness,
                 onchange: move |v| { let mut o = ocean.write(); o.conscientiousness = v; },
-                low_hint: Some(crate::i18n::tr("ocean_c_low", lang()).into()),
-                high_hint: Some(crate::i18n::tr("ocean_c_high", lang()).into()),
+                low_hint: Some(crate::tr!("ocean_c_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_c_high", lang()).into()),
             }
             OceanSlider {
-                label: crate::i18n::tr("ocean_extraversion", lang()),
+                label: crate::tr!("ocean_extraversion", lang()),
                 val: ocean().extraversion,
                 onchange: move |v| { let mut o = ocean.write(); o.extraversion = v; },
-                low_hint: Some(crate::i18n::tr("ocean_e_low", lang()).into()),
-                high_hint: Some(crate::i18n::tr("ocean_e_high", lang()).into()),
+                low_hint: Some(crate::tr!("ocean_e_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_e_high", lang()).into()),
             }
             OceanSlider {
-                label: crate::i18n::tr("ocean_agreeableness", lang()),
+                label: crate::tr!("ocean_agreeableness", lang()),
                 val: ocean().agreeableness,
                 onchange: move |v| { let mut o = ocean.write(); o.agreeableness = v; },
-                low_hint: Some(crate::i18n::tr("ocean_a_low", lang()).into()),
-                high_hint: Some(crate::i18n::tr("ocean_a_high", lang()).into()),
+                low_hint: Some(crate::tr!("ocean_a_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_a_high", lang()).into()),
             }
             OceanSlider {
-                label: crate::i18n::tr("ocean_neuroticism", lang()),
+                label: crate::tr!("ocean_neuroticism", lang()),
                 val: ocean().neuroticism,
                 onchange: move |v| { let mut o = ocean.write(); o.neuroticism = v; },
-                low_hint: Some(crate::i18n::tr("ocean_n_low", lang()).into()),
-                high_hint: Some(crate::i18n::tr("ocean_n_high", lang()).into()),
+                low_hint: Some(crate::tr!("ocean_n_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_n_high", lang()).into()),
             }
         }
     }
@@ -1110,15 +1097,15 @@ fn OceanInputs(ocean: Signal<OceanScores>) -> Element {
 #[component]
 fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: Lang) -> Element {
     let cl = core_lang(lang);
-    let edit_motivations = crate::i18n::tr("edit_motivations", lang);
+    let edit_motivations = crate::tr!("edit_motivations", lang);
     let mut sel_type = use_signal(|| MotivationType::Achievement);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
-    let add_btn = crate::i18n::tr("add_btn", lang);
-    let update_btn = crate::i18n::tr("edit_update_btn", lang);
-    let mot_undefined_warning = crate::i18n::tr("mot_undefined_warning", lang);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
+    let add_btn = crate::tr!("add_btn", lang);
+    let update_btn = crate::tr!("edit_update_btn", lang);
+    let mot_undefined_warning = crate::tr!("mot_undefined_warning", lang);
 
     // Populate the add-row fields whenever the shared list section sets
     // edit_idx to a row (its ✏ button only ever does `edit_idx.set(Some(i))`
@@ -1279,18 +1266,18 @@ fn list_edit_section<T: Clone + 'static>(
 #[component]
 fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
     let cl = core_lang(lang);
-    let edit_values = crate::i18n::tr("edit_values", lang);
+    let edit_values = crate::tr!("edit_values", lang);
     let mut sel_type = use_signal(|| ValueType::Career);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_priority = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
-    let priority_label = crate::i18n::tr("edit_priority", lang);
-    let value_intensity_helper = crate::i18n::tr("value_intensity_helper", lang);
-    let value_priority_helper = crate::i18n::tr("value_priority_helper", lang);
-    let add_btn = crate::i18n::tr("add_btn", lang);
-    let update_btn = crate::i18n::tr("edit_update_btn", lang);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
+    let priority_label = crate::tr!("edit_priority", lang);
+    let value_intensity_helper = crate::tr!("value_intensity_helper", lang);
+    let value_priority_helper = crate::tr!("value_priority_helper", lang);
+    let add_btn = crate::tr!("add_btn", lang);
+    let update_btn = crate::tr!("edit_update_btn", lang);
 
     use_effect(move || {
         if let Some(idx) = edit_idx()
@@ -1373,16 +1360,16 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
 #[component]
 fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
     let cl = core_lang(lang);
-    let edit_biases = crate::i18n::tr("edit_biases", lang);
+    let edit_biases = crate::tr!("edit_biases", lang);
     let mut sel_type = use_signal(|| BiasType::Confirmation);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_evidence = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let bias_undefined_warning = crate::i18n::tr("bias_undefined_warning", lang);
-    let bias_scale_hint = crate::i18n::tr("bias_scale_hint", lang);
-    let evidence_pl = crate::i18n::tr("edit_evidence_placeholder", lang);
-    let add_btn = crate::i18n::tr("add_btn", lang);
-    let update_btn = crate::i18n::tr("edit_update_btn", lang);
+    let bias_undefined_warning = crate::tr!("bias_undefined_warning", lang);
+    let bias_scale_hint = crate::tr!("bias_scale_hint", lang);
+    let evidence_pl = crate::tr!("edit_evidence_placeholder", lang);
+    let add_btn = crate::tr!("add_btn", lang);
+    let update_btn = crate::tr!("edit_update_btn", lang);
 
     use_effect(move || {
         if let Some(idx) = edit_idx()
@@ -1449,9 +1436,9 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
 #[component]
 fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang) -> Element {
     let cl = core_lang(lang);
-    let edit_rep = crate::i18n::tr("edit_reputation", lang);
-    let rep_undefined_warning = crate::i18n::tr("rep_undefined_warning", lang);
-    let rep_scale_hint = crate::i18n::tr("rep_scale_hint", lang);
+    let edit_rep = crate::tr!("edit_reputation", lang);
+    let rep_undefined_warning = crate::tr!("rep_undefined_warning", lang);
+    let rep_scale_hint = crate::tr!("rep_scale_hint", lang);
 
     let rep_data: Vec<_> = RepDim::ALL
         .iter()
@@ -1560,16 +1547,16 @@ fn RepDimSlider(
 
 #[component]
 fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Element {
-    let edit_patterns = crate::i18n::tr("edit_patterns", lang);
-    let ctx_stress = crate::i18n::tr("ctx_stress", lang);
-    let ctx_conflict = crate::i18n::tr("ctx_conflict", lang);
-    let ctx_success = crate::i18n::tr("ctx_success", lang);
-    let ctx_uncertainty = crate::i18n::tr("ctx_uncertainty", lang);
-    let ctx_recognition = crate::i18n::tr("ctx_recognition", lang);
-    let ctx_threatened = crate::i18n::tr("ctx_threatened", lang);
-    let ctx_change = crate::i18n::tr("ctx_change", lang);
-    let ctx_feedback = crate::i18n::tr("ctx_feedback", lang);
-    let ctx_injustice = crate::i18n::tr("ctx_injustice", lang);
+    let edit_patterns = crate::tr!("edit_patterns", lang);
+    let ctx_stress = crate::tr!("ctx_stress", lang);
+    let ctx_conflict = crate::tr!("ctx_conflict", lang);
+    let ctx_success = crate::tr!("ctx_success", lang);
+    let ctx_uncertainty = crate::tr!("ctx_uncertainty", lang);
+    let ctx_recognition = crate::tr!("ctx_recognition", lang);
+    let ctx_threatened = crate::tr!("ctx_threatened", lang);
+    let ctx_change = crate::tr!("ctx_change", lang);
+    let ctx_feedback = crate::tr!("ctx_feedback", lang);
+    let ctx_injustice = crate::tr!("ctx_injustice", lang);
     let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
     let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
     let mut sel_notes = use_signal(String::new);
@@ -1577,9 +1564,9 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
 
     let cl = core_lang(lang);
 
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
-    let add_btn = crate::i18n::tr("add_btn", lang);
-    let update_btn = crate::i18n::tr("edit_update_btn", lang);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
+    let add_btn = crate::tr!("add_btn", lang);
+    let update_btn = crate::tr!("edit_update_btn", lang);
     let trigger_label = move |t: BehaviorTrigger| -> &'static str {
         match t {
             BehaviorTrigger::Stress => ctx_stress,
@@ -1749,15 +1736,15 @@ fn value_helper(t: &ValueType, lang: Lang) -> &'static str {
 
 fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
     match t {
-        BehaviorTrigger::Stress => crate::i18n::tr("pattern_helper_stress", lang),
-        BehaviorTrigger::Conflict => crate::i18n::tr("pattern_helper_conflict", lang),
-        BehaviorTrigger::Success => crate::i18n::tr("pattern_helper_success", lang),
-        BehaviorTrigger::Uncertainty => crate::i18n::tr("pattern_helper_uncertainty", lang),
-        BehaviorTrigger::Recognition => crate::i18n::tr("pattern_helper_recognition", lang),
-        BehaviorTrigger::Threatened => crate::i18n::tr("pattern_helper_threat", lang),
-        BehaviorTrigger::Change => crate::i18n::tr("pattern_helper_change", lang),
-        BehaviorTrigger::Feedback => crate::i18n::tr("pattern_helper_feedback", lang),
-        BehaviorTrigger::Injustice => crate::i18n::tr("pattern_helper_injustice", lang),
+        BehaviorTrigger::Stress => crate::tr!("pattern_helper_stress", lang),
+        BehaviorTrigger::Conflict => crate::tr!("pattern_helper_conflict", lang),
+        BehaviorTrigger::Success => crate::tr!("pattern_helper_success", lang),
+        BehaviorTrigger::Uncertainty => crate::tr!("pattern_helper_uncertainty", lang),
+        BehaviorTrigger::Recognition => crate::tr!("pattern_helper_recognition", lang),
+        BehaviorTrigger::Threatened => crate::tr!("pattern_helper_threat", lang),
+        BehaviorTrigger::Change => crate::tr!("pattern_helper_change", lang),
+        BehaviorTrigger::Feedback => crate::tr!("pattern_helper_feedback", lang),
+        BehaviorTrigger::Injustice => crate::tr!("pattern_helper_injustice", lang),
     }
 }
 
@@ -1951,15 +1938,15 @@ fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: Lang) -> Element {
     use peoplemodeler_core::models::StyleCategory;
 
     let cl = core_lang(lang);
-    let panel_title = crate::i18n::tr("edit_styles", lang);
+    let panel_title = crate::tr!("edit_styles", lang);
     let mut sel_category = use_signal(|| StyleCategory::Communication);
     let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
     let mut sel_intensity = use_signal(|| 5u8);
     let mut sel_notes = use_signal(String::new);
     let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::i18n::tr("edit_notes_placeholder", lang);
-    let add_btn = crate::i18n::tr("add_btn", lang);
-    let update_btn = crate::i18n::tr("edit_update_btn", lang);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
+    let add_btn = crate::tr!("add_btn", lang);
+    let update_btn = crate::tr!("edit_update_btn", lang);
 
     use_effect(move || {
         let cat = sel_category();

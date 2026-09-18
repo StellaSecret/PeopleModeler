@@ -17,34 +17,34 @@ enum Tab {
 #[component]
 pub fn TeamDetail(id: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let title = crate::i18n::tr("team_title", lang());
-    let empty = crate::i18n::tr("team_empty", lang());
-    let size_label = crate::i18n::tr("team_size", lang());
-    let avg_label = crate::i18n::tr("team_avg_score", lang());
-    let strongest_label = crate::i18n::tr("team_strongest", lang());
-    let weakest_label = crate::i18n::tr("team_weakest", lang());
-    let max_danger_label = crate::i18n::tr("team_max_danger", lang());
-    let avg_danger_label = crate::i18n::tr("team_avg_danger", lang());
-    let ctx_avg_title = crate::i18n::tr("team_ctx_avg", lang());
-    let pairs_title = crate::i18n::tr("team_pairs", lang());
-    let no_danger = crate::i18n::tr("team_no_danger", lang());
-    let tab_synergy = crate::i18n::tr("team_tab_synergy", lang());
-    let tab_members = crate::i18n::tr("team_tab_members", lang());
-    let facet_toggle_label = crate::i18n::tr("team_facet_toggle", lang());
-    let facet_auto_label = crate::i18n::tr("facet_auto", lang());
-    let facet_base_label = crate::i18n::tr("facet_base", lang());
-    let facet_work_label = crate::i18n::tr("facet_work", lang());
-    let all_no_edit = crate::i18n::tr("team_all_no_edit", lang());
-    let members_count_fmt = crate::i18n::tr("team_members_count", lang());
-    let team_rename_label = crate::i18n::tr("team_rename", lang());
-    let team_icon_label = crate::i18n::tr("team_icon", lang());
-    let team_edit_label = crate::i18n::tr("team_edit", lang());
-    let form_save = crate::i18n::tr("common_save", lang());
-    let form_cancel = crate::i18n::tr("common_cancel", lang());
+    let title = crate::tr!("team_title", lang());
+    let empty = crate::tr!("team_empty", lang());
+    let size_label = crate::tr!("team_size", lang());
+    let avg_label = crate::tr!("team_avg_score", lang());
+    let strongest_label = crate::tr!("team_strongest", lang());
+    let weakest_label = crate::tr!("team_weakest", lang());
+    let max_danger_label = crate::tr!("team_max_danger", lang());
+    let avg_danger_label = crate::tr!("team_avg_danger", lang());
+    let ctx_avg_title = crate::tr!("team_ctx_avg", lang());
+    let pairs_title = crate::tr!("team_pairs", lang());
+    let no_danger = crate::tr!("team_no_danger", lang());
+    let tab_synergy = crate::tr!("team_tab_synergy", lang());
+    let tab_members = crate::tr!("team_tab_members", lang());
+    let facet_toggle_label = crate::tr!("team_facet_toggle", lang());
+    let facet_auto_label = crate::tr!("facet_auto", lang());
+    let facet_base_label = crate::tr!("facet_base", lang());
+    let facet_work_label = crate::tr!("facet_work", lang());
+    let all_no_edit = crate::tr!("team_all_no_edit", lang());
+    let members_count_fmt = crate::tr!("team_members_count", lang());
+    let team_rename_label = crate::tr!("team_rename", lang());
+    let team_icon_label = crate::tr!("team_icon", lang());
+    let team_edit_label = crate::tr!("team_edit", lang());
+    let form_save = crate::tr!("common_save", lang());
+    let form_cancel = crate::tr!("common_cancel", lang());
 
     let is_all = id == "all";
     let team_name = if is_all {
-        crate::i18n::tr("teams_all", lang()).to_string()
+        crate::tr!("teams_all", lang()).to_string()
     } else {
         db::team(&id)
             .map(|t| t.name.clone())

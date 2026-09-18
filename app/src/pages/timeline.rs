@@ -9,8 +9,8 @@ use crate::pages::predictions::format_date;
 pub fn Timeline() -> Element {
     let lang = use_context::<Signal<Lang>>();
     let persons = use_signal(db::all_persons);
-    let title = crate::i18n::tr("tl_title", lang());
-    let empty = crate::i18n::tr("tl_empty", lang());
+    let title = crate::tr!("tl_title", lang());
+    let empty = crate::tr!("tl_empty", lang());
 
     let mut entries: Vec<_> = persons()
         .into_iter()

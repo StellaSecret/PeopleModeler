@@ -3,6 +3,7 @@ use peoplemodeler_core::models::{FacetKind, Person};
 use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
+use crate::components::facet::FacetToggle;
 use crate::db;
 use crate::i18n::Lang;
 
@@ -20,7 +21,7 @@ pub fn PeopleList() -> Element {
     let nav = use_navigator();
     let persons = use_signal(db::all_persons);
     let mut search = use_signal(String::new);
-    let mut facet = use_signal(|| FacetKind::Base);
+    let facet = use_signal(|| FacetKind::Base);
 
     let profiles = use_memo(move || {
         let all = persons();
@@ -36,19 +37,19 @@ pub fn PeopleList() -> Element {
             .collect::<Vec<_>>()
     });
 
-    let search_placeholder = crate::i18n::tr("search_placeholder", lang());
-    let no_people = crate::i18n::tr("no_people_yet", lang());
-    let no_search_results = crate::i18n::tr("no_search_results", lang());
-    let facet_base = crate::i18n::tr("facet_base", lang());
-    let facet_work = crate::i18n::tr("facet_work", lang());
-    let name_hdr = crate::i18n::tr("pl_name", lang());
-    let ps_hdr = crate::i18n::tr("person_self_score", lang());
-    let ocean_hdr = crate::i18n::tr("compare_cat_ocean", lang());
-    let rep_hdr = crate::i18n::tr("compare_cat_reputation", lang());
-    let mot_hdr = crate::i18n::tr("compare_cat_motivation", lang());
-    let pat_hdr = crate::i18n::tr("compare_cat_patterns", lang());
-    let bias_hdr = crate::i18n::tr("compare_cat_bias", lang());
-    let comp_hdr = crate::i18n::tr("profile_completeness", lang());
+    let search_placeholder = crate::tr!("search_placeholder", lang());
+    let no_people = crate::tr!("no_people_yet", lang());
+    let no_search_results = crate::tr!("no_search_results", lang());
+    let facet_base = crate::tr!("facet_base", lang());
+    let facet_work = crate::tr!("facet_work", lang());
+    let name_hdr = crate::tr!("pl_name", lang());
+    let ps_hdr = crate::tr!("person_self_score", lang());
+    let ocean_hdr = crate::tr!("compare_cat_ocean", lang());
+    let rep_hdr = crate::tr!("compare_cat_reputation", lang());
+    let mot_hdr = crate::tr!("compare_cat_motivation", lang());
+    let pat_hdr = crate::tr!("compare_cat_patterns", lang());
+    let bias_hdr = crate::tr!("compare_cat_bias", lang());
+    let comp_hdr = crate::tr!("profile_completeness", lang());
 
     rsx! {
         div { class: "page",
@@ -60,22 +61,7 @@ pub fn PeopleList() -> Element {
                     value: "{search}",
                     oninput: move |e| search.set(e.value()),
                 }
-                div { class: "facet-toggle", role: "radiogroup", aria_label: "{facet_base} / {facet_work}",
-                    button {
-                        class: if facet() == FacetKind::Base { "facet-btn active" } else { "facet-btn" },
-                        role: "radio",
-                        aria_checked: if facet() == FacetKind::Base { "true" } else { "false" },
-                        onclick: move |_| facet.set(FacetKind::Base),
-                        "{facet_base}"
-                    }
-                    button {
-                        class: if facet() == FacetKind::Work { "facet-btn active" } else { "facet-btn" },
-                        role: "radio",
-                        aria_checked: if facet() == FacetKind::Work { "true" } else { "false" },
-                        onclick: move |_| facet.set(FacetKind::Work),
-                        "{facet_work}"
-                    }
-                }
+                FacetToggle { facet, base_label: facet_base, work_label: facet_work, group_label: Some(format!("{facet_base} / {facet_work}")) }
             }
             {
             let q = search().to_lowercase();

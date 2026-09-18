@@ -107,9 +107,9 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
     let mut rel_type: Signal<Option<RelationType>> = use_signal(|| prefill_type);
     let mut rel_strength: Signal<u8> = use_signal(|| prefill_strength);
     let cl = core_lang(lang());
-    let not_found = crate::i18n::tr("person_not_found", lang());
-    let compare_title = crate::i18n::tr("compare_title", lang());
-    let back_btn = crate::i18n::tr("common_back", lang());
+    let not_found = crate::tr!("person_not_found", lang());
+    let compare_title = crate::tr!("compare_title", lang());
+    let back_btn = crate::tr!("common_back", lang());
 
     match (p1(), p2()) {
         (Some(a), Some(b)) => {
@@ -132,11 +132,11 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let (pa, pb) = analysis_pair(&a, &b, kind);
             let (synergies, frictions, (top_strategy, all_strategies)) =
                 compare_analysis(&pa, &pb, lang());
-            let compare_sub = crate::i18n::tr("compare_sub", lang());
-            let compare_vs = crate::i18n::tr("compare_vs", lang());
-            let compare_asymmetric = crate::i18n::tr("compare_asymmetric", lang());
-            let compare_benefit_more = crate::i18n::tr("compare_benefit_more", lang());
-            let compare_balanced = crate::i18n::tr("compare_balanced", lang());
+            let compare_sub = crate::tr!("compare_sub", lang());
+            let compare_vs = crate::tr!("compare_vs", lang());
+            let compare_asymmetric = crate::tr!("compare_asymmetric", lang());
+            let compare_benefit_more = crate::tr!("compare_benefit_more", lang());
+            let compare_balanced = crate::tr!("compare_balanced", lang());
             let a_score = brk.a_score;
             let b_score = brk.b_score;
             let (a_benefit_label, b_benefit_label) = benefit_labels(
@@ -147,40 +147,40 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 compare_benefit_more,
                 compare_balanced,
             );
-            let compare_breakdown = crate::i18n::tr("compare_breakdown", lang());
-            let compare_ctx_title = crate::i18n::tr("compare_ctx_title", lang());
+            let compare_breakdown = crate::tr!("compare_breakdown", lang());
+            let compare_ctx_title = crate::tr!("compare_ctx_title", lang());
             let ctx_rows: Vec<(String, u8)> = brk
                 .per_context
                 .iter()
                 .map(|(c, s)| (crate::i18n::tr(ctx_key(*c), lang()).to_string(), *s))
                 .collect();
-            let cat_ocean = crate::i18n::tr("compare_cat_ocean", lang());
-            let cat_rep = crate::i18n::tr("compare_cat_reputation", lang());
-            let cat_mot = crate::i18n::tr("compare_cat_motivation", lang());
-            let cat_pat = crate::i18n::tr("compare_cat_patterns", lang());
-            let cat_bias = crate::i18n::tr("compare_cat_bias", lang());
-            let cat_styles = crate::i18n::tr("compare_cat_styles", lang());
-            let cat_values = crate::i18n::tr("compare_cat_values", lang());
-            let top_mot_label = crate::i18n::tr("compare_top_mot", lang());
-            let bias_label = crate::i18n::tr("compare_bias_main", lang());
-            let ocean_label = crate::i18n::tr("compare_ocean", lang());
-            let analysis_title = crate::i18n::tr("compare_analysis_title", lang());
-            let synergies_title = crate::i18n::tr("compare_synergies", lang());
-            let friction_title = crate::i18n::tr("compare_friction", lang());
-            let strategy_title = crate::i18n::tr("compare_strategy", lang());
-            let ethics = crate::i18n::tr("compare_ethics", lang());
+            let cat_ocean = crate::tr!("compare_cat_ocean", lang());
+            let cat_rep = crate::tr!("compare_cat_reputation", lang());
+            let cat_mot = crate::tr!("compare_cat_motivation", lang());
+            let cat_pat = crate::tr!("compare_cat_patterns", lang());
+            let cat_bias = crate::tr!("compare_cat_bias", lang());
+            let cat_styles = crate::tr!("compare_cat_styles", lang());
+            let cat_values = crate::tr!("compare_cat_values", lang());
+            let top_mot_label = crate::tr!("compare_top_mot", lang());
+            let bias_label = crate::tr!("compare_bias_main", lang());
+            let ocean_label = crate::tr!("compare_ocean", lang());
+            let analysis_title = crate::tr!("compare_analysis_title", lang());
+            let synergies_title = crate::tr!("compare_synergies", lang());
+            let friction_title = crate::tr!("compare_friction", lang());
+            let strategy_title = crate::tr!("compare_strategy", lang());
+            let ethics = crate::tr!("compare_ethics", lang());
             let has_extra_strategies = should_show_extra_strategies(all_strategies.len());
-            let rel_title = crate::i18n::tr("compare_rel_title", lang());
-            let rel_none = crate::i18n::tr("compare_rel_none", lang());
-            let rel_strength_label = crate::i18n::tr("compare_rel_strength", lang());
-            let band_hint = crate::i18n::tr("compare_band_hint", lang());
+            let rel_title = crate::tr!("compare_rel_title", lang());
+            let rel_none = crate::tr!("compare_rel_none", lang());
+            let rel_strength_label = crate::tr!("compare_rel_strength", lang());
+            let band_hint = crate::tr!("compare_band_hint", lang());
             let band_label = format_band_label(brk.band, band_hint);
             let rel_cl = core_lang(lang());
 
             let trend_label = match brk.trajectory_trend {
-                Trend::Improving => crate::i18n::tr("trend_improving", lang()),
-                Trend::Stable => crate::i18n::tr("trend_stable", lang()),
-                Trend::Deteriorating => crate::i18n::tr("trend_deteriorating", lang()),
+                Trend::Improving => crate::tr!("trend_improving", lang()),
+                Trend::Stable => crate::tr!("trend_stable", lang()),
+                Trend::Deteriorating => crate::tr!("trend_deteriorating", lang()),
             };
             let trend_cls = match brk.trajectory_trend {
                 Trend::Improving => "trend-up",
@@ -193,7 +193,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 Trend::Deteriorating => "↓",
             };
             let trend_delta = format_signed_delta(brk.trajectory_delta);
-            let trend_hint = crate::i18n::tr("trend_hint", lang());
+            let trend_hint = crate::tr!("trend_hint", lang());
 
             // Scale ruler — thresholds dynamically derived from sim formula
             let band_ranges = synergy_bands();
@@ -472,7 +472,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                     }
 
                     {if !a_flags.is_empty() || !b_flags.is_empty() {
-                        let risk_title = crate::i18n::tr("compare_risk_mitigation", lang());
+                        let risk_title = crate::tr!("compare_risk_mitigation", lang());
                         let a_rm = peoplemodeler_core::advice::risk_mitigation_pair(&a, core_lang(lang()));
                         let b_rm = peoplemodeler_core::advice::risk_mitigation_pair(&b, core_lang(lang()));
                         rsx! {
@@ -537,9 +537,9 @@ fn PersonCard(person: Person, mask: Option<(String, String, String)>) -> Element
 fn mask_badge(p: &Person, lang: Lang) -> Option<(String, String, String)> {
     mask_gap(p).map(|m| {
         let (label, cls) = match m.band {
-            MaskBand::Low => (crate::i18n::tr("mask_gap_low", lang), "mask-low"),
-            MaskBand::Moderate => (crate::i18n::tr("mask_gap_moderate", lang), "mask-moderate"),
-            MaskBand::High => (crate::i18n::tr("mask_gap_high", lang), "mask-high"),
+            MaskBand::Low => (crate::tr!("mask_gap_low", lang), "mask-low"),
+            MaskBand::Moderate => (crate::tr!("mask_gap_moderate", lang), "mask-moderate"),
+            MaskBand::High => (crate::tr!("mask_gap_high", lang), "mask-high"),
         };
         (
             label.to_string(),
