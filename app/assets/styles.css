@@ -108,7 +108,7 @@ body{
 
 /* ── SEARCH ── */
 .search-input{
-  flex:1;padding:0.7rem 1rem;
+  flex:1;min-width:0;padding:0.7rem 1rem;
   border:1px solid var(--border);border-radius:var(--radius);
   font-size:0.88rem;font-family:var(--font-body);
   background:var(--surface);color:var(--text);outline:none;transition:border-color 0.2s
@@ -461,7 +461,7 @@ fieldset.persona-balance legend{
 .reliability legend{padding:0 0.4rem;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)}
 .reliability-hint{font-size:0.7rem;color:var(--text-muted);margin-bottom:0.35rem;opacity:0.8}
 .ocean-header{display:flex;justify-content:space-between;align-items:center;width:100%;gap:0.5rem}
-.ocean-label{font-size:.82rem;color:var(--text-muted);font-weight:600;font-family:var(--font-display);flex:1}
+.ocean-label{font-size:.82rem;color:var(--text-muted);font-weight:600;font-family:var(--font-display);flex:1;min-width:0}
 .dim-toggle{display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.78rem;color:var(--text-muted);font-family:var(--font-mono)}
 .dim-toggle input[type="checkbox"]{width:.9rem;height:.9rem;cursor:pointer;accent-color:var(--cyan)}
 .rep-slider-bar{display:flex;align-items:center;gap:.5rem;width:100%;margin:.25rem 0}
@@ -474,7 +474,7 @@ fieldset.persona-balance legend{
 /* ── FORM ROW ── */
 .form-row{display:flex;gap:0.5rem;margin-bottom:0.75rem;align-items:center}
 .form-row input{
-  flex:1;padding:0.65rem 1rem;border:1px solid var(--border);
+  flex:1;min-width:0;padding:0.65rem 1rem;border:1px solid var(--border);
   border-radius:var(--radius);font-size:0.88rem;font-family:var(--font-body);
   background:var(--surface);color:var(--text);outline:none;transition:border-color 0.2s
 }
@@ -512,7 +512,7 @@ fieldset.persona-balance legend{
 .passphrase-row{flex-wrap:wrap;max-width:400px}
 .passphrase-row label{width:100%;font-size:0.82rem;color:var(--text-muted)}
 .passphrase-input-group{display:flex;gap:0.4rem;width:100%}
-.passphrase-input-group input{flex:1}
+.passphrase-input-group input{flex:1;min-width:0}
 .sync-drive-link{
   margin-top:1rem;padding-top:0.85rem;
   border-top:1px dashed var(--border);
