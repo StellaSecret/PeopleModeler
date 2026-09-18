@@ -4,6 +4,7 @@ import {
   createPerson,
   addMotivation,
   setStepper,
+  enableAndSetRep,
   dismissTutorial,
 } from './helpers';
 
@@ -105,6 +106,25 @@ test.describe('Edit form state machines', () => {
 
     await mot.locator('.edit-section-discard').click();
     await expect(mot.locator('.list-item')).toHaveCount(0);
+  });
+
+  test('discard reverts reputation scores, not the just-edited ones', async ({
+    page,
+  }) => {
+    await clearStorage(page);
+    const personId = await createPerson(page, 'Discard Rep Test');
+    await gotoEdit(page, personId);
+
+    const rep = editSection(page, 'Reputation');
+    await enableAndSetRep(page, 0, 8); // HardworkerLazy → Hardworker (≥ 8)
+    await expect(rep.locator('.rep-dim-value strong').first()).toHaveText('8/10');
+
+    // Each rep slider keeps its own pending on/value; Discard must remount
+    // them back to the saved (undefined → toggle off) state.
+    const toggle = rep.locator("label.dim-toggle input[type='checkbox']").first();
+    await expect(toggle).toBeChecked();
+    await rep.locator('.edit-section-discard').click();
+    await expect(toggle).not.toBeChecked();
   });
 
   test('work persona edits stay isolated from the base profile', async ({

@@ -222,6 +222,12 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut has_risk_appetite =
         use_signal(|| wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()));
 
+    // Bumped on any external write to the rep scores (per-section discard,
+    // copy-from-base). RepDimSlider keeps its own pending `on`/`val` signals,
+    // so without a key remount on this revision the sliders would keep showing
+    // stale values after the underlying signal was reset elsewhere.
+    let mut rep_rev = use_signal(|| 0u32);
+
     let ocean_rep_flags = use_memo(move || {
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
         flags.extend(peoplemodeler_core::validation::rhetoric_gap_flags(
@@ -615,6 +621,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         work_rep.set(saved.work_rep.clone());
                         has_rep.set(saved.has_rep);
                     }
+                    rep_rev.set(rep_rev() + 1);
                 }
                 EditSectionId::Patterns => {
                     if base {
@@ -669,6 +676,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                                     persona_enabled.set(true);
                                     work_ocean.set(p.ocean.clone());
                                     work_rep.set(p.rep_scores.clone());
+                                    rep_rev.set(rep_rev() + 1);
                                     work_motivations.set(p.motivations.clone());
                                     work_biases.set(p.biases.clone());
                                     work_patterns.set(p.behavioral_patterns.clone());
@@ -798,7 +806,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Reputation,
                         title: edit_reputation,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                        RepEditPanel { rep_scores, lang: lang() }
+                        RepEditPanel { rep_scores, lang: lang(), rev: rep_rev }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -882,7 +890,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_reputation,
                             has: Some(has_rep),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                            RepEditPanel { rep_scores: work_rep, lang: lang() }
+                            RepEditPanel { rep_scores: work_rep, lang: lang(), rev: rep_rev }
                         }
 
                         FacetSection {
@@ -1345,14 +1353,10 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
         move |_i, v: &Value| {
             let v = v.clone();
             rsx! {
-            div { class: "helper-text",
-                div { "{value_helper(&sel_type(), lang)}" }
-                div { "{value_intensity_helper}" }
-                div { "{value_priority_helper}" }
+                strong { "{v.r#type.emoji()} {v.r#type.i18n(cl).label}" }
+                span { " I{v.intensity}/10 P{v.priority}/10" }
+                span { " {v.notes}" }
             }
-                    span { " I{v.intensity}/10 P{v.priority}/10" }
-                    span { " {v.notes}" }
-                }
         },
     )
 }
@@ -1434,11 +1438,12 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
 }
 
 #[component]
-fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang) -> Element {
+fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, rev: Signal<u32>) -> Element {
     let cl = core_lang(lang);
     let edit_rep = crate::tr!("edit_reputation", lang);
     let rep_undefined_warning = crate::tr!("rep_undefined_warning", lang);
     let rep_scale_hint = crate::tr!("rep_scale_hint", lang);
+    let rev = rev();
 
     let rep_data: Vec<_> = RepDim::ALL
         .iter()
@@ -1455,11 +1460,12 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang) -> Element {
             div { class: "helper-text", "{rep_undefined_warning}" }
             div { class: "helper-text", "{rep_scale_hint}" }
             div { class: "section-items",
-                {rep_data.into_iter().map(|(dim, ri, cur)| {
+                {rep_data.into_iter().enumerate().map(|(i, (dim, ri, cur))| {
                     let start_val = cur.unwrap_or(5);
                     let start_on = cur.is_some();
                     rsx! {
                         RepDimSlider {
+                            key: "{i}-{rev}",
                             dim,
                             label_a: ri.label_a,
                             label_b: ri.label_b,
