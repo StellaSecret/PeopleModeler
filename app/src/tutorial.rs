@@ -141,11 +141,11 @@ pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
     let title = tr(step.title_key, lang());
     let body = tr(step.body_key, lang());
     let is_last = is_last_step(step_idx);
-    let back_text = tr("common_back", lang());
-    let skip_text = tr("common_skip", lang());
-    let finish_text = tr("common_finish", lang());
-    let next_text = tr("common_next", lang());
-    let step_text = tr("tut_step", lang());
+    let back_text = crate::tr!("common_back", lang());
+    let skip_text = crate::tr!("common_skip", lang());
+    let finish_text = crate::tr!("common_finish", lang());
+    let next_text = crate::tr!("common_next", lang());
+    let step_text = crate::tr!("tut_step", lang());
 
     let go_next = move |_| {
         if is_last {
