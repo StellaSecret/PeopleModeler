@@ -1698,14 +1698,8 @@ fn OceanSlider(
                 min: 1,
                 max: 10,
                 value: current,
-                display: if val.is_some() { current.to_string() } else { "—".to_string() },
-                onchange: move |v| {
-                    if val.is_none() {
-                        onchange.call(Some(5));
-                    } else {
-                        onchange.call(Some(v));
-                    }
-                },
+                display: format!("{current}/10"),
+                onchange: move |v| onchange.call(Some(v)),
             }
             if let (Some(l), Some(h)) = (low_hint.as_ref(), high_hint.as_ref()) {
                 div { class: "ocean-hint",
