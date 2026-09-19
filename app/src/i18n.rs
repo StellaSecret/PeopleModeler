@@ -2206,6 +2206,27 @@ mod tests {
     }
 
     #[test]
+    fn valid_key_rejects_unknown_keys() {
+        // A length unrelated to any real key: exercises the outer
+        // `i < VALID_KEYS.len()` loop running to completion without ever
+        // matching. Catches `-> true`, and the outer `<` → `<=` mutant
+        // (which would index one past the end and panic here instead of
+        // just returning false).
+        assert!(!valid_key("this_key_does_not_exist_at_all_______"));
+
+        // Same length as a real key, but different content: exercises the
+        // inner byte-comparison loop's bound (`j < a_len`). Mutating that
+        // to `==`/`>` stops the loop from ever comparing individual bytes,
+        // so two keys of matching length would incorrectly register as
+        // equal regardless of their actual content.
+        assert_eq!("facet_base".len(), "facet_zzzz".len());
+        assert!(!valid_key("facet_zzzz"));
+
+        // Sanity-check the happy path too.
+        assert!(valid_key("facet_base"));
+    }
+
+    #[test]
     fn all_keys_translate_fr() {
         for &key in VALID_KEYS {
             let result = tr(key, Lang::Fr);

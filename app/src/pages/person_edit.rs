@@ -624,7 +624,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         work_rep.set(saved.work_rep.clone());
                         has_rep.set(saved.has_rep);
                     }
-                    rep_reset_gen.set(rep_reset_gen() + 1);
+                    rep_reset_gen.set(next_reset_gen(rep_reset_gen()));
                 }
                 EditSectionId::Patterns => {
                     if base {
@@ -689,7 +689,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                                 persona_enabled.set(true);
                                 work_ocean.set(p.ocean.clone());
                                 work_rep.set(p.rep_scores.clone());
-                                rep_reset_gen.set(rep_reset_gen() + 1);
+                                rep_reset_gen.set(next_reset_gen(rep_reset_gen()));
                                 work_motivations.set(p.motivations.clone());
                                 work_biases.set(p.biases.clone());
                                 work_patterns.set(p.behavioral_patterns.clone());
@@ -1021,7 +1021,7 @@ fn FacetSection(
     #[props(default)] header: Option<Element>,
     children: Element,
 ) -> Element {
-    let is_work = mode == FacetKind::Work;
+    let is_work = is_work_facet(mode);
     let header = if is_work {
         header.or_else(|| has.map(|h| rsx! { BucketToggle { has: h } }))
     } else {
@@ -1795,6 +1795,21 @@ fn is_base_facet(mode: FacetKind) -> bool {
     mode == FacetKind::Base
 }
 
+// Same reasoning: FacetSection's `is_work` check lives inside a Dioxus
+// component, invisible to a plain `cargo test` run.
+fn is_work_facet(mode: FacetKind) -> bool {
+    mode == FacetKind::Work
+}
+
+// Same reasoning as is_base_facet above: rep_reset_gen only ever gets
+// bumped from inside a Dioxus closure, invisible to cargo-mutants' plain
+// `cargo test` run (the Playwright suite that actually exercises the
+// resulting remount doesn't run under cargo-mutants at all). Extracting
+// the arithmetic gives it a direct #[test], independent of any UI.
+fn next_reset_gen(current: u32) -> u32 {
+    current + 1
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum EditSectionId {
     ResilienceRisk,
@@ -2547,6 +2562,18 @@ mod tests {
     fn is_base_facet_distinguishes_base_and_work() {
         assert!(is_base_facet(FacetKind::Base), "Base facet is base");
         assert!(!is_base_facet(FacetKind::Work), "Work facet is not base");
+    }
+
+    #[test]
+    fn is_work_facet_distinguishes_base_and_work() {
+        assert!(is_work_facet(FacetKind::Work), "Work facet is work");
+        assert!(!is_work_facet(FacetKind::Base), "Base facet is not work");
+    }
+
+    #[test]
+    fn next_reset_gen_increments_by_one() {
+        assert_eq!(next_reset_gen(0), 1);
+        assert_eq!(next_reset_gen(7), 8);
     }
 
     #[test]
