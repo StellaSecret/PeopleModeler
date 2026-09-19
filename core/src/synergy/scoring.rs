@@ -50,8 +50,9 @@ pub fn compute_synergy_score_ctx(
 }
 
 /// Synergy with an explicitly chosen facet. `FacetKind::Base` reproduces the
-/// legacy context-free behavior exactly; `FacetKind::Work` scores both persons
-/// through their work personas (base channels inherited where unset).
+/// legacy context-free behavior exactly; `FacetKind::Work` and
+/// `FacetKind::Online` score both persons through their arena personas (base
+/// channels inherited where unset).
 pub fn compute_synergy_score_facet(
     a: &Person,
     b: &Person,
@@ -60,10 +61,14 @@ pub fn compute_synergy_score_facet(
     a_preds: &[Prediction],
     b_preds: &[Prediction],
 ) -> SynergyBreakdown {
-    let merged = facet == FacetKind::Work && (a.persona.is_some() || b.persona.is_some());
+    let merged = match facet {
+        FacetKind::Base => false,
+        FacetKind::Work => a.persona.is_some() || b.persona.is_some(),
+        FacetKind::Online => a.online_persona.is_some() || b.online_persona.is_some(),
+    };
     if merged {
-        let am = a.facet_person(FacetKind::Work);
-        let bm = b.facet_person(FacetKind::Work);
+        let am = a.facet_person(facet);
+        let bm = b.facet_person(facet);
         compute_synergy_score_inner(&am, &bm, ctx, a_preds, b_preds)
     } else {
         compute_synergy_score_inner(a, b, ctx, a_preds, b_preds)

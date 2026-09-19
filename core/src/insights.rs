@@ -86,9 +86,9 @@ pub fn generate_insight(ctx: InsightContext, p: &Person, lang: crate::i18n::Lang
     generate_insight_with_profile(ctx, p, &profile, lang)
 }
 
-/// Insight for a specific facet. The `Work` facet runs the whole pipeline on
+/// Insight for a specific facet. A persona facet runs the whole pipeline on
 /// the masked (persona-merged) profile and appends a mask-gap line when the
-/// person has a work persona.
+/// person has a persona for that arena.
 pub fn generate_insight_facet(
     ctx: InsightContext,
     p: &Person,
@@ -97,20 +97,35 @@ pub fn generate_insight_facet(
 ) -> String {
     let pm = p.facet_person(kind);
     let out = generate_insight(ctx, &pm, lang);
-    if kind == FacetKind::Work
-        && let Some(gap) = crate::synergy::mask_gap(p)
-    {
-        let band = match gap.band {
-            crate::synergy::MaskBand::Low => "faible",
-            crate::synergy::MaskBand::Moderate => "modéré",
-            crate::synergy::MaskBand::High => "élevé",
-        };
-        return format!(
-            "{out}\n\n🎭 Masque professionnel : écart base/travail {:.0}% ({band})",
-            gap.gap * 100.0
-        );
+    let mask_line = match kind {
+        FacetKind::Base => None,
+        FacetKind::Work => crate::synergy::mask_gap(p).map(|gap| {
+            format!(
+                "\n\n🎭 Masque professionnel : écart base/travail {:.0}% ({})",
+                gap.gap * 100.0,
+                mask_band_fr(gap.band)
+            )
+        }),
+        FacetKind::Online => crate::synergy::mask_gap_for(p, kind).map(|gap| {
+            format!(
+                "\n\n🎭 Masque en ligne : écart base/en ligne {:.0}% ({})",
+                gap.gap * 100.0,
+                mask_band_fr(gap.band)
+            )
+        }),
+    };
+    if let Some(line) = mask_line {
+        return format!("{out}{line}");
     }
     out
+}
+
+fn mask_band_fr(band: crate::synergy::MaskBand) -> &'static str {
+    match band {
+        crate::synergy::MaskBand::Low => "faible",
+        crate::synergy::MaskBand::Moderate => "modéré",
+        crate::synergy::MaskBand::High => "élevé",
+    }
 }
 
 pub fn generate_insight_with_profile(

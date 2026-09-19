@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     AVATAR_EMOJIS, BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, FacetKind,
-    Motivation, MotivationType, OceanScores, Person, PersonalStyle, RepDim, RepScores,
-    StyleCategory, StyleType, Tag, Value, ValueType, WorkPersona,
+    Motivation, MotivationType, OceanScores, Person, PersonaMask, PersonalStyle, RepDim, RepScores,
+    StyleCategory, StyleType, Tag, Value, ValueType,
 };
 
 use crate::Route;
@@ -51,6 +51,7 @@ pub fn PersonNew() -> Element {
         Some(idx) => {
             let blank = Person {
                 persona: None,
+                online_persona: None,
                 id: uuid::Uuid::new_v4().to_string(),
                 name: String::new(),
                 role: String::new(),
@@ -113,6 +114,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let is_new = initial.is_none();
     let p = initial.unwrap_or_else(|| Person {
         persona: None,
+        online_persona: None,
         id: uuid::Uuid::new_v4().to_string(),
         name: String::new(),
         role: String::new(),
@@ -134,6 +136,11 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         created_at: chrono::Utc::now().timestamp_millis(),
         updated_at: chrono::Utc::now().timestamp_millis(),
     });
+
+    // The "copy base" button above moves the Work closure's fields out of
+    // `p`, so the Online twin needs its own snapshot to copy from. Cloned
+    // here, before the `save` closure partially moves `p` below.
+    let p_online = p.clone();
 
     let mut name = use_signal(|| p.name.clone());
     let mut role = use_signal(|| p.role.clone());
@@ -221,6 +228,70 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut has_resilience = use_signal(|| wp.as_ref().is_some_and(|w| w.resilience.is_some()));
     let mut has_risk_appetite =
         use_signal(|| wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()));
+
+    // --- Online persona (mask) state ---
+    // Mirrors the work persona above, bucket by bucket: each bucket has a data
+    // signal + a defined flag ("same as base" when unset).
+    let mut online_persona_enabled = use_signal(|| p.online_persona.is_some());
+    let op = p.online_persona.clone();
+    let mut online_ocean = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.ocean.clone())
+            .unwrap_or_else(|| p.ocean.clone())
+    });
+    let mut online_rep = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.rep_scores.clone())
+            .unwrap_or_else(|| p.rep_scores.clone())
+    });
+    let mut online_motivations = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.motivations.clone())
+            .unwrap_or_else(|| p.motivations.clone())
+    });
+    let mut online_biases = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.biases.clone())
+            .unwrap_or_else(|| p.biases.clone())
+    });
+    let mut online_patterns = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.behavioral_patterns.clone())
+            .unwrap_or_else(|| p.behavioral_patterns.clone())
+    });
+    let mut online_styles = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.styles.clone())
+            .unwrap_or_else(|| p.styles.clone())
+    });
+    let mut online_values = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.values.clone())
+            .unwrap_or_else(|| p.values.clone())
+    });
+    let mut online_resilience = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.resilience)
+            .unwrap_or_else(|| p.resilience.unwrap_or(5))
+    });
+    let mut online_risk_appetite = use_signal(|| {
+        op.as_ref()
+            .and_then(|m| m.risk_appetite)
+            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5))
+    });
+    let mut has_online_ocean = use_signal(|| op.as_ref().is_some_and(|m| m.ocean.is_some()));
+    let mut has_online_rep = use_signal(|| op.as_ref().is_some_and(|m| m.rep_scores.is_some()));
+    let mut has_online_motivations =
+        use_signal(|| op.as_ref().is_some_and(|m| m.motivations.is_some()));
+    let mut has_online_biases = use_signal(|| op.as_ref().is_some_and(|m| m.biases.is_some()));
+    let mut has_online_patterns =
+        use_signal(|| op.as_ref().is_some_and(|m| m.behavioral_patterns.is_some()));
+    let mut has_online_styles = use_signal(|| op.as_ref().is_some_and(|m| m.styles.is_some()));
+    let mut has_online_values = use_signal(|| op.as_ref().is_some_and(|m| m.values.is_some()));
+    let mut has_online_resilience =
+        use_signal(|| op.as_ref().is_some_and(|m| m.resilience.is_some()));
+    let mut has_online_risk_appetite =
+        use_signal(|| op.as_ref().is_some_and(|m| m.risk_appetite.is_some()));
 
     let ocean_rep_flags = use_memo(move || {
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
@@ -392,7 +463,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut save = move || {
         let person = Person {
             persona: if persona_enabled() {
-                Some(WorkPersona {
+                Some(PersonaMask {
                     ocean: if has_ocean() {
                         Some(work_ocean())
                     } else {
@@ -431,6 +502,57 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     },
                     risk_appetite: if has_risk_appetite() {
                         Some(work_risk_appetite())
+                    } else {
+                        None
+                    },
+                })
+            } else {
+                None
+            },
+            online_persona: if online_persona_enabled() {
+                Some(PersonaMask {
+                    ocean: if has_online_ocean() {
+                        Some(online_ocean())
+                    } else {
+                        None
+                    },
+                    rep_scores: if has_online_rep() {
+                        Some(online_rep())
+                    } else {
+                        None
+                    },
+                    motivations: if has_online_motivations() {
+                        Some(online_motivations())
+                    } else {
+                        None
+                    },
+                    biases: if has_online_biases() {
+                        Some(online_biases())
+                    } else {
+                        None
+                    },
+                    behavioral_patterns: if has_online_patterns() {
+                        Some(online_patterns())
+                    } else {
+                        None
+                    },
+                    styles: if has_online_styles() {
+                        Some(online_styles())
+                    } else {
+                        None
+                    },
+                    values: if has_online_values() {
+                        Some(online_values())
+                    } else {
+                        None
+                    },
+                    resilience: if has_online_resilience() {
+                        Some(online_resilience())
+                    } else {
+                        None
+                    },
+                    risk_appetite: if has_online_risk_appetite() {
+                        Some(online_risk_appetite())
                     } else {
                         None
                     },
@@ -488,10 +610,12 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_save = crate::tr!("form_save", lang());
     let form_cancel = crate::tr!("form_cancel", lang());
     let persona_section = crate::tr!("persona_section", lang());
+    let persona_online_section = crate::tr!("persona_online_section", lang());
     let persona_copy_base = crate::tr!("persona_copy_base", lang());
     let persona_clear = crate::tr!("persona_clear", lang());
     let persona_balance = crate::tr!("persona_balance_title", lang());
     let facet_base = crate::tr!("facet_base", lang());
+    let facet_online = crate::tr!("facet_online", lang());
     let edit_motivations = crate::tr!("edit_motivations", lang());
     let edit_biases = crate::tr!("edit_biases", lang());
     let edit_reputation = crate::tr!("edit_reputation", lang());
@@ -562,6 +686,51 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         has_values: wp.as_ref().is_some_and(|w| w.values.is_some()),
         has_resilience: wp.as_ref().is_some_and(|w| w.resilience.is_some()),
         has_risk_appetite: wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()),
+        online_ocean: op
+            .as_ref()
+            .and_then(|m| m.ocean.clone())
+            .unwrap_or_else(|| p.ocean.clone()),
+        online_resilience: op
+            .as_ref()
+            .and_then(|m| m.resilience)
+            .unwrap_or_else(|| p.resilience.unwrap_or(5)),
+        online_risk_appetite: op
+            .as_ref()
+            .and_then(|m| m.risk_appetite)
+            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5)),
+        online_motivations: op
+            .as_ref()
+            .and_then(|m| m.motivations.clone())
+            .unwrap_or_else(|| p.motivations.clone()),
+        online_biases: op
+            .as_ref()
+            .and_then(|m| m.biases.clone())
+            .unwrap_or_else(|| p.biases.clone()),
+        online_rep: op
+            .as_ref()
+            .and_then(|m| m.rep_scores.clone())
+            .unwrap_or_else(|| p.rep_scores.clone()),
+        online_patterns: op
+            .as_ref()
+            .and_then(|m| m.behavioral_patterns.clone())
+            .unwrap_or_else(|| p.behavioral_patterns.clone()),
+        online_styles: op
+            .as_ref()
+            .and_then(|m| m.styles.clone())
+            .unwrap_or_else(|| p.styles.clone()),
+        online_values: op
+            .as_ref()
+            .and_then(|m| m.values.clone())
+            .unwrap_or_else(|| p.values.clone()),
+        has_online_ocean: op.as_ref().is_some_and(|m| m.ocean.is_some()),
+        has_online_rep: op.as_ref().is_some_and(|m| m.rep_scores.is_some()),
+        has_online_motivations: op.as_ref().is_some_and(|m| m.motivations.is_some()),
+        has_online_biases: op.as_ref().is_some_and(|m| m.biases.is_some()),
+        has_online_patterns: op.as_ref().is_some_and(|m| m.behavioral_patterns.is_some()),
+        has_online_styles: op.as_ref().is_some_and(|m| m.styles.is_some()),
+        has_online_values: op.as_ref().is_some_and(|m| m.values.is_some()),
+        has_online_resilience: op.as_ref().is_some_and(|m| m.resilience.is_some()),
+        has_online_risk_appetite: op.as_ref().is_some_and(|m| m.risk_appetite.is_some()),
     };
 
     // RepDimSlider keeps its on/off + value state in its own local
@@ -581,11 +750,17 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let discard: std::rc::Rc<std::cell::RefCell<dyn FnMut(EditSectionId)>> =
         std::rc::Rc::new(std::cell::RefCell::new(move |section: EditSectionId| {
             let base = is_base_facet(edit_mode());
+            let online = is_online_facet(edit_mode());
             match section {
                 EditSectionId::ResilienceRisk => {
                     if base {
                         resilience.set(saved.resilience);
                         risk_appetite.set(saved.risk_appetite);
+                    } else if online {
+                        online_resilience.set(saved.online_resilience);
+                        online_risk_appetite.set(saved.online_risk_appetite);
+                        has_online_resilience.set(saved.has_online_resilience);
+                        has_online_risk_appetite.set(saved.has_online_risk_appetite);
                     } else {
                         work_resilience.set(saved.work_resilience);
                         work_risk_appetite.set(saved.work_risk_appetite);
@@ -596,6 +771,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Ocean => {
                     if base {
                         ocean.set(saved.ocean.clone());
+                    } else if online {
+                        online_ocean.set(saved.online_ocean.clone());
+                        has_online_ocean.set(saved.has_online_ocean);
                     } else {
                         work_ocean.set(saved.work_ocean.clone());
                         has_ocean.set(saved.has_ocean);
@@ -604,6 +782,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Motivations => {
                     if base {
                         motivations.set(saved.motivations.clone());
+                    } else if online {
+                        online_motivations.set(saved.online_motivations.clone());
+                        has_online_motivations.set(saved.has_online_motivations);
                     } else {
                         work_motivations.set(saved.work_motivations.clone());
                         has_motivations.set(saved.has_motivations);
@@ -612,6 +793,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Biases => {
                     if base {
                         biases.set(saved.biases.clone());
+                    } else if online {
+                        online_biases.set(saved.online_biases.clone());
+                        has_online_biases.set(saved.has_online_biases);
                     } else {
                         work_biases.set(saved.work_biases.clone());
                         has_biases.set(saved.has_biases);
@@ -620,6 +804,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Reputation => {
                     if base {
                         rep_scores.set(saved.rep_scores.clone());
+                    } else if online {
+                        online_rep.set(saved.online_rep.clone());
+                        has_online_rep.set(saved.has_online_rep);
                     } else {
                         work_rep.set(saved.work_rep.clone());
                         has_rep.set(saved.has_rep);
@@ -629,6 +816,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Patterns => {
                     if base {
                         patterns.set(saved.patterns.clone());
+                    } else if online {
+                        online_patterns.set(saved.online_patterns.clone());
+                        has_online_patterns.set(saved.has_online_patterns);
                     } else {
                         work_patterns.set(saved.work_patterns.clone());
                         has_patterns.set(saved.has_patterns);
@@ -637,6 +827,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Styles => {
                     if base {
                         styles.set(saved.styles.clone());
+                    } else if online {
+                        online_styles.set(saved.online_styles.clone());
+                        has_online_styles.set(saved.has_online_styles);
                     } else {
                         work_styles.set(saved.work_styles.clone());
                         has_styles.set(saved.has_styles);
@@ -645,6 +838,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                 EditSectionId::Values => {
                     if base {
                         values.set(saved.values.clone());
+                    } else if online {
+                        online_values.set(saved.online_values.clone());
+                        has_online_values.set(saved.has_online_values);
                     } else {
                         work_values.set(saved.work_values.clone());
                         has_values.set(saved.has_values);
@@ -663,7 +859,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
                 div { class: "facet-bar edit-mode-bar",
-                    FacetToggle { facet: edit_mode, base_label: facet_base, work_label: persona_section }
+                    FacetToggle { facet: edit_mode, base_label: facet_base, work_label: persona_section, online_label: facet_online }
                     // Always renders the same markup in both facets — only
                     // its visibility (not its presence) depends on the mode
                     // — so this row's real height in Personal life always
@@ -711,6 +907,52 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         }
                         button { class: "btn btn-small",
                             onclick: move |_| { persona_enabled.set(false); },
+                            "{persona_clear}"
+                        }
+                    }
+                    // Same layout-forcing row for the Online persona: always
+                    // rendered, visible only in the Online facet, so the three
+                    // facets' edit-mode bars keep identical heights and no
+                    // section moves when switching.
+                    div {
+                        class: "persona-actions",
+                        class: if edit_mode() != FacetKind::Online { "persona-actions-hidden" },
+                        aria_hidden: if edit_mode() != FacetKind::Online { "true" },
+                        label { class: "dim-toggle",
+                            input { r#type: "checkbox",
+                                checked: online_persona_enabled(),
+                                oninput: move |e| online_persona_enabled.set(e.value() == "true")
+                            }
+                            if online_persona_enabled() { "✓ " } else { "✗ " }
+                            "{persona_online_section}"
+                        }
+                        button { class: "btn btn-small",
+                            onclick: move |_| {
+                                online_persona_enabled.set(true);
+                                online_ocean.set(p_online.ocean.clone());
+                                online_rep.set(p_online.rep_scores.clone());
+                                rep_reset_gen.set(next_reset_gen(rep_reset_gen()));
+                                online_motivations.set(p_online.motivations.clone());
+                                online_biases.set(p_online.biases.clone());
+                                online_patterns.set(p_online.behavioral_patterns.clone());
+                                online_styles.set(p_online.styles.clone());
+                                online_values.set(p_online.values.clone());
+                                online_resilience.set(p_online.resilience.unwrap_or(5));
+                                online_risk_appetite.set(p_online.risk_appetite.unwrap_or(5));
+                                has_online_ocean.set(true);
+                                has_online_rep.set(true);
+                                has_online_motivations.set(true);
+                                has_online_biases.set(true);
+                                has_online_patterns.set(true);
+                                has_online_styles.set(true);
+                                has_online_values.set(true);
+                                has_online_resilience.set(true);
+                                has_online_risk_appetite.set(true);
+                            },
+                            "{persona_copy_base}"
+                        }
+                        button { class: "btn btn-small",
+                            onclick: move |_| { online_persona_enabled.set(false); },
                             "{persona_clear}"
                         }
                     }
@@ -937,6 +1179,100 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                     }
                 }
 
+                if edit_mode() == FacetKind::Online {
+                // ---- Online persona (mask) ----
+                if online_persona_enabled() {
+                        // Resilience & risk appetite
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::ResilienceRisk,
+                            title: persona_balance,
+                            header: Some(rsx! {
+                                BucketToggle { has: has_online_resilience }
+                                BucketToggle { has: has_online_risk_appetite }
+                            }),
+                            active: Some(persona_panel_active(
+                                has_online_resilience(),
+                                has_online_risk_appetite(),
+                            )),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::ResilienceRisk) })),
+                            ResilienceRiskInputs { resilience: online_resilience, risk_appetite: online_risk_appetite }
+                        }
+
+                        // OCEAN
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Ocean,
+                            title: form_ocean_title,
+                            has: Some(has_online_ocean),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
+                            OceanInputs { ocean: online_ocean }
+                        }
+
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Motivations,
+                            title: edit_motivations,
+                            has: Some(has_online_motivations),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
+                            MotEditPanel { motivations: online_motivations, lang: lang() }
+                        }
+
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Biases,
+                            title: edit_biases,
+                            has: Some(has_online_biases),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
+                            BiasEditPanel { biases: online_biases, lang: lang() }
+                        }
+
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Reputation,
+                            title: edit_reputation,
+                            has: Some(has_online_rep),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
+                            RepEditPanel { rep_scores: online_rep, lang: lang(), reset_gen: rep_reset_gen() }
+                        }
+
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Patterns,
+                            title: edit_patterns,
+                            has: Some(has_online_patterns),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
+                            PatternEditPanel { patterns: online_patterns, lang: lang() }
+                        }
+
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Styles,
+                            title: edit_styles,
+                            has: Some(has_online_styles),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
+                            StyleEditPanel { styles: online_styles, lang: lang() }
+                        }
+
+                        FacetSection {
+                            mode: FacetKind::Online,
+                            open: open_sec,
+                            id: EditSectionId::Values,
+                            title: edit_values,
+                            has: Some(has_online_values),
+                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
+                            ValEditPanel { values: online_values, lang: lang() }
+                        }
+                    }
+                }
+
                 div { class: "edit-actions-bar form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
                     Link { to: Route::PeopleList {}, class: "btn", aria_label: "{form_cancel}", "{form_cancel}" }
@@ -1003,12 +1339,13 @@ fn EditSection(
     }
 }
 
-/// Renders one edit section for either facet. In Work mode it adds the
-/// override bucket toggle header and wraps the body in `persona-panel`
-/// (readonly unless the bucket is defined); in Base mode it renders the
-/// supplied `header` (e.g. the OCEAN warning badge) and the body bare. This
-/// is the single place the Base/Work section chrome is defined, so the two
-/// sides can no longer drift (missing badge, wrong readonly class, ...).
+/// Renders one edit section for either facet. In persona (Work/Online) mode
+/// it adds the override bucket toggle header and wraps the body in
+/// `persona-panel` (readonly unless the bucket is defined); in Base mode it
+/// renders the supplied `header` (e.g. the OCEAN warning badge) and the body
+/// bare. This is the single place the Base/persona section chrome is defined,
+/// so the sides can no longer drift (missing badge, wrong readonly class,
+/// ...).
 #[component]
 fn FacetSection(
     mode: FacetKind,
@@ -1021,7 +1358,7 @@ fn FacetSection(
     #[props(default)] header: Option<Element>,
     children: Element,
 ) -> Element {
-    let is_work = is_work_facet(mode);
+    let is_work = is_persona_facet(mode);
     let header = if is_work {
         header.or_else(|| has.map(|h| rsx! { BucketToggle { has: h } }))
     } else {
@@ -1801,6 +2138,20 @@ fn is_work_facet(mode: FacetKind) -> bool {
     mode == FacetKind::Work
 }
 
+// Same reasoning as is_work_facet above: the Online persona's sections get
+// their `persona-panel` wrapper and default bucket toggle from inside
+// FacetSection, so the discriminant comparison is extracted for a direct
+// #[test].
+fn is_online_facet(mode: FacetKind) -> bool {
+    mode == FacetKind::Online
+}
+
+// Any non-base arena (work or online) is rendered as a persona panel, so a
+// single predicate drives FacetSection instead of special-casing each mask.
+fn is_persona_facet(mode: FacetKind) -> bool {
+    is_work_facet(mode) || is_online_facet(mode)
+}
+
 // Same reasoning as is_base_facet above: rep_reset_gen only ever gets
 // bumped from inside a Dioxus closure, invisible to cargo-mutants' plain
 // `cargo test` run (the Playwright suite that actually exercises the
@@ -1865,6 +2216,15 @@ struct SavedSections {
     work_patterns: Vec<BehavioralPattern>,
     work_styles: Vec<PersonalStyle>,
     work_values: Vec<Value>,
+    online_ocean: OceanScores,
+    online_resilience: u8,
+    online_risk_appetite: u8,
+    online_motivations: Vec<Motivation>,
+    online_biases: Vec<Bias>,
+    online_rep: RepScores,
+    online_patterns: Vec<BehavioralPattern>,
+    online_styles: Vec<PersonalStyle>,
+    online_values: Vec<Value>,
     has_ocean: bool,
     has_rep: bool,
     has_motivations: bool,
@@ -1874,6 +2234,15 @@ struct SavedSections {
     has_values: bool,
     has_resilience: bool,
     has_risk_appetite: bool,
+    has_online_ocean: bool,
+    has_online_rep: bool,
+    has_online_motivations: bool,
+    has_online_biases: bool,
+    has_online_patterns: bool,
+    has_online_styles: bool,
+    has_online_values: bool,
+    has_online_resilience: bool,
+    has_online_risk_appetite: bool,
 }
 
 fn parse_mot_type(s: &str) -> MotivationType {
@@ -2562,12 +2931,46 @@ mod tests {
     fn is_base_facet_distinguishes_base_and_work() {
         assert!(is_base_facet(FacetKind::Base), "Base facet is base");
         assert!(!is_base_facet(FacetKind::Work), "Work facet is not base");
+        assert!(
+            !is_base_facet(FacetKind::Online),
+            "Online facet is not base"
+        );
     }
 
     #[test]
     fn is_work_facet_distinguishes_base_and_work() {
         assert!(is_work_facet(FacetKind::Work), "Work facet is work");
         assert!(!is_work_facet(FacetKind::Base), "Base facet is not work");
+        assert!(
+            !is_work_facet(FacetKind::Online),
+            "Online facet is not work"
+        );
+    }
+
+    #[test]
+    fn is_online_facet_distinguishes_online_from_base_and_work() {
+        assert!(is_online_facet(FacetKind::Online), "Online facet is online");
+        assert!(
+            !is_online_facet(FacetKind::Base),
+            "Base facet is not online"
+        );
+        assert!(
+            !is_online_facet(FacetKind::Work),
+            "Work facet is not online"
+        );
+    }
+
+    #[test]
+    fn is_persona_facet_covers_work_and_online_only() {
+        assert!(is_persona_facet(FacetKind::Work), "Work is a persona facet");
+        assert!(
+            is_persona_facet(FacetKind::Online),
+            "Online is a persona facet"
+        );
+        assert!(
+            !is_persona_facet(FacetKind::Base),
+            "Base is not a persona facet"
+        );
     }
 
     #[test]

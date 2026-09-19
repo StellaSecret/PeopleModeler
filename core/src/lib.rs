@@ -22,6 +22,7 @@ mod tests {
     fn demo_person() -> Person {
         Person {
             persona: None,
+            online_persona: None,
             id: "demo-001".into(),
             name: "Alexandre Dubois".into(),
             role: "Directeur Commercial".into(),
@@ -341,6 +342,7 @@ mod tests {
     fn test_person_with_behavioral_patterns_serde() {
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "bp-test".into(),
             name: "Pattern Test".into(),
             role: String::new(),
@@ -445,6 +447,7 @@ mod tests {
     fn test_rep_scores_in_person_serde() {
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "rep-test".into(),
             name: "Rep Test".into(),
             role: String::new(),
@@ -599,6 +602,7 @@ mod tests {
         for (mot, expected_sub) in &pairs {
             let p = Person {
                 persona: None,
+                online_persona: None,
                 id: "v-test".into(),
                 name: "V".into(),
                 role: String::new(),
@@ -949,6 +953,7 @@ mod tests {
     fn test_insight_empty_motivations_and_biases() {
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "empty".into(),
             name: "Empty".into(),
             role: String::new(),
@@ -985,6 +990,7 @@ mod tests {
     fn test_insight_empty_flags() {
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "clean".into(),
             name: "Clean".into(),
             role: String::new(),
@@ -1418,6 +1424,7 @@ mod tests {
         use crate::models::*;
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "adv-test".into(),
             name: "Adv".into(),
             role: String::new(),
@@ -1495,6 +1502,7 @@ mod tests {
         use crate::models::*;
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "rm-test".into(),
             name: "RM".into(),
             role: String::new(),
@@ -1548,6 +1556,7 @@ mod tests {
         use crate::models::*;
         Person {
             persona: None,
+            online_persona: None,
             id: "mega".into(),
             name: "Mega".into(),
             role: String::new(),
@@ -1748,6 +1757,7 @@ mod tests {
         use crate::models::*;
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "evidence-test".into(),
             name: "Ev".into(),
             role: String::new(),
@@ -2107,6 +2117,7 @@ mod tests {
     fn test_person_serialization_minimal() {
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "x".into(),
             name: "Test".into(),
             role: String::new(),

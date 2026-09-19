@@ -50,9 +50,23 @@ pub fn PersonDetail(id: String) -> Element {
         Some(orig) => {
             let facet_base_label = crate::tr!("facet_base", lang());
             let facet_work_label = crate::tr!("facet_work", lang());
+            let facet_online_label = crate::tr!("facet_online", lang());
             let persona_section_label = crate::tr!("persona_section", lang());
-            let has_persona = orig.persona.is_some();
-            let mask_info = if has_persona { mask_gap(orig) } else { None };
+            let has_persona = orig.persona.is_some() || orig.online_persona.is_some();
+            let facet = use_signal(|| FacetKind::Base);
+            let mask_info = match facet() {
+                FacetKind::Base => {
+                    if orig.persona.is_some() {
+                        mask_gap(orig)
+                    } else {
+                        None
+                    }
+                }
+                FacetKind::Work => mask_gap(orig),
+                FacetKind::Online => {
+                    peoplemodeler_core::synergy::mask_gap_for(orig, FacetKind::Online)
+                }
+            };
             let mask_badge = mask_info.map(|m| {
                 let label = match m.band {
                     MaskBand::Low => crate::tr!("mask_gap_low", lang()),
@@ -66,11 +80,10 @@ pub fn PersonDetail(id: String) -> Element {
                 };
                 (label, cls, format!("{:.0}%", m.gap * 100.0))
             });
-            let facet = use_signal(|| FacetKind::Base);
-            let facet_person: Person = if facet() == FacetKind::Work {
-                orig.facet_person(FacetKind::Work)
-            } else {
-                orig.clone()
+            let facet_person: Person = match facet() {
+                FacetKind::Work => orig.facet_person(FacetKind::Work),
+                FacetKind::Online => orig.facet_person(FacetKind::Online),
+                FacetKind::Base => orig.clone(),
             };
             let person = &facet_person;
             let edit_btn = crate::tr!("edit_btn", lang());
@@ -280,7 +293,7 @@ pub fn PersonDetail(id: String) -> Element {
                         p { class: "context", "{person.context}" }
                         if has_persona {
                             div { class: "facet-bar",
-                                FacetToggle { facet, base_label: facet_base_label, work_label: facet_work_label, group_label: Some(persona_section_label.to_string()) }
+                                FacetToggle { facet, base_label: facet_base_label, work_label: facet_work_label, online_label: facet_online_label, group_label: Some(persona_section_label.to_string()) }
                                 if let Some((mask_label, mask_cls, mask_pct)) = mask_badge {
                                     span { class: "mask-badge {mask_cls}", title: "Δ {mask_pct}", "{mask_label}" }
                                 }

@@ -399,6 +399,7 @@ mod tests {
     fn p(name: &str) -> Person {
         Person {
             persona: None,
+            online_persona: None,
             id: "id".into(),
             name: name.into(),
             role: "Engineer".into(),
@@ -1492,12 +1493,12 @@ mod tests {
     #[test]
     fn personal_analyses_follow_work_persona() {
         let mut base = with_ocean(p("A"), 5, 5, 5, 5, 5);
-        base.persona = Some(WorkPersona {
+        base.persona = Some(PersonaMask {
             ocean: Some(OceanScores {
                 neuroticism: Some(8),
                 ..OceanScores::default()
             }),
-            ..WorkPersona::default()
+            ..PersonaMask::default()
         });
         let base_out = stress_strategy(&base, Lang::En);
         assert!(has(&base_out, "strategy_stress_fallback", Lang::En));

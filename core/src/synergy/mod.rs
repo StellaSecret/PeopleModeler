@@ -18,7 +18,7 @@ pub use components::{
 #[allow(unused_imports)]
 pub(crate) use components::{bias_count_bonus, motivation_count_penalty};
 pub use components::{sim, synergy_bands, value_self_score};
-pub use mask::{MaskBand, MaskGap, mask_gap};
+pub use mask::{MaskBand, MaskGap, mask_gap, mask_gap_for};
 #[allow(unused_imports)]
 pub(crate) use profile::{
     avg_prediction_accuracy, has_pattern_contradiction, has_style_contradiction,
@@ -127,6 +127,7 @@ mod tests {
     ) -> Person {
         Person {
             persona: None,
+            online_persona: None,
             id: "test".into(),
             name: "Test".into(),
             role: String::new(),
@@ -9909,7 +9910,7 @@ mod tests {
             notes: String::new(),
         }];
         // Work persona flips OCEAN to the opposite pole of the base profile.
-        p.persona = Some(WorkPersona {
+        p.persona = Some(PersonaMask {
             ocean: Some(OceanScores {
                 openness: Some(1),
                 conscientiousness: Some(1),
@@ -9917,7 +9918,7 @@ mod tests {
                 agreeableness: Some(1),
                 neuroticism: Some(9),
             }),
-            ..WorkPersona::default()
+            ..PersonaMask::default()
         });
         p
     }
@@ -9953,12 +9954,40 @@ mod tests {
     }
 
     #[test]
+    fn online_facet_scores_through_online_persona() {
+        let mut a = masked_person();
+        a.online_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(1),
+                conscientiousness: Some(1),
+                extraversion: Some(1),
+                agreeableness: Some(1),
+                neuroticism: Some(9),
+            }),
+            ..PersonaMask::default()
+        });
+        let b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let legacy = compute_synergy_score(&a, &b);
+        let online = compute_synergy_score_facet(&a, &b, None, FacetKind::Online, &[], &[]);
+        assert!(
+            online.ocean < legacy.ocean,
+            "online mask must drive the online facet score"
+        );
+        // The work facet scores the work persona, untouched by the online mask.
+        let work = compute_synergy_score_facet(&a, &b, None, FacetKind::Work, &[], &[]);
+        assert!(
+            work.ocean < legacy.ocean,
+            "work facet still uses its own work mask"
+        );
+    }
+
+    #[test]
     fn inherited_persona_bucket_matches_base_score_exactly() {
         // An empty persona must not change any score vs. no persona at all.
         let a = masked_person();
         let base_b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
         let mut masked_b = base_b.clone();
-        masked_b.persona = Some(WorkPersona::default());
+        masked_b.persona = Some(PersonaMask::default());
         let ctx = RelContext {
             rtype: RelationType::WorksWith,
             strength: 5,

@@ -745,6 +745,7 @@ mod tests {
     fn sample_person(id: &str) -> Person {
         Person {
             persona: None,
+            online_persona: None,
             id: id.into(),
             name: "Test Person".into(),
             role: "Engineer".into(),
@@ -994,6 +995,7 @@ mod tests {
         let db = test_db();
         let p = Person {
             persona: None,
+            online_persona: None,
             id: "full".into(),
             name: "Full Person".into(),
             role: "Manager".into(),
@@ -1234,6 +1236,7 @@ mod tests {
         let db = test_db();
         let original = Person {
             persona: None,
+            online_persona: None,
             id: "json-eq".into(),
             name: "JSON Compare".into(),
             role: "Tester".into(),

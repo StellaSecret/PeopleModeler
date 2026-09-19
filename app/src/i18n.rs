@@ -862,10 +862,14 @@ fn en(key: &'static str) -> &'static str {
         "persona_balance_title" => "Resilience & Risk Appetite",
         "edit_discard_section" => "Discard",
 
+        // Online persona (mask)
+        "persona_online_section" => "Online Persona",
+
         // Facet toggle
         "facet_auto" => "Automatic",
         "facet_base" => "Personal life",
         "facet_work" => "At work",
+        "facet_online" => "Online",
 
         // Mask badge (person detail / compare / team)
         "mask_gap_low" => "No mask",
@@ -1666,10 +1670,14 @@ fn fr(key: &'static str) -> &'static str {
         "persona_balance_title" => "Résilience & Appétence Risque",
         "edit_discard_section" => "Rétablir",
 
+        // Online persona (mask)
+        "persona_online_section" => "Persona en ligne",
+
         // Facet toggle
         "facet_auto" => "Automatique",
         "facet_base" => "Vie privée",
         "facet_work" => "Au travail",
+        "facet_online" => "En ligne",
 
         // Mask badge (person detail / compare / team)
         "mask_gap_low" => "Pas de masque",
@@ -2137,8 +2145,10 @@ pub(crate) const VALID_KEYS: &[&str] = &[
     "persona_copy_base",
     "persona_clear",
     "persona_balance_title",
+    "persona_online_section",
     "facet_base",
     "facet_work",
+    "facet_online",
     "facet_auto",
     "mask_gap_low",
     "mask_gap_moderate",

@@ -4,7 +4,7 @@ use peoplemodeler_core::models::{BehaviorTrigger, FacetKind, Person, RelationTyp
 
 use peoplemodeler_core::synergy::{
     MaskBand, RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds,
-    mask_gap, synergy_bands,
+    mask_gap, mask_gap_for, synergy_bands,
 };
 
 use crate::db;
@@ -228,7 +228,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
 
                     div { class: "compare-grid",
                         div { class: "compare-card",
-                            PersonCard { person: a.clone(), mask: mask_badge(&a, lang()) }
+                            PersonCard { person: a.clone(), mask: mask_badge(&a, kind, lang()) }
                             div { class: "compare-section",
                                 h4 { "{top_mot_label}" }
                                 if let Some(m) = a.top_motivation() {
@@ -390,7 +390,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                         }
 
                         div { class: "compare-card",
-                            PersonCard { person: b.clone(), mask: mask_badge(&b, lang()) }
+                            PersonCard { person: b.clone(), mask: mask_badge(&b, kind, lang()) }
                             div { class: "compare-section",
                                 h4 { "{top_mot_label}" }
                                 if let Some(m) = b.top_motivation() {
@@ -534,8 +534,13 @@ fn PersonCard(person: Person, mask: Option<(String, String, String)>) -> Element
     }
 }
 
-fn mask_badge(p: &Person, lang: Lang) -> Option<(String, String, String)> {
-    mask_gap(p).map(|m| {
+fn mask_badge(p: &Person, kind: FacetKind, lang: Lang) -> Option<(String, String, String)> {
+    let gap = match kind {
+        FacetKind::Base => mask_gap(p),
+        FacetKind::Work => mask_gap(p),
+        FacetKind::Online => mask_gap_for(p, FacetKind::Online),
+    };
+    gap.map(|m| {
         let (label, cls) = match m.band {
             MaskBand::Low => (crate::tr!("mask_gap_low", lang), "mask-low"),
             MaskBand::Moderate => (crate::tr!("mask_gap_moderate", lang), "mask-moderate"),
@@ -652,13 +657,16 @@ fn MiniBars(scores: [Option<u8>; 5]) -> Element {
 }
 
 fn analysis_pair(a: &Person, b: &Person, kind: FacetKind) -> (Person, Person) {
-    if kind == FacetKind::Work {
-        (
+    match kind {
+        FacetKind::Work => (
             a.facet_person(FacetKind::Work),
             b.facet_person(FacetKind::Work),
-        )
-    } else {
-        (a.clone(), b.clone())
+        ),
+        FacetKind::Online => (
+            a.facet_person(FacetKind::Online),
+            b.facet_person(FacetKind::Online),
+        ),
+        FacetKind::Base => (a.clone(), b.clone()),
     }
 }
 
@@ -1130,14 +1138,14 @@ mod tests {
     #[test]
     fn analysis_pair_uses_persona_for_work_kind() {
         let mut a = p("a");
-        a.persona = Some(WorkPersona {
+        a.persona = Some(PersonaMask {
             ocean: Some(OceanScores {
                 openness: Some(1),
                 ..OceanScores::default()
             }),
             resilience: Some(3),
             risk_appetite: Some(9),
-            ..WorkPersona::default()
+            ..PersonaMask::default()
         });
         let (pa, _) = analysis_pair(&a, &p("b"), FacetKind::Work);
         assert_eq!(pa.persona, None, "merged work person is persona-agnostic");
@@ -1151,9 +1159,31 @@ mod tests {
         assert!(ba.persona.is_some(), "base facet keeps persona");
     }
 
+    #[test]
+    fn analysis_pair_uses_persona_for_online_kind() {
+        let mut a = p("a");
+        a.online_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(4),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        let (pa, _) = analysis_pair(&a, &p("b"), FacetKind::Online);
+        assert_eq!(pa.persona, None, "merged online person is persona-agnostic");
+        assert_eq!(pa.ocean.openness, Some(4), "uses online persona ocean");
+
+        let (wa, _) = analysis_pair(&a, &p("b"), FacetKind::Work);
+        assert_eq!(
+            wa.ocean.openness, a.ocean.openness,
+            "work facet ignores the online persona"
+        );
+    }
+
     fn p(name: &str) -> Person {
         Person {
             persona: None,
+            online_persona: None,
             id: name.into(),
             name: name.into(),
             role: String::new(),

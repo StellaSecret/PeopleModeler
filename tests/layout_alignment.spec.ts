@@ -35,6 +35,16 @@ function facetOption(page: Page, name: string) {
     .filter({ hasText: name });
 }
 
+// A freshly-created person has no work mask, and the Work Persona facet only
+// renders its edit sections once the mask is enabled (otherwise it just shows
+// the "enable" row). "Copy from base profile" is the first button in the first
+// persona-actions row; clicking it enables the mask and fills every bucket, so
+// the Work facet exposes the full section chrome the alignment guard compares
+// against Personal life. Positional so it stays locale-independent.
+async function enableWorkMask(page: Page) {
+  await page.locator('.persona-actions').first().locator('button').first().click();
+}
+
 async function gotoEdit(page: Page, personId: string) {
   await page.goto(`/PeopleModeler/person/${personId}/edit`);
   await page.waitForTimeout(300);
@@ -81,6 +91,7 @@ test.describe('Facet tab pixel alignment', () => {
     // changes the layout's *height* rather than staying within its
     // reserved space, every section below it would shift, and this is
     // exactly what would catch that.
+    await enableWorkMask(page);
     await assertLayoutsMatch(page, personalLayout);
 
     await facetOption(page, 'Personal life').click();
@@ -102,6 +113,7 @@ test.describe('Facet tab pixel alignment', () => {
     const personalLayout = await captureLayout(page);
 
     await facetOption(page, 'Work Persona').click();
+    await enableWorkMask(page);
     await assertLayoutsMatch(page, personalLayout);
 
     await facetOption(page, 'Personal life').click();
@@ -116,12 +128,15 @@ test.describe('Facet tab pixel alignment', () => {
     // desyncing the two facets' heights on a narrow phone.
     await page.setViewportSize({ width: 390, height: 844 });
     await clearStorage(page);
-    await page.goto('/PeopleModeler/');
-    await dismissTutorial(page);
-    await page.locator('button.lang-toggle').click();
-
+    // Create the person while still in English — the creation form's own
+    // labels are localized too, and this test only cares about the layout of
+    // the *edit* page it then switches to French.
     const personId = await createPerson(page, 'Alignment Test FR');
     await gotoEdit(page, personId);
+    await page.locator('button.lang-toggle').click();
+    // The toggle shows the *target* language, so "EN" means FR is now active
+    // — wait for the re-render before measuring the (longer) FR labels.
+    await expect(page.locator('button.lang-toggle')).toHaveText('EN');
 
     // Titles are localized under FR, so just compare the *count* and
     // *set of y-positions* of edit-sections between facets rather than
@@ -134,6 +149,10 @@ test.describe('Facet tab pixel alignment', () => {
       .locator('div.facet-bar .facet-toggle .facet-btn')
       .nth(1);
     await workToggle.click();
+    await enableWorkMask(page);
+    // enableWorkMask only toggles state; wait for Dioxus to re-render the
+    // Work facet's sections before snapshotting their positions.
+    await expect(page.locator('.edit-section')).toHaveCount(8);
 
     const workBoxes = await page.locator('.edit-section').evaluateAll((els) =>
       els.map((el) => el.getBoundingClientRect().y),
@@ -150,22 +169,33 @@ test.describe('Facet tab pixel alignment', () => {
     // visibility:hidden — never display:none — specifically so it keeps
     // occupying space. If that ever regresses to display:none (or back to
     // a guessed min-height placeholder), this is what would catch it.
+    // There is now one reserved row per persona mask (Work first, then
+    // Online), so scope each lookup to its row instead of matching both.
     await clearStorage(page);
     const personId = await createPerson(page, 'Persona Actions Height Test');
     await gotoEdit(page, personId);
 
-    const hiddenBox = await page.locator('.persona-actions').boundingBox();
-    expect(hiddenBox, 'persona-actions row should still occupy layout space when hidden')
+    const workActions = page.locator('.persona-actions').first();
+    const onlineActions = page.locator('.persona-actions').nth(1);
+
+    const hiddenWorkBox = await workActions.boundingBox();
+    const hiddenOnlineBox = await onlineActions.boundingBox();
+    expect(hiddenWorkBox, 'work persona-actions row should still occupy layout space when hidden')
       .not.toBeNull();
-    expect(hiddenBox!.height).toBeGreaterThan(0);
+    expect(
+      hiddenOnlineBox,
+      'online persona-actions row should still occupy layout space when hidden',
+    ).not.toBeNull();
+    expect(hiddenWorkBox!.height).toBeGreaterThan(0);
+    expect(hiddenOnlineBox!.height).toBeGreaterThan(0);
 
     await facetOption(page, 'Work Persona').click();
-    const visibleBox = await page.locator('.persona-actions').boundingBox();
+    const visibleBox = await workActions.boundingBox();
     expect(visibleBox).not.toBeNull();
 
     // Heights must match exactly — this is the whole point of rendering
     // identical markup rather than a guessed placeholder height.
-    expect(hiddenBox!.height).toBe(visibleBox!.height);
+    expect(hiddenWorkBox!.height).toBe(visibleBox!.height);
   });
 });
 

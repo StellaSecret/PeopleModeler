@@ -34,6 +34,7 @@ pub fn TeamDetail(id: String) -> Element {
     let facet_auto_label = crate::tr!("facet_auto", lang());
     let facet_base_label = crate::tr!("facet_base", lang());
     let facet_work_label = crate::tr!("facet_work", lang());
+    let facet_online_label = crate::tr!("facet_online", lang());
     let all_no_edit = crate::tr!("team_all_no_edit", lang());
     let members_count_fmt = crate::tr!("team_members_count", lang());
     let team_rename_label = crate::tr!("team_rename", lang());
@@ -218,6 +219,13 @@ pub fn TeamDetail(id: String) -> Element {
                         aria_checked: if facet_filter() == Some(FacetKind::Work) { "true" } else { "false" },
                         onclick: move |_| facet_filter.set(Some(FacetKind::Work)),
                         "{facet_work_label}"
+                    }
+                    button {
+                        class: if facet_filter() == Some(FacetKind::Online) { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if facet_filter() == Some(FacetKind::Online) { "true" } else { "false" },
+                        onclick: move |_| facet_filter.set(Some(FacetKind::Online)),
+                        "{facet_online_label}"
                     }
                 }
                 {

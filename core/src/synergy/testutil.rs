@@ -14,6 +14,7 @@ pub(crate) fn make_person(
 ) -> Person {
     Person {
         persona: None,
+        online_persona: None,
         id: "test".into(),
         name: "Test".into(),
         role: String::new(),

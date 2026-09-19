@@ -46,7 +46,9 @@ export async function gotoNewPerson(page: Page) {
   await page.goto('/PeopleModeler/person/new');
   await page.waitForTimeout(1000);
   await dismissTutorial(page);
-  await page.getByText('Blank (start from scratch)').click();
+  // The "start from scratch" label is localized (FR: "Vierge (commencer de
+  // zéro)"), so target the skip button structurally instead of by text.
+  await page.locator('.template-skip button').click();
 }
 
 export async function clearStorage(page: Page) {
