@@ -567,9 +567,10 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     // RepDimSlider keeps its on/off + value state in its own local
     // use_signal, initialized once from its start_on/start_val props — so
     // it never reacts when rep_scores is reset out from under it (e.g. by
-    // discard). Bumping this on every Reputation discard, and folding it
-    // into each RepDimSlider's `key`, forces Dioxus to remount those
-    // sliders fresh instead of leaving their stale local state in place.
+    // discard or copy-from-base). Bumping this on every external write to
+    // the rep scores, and folding it into each RepDimSlider's `key`, forces
+    // Dioxus to remount those sliders fresh instead of leaving their stale
+    // local state in place.
     let mut rep_reset_gen = use_signal(|| 0u32);
 
     // Wrapped in Rc<RefCell<...>> so it can be cheaply cloned into each
@@ -688,6 +689,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                                 persona_enabled.set(true);
                                 work_ocean.set(p.ocean.clone());
                                 work_rep.set(p.rep_scores.clone());
+                                rep_reset_gen.set(rep_reset_gen() + 1);
                                 work_motivations.set(p.motivations.clone());
                                 work_biases.set(p.biases.clone());
                                 work_patterns.set(p.behavioral_patterns.clone());
@@ -1363,14 +1365,10 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
         move |_i, v: &Value| {
             let v = v.clone();
             rsx! {
-            div { class: "helper-text",
-                div { "{value_helper(&sel_type(), lang)}" }
-                div { "{value_intensity_helper}" }
-                div { "{value_priority_helper}" }
+                strong { "{v.r#type.emoji()} {v.r#type.i18n(cl).label}" }
+                span { " I{v.intensity}/10 P{v.priority}/10" }
+                span { " {v.notes}" }
             }
-                    span { " I{v.intensity}/10 P{v.priority}/10" }
-                    span { " {v.notes}" }
-                }
         },
     )
 }
