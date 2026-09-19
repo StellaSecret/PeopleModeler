@@ -20,71 +20,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: synergy-rel-weights
+          # rel_weights and i18n are single files whose mutant counts balloon
+          # (2187 / 960). They are split across jobs with cargo-mutants native
+          # --shard (0-indexed: 0/N..N-1/N); union covers 100%.
+          - name: rel-w1
             files: core/src/synergy/rel_weights.rs
-          - name: synergy-components
-            files: core/src/synergy/components.rs
-          - name: synergy-scoring
-            files: core/src/synergy/scoring.rs core/src/synergy/team.rs core/src/synergy/trajectory.rs
-          - name: synergy-rest
-            files: core/src/synergy/mod.rs core/src/synergy/profile.rs
-          - name: validation
-            files: core/src/validation.rs
-          - name: advice
-            files: core/src/advice.rs
-          - name: core-rest
-            files: core/src/model_config.rs core/src/wasm.rs core/src/models.rs core/src/ocean.rs core/src/insights.rs core/src/i18n.rs core/src/predictions.rs
-          - name: app-i18n
+            shard: "0/3"
+          - name: rel-w2
+            files: core/src/synergy/rel_weights.rs
+            shard: "1/3"
+          - name: rel-w3
+            files: core/src/synergy/rel_weights.rs
+            shard: "2/3"
+          - name: i18n-1
             files: app/src/i18n.rs
-          - name: app-compare
-            files: app/src/pages/compare.rs
-            exclude_re: '(Some\(a\), Some\(b\)|mask_badge|> with >= in compare_analysis)'
-          - name: app-person-edit
-            files: app/src/pages/person_edit.rs
-            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move)'
-          - name: app-person-detail
-            files: app/src/pages/person_detail.rs
-            exclude_re: '(person_detail\.rs:.*in (PersonDetail|RelationshipSection))'
-          - name: app-insights
-            files: app/src/pages/insights.rs
-          - name: app-db-drive
-            files: app/src/db/mod.rs app/src/drive.rs
-            exclude_re: '(Identifiable|upsert|person_key|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|remove_individual|migrate_from_bulk|with_.*_cache|WebStorage|check_response|drive_backup|drive_restore|Some\(pp\)|delete ! in prepare_backup_body|try_decrypt_restore)'
+            shard: "0/3"
+          - name: i18n-2
+            files: app/src/i18n.rs
+            shard: "1/3"
+          - name: i18n-3
+            files: app/src/i18n.rs
+            shard: "2/3"
+          - name: synergy-1
+            files: core/src/synergy/scoring.rs core/src/synergy/team.rs core/src/synergy/trajectory.rs core/src/synergy/components.rs
+          - name: synergy-2
+            files: core/src/synergy/mod.rs core/src/synergy/profile.rs core/src/validation.rs
+          - name: core-misc
+            files: core/src/model_config.rs core/src/wasm.rs core/src/models.rs core/src/ocean.rs core/src/insights.rs core/src/i18n.rs core/src/predictions.rs core/src/advice.rs
+          - name: app-1
+            files: app/src/pages/compare.rs app/src/db/mod.rs app/src/drive.rs
+            exclude_re: '(Some\(a\), Some\(b\)|mask_badge|> with >= in compare_analysis|Identifiable|upsert|person_key|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|remove_individual|migrate_from_bulk|with_.*_cache|WebStorage|check_response|drive_backup|drive_restore|Some\(pp\)|delete ! in prepare_backup_body|try_decrypt_restore)'
+          - name: app-2
+            files: app/src/pages/insights.rs app/src/pages/person_edit.rs app/src/pages/person_detail.rs
+            exclude_re: '(mot_move|val_move|bias_move|style_move|pattern_move|person_detail\.rs:.*in (PersonDetail|RelationshipSection))'
           - name: app-tiny
             files: app/src/tutorial.rs app/src/auth.rs app/src/toast.rs app/src/theme.rs app/src/undo.rs app/src/main.rs app/src/templates.rs app/src/android_auth.rs app/src/android_share.rs app/src/pages/team.rs app/src/pages/team_new.rs app/src/pages/teams_list.rs app/src/pages/relationships.rs app/src/pages/predictions.rs app/src/pages/timeline.rs app/src/pages/people_list.rs
             exclude_re: '(auth\.rs.*(on_token_received|start_oauth|get_gis_oauth2|replace init )|team_new\.rs.*(read_input_value|uuid|now_ts|/ with )|toast\.rs.*provide_toast|theme\.rs.*== with !=|main\.rs.*(replace main |replace init_pwa|replace sleep_ms|&& with \|\||== with !=|auto_clear_toast)|team\.rs.*== with !=|people_list\.rs.*== with != in PeopleList|android_(auth|share)\.rs)'
-          # ── WASM SHARDS (need Chrome + chromedriver) ──
-          - name: wasm-crypto
-            files: app/src/crypto.rs
-            wasm: true
-            timeout: 600
-          - name: wasm-db
-            files: app/src/db/mod.rs
-            exclude_re: '(Identifiable|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|migrate_from_bulk|for SqliteStorage)'
-            wasm: true
-            timeout: 600
-          - name: wasm-auth
-            files: app/src/auth.rs
-            exclude_re: 'auth\.rs.*(start_oauth|token_path)'
-            wasm: true
-            timeout: 600
-          - name: wasm-theme
-            files: app/src/theme.rs
-            exclude_re: 'theme\.rs.*== with !='
-            wasm: true
-            timeout: 600
-          - name: wasm-tutorial
-            files: app/src/tutorial.rs
-            wasm: true
-            timeout: 600
-          - name: wasm-team-new
-            files: app/src/pages/team_new.rs
-            exclude_re: 'team_new\.rs.*(now_ts|uuid|/ with )'
-            wasm: true
-            timeout: 600
-          - name: wasm-main
-            files: app/src/main.rs
-            exclude_re: 'main\.rs.*(replace main |replace sleep_ms)'
+          # ── WASM SHARDS (need Chrome + chromedriver), fused into one ──
+          - name: wasm
+            files: app/src/crypto.rs app/src/db/mod.rs app/src/auth.rs app/src/theme.rs app/src/tutorial.rs app/src/pages/team_new.rs app/src/main.rs
+            exclude_re: '(Identifiable|prediction_key|relationship_key|team_key|store_individual|load_individual|load_all_individual|migrate_from_bulk|for SqliteStorage|auth\.rs.*(start_oauth|token_path)|theme\.rs.*== with !=|team_new\.rs.*(now_ts|uuid|/ with )|main\.rs.*(replace main |replace sleep_ms))'
             wasm: true
             timeout: 600
     steps:
@@ -124,6 +99,10 @@ jobs:
           if [ "${{ matrix.wasm }}" = "true" ]; then
             CARGO_ARGS="-C --target=wasm32-unknown-unknown"
           fi
+          SHARD_ARGS=""
+          if [ -n "${{ matrix.shard }}" ]; then
+            SHARD_ARGS="--shard ${{ matrix.shard }}"
+          fi
           TIMEOUT="${{ matrix.timeout }}"
           if [ -z "$TIMEOUT" ]; then
             TIMEOUT=300
@@ -134,7 +113,7 @@ jobs:
           fi
           for f in ${{ matrix.files }}; do
             echo "::group::$f"
-            cargo mutants -f "$f" --no-times --in-place -o "work-$i" --timeout "$TIMEOUT" $CARGO_ARGS "${EXCLUDE_ARGS[@]}" && ec=0 || ec=$?
+            cargo mutants -f "$f" --no-times --in-place -o "work-$i" --timeout "$TIMEOUT" $CARGO_ARGS $SHARD_ARGS "${EXCLUDE_ARGS[@]}" && ec=0 || ec=$?
             echo "::endgroup::"
             if [ "$ec" -ne 0 ]; then
               echo "FATAL: cargo-mutants exited $ec on $f"
