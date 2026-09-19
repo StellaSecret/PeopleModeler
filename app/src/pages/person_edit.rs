@@ -222,12 +222,6 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let mut has_risk_appetite =
         use_signal(|| wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()));
 
-    // Bumped on any external write to the rep scores (per-section discard,
-    // copy-from-base). RepDimSlider keeps its own pending `on`/`val` signals,
-    // so without a key remount on this revision the sliders would keep showing
-    // stale values after the underlying signal was reset elsewhere.
-    let mut rep_rev = use_signal(|| 0u32);
-
     let ocean_rep_flags = use_memo(move || {
         let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
         flags.extend(peoplemodeler_core::validation::rhetoric_gap_flags(
@@ -570,6 +564,14 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         has_risk_appetite: wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()),
     };
 
+    // RepDimSlider keeps its on/off + value state in its own local
+    // use_signal, initialized once from its start_on/start_val props — so
+    // it never reacts when rep_scores is reset out from under it (e.g. by
+    // discard). Bumping this on every Reputation discard, and folding it
+    // into each RepDimSlider's `key`, forces Dioxus to remount those
+    // sliders fresh instead of leaving their stale local state in place.
+    let mut rep_reset_gen = use_signal(|| 0u32);
+
     // Wrapped in Rc<RefCell<...>> so it can be cheaply cloned into each
     // section's own "discard" button handler below (it needs FnMut, since
     // calling .set() on the captured signals requires mutable access to
@@ -621,7 +623,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         work_rep.set(saved.work_rep.clone());
                         has_rep.set(saved.has_rep);
                     }
-                    rep_rev.set(rep_rev() + 1);
+                    rep_reset_gen.set(rep_reset_gen() + 1);
                 }
                 EditSectionId::Patterns => {
                     if base {
@@ -661,45 +663,53 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             div { class: "form",
                 div { class: "facet-bar edit-mode-bar",
                     FacetToggle { facet: edit_mode, base_label: facet_base, work_label: persona_section }
-                    div { class: "persona-actions",
-                        if edit_mode() == FacetKind::Work {
-                            label { class: "dim-toggle",
-                                input { r#type: "checkbox",
-                                    checked: persona_enabled(),
-                                    oninput: move |e| persona_enabled.set(e.value() == "true")
-                                }
-                                if persona_enabled() { "✓ " } else { "✗ " }
-                                "{persona_section}"
+                    // Always renders the same markup in both facets — only
+                    // its visibility (not its presence) depends on the mode
+                    // — so this row's real height in Personal life always
+                    // matches Work Persona's exactly, byte for byte,
+                    // instead of guessing at a min-height that has to keep
+                    // up with wrapped button text at every locale/width.
+                    // visibility:hidden (rather than display:none) both
+                    // hides it and removes it from the tab order.
+                    div {
+                        class: "persona-actions",
+                        class: if edit_mode() != FacetKind::Work { "persona-actions-hidden" },
+                        aria_hidden: if edit_mode() != FacetKind::Work { "true" },
+                        label { class: "dim-toggle",
+                            input { r#type: "checkbox",
+                                checked: persona_enabled(),
+                                oninput: move |e| persona_enabled.set(e.value() == "true")
                             }
-                            button { class: "btn btn-small",
-                                onclick: move |_| {
-                                    persona_enabled.set(true);
-                                    work_ocean.set(p.ocean.clone());
-                                    work_rep.set(p.rep_scores.clone());
-                                    rep_rev.set(rep_rev() + 1);
-                                    work_motivations.set(p.motivations.clone());
-                                    work_biases.set(p.biases.clone());
-                                    work_patterns.set(p.behavioral_patterns.clone());
-                                    work_styles.set(p.styles.clone());
-                                    work_values.set(p.values.clone());
-                                    work_resilience.set(p.resilience.unwrap_or(5));
-                                    work_risk_appetite.set(p.risk_appetite.unwrap_or(5));
-                                    has_ocean.set(true);
-                                    has_rep.set(true);
-                                    has_motivations.set(true);
-                                    has_biases.set(true);
-                                    has_patterns.set(true);
-                                    has_styles.set(true);
-                                    has_values.set(true);
-                                    has_resilience.set(true);
-                                    has_risk_appetite.set(true);
-                                },
-                                "{persona_copy_base}"
-                            }
-                            button { class: "btn btn-small",
-                                onclick: move |_| { persona_enabled.set(false); },
-                                "{persona_clear}"
-                            }
+                            if persona_enabled() { "✓ " } else { "✗ " }
+                            "{persona_section}"
+                        }
+                        button { class: "btn btn-small",
+                            onclick: move |_| {
+                                persona_enabled.set(true);
+                                work_ocean.set(p.ocean.clone());
+                                work_rep.set(p.rep_scores.clone());
+                                work_motivations.set(p.motivations.clone());
+                                work_biases.set(p.biases.clone());
+                                work_patterns.set(p.behavioral_patterns.clone());
+                                work_styles.set(p.styles.clone());
+                                work_values.set(p.values.clone());
+                                work_resilience.set(p.resilience.unwrap_or(5));
+                                work_risk_appetite.set(p.risk_appetite.unwrap_or(5));
+                                has_ocean.set(true);
+                                has_rep.set(true);
+                                has_motivations.set(true);
+                                has_biases.set(true);
+                                has_patterns.set(true);
+                                has_styles.set(true);
+                                has_values.set(true);
+                                has_resilience.set(true);
+                                has_risk_appetite.set(true);
+                            },
+                            "{persona_copy_base}"
+                        }
+                        button { class: "btn btn-small",
+                            onclick: move |_| { persona_enabled.set(false); },
+                            "{persona_clear}"
                         }
                     }
                 }
@@ -806,7 +816,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Reputation,
                         title: edit_reputation,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                        RepEditPanel { rep_scores, lang: lang(), rev: rep_rev }
+                        RepEditPanel { rep_scores, lang: lang(), reset_gen: rep_reset_gen() }
                     }
                     FacetSection {
                         mode: FacetKind::Base,
@@ -890,7 +900,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_reputation,
                             has: Some(has_rep),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                            RepEditPanel { rep_scores: work_rep, lang: lang(), rev: rep_rev }
+                            RepEditPanel { rep_scores: work_rep, lang: lang(), reset_gen: rep_reset_gen() }
                         }
 
                         FacetSection {
@@ -1353,10 +1363,14 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
         move |_i, v: &Value| {
             let v = v.clone();
             rsx! {
-                strong { "{v.r#type.emoji()} {v.r#type.i18n(cl).label}" }
-                span { " I{v.intensity}/10 P{v.priority}/10" }
-                span { " {v.notes}" }
+            div { class: "helper-text",
+                div { "{value_helper(&sel_type(), lang)}" }
+                div { "{value_intensity_helper}" }
+                div { "{value_priority_helper}" }
             }
+                    span { " I{v.intensity}/10 P{v.priority}/10" }
+                    span { " {v.notes}" }
+                }
         },
     )
 }
@@ -1438,12 +1452,11 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
 }
 
 #[component]
-fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, rev: Signal<u32>) -> Element {
+fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, reset_gen: u32) -> Element {
     let cl = core_lang(lang);
     let edit_rep = crate::tr!("edit_reputation", lang);
     let rep_undefined_warning = crate::tr!("rep_undefined_warning", lang);
     let rep_scale_hint = crate::tr!("rep_scale_hint", lang);
-    let rev = rev();
 
     let rep_data: Vec<_> = RepDim::ALL
         .iter()
@@ -1460,12 +1473,12 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, rev: Signal<u32>) -> 
             div { class: "helper-text", "{rep_undefined_warning}" }
             div { class: "helper-text", "{rep_scale_hint}" }
             div { class: "section-items",
-                {rep_data.into_iter().enumerate().map(|(i, (dim, ri, cur))| {
+                {rep_data.into_iter().map(|(dim, ri, cur)| {
                     let start_val = cur.unwrap_or(5);
                     let start_on = cur.is_some();
                     rsx! {
                         RepDimSlider {
-                            key: "{i}-{rev}",
+                            key: "{dim:?}-{reset_gen}",
                             dim,
                             label_a: ri.label_a,
                             label_b: ri.label_b,
@@ -1704,8 +1717,19 @@ fn OceanSlider(
                 min: 1,
                 max: 10,
                 value: current,
-                display: format!("{current}/10"),
-                onchange: move |v| onchange.call(Some(v)),
+                display: if val.is_some() { format!("{current}/10") } else { "—".to_string() },
+                // `v` is StepperSlider's own +1/-1 computation, already
+                // based on `current` (which defaults to 5 when val is
+                // None) — so the first click away from "unset" should just
+                // forward that computed value, the same as any other
+                // click. The previous special case here discarded that
+                // computation and hard-coded Some(5) instead, silently
+                // dropping the first increment/decrement whenever a field
+                // went from unset to set (e.g. 3 clicks of "+" from unset
+                // only ever reached +2, one short of the target).
+                onchange: move |v| {
+                    onchange.call(Some(v));
+                },
             }
             if let (Some(l), Some(h)) = (low_hint.as_ref(), high_hint.as_ref()) {
                 div { class: "ocean-hint",
