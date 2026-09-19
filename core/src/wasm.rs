@@ -47,10 +47,10 @@ pub fn generate_insight_facet(ctx: &str, person_json: &str, facet: &str) -> Stri
         "growth" => InsightContext::Growth,
         _ => return "Contexte inconnu".into(),
     };
-    let kind = if facet == "work" {
-        crate::models::FacetKind::Work
-    } else {
-        crate::models::FacetKind::Base
+    let kind = match facet {
+        "work" => crate::models::FacetKind::Work,
+        "online" => crate::models::FacetKind::Online,
+        _ => crate::models::FacetKind::Base,
     };
     insights::generate_insight_facet(context, &p, kind, i18n::Lang::Fr)
 }
@@ -74,10 +74,10 @@ pub fn suggest_prediction_facet(person_json: &str, context: &str, facet: &str) -
         Ok(p) => p,
         Err(_) => return "Invalid person data".into(),
     };
-    let kind = if facet == "work" {
-        crate::models::FacetKind::Work
-    } else {
-        crate::models::FacetKind::Base
+    let kind = match facet {
+        "work" => crate::models::FacetKind::Work,
+        "online" => crate::models::FacetKind::Online,
+        _ => crate::models::FacetKind::Base,
     };
     let pm = p.facet_person(kind);
     crate::predictions::suggest_outcome(&pm, context)
@@ -620,6 +620,10 @@ mod tests {
             "persona": {
                 "ocean": {"openness": 3},
                 "motivations": [{"type": "Security", "intensity": 9, "notes": "work focus"}]
+            },
+            "online_persona": {
+                "ocean": {"openness": 2},
+                "motivations": [{"type": "Recognition", "intensity": 9, "notes": "online focus"}]
             }
         }"#
         .into()
@@ -656,6 +660,19 @@ mod tests {
         assert!(
             out.contains("🎭 Masque professionnel"),
             "work facet must append the mask line, got: {out}"
+        );
+    }
+
+    #[test]
+    fn test_generate_insight_facet_online_appends_mask() {
+        let out = generate_insight_facet("decision", &persona_person_json(), "online");
+        assert!(
+            out.contains("🎭 Masque en ligne"),
+            "online facet must append the online mask line, got: {out}"
+        );
+        assert!(
+            !out.contains("Masque professionnel"),
+            "online facet must not append the work mask line, got: {out}"
         );
     }
 
@@ -702,5 +719,11 @@ mod tests {
             "work motivation expected, got: {work}"
         );
         assert_ne!(work, base);
+        let online = suggest_prediction_facet(&persona_person_json(), "meeting", "online");
+        assert!(
+            online.contains("Reconnaissance"),
+            "online motivation expected, got: {online}"
+        );
+        assert_ne!(online, work);
     }
 }

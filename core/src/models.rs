@@ -892,9 +892,13 @@ pub struct OceanScores {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum FacetKind {
+    /// Private life: the authentic self. Always the fallback facet.
     #[default]
     Base,
+    /// The arena where work-type relationships are scored.
     Work,
+    /// The arena where the person is active online (social media, messaging...).
+    Online,
 }
 
 impl FacetKind {
@@ -904,15 +908,17 @@ impl FacetKind {
             (Self::Base, crate::i18n::Lang::En) => "Personal life",
             (Self::Work, crate::i18n::Lang::Fr) => "Au travail",
             (Self::Work, crate::i18n::Lang::En) => "At work",
+            (Self::Online, crate::i18n::Lang::Fr) => "En ligne",
+            (Self::Online, crate::i18n::Lang::En) => "Online",
         }
     }
 }
 
-/// Optional "work persona": the mask a person wears at work. Each field is a
-/// delta over the base profile (which always represents the authentic self).
-/// `None` on a bucket means "same as base".
+/// Optional arena persona: the mask a person wears in a given arena (work,
+/// online...). Each field is a delta over the base profile (which always
+/// represents the authentic self). `None` on a bucket means "same as base".
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
-pub struct WorkPersona {
+pub struct PersonaMask {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ocean: Option<OceanScores>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1073,7 +1079,9 @@ pub struct Person {
     #[serde(default)]
     pub values: Vec<Value>,
     #[serde(default)]
-    pub persona: Option<WorkPersona>,
+    pub persona: Option<PersonaMask>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub online_persona: Option<PersonaMask>,
     pub ocean: OceanScores,
     #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
     pub resilience: Option<u8>,
@@ -1100,63 +1108,69 @@ impl Person {
     }
 
     pub fn facet_view(&self, kind: FacetKind) -> FacetView {
-        match kind {
-            FacetKind::Base => FacetView {
-                kind,
-                ocean: self.ocean.clone(),
-                rep_scores: self.rep_scores.clone(),
-                motivations: self.motivations.clone(),
-                biases: self.biases.clone(),
-                behavioral_patterns: self.behavioral_patterns.clone(),
-                styles: self.styles.clone(),
-                values: self.values.clone(),
-                resilience: self.resilience,
-                risk_appetite: self.risk_appetite,
-            },
-            FacetKind::Work => {
-                let wp = self.persona.as_ref();
-                FacetView {
-                    kind,
-                    ocean: wp
-                        .and_then(|w| w.ocean.clone())
-                        .unwrap_or_else(|| self.ocean.clone()),
-                    rep_scores: wp
-                        .and_then(|w| w.rep_scores.clone())
-                        .unwrap_or_else(|| self.rep_scores.clone()),
-                    motivations: wp
-                        .and_then(|w| w.motivations.clone())
-                        .unwrap_or_else(|| self.motivations.clone()),
-                    biases: wp
-                        .and_then(|w| w.biases.clone())
-                        .unwrap_or_else(|| self.biases.clone()),
-                    behavioral_patterns: wp
-                        .and_then(|w| w.behavioral_patterns.clone())
-                        .unwrap_or_else(|| self.behavioral_patterns.clone()),
-                    styles: wp
-                        .and_then(|w| w.styles.clone())
-                        .unwrap_or_else(|| self.styles.clone()),
-                    values: wp
-                        .and_then(|w| w.values.clone())
-                        .unwrap_or_else(|| self.values.clone()),
-                    resilience: wp.and_then(|w| w.resilience).or(self.resilience),
-                    risk_appetite: wp.and_then(|w| w.risk_appetite).or(self.risk_appetite),
-                }
-            }
+        FacetView {
+            kind,
+            ocean: self
+                .mask_for(kind)
+                .and_then(|m| m.ocean.clone())
+                .unwrap_or_else(|| self.ocean.clone()),
+            rep_scores: self
+                .mask_for(kind)
+                .and_then(|m| m.rep_scores.clone())
+                .unwrap_or_else(|| self.rep_scores.clone()),
+            motivations: self
+                .mask_for(kind)
+                .and_then(|m| m.motivations.clone())
+                .unwrap_or_else(|| self.motivations.clone()),
+            biases: self
+                .mask_for(kind)
+                .and_then(|m| m.biases.clone())
+                .unwrap_or_else(|| self.biases.clone()),
+            behavioral_patterns: self
+                .mask_for(kind)
+                .and_then(|m| m.behavioral_patterns.clone())
+                .unwrap_or_else(|| self.behavioral_patterns.clone()),
+            styles: self
+                .mask_for(kind)
+                .and_then(|m| m.styles.clone())
+                .unwrap_or_else(|| self.styles.clone()),
+            values: self
+                .mask_for(kind)
+                .and_then(|m| m.values.clone())
+                .unwrap_or_else(|| self.values.clone()),
+            resilience: self
+                .mask_for(kind)
+                .and_then(|m| m.resilience)
+                .or(self.resilience),
+            risk_appetite: self
+                .mask_for(kind)
+                .and_then(|m| m.risk_appetite)
+                .or(self.risk_appetite),
         }
     }
 
-    /// A clone with the seven behavior channels resolved under `kind`.
-    /// Work-persona buckets that are `None` inherit the base channel, so the
-    /// merged person is what every downstream computation (profile, insights,
-    /// flags) would read for that facet. The clone carries no persona, which
-    /// keeps those computations persona-agnostic.
+    /// The arena persona mask for `kind` (`None` for the base facet).
+    fn mask_for(&self, kind: FacetKind) -> Option<&PersonaMask> {
+        match kind {
+            FacetKind::Base => None,
+            FacetKind::Work => self.persona.as_ref(),
+            FacetKind::Online => self.online_persona.as_ref(),
+        }
+    }
+
+    /// A clone with the behavior channels resolved under `kind`. Persona
+    /// buckets that are `None` inherit the base channel, so the merged person
+    /// is what every downstream computation (profile, insights, flags) would
+    /// read for that facet. The clone carries no persona, which keeps those
+    /// computations persona-agnostic.
     pub fn facet_person(&self, kind: FacetKind) -> Person {
-        if kind == FacetKind::Base || self.persona.is_none() {
+        if kind == FacetKind::Base || self.mask_for(kind).is_none() {
             return self.clone();
         }
         let v = self.facet_view(kind);
         Person {
             persona: None,
+            online_persona: None,
             ocean: v.ocean,
             rep_scores: v.rep_scores,
             motivations: v.motivations,
@@ -1472,6 +1486,8 @@ mod tests {
         );
         assert_eq!(FacetKind::Work.label(crate::i18n::Lang::Fr), "Au travail");
         assert_eq!(FacetKind::Work.label(crate::i18n::Lang::En), "At work");
+        assert_eq!(FacetKind::Online.label(crate::i18n::Lang::Fr), "En ligne");
+        assert_eq!(FacetKind::Online.label(crate::i18n::Lang::En), "Online");
     }
 
     #[test]
@@ -1514,7 +1530,7 @@ mod tests {
                 priority: 3,
                 notes: String::new(),
             }],
-            persona: Some(WorkPersona {
+            persona: Some(PersonaMask {
                 ocean: Some(OceanScores {
                     openness: Some(3),
                     conscientiousness: Some(9),
@@ -1555,6 +1571,7 @@ mod tests {
                 resilience: Some(4),
                 risk_appetite: Some(6),
             }),
+            online_persona: None,
             ocean: OceanScores {
                 openness: Some(7),
                 conscientiousness: Some(6),
@@ -1576,6 +1593,10 @@ mod tests {
         assert_eq!(
             merged.persona, None,
             "merged clone must be persona-agnostic"
+        );
+        assert_eq!(
+            merged.online_persona, None,
+            "merged clone must drop the online mask too"
         );
         assert_eq!(
             merged.ocean,
@@ -1634,12 +1655,19 @@ mod tests {
             behavioral_patterns: vec![],
             styles: vec![],
             values: vec![],
-            persona: Some(WorkPersona {
+            persona: Some(PersonaMask {
                 ocean: Some(OceanScores {
                     openness: Some(3),
                     ..OceanScores::default()
                 }),
-                ..WorkPersona::default()
+                ..PersonaMask::default()
+            }),
+            online_persona: Some(PersonaMask {
+                ocean: Some(OceanScores {
+                    openness: Some(4),
+                    ..OceanScores::default()
+                }),
+                ..PersonaMask::default()
             }),
             ocean: OceanScores::default(),
             resilience: None,
@@ -1653,5 +1681,69 @@ mod tests {
         let merged = base.facet_person(FacetKind::Base);
         assert_eq!(merged, base, "base facet must return an identical clone");
         assert_eq!(merged.persona, base.persona.clone());
+        assert_eq!(merged.online_persona, base.online_persona.clone());
+    }
+
+    #[test]
+    fn facet_person_online_merges_online_persona() {
+        let base = Person {
+            id: "p3".into(),
+            name: "Base".into(),
+            role: "r".into(),
+            context: "c".into(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![Motivation {
+                r#type: MotivationType::Power,
+                intensity: 8,
+                notes: "base".into(),
+            }],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            persona: Some(PersonaMask {
+                ocean: Some(OceanScores {
+                    openness: Some(2),
+                    ..OceanScores::default()
+                }),
+                ..PersonaMask::default()
+            }),
+            online_persona: Some(PersonaMask {
+                ocean: Some(OceanScores {
+                    openness: Some(9),
+                    ..OceanScores::default()
+                }),
+                ..PersonaMask::default()
+            }),
+            ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 1,
+            updated_at: 2,
+        };
+
+        let merged = base.facet_person(FacetKind::Online);
+        assert_eq!(
+            merged.persona, None,
+            "merged clone must be persona-agnostic"
+        );
+        assert_eq!(
+            merged.online_persona, None,
+            "merged clone must drop the online mask"
+        );
+        assert_eq!(
+            merged.ocean,
+            base.online_persona.as_ref().unwrap().ocean.clone().unwrap()
+        );
+        assert_eq!(
+            base.facet_person(FacetKind::Work).ocean,
+            base.persona.as_ref().unwrap().ocean.clone().unwrap(),
+            "work facet is independent of the online mask"
+        );
     }
 }

@@ -8,10 +8,10 @@ use crate::db;
 use crate::i18n::Lang;
 
 fn list_profile_src(p: &Person, facet: FacetKind) -> Person {
-    if facet == FacetKind::Work {
-        p.facet_person(FacetKind::Work)
-    } else {
-        p.clone()
+    match facet {
+        FacetKind::Work => p.facet_person(FacetKind::Work),
+        FacetKind::Online => p.facet_person(FacetKind::Online),
+        FacetKind::Base => p.clone(),
     }
 }
 
@@ -42,6 +42,7 @@ pub fn PeopleList() -> Element {
     let no_search_results = crate::tr!("no_search_results", lang());
     let facet_base = crate::tr!("facet_base", lang());
     let facet_work = crate::tr!("facet_work", lang());
+    let facet_online = crate::tr!("facet_online", lang());
     let name_hdr = crate::tr!("pl_name", lang());
     let ps_hdr = crate::tr!("person_self_score", lang());
     let ocean_hdr = crate::tr!("compare_cat_ocean", lang());
@@ -61,7 +62,7 @@ pub fn PeopleList() -> Element {
                     value: "{search}",
                     oninput: move |e| search.set(e.value()),
                 }
-                FacetToggle { facet, base_label: facet_base, work_label: facet_work, group_label: Some(format!("{facet_base} / {facet_work}")) }
+                FacetToggle { facet, base_label: facet_base, work_label: facet_work, online_label: facet_online, group_label: Some(format!("{facet_base} / {facet_work} / {facet_online}")) }
             }
             {
             let q = search().to_lowercase();
@@ -147,7 +148,7 @@ pub fn PeopleList() -> Element {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use peoplemodeler_core::models::{OceanScores, RepScores, WorkPersona};
+    use peoplemodeler_core::models::{OceanScores, PersonaMask, RepScores};
 
     fn fixture_person() -> Person {
         Person {
@@ -164,12 +165,19 @@ mod tests {
             behavioral_patterns: vec![],
             styles: vec![],
             values: vec![],
-            persona: Some(WorkPersona {
+            persona: Some(PersonaMask {
                 ocean: Some(OceanScores {
                     extraversion: Some(9),
                     ..OceanScores::default()
                 }),
-                ..WorkPersona::default()
+                ..PersonaMask::default()
+            }),
+            online_persona: Some(PersonaMask {
+                ocean: Some(OceanScores {
+                    extraversion: Some(7),
+                    ..OceanScores::default()
+                }),
+                ..PersonaMask::default()
             }),
             ocean: OceanScores {
                 extraversion: Some(2),
@@ -196,5 +204,18 @@ mod tests {
             "merged work facet drops the mask"
         );
         assert_eq!(work_src.ocean.extraversion, Some(9));
+    }
+
+    #[test]
+    fn list_profile_src_switches_to_merged_persona_on_online() {
+        let p = fixture_person();
+        let online_src = list_profile_src(&p, FacetKind::Online);
+        assert!(
+            online_src.persona.is_none(),
+            "merged online facet drops the mask"
+        );
+        assert_eq!(online_src.ocean.extraversion, Some(7));
+        let base_src = list_profile_src(&p, FacetKind::Base);
+        assert_eq!(base_src.ocean.extraversion, Some(2));
     }
 }

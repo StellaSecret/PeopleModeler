@@ -641,6 +641,7 @@ mod tests {
     fn test_person() -> Person {
         Person {
             persona: None,
+            online_persona: None,
             id: "test-001".into(),
             name: "Test".into(),
             role: "Tester".into(),
@@ -911,6 +912,7 @@ mod tests {
         use crate::models::*;
         Person {
             persona: None,
+            online_persona: None,
             id: "multi".into(),
             name: "Multi".into(),
             role: String::new(),
