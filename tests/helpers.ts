@@ -6,7 +6,25 @@ export async function setStepper(slider: Locator, target: number) {
   const txt = (await slider.locator('.step-val').innerText()).trim();
   const match = txt.match(/-?\d+/);
   const current = match ? Number(match[0]) : 5;
-  const delta = target - current;
+  let delta = target - current;
+  if (delta === 0 && !match) {
+    // "—" means unset: the stepper shows its default (5) but nothing is
+    // stored, and unset is distinct from an explicit 5. Materialize it —
+    // any click from unset lands on 4 (-) or 6 (+), so step up to 6, wait
+    // for the re-render, then step back down to target.
+    await slider.locator('button.step-plus').click();
+    let now = 0;
+    for (let i = 0; i < 100; i++) {
+      const v = (await slider.locator('.step-val').innerText()).trim();
+      const m = v.match(/-?\d+/);
+      if (m) {
+        now = Number(m[0]);
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    delta = target - (now || 6);
+  }
   const button = delta < 0 ? 'button.step-minus' : 'button.step-plus';
   for (let i = 0; i < Math.abs(delta); i++) {
     await slider.locator(button).click();

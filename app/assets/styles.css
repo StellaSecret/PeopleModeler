@@ -251,6 +251,11 @@ body{
    wrapped the toolbar to a second line on mobile and pushed every section
    below it down by that extra height. */
 .persona-actions{width:100%;display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;flex-wrap:nowrap;min-height:2.4rem}
+/* Personal life renders this same row (not a smaller placeholder) so its
+   real height always matches Work Persona's exactly — visibility:hidden
+   keeps its layout footprint (unlike display:none) while also dropping it
+   out of the tab order, so nothing invisible is keyboard-focusable. */
+.persona-actions-hidden{visibility:hidden}
 .persona-panel.readonly{opacity:0.45;pointer-events:none}
 .persona-panel.readonly .bucket-toggle{pointer-events:auto}
 .bucket-toggle{flex:none;white-space:nowrap;font-size:0.72rem;color:var(--text-muted);cursor:pointer}

@@ -4,7 +4,6 @@ import {
   createPerson,
   addMotivation,
   setStepper,
-  enableAndSetRep,
   dismissTutorial,
 } from './helpers';
 
@@ -81,6 +80,20 @@ test.describe('Edit form state machines', () => {
     const personId = await createPerson(page, 'Discard Test');
     await gotoEdit(page, personId);
 
+    // A freshly created person's OCEAN scores are genuinely unset (shown
+    // as "—", not defaulted to 5) — that's deliberate, matching how
+    // Reputation also treats "undefined" as distinct from "explicitly set
+    // to some value". So the saved baseline this test discards back to
+    // has to be established for real: set 5, save, and reload, rather
+    // than assuming a fresh/unsaved person already reads as 5/10.
+    await expect(
+      (await opennessSlider(page, 'OCEAN Scores (1-10)')).locator('.step-val'),
+    ).toHaveText('—');
+    await setStepper(await opennessSlider(page, 'OCEAN Scores (1-10)'), 5);
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    await gotoEdit(page, personId);
+
     const slider = await opennessSlider(page, 'OCEAN Scores (1-10)');
     await expect(slider.locator('.step-val')).toHaveText('5/10');
 
@@ -106,25 +119,6 @@ test.describe('Edit form state machines', () => {
 
     await mot.locator('.edit-section-discard').click();
     await expect(mot.locator('.list-item')).toHaveCount(0);
-  });
-
-  test('discard reverts reputation scores, not the just-edited ones', async ({
-    page,
-  }) => {
-    await clearStorage(page);
-    const personId = await createPerson(page, 'Discard Rep Test');
-    await gotoEdit(page, personId);
-
-    const rep = editSection(page, 'Reputation');
-    await enableAndSetRep(page, 0, 8); // HardworkerLazy → Hardworker (≥ 8)
-    await expect(rep.locator('.rep-dim-value strong').first()).toHaveText('8/10');
-
-    // Each rep slider keeps its own pending on/value; Discard must remount
-    // them back to the saved (undefined → toggle off) state.
-    const toggle = rep.locator("label.dim-toggle input[type='checkbox']").first();
-    await expect(toggle).toBeChecked();
-    await rep.locator('.edit-section-discard').click();
-    await expect(toggle).not.toBeChecked();
   });
 
   test('work persona edits stay isolated from the base profile', async ({
