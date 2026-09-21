@@ -244,6 +244,14 @@ body{
 .facet-btn{background:transparent;border:none;color:var(--text-muted);font-family:var(--font-body);font-size:0.78rem;padding:0.25rem 0.8rem;border-radius:100px;cursor:pointer}
 .facet-btn.active{background:var(--accent);color:var(--on-accent)}
 .edit-mode-bar{position:-webkit-sticky;position:sticky;top:var(--top-bar-h,calc(64px + env(safe-area-inset-top,0px)));z-index:200;width:100%;padding:0.35rem 0;background:var(--nav-bg);display:flex;flex-direction:column;align-items:stretch;gap:0.45rem}
+/* Sticky chrome (the top bar at ~64px and, on edit pages, the mode bar pinned
+   just below it) overlaps anything a programmatic scrollIntoView lands at the
+   very top edge of the viewport — Playwright hit "top-bar intercepts pointer
+   events" on steppers/section controls scrolled into view. Reserving that
+   space on every scroll target keeps the top edge of the section clear of
+   both sticky bars (mode bar adds ~116px; the env() safe-area variant and the
+   JS-measured --top-bar-h are both covered by the var). */
+:where(button,input,select,textarea,a,.edit-section,.ocean-slider,.stepper-slider,.persona-actions,.rel-add-form,.rel-person-row,.card,.analysis-card,.breakdown-section,.compatibility-card){scroll-margin-top:calc(var(--top-bar-h,64px) + 124px);scroll-margin-bottom:96px}
 .edit-mode-bar .facet-toggle{align-self:flex-start}
 /* The persona actions row is rendered in BOTH facets (empty in Personal
    life) so the bar keeps the same height in Personal life vs At work even

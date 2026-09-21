@@ -49,31 +49,7 @@ pub fn PersonNew() -> Element {
 
     match selected() {
         Some(idx) => {
-            let blank = Person {
-                persona: None,
-                online_persona: None,
-                id: uuid::Uuid::new_v4().to_string(),
-                name: String::new(),
-                role: String::new(),
-                context: String::new(),
-                avatar_emoji: "👤".into(),
-                tags: Vec::new(),
-                notes: String::new(),
-                motivations: Vec::new(),
-                biases: Vec::new(),
-                rep_scores: RepScores::default(),
-                behavioral_patterns: Vec::new(),
-                styles: Vec::new(),
-                values: Vec::new(),
-                ocean: OceanScores::default(),
-                resilience: None,
-                risk_appetite: None,
-                confidence: 5,
-                log: Vec::new(),
-                created_at: chrono::Utc::now().timestamp_millis(),
-                updated_at: chrono::Utc::now().timestamp_millis(),
-            };
-            let person = person_from_template(idx, &templates, blank);
+            let person = person_from_template(idx, &templates, blank_person());
             rsx! { PersonEditForm { initial: person } }
         }
         None => rsx! {
@@ -107,12 +83,8 @@ pub fn PersonEdit(id: String) -> Element {
     }
 }
 
-#[component]
-fn PersonEditForm(initial: Option<Person>) -> Element {
-    let lang = use_context::<Signal<Lang>>();
-    let mut toast_sig = use_context::<Signal<Option<String>>>();
-    let is_new = initial.is_none();
-    let p = initial.unwrap_or_else(|| Person {
+fn blank_person() -> Person {
+    Person {
         persona: None,
         online_persona: None,
         id: uuid::Uuid::new_v4().to_string(),
@@ -135,456 +107,627 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         log: Vec::new(),
         created_at: chrono::Utc::now().timestamp_millis(),
         updated_at: chrono::Utc::now().timestamp_millis(),
-    });
+    }
+}
 
-    // The "copy base" button above moves the Work closure's fields out of
-    // `p`, so the Online twin needs its own snapshot to copy from. Cloned
-    // here, before the `save` closure partially moves `p` below.
-    let p_online = p.clone();
+/// The mask a person wears in one arena. `None` on a bucket means "same as
+/// base" (the core delta semantics — see `PersonaMask` in the core models).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FacetBucket {
+    Ocean,
+    Reputation,
+    Motivations,
+    Biases,
+    Patterns,
+    Styles,
+    Values,
+    Resilience,
+    RiskAppetite,
+}
 
-    let mut name = use_signal(|| p.name.clone());
-    let mut role = use_signal(|| p.role.clone());
-    let mut context = use_signal(|| p.context.clone());
-    let mut emoji = use_signal(|| p.avatar_emoji.clone());
-    let mut notes = use_signal(|| p.notes.clone());
-    let mut tags_str = use_signal(|| {
-        p.tags
-            .iter()
-            .map(|t| t.name.clone())
-            .collect::<Vec<_>>()
-            .join(", ")
-    });
-    let mut ocean = use_signal(|| p.ocean.clone());
-    let mut confidence = use_signal(|| p.confidence);
-    let mut resilience = use_signal(|| p.resilience.unwrap_or(5));
-    let mut risk_appetite = use_signal(|| p.risk_appetite.unwrap_or(5));
-    let mut motivations = use_signal(|| p.motivations.clone());
-    let mut biases = use_signal(|| p.biases.clone());
-    let mut rep_scores = use_signal(|| p.rep_scores.clone());
-    let mut patterns = use_signal(|| p.behavioral_patterns.clone());
-    let mut styles = use_signal(|| p.styles.clone());
-    let mut values = use_signal(|| p.values.clone());
-    let edit_mode = use_signal(|| FacetKind::Base);
+impl FacetBucket {
+    /// The base value this bucket overrides, cloned out of the base profile
+    /// so a toggle can materialize it when the bucket turns on.
+    fn base_value(&self, p: &Person) -> BucketValue {
+        match self {
+            Self::Ocean => BucketValue::Ocean(p.ocean.clone()),
+            Self::Reputation => BucketValue::Rep(p.rep_scores.clone()),
+            Self::Motivations => BucketValue::Motivations(p.motivations.clone()),
+            Self::Biases => BucketValue::Biases(p.biases.clone()),
+            Self::Patterns => BucketValue::Patterns(p.behavioral_patterns.clone()),
+            Self::Styles => BucketValue::Styles(p.styles.clone()),
+            Self::Values => BucketValue::Values(p.values.clone()),
+            Self::Resilience => BucketValue::Resilience(p.resilience.unwrap_or(5)),
+            Self::RiskAppetite => BucketValue::RiskAppetite(p.risk_appetite.unwrap_or(5)),
+        }
+    }
 
-    // --- Work persona (mask) state ---
-    // Each bucket has a data signal + a defined flag. A bucket that is not
-    // defined (`has_* == false`) means "same as base" (inherited), which is
-    // exactly the core delta semantics.
-    let mut persona_enabled = use_signal(|| p.persona.is_some());
-    let wp = p.persona.clone();
-    let mut work_ocean = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.ocean.clone())
-            .unwrap_or_else(|| p.ocean.clone())
-    });
-    let mut work_rep = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.rep_scores.clone())
-            .unwrap_or_else(|| p.rep_scores.clone())
-    });
-    let mut work_motivations = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.motivations.clone())
-            .unwrap_or_else(|| p.motivations.clone())
-    });
-    let mut work_biases = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.biases.clone())
-            .unwrap_or_else(|| p.biases.clone())
-    });
-    let mut work_patterns = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.behavioral_patterns.clone())
-            .unwrap_or_else(|| p.behavioral_patterns.clone())
-    });
-    let mut work_styles = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.styles.clone())
-            .unwrap_or_else(|| p.styles.clone())
-    });
-    let mut work_values = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.values.clone())
-            .unwrap_or_else(|| p.values.clone())
-    });
-    let mut work_resilience = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.resilience)
-            .unwrap_or_else(|| p.resilience.unwrap_or(5))
-    });
-    let mut work_risk_appetite = use_signal(|| {
-        wp.as_ref()
-            .and_then(|w| w.risk_appetite)
-            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5))
-    });
-    let mut has_ocean = use_signal(|| wp.as_ref().is_some_and(|w| w.ocean.is_some()));
-    let mut has_rep = use_signal(|| wp.as_ref().is_some_and(|w| w.rep_scores.is_some()));
-    let mut has_motivations = use_signal(|| wp.as_ref().is_some_and(|w| w.motivations.is_some()));
-    let mut has_biases = use_signal(|| wp.as_ref().is_some_and(|w| w.biases.is_some()));
-    let mut has_patterns =
-        use_signal(|| wp.as_ref().is_some_and(|w| w.behavioral_patterns.is_some()));
-    let mut has_styles = use_signal(|| wp.as_ref().is_some_and(|w| w.styles.is_some()));
-    let mut has_values = use_signal(|| wp.as_ref().is_some_and(|w| w.values.is_some()));
-    let mut has_resilience = use_signal(|| wp.as_ref().is_some_and(|w| w.resilience.is_some()));
-    let mut has_risk_appetite =
-        use_signal(|| wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()));
+    fn is_defined(&self, m: &PersonaMask) -> bool {
+        match self {
+            Self::Ocean => m.ocean.is_some(),
+            Self::Reputation => m.rep_scores.is_some(),
+            Self::Motivations => m.motivations.is_some(),
+            Self::Biases => m.biases.is_some(),
+            Self::Patterns => m.behavioral_patterns.is_some(),
+            Self::Styles => m.styles.is_some(),
+            Self::Values => m.values.is_some(),
+            Self::Resilience => m.resilience.is_some(),
+            Self::RiskAppetite => m.risk_appetite.is_some(),
+        }
+    }
 
-    // --- Online persona (mask) state ---
-    // Mirrors the work persona above, bucket by bucket: each bucket has a data
-    // signal + a defined flag ("same as base" when unset).
-    let mut online_persona_enabled = use_signal(|| p.online_persona.is_some());
-    let op = p.online_persona.clone();
-    let mut online_ocean = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.ocean.clone())
-            .unwrap_or_else(|| p.ocean.clone())
+    /// Write the override state onto a persona mask: turning a bucket on
+    /// materializes `base` (unless it is already defined); turning it off
+    /// drops back to inheritance.
+    fn set_on_mask(&self, m: &mut PersonaMask, on: bool, base: BucketValue) {
+        match self {
+            Self::Ocean => {
+                if !on {
+                    m.ocean = None;
+                } else if m.ocean.is_none() {
+                    m.ocean = Some(base.into_ocean());
+                }
+            }
+            Self::Reputation => {
+                if !on {
+                    m.rep_scores = None;
+                } else if m.rep_scores.is_none() {
+                    m.rep_scores = Some(base.into_rep());
+                }
+            }
+            Self::Motivations => {
+                if !on {
+                    m.motivations = None;
+                } else if m.motivations.is_none() {
+                    m.motivations = Some(base.into_motivations());
+                }
+            }
+            Self::Biases => {
+                if !on {
+                    m.biases = None;
+                } else if m.biases.is_none() {
+                    m.biases = Some(base.into_biases());
+                }
+            }
+            Self::Patterns => {
+                if !on {
+                    m.behavioral_patterns = None;
+                } else if m.behavioral_patterns.is_none() {
+                    m.behavioral_patterns = Some(base.into_patterns());
+                }
+            }
+            Self::Styles => {
+                if !on {
+                    m.styles = None;
+                } else if m.styles.is_none() {
+                    m.styles = Some(base.into_styles());
+                }
+            }
+            Self::Values => {
+                if !on {
+                    m.values = None;
+                } else if m.values.is_none() {
+                    m.values = Some(base.into_values());
+                }
+            }
+            Self::Resilience => {
+                if !on {
+                    m.resilience = None;
+                } else if m.resilience.is_none() {
+                    m.resilience = Some(base.into_resilience());
+                }
+            }
+            Self::RiskAppetite => {
+                if !on {
+                    m.risk_appetite = None;
+                } else if m.risk_appetite.is_none() {
+                    m.risk_appetite = Some(base.into_risk_appetite());
+                }
+            }
+        }
+    }
+}
+
+/// Owned copy of one base bucket, kept in an opaque enum so `FacetBucket` can
+/// lift values out of a `Person` before the persona mask gets a mutable
+/// borrow (the borrow checker would otherwise reject reading both at once).
+enum BucketValue {
+    Ocean(OceanScores),
+    Rep(RepScores),
+    Motivations(Vec<Motivation>),
+    Biases(Vec<Bias>),
+    Patterns(Vec<BehavioralPattern>),
+    Styles(Vec<PersonalStyle>),
+    Values(Vec<Value>),
+    Resilience(u8),
+    RiskAppetite(u8),
+}
+
+impl BucketValue {
+    fn into_ocean(self) -> OceanScores {
+        match self {
+            Self::Ocean(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_rep(self) -> RepScores {
+        match self {
+            Self::Rep(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_motivations(self) -> Vec<Motivation> {
+        match self {
+            Self::Motivations(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_biases(self) -> Vec<Bias> {
+        match self {
+            Self::Biases(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_patterns(self) -> Vec<BehavioralPattern> {
+        match self {
+            Self::Patterns(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_styles(self) -> Vec<PersonalStyle> {
+        match self {
+            Self::Styles(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_values(self) -> Vec<Value> {
+        match self {
+            Self::Values(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_resilience(self) -> u8 {
+        match self {
+            Self::Resilience(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+    fn into_risk_appetite(self) -> u8 {
+        match self {
+            Self::RiskAppetite(v) => v,
+            _ => unreachable!("bucket kind mismatch"),
+        }
+    }
+}
+
+/// The persona mask for `facet` (`None` for the base facet).
+fn mask_of(p: &Person, facet: FacetKind) -> Option<&PersonaMask> {
+    match facet {
+        FacetKind::Base => None,
+        FacetKind::Work => p.persona.as_ref(),
+        FacetKind::Online => p.online_persona.as_ref(),
+    }
+}
+
+fn mask_mut_of(p: &mut Person, facet: FacetKind) -> Option<&mut PersonaMask> {
+    match facet {
+        FacetKind::Base => None,
+        FacetKind::Work => p.persona.as_mut(),
+        FacetKind::Online => p.online_persona.as_mut(),
+    }
+}
+
+/// Number of rows in a resolved list bucket: the mask's override when set,
+/// otherwise the inherited base list. Pure + unit-testable.
+fn list_len(p: &Person, facet: FacetKind, bucket: FacetBucket) -> usize {
+    let m = mask_of(p, facet);
+    match bucket {
+        FacetBucket::Motivations => m
+            .and_then(|m| m.motivations.as_deref())
+            .unwrap_or(p.motivations.as_slice())
+            .len(),
+        FacetBucket::Biases => m
+            .and_then(|m| m.biases.as_deref())
+            .unwrap_or(p.biases.as_slice())
+            .len(),
+        FacetBucket::Patterns => m
+            .and_then(|m| m.behavioral_patterns.as_deref())
+            .unwrap_or(p.behavioral_patterns.as_slice())
+            .len(),
+        FacetBucket::Styles => m
+            .and_then(|m| m.styles.as_deref())
+            .unwrap_or(p.styles.as_slice())
+            .len(),
+        FacetBucket::Values => m
+            .and_then(|m| m.values.as_deref())
+            .unwrap_or(p.values.as_slice())
+            .len(),
+        _ => 0,
+    }
+}
+
+/// Single source of truth for "what does Discard restore for this section in
+/// this facet" — the same pure decision logic distilled from the old discard
+/// closure, now unit-testable. Writes `saved`'s per-facet snapshot back onto
+/// the draft for exactly one section.
+fn discard_section(section: EditSectionId, facet: FacetKind, saved: &Person, draft: &mut Person) {
+    if is_base_facet(facet) {
+        match section {
+            EditSectionId::ResilienceRisk => {
+                draft.resilience = saved.resilience;
+                draft.risk_appetite = saved.risk_appetite;
+            }
+            EditSectionId::Ocean => draft.ocean = saved.ocean.clone(),
+            EditSectionId::Motivations => draft.motivations = saved.motivations.clone(),
+            EditSectionId::Biases => draft.biases = saved.biases.clone(),
+            EditSectionId::Reputation => draft.rep_scores = saved.rep_scores.clone(),
+            EditSectionId::Patterns => {
+                draft.behavioral_patterns = saved.behavioral_patterns.clone();
+            }
+            EditSectionId::Styles => draft.styles = saved.styles.clone(),
+            EditSectionId::Values => draft.values = saved.values.clone(),
+        }
+        return;
+    }
+    let Some(draft_mask) = mask_mut_of(draft, facet) else {
+        return;
+    };
+    let saved_mask = mask_of(saved, facet);
+    match section {
+        EditSectionId::ResilienceRisk => {
+            draft_mask.resilience = saved_mask.and_then(|m| m.resilience);
+            draft_mask.risk_appetite = saved_mask.and_then(|m| m.risk_appetite);
+        }
+        EditSectionId::Ocean => {
+            draft_mask.ocean = saved_mask.and_then(|m| m.ocean.clone());
+        }
+        EditSectionId::Motivations => {
+            draft_mask.motivations = saved_mask.and_then(|m| m.motivations.clone());
+        }
+        EditSectionId::Biases => {
+            draft_mask.biases = saved_mask.and_then(|m| m.biases.clone());
+        }
+        EditSectionId::Reputation => {
+            draft_mask.rep_scores = saved_mask.and_then(|m| m.rep_scores.clone());
+        }
+        EditSectionId::Patterns => {
+            draft_mask.behavioral_patterns = saved_mask.and_then(|m| m.behavioral_patterns.clone());
+        }
+        EditSectionId::Styles => {
+            draft_mask.styles = saved_mask.and_then(|m| m.styles.clone());
+        }
+        EditSectionId::Values => {
+            draft_mask.values = saved_mask.and_then(|m| m.values.clone());
+        }
+    }
+}
+
+/// The form's whole editable state in one place, shared with every scoped
+/// child component via `use_context_provider`. `saved`, `work_active` and
+/// `online_active` are derived memos (values change only when their real
+/// dependencies change), so panels re-render in isolation instead of the
+/// whole form re-running on every keystroke.
+#[derive(Clone, Copy)]
+struct PersonEditState {
+    draft: Signal<Person>,
+    mode: Signal<FacetKind>,
+    open: Signal<Vec<EditSectionId>>,
+    saved: Memo<Person>,
+    work_active: Memo<bool>,
+    online_active: Memo<bool>,
+}
+
+impl PersonEditState {
+    // Handle accessors: `Signal`/`Memo` are `Copy` + callable, but Rust
+    // parses `self.field()`/`ctx.field()` as a *method* call, so callable
+    // fields get wrapped in same-named methods (field+method name can
+    // legally coincide, and field access uses the paren-less form).
+    fn draft(&self) -> Signal<Person> {
+        self.draft
+    }
+    fn mode(&self) -> FacetKind {
+        (self.mode)()
+    }
+    fn work_active(&self) -> bool {
+        (self.work_active)()
+    }
+    fn online_active(&self) -> bool {
+        (self.online_active)()
+    }
+    fn saved(&self) -> Person {
+        (self.saved)()
+    }
+
+    fn persona_active(&self, facet: FacetKind) -> bool {
+        if is_work_facet(facet) {
+            self.work_active()
+        } else {
+            self.online_active()
+        }
+    }
+
+    fn bucket_defined(&self, facet: FacetKind, bucket: FacetBucket) -> bool {
+        let draft = self.draft();
+        let p = draft.read();
+        mask_of(&p, facet).is_some_and(|m| bucket.is_defined(m))
+    }
+
+    fn set_persona_enabled(&self, facet: FacetKind, on: bool) {
+        let mut draft = self.draft();
+        let mut p = draft.write();
+        match facet {
+            FacetKind::Work => {
+                if on {
+                    if p.persona.is_none() {
+                        p.persona = Some(PersonaMask::default());
+                    }
+                } else {
+                    p.persona = None;
+                }
+            }
+            FacetKind::Online => {
+                if on {
+                    if p.online_persona.is_none() {
+                        p.online_persona = Some(PersonaMask::default());
+                    }
+                } else {
+                    p.online_persona = None;
+                }
+            }
+            FacetKind::Base => {}
+        }
+    }
+
+    /// "Copy from base profile": every bucket becomes an explicit override
+    /// seeded from the as-loaded base (the same snapshot Discard restores).
+    fn copy_base(&self, facet: FacetKind) {
+        let s = self.saved();
+        let mask = PersonaMask {
+            ocean: Some(s.ocean.clone()),
+            rep_scores: Some(s.rep_scores.clone()),
+            motivations: Some(s.motivations.clone()),
+            biases: Some(s.biases.clone()),
+            behavioral_patterns: Some(s.behavioral_patterns.clone()),
+            styles: Some(s.styles.clone()),
+            values: Some(s.values.clone()),
+            resilience: Some(s.resilience.unwrap_or(5)),
+            risk_appetite: Some(s.risk_appetite.unwrap_or(5)),
+        };
+        let mut draft = self.draft();
+        let mut p = draft.write();
+        match facet {
+            FacetKind::Work => p.persona = Some(mask),
+            FacetKind::Online => p.online_persona = Some(mask),
+            FacetKind::Base => {}
+        }
+    }
+
+    fn clear_persona(&self, facet: FacetKind) {
+        let mut draft = self.draft();
+        let mut p = draft.write();
+        match facet {
+            FacetKind::Work => p.persona = None,
+            FacetKind::Online => p.online_persona = None,
+            FacetKind::Base => {}
+        }
+    }
+
+    fn set_bucket_defined(&self, facet: FacetKind, bucket: FacetBucket, on: bool) {
+        let mut draft = self.draft();
+        let mut p = draft.write();
+        let base = bucket.base_value(&p);
+        if let Some(m) = mask_mut_of(&mut p, facet) {
+            bucket.set_on_mask(m, on, base);
+        }
+    }
+
+    fn discard(&self, section: EditSectionId) {
+        let facet = self.mode();
+        let saved = self.saved();
+        let mut binding = self.draft();
+        let mut draft = binding.write();
+        discard_section(section, facet, &saved, &mut draft);
+    }
+}
+
+/// A facet-resolved list: `val` mirrors the mask bucket when overridden,
+/// otherwise the inherited base list; every edit writes straight through to
+/// the draft and materializes the bucket on first write.
+#[derive(Clone, PartialEq)]
+struct ListField<T: Clone + PartialEq + 'static> {
+    val: Memo<Vec<T>>,
+    set: EventHandler<ListOp<T>>,
+}
+
+#[derive(Clone)]
+enum ListOp<T> {
+    Push(T),
+    Replace(usize, T),
+    Remove(usize),
+    Swap(usize, usize),
+}
+
+impl<T: Clone + PartialEq + 'static> ListField<T> {
+    fn push(&self, item: T) {
+        self.set.call(ListOp::Push(item));
+    }
+    fn replace(&self, i: usize, item: T) {
+        self.set.call(ListOp::Replace(i, item));
+    }
+    fn remove(&self, i: usize) {
+        self.set.call(ListOp::Remove(i));
+    }
+    fn swap(&self, i: usize, j: usize) {
+        self.set.call(ListOp::Swap(i, j));
+    }
+}
+
+fn use_list_field<T: Clone + PartialEq + 'static>(
+    ctx: PersonEditState,
+    facet: FacetKind,
+    base: fn(&Person) -> &Vec<T>,
+    base_mut: fn(&mut Person) -> &mut Vec<T>,
+    mask_bucket: fn(&PersonaMask) -> &Option<Vec<T>>,
+    mask_bucket_mut: fn(&mut PersonaMask) -> &mut Option<Vec<T>>,
+) -> ListField<T> {
+    let draft = ctx.draft();
+    let val = use_memo(move || {
+        let p = draft.read();
+        match mask_of(&p, facet) {
+            Some(m) => mask_bucket(m).clone().unwrap_or_else(|| base(&p).clone()),
+            None => base(&p).clone(),
+        }
     });
-    let mut online_rep = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.rep_scores.clone())
-            .unwrap_or_else(|| p.rep_scores.clone())
+    let set = EventHandler::new(move |op: ListOp<T>| {
+        let mut binding = ctx.draft();
+        let mut p = binding.write();
+        let list: &mut Vec<T> = match mask_mut_of(&mut p, facet) {
+            Some(m) => mask_bucket_mut(m).get_or_insert_with(Vec::new),
+            None => base_mut(&mut p),
+        };
+        match op {
+            ListOp::Push(item) => list.push(item),
+            ListOp::Replace(i, item) => {
+                if let Some(slot) = list.get_mut(i) {
+                    *slot = item;
+                }
+            }
+            ListOp::Remove(i) => {
+                list.remove(i);
+            }
+            ListOp::Swap(i, j) => list.swap(i, j),
+        }
     });
-    let mut online_motivations = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.motivations.clone())
-            .unwrap_or_else(|| p.motivations.clone())
+    ListField { val, set }
+}
+
+/// A facet-resolved scalar field (OCEAN scores, reputation scores).
+#[derive(Clone)]
+struct MajorField<T: Clone + PartialEq + 'static> {
+    val: Memo<T>,
+    set: EventHandler<T>,
+}
+
+fn use_major_field<T: Clone + PartialEq + 'static>(
+    ctx: PersonEditState,
+    facet: FacetKind,
+    base: fn(&Person) -> &T,
+    base_mut: fn(&mut Person) -> &mut T,
+    mask_bucket: fn(&PersonaMask) -> &Option<T>,
+    mask_bucket_mut: fn(&mut PersonaMask) -> &mut Option<T>,
+) -> MajorField<T> {
+    let draft = ctx.draft();
+    let val = use_memo(move || {
+        let p = draft.read();
+        match mask_of(&p, facet) {
+            Some(m) => mask_bucket(m).clone().unwrap_or_else(|| base(&p).clone()),
+            None => base(&p).clone(),
+        }
     });
-    let mut online_biases = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.biases.clone())
-            .unwrap_or_else(|| p.biases.clone())
+    let set = EventHandler::new(move |value: T| {
+        let mut binding = ctx.draft();
+        let mut p = binding.write();
+        match mask_mut_of(&mut p, facet) {
+            Some(m) => *mask_bucket_mut(m) = Some(value),
+            None => *base_mut(&mut p) = value,
+        }
     });
-    let mut online_patterns = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.behavioral_patterns.clone())
-            .unwrap_or_else(|| p.behavioral_patterns.clone())
-    });
-    let mut online_styles = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.styles.clone())
-            .unwrap_or_else(|| p.styles.clone())
-    });
-    let mut online_values = use_signal(|| {
-        op.as_ref()
-            .and_then(|m| m.values.clone())
-            .unwrap_or_else(|| p.values.clone())
-    });
-    let mut online_resilience = use_signal(|| {
-        op.as_ref()
+    MajorField { val, set }
+}
+
+/// Resilience/risk are `Option<u8>` internally but expose a plain `u8` that
+/// defaults to 5 everywhere in the UI.
+#[derive(Clone, Copy)]
+struct ResilienceRiskField {
+    resilience: Memo<u8>,
+    risk_appetite: Memo<u8>,
+    set_resilience: EventHandler<u8>,
+    set_risk_appetite: EventHandler<u8>,
+}
+
+impl ResilienceRiskField {
+    fn resilience(&self) -> u8 {
+        (self.resilience)()
+    }
+    fn risk_appetite(&self) -> u8 {
+        (self.risk_appetite)()
+    }
+}
+
+fn use_resilience_risk(ctx: PersonEditState, facet: FacetKind) -> ResilienceRiskField {
+    let draft = ctx.draft();
+    let resilience = use_memo(move || {
+        let p = draft.read();
+        mask_of(&p, facet)
             .and_then(|m| m.resilience)
-            .unwrap_or_else(|| p.resilience.unwrap_or(5))
+            .or(p.resilience)
+            .unwrap_or(5)
     });
-    let mut online_risk_appetite = use_signal(|| {
-        op.as_ref()
+    let risk_appetite = use_memo(move || {
+        let p = draft.read();
+        mask_of(&p, facet)
             .and_then(|m| m.risk_appetite)
-            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5))
+            .or(p.risk_appetite)
+            .unwrap_or(5)
     });
-    let mut has_online_ocean = use_signal(|| op.as_ref().is_some_and(|m| m.ocean.is_some()));
-    let mut has_online_rep = use_signal(|| op.as_ref().is_some_and(|m| m.rep_scores.is_some()));
-    let mut has_online_motivations =
-        use_signal(|| op.as_ref().is_some_and(|m| m.motivations.is_some()));
-    let mut has_online_biases = use_signal(|| op.as_ref().is_some_and(|m| m.biases.is_some()));
-    let mut has_online_patterns =
-        use_signal(|| op.as_ref().is_some_and(|m| m.behavioral_patterns.is_some()));
-    let mut has_online_styles = use_signal(|| op.as_ref().is_some_and(|m| m.styles.is_some()));
-    let mut has_online_values = use_signal(|| op.as_ref().is_some_and(|m| m.values.is_some()));
-    let mut has_online_resilience =
-        use_signal(|| op.as_ref().is_some_and(|m| m.resilience.is_some()));
-    let mut has_online_risk_appetite =
-        use_signal(|| op.as_ref().is_some_and(|m| m.risk_appetite.is_some()));
-
-    let ocean_rep_flags = use_memo(move || {
-        let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&ocean(), &rep_scores());
-        flags.extend(peoplemodeler_core::validation::rhetoric_gap_flags(
-            &ocean(),
-            &rep_scores(),
-            &motivations(),
-        ));
-        if peoplemodeler_core::validation::pattern_calm_volatile_gap(&patterns(), &rep_scores()) {
-            flags.push("flag_pattern_calm_volatile");
+    let set_resilience = EventHandler::new(move |v: u8| {
+        let mut binding = ctx.draft();
+        let mut p = binding.write();
+        match mask_mut_of(&mut p, facet) {
+            Some(m) => m.resilience = Some(v),
+            None => p.resilience = Some(v),
         }
-        if peoplemodeler_core::validation::pattern_honest_exploiter_gap(&patterns(), &rep_scores())
-        {
-            flags.push("flag_pattern_honest_exploiter");
-        }
-        if peoplemodeler_core::validation::bias_confirmation_open_gap(&biases(), &ocean()) {
-            flags.push("flag_bias_confirmation_open");
-        }
-        if peoplemodeler_core::validation::bias_favoritism_fairness_gap(&biases(), &motivations()) {
-            flags.push("flag_bias_favoritism_fairness");
-        }
-        if peoplemodeler_core::validation::authority_dominant_gap(&biases(), &rep_scores()) {
-            flags.push("flag_authority_dominant");
-        }
-        if peoplemodeler_core::validation::social_proof_open_gap(&biases(), &ocean()) {
-            flags.push("flag_social_proof_open");
-        }
-        if peoplemodeler_core::validation::sunk_cost_flexible_gap(&biases(), &rep_scores()) {
-            flags.push("flag_sunk_cost_flexible");
-        }
-        if peoplemodeler_core::validation::loss_aversion_risky_gap(&biases(), Some(risk_appetite()))
-        {
-            flags.push("flag_loss_aversion_risky");
-        }
-        if peoplemodeler_core::validation::dunning_kruger_humble_gap(&biases(), &rep_scores()) {
-            flags.push("flag_dunning_kruger_humble");
-        }
-        if peoplemodeler_core::validation::impostor_arrogant_gap(&biases(), &rep_scores()) {
-            flags.push("flag_impostor_arrogant");
-        }
-        if peoplemodeler_core::validation::recency_reliable_gap(&biases(), &rep_scores()) {
-            flags.push("flag_recency_reliable");
-        }
-        if peoplemodeler_core::validation::pattern_diplomat_escalator_gap(
-            &patterns(),
-            &rep_scores(),
-        ) {
-            flags.push("flag_pattern_diplomat_escalator");
-        }
-        if peoplemodeler_core::validation::pattern_fair_exploiter_gap(&patterns(), &rep_scores()) {
-            flags.push("flag_pattern_fair_exploiter");
-        }
-        if peoplemodeler_core::validation::pattern_humble_dismissive_gap(&patterns(), &rep_scores())
-        {
-            flags.push("flag_pattern_humble_dismissive");
-        }
-        if peoplemodeler_core::validation::pattern_trusting_paranoid_gap(&patterns(), &rep_scores())
-        {
-            flags.push("flag_pattern_trusting_paranoid");
-        }
-        if peoplemodeler_core::validation::pattern_reliable_shirker_gap(&patterns(), &rep_scores())
-        {
-            flags.push("flag_pattern_reliable_shirker");
-        }
-        if peoplemodeler_core::validation::pattern_hardworker_complacent_gap(
-            &patterns(),
-            &rep_scores(),
-        ) {
-            flags.push("flag_pattern_hardworker_complacent");
-        }
-        if peoplemodeler_core::validation::pattern_passive_blowup_gap(&patterns(), &rep_scores()) {
-            flags.push("flag_pattern_passive_blowup");
-        }
-        if peoplemodeler_core::validation::pattern_assertive_quiet_gap(&patterns(), &rep_scores()) {
-            flags.push("flag_pattern_assertive_quiet");
-        }
-        if peoplemodeler_core::validation::security_risky_gap(&motivations(), Some(risk_appetite()))
-        {
-            flags.push("flag_security_risky");
-        }
-        if peoplemodeler_core::validation::resilient_reactive_gap(Some(resilience()), &rep_scores())
-        {
-            flags.push("flag_resilient_reactive");
-        }
-        if peoplemodeler_core::validation::risk_appetite_ambition_gap(
-            &motivations(),
-            Some(risk_appetite()),
-        ) {
-            flags.push("flag_risk_appetite_ambition");
-        }
-        if peoplemodeler_core::validation::resilient_hides_gap(Some(resilience()), &rep_scores()) {
-            flags.push("flag_resilient_hides");
-        }
-        if peoplemodeler_core::validation::pattern_generous_exploiter_gap(
-            &patterns(),
-            &rep_scores(),
-        ) {
-            flags.push("flag_pattern_generous_exploiter");
-        }
-        if peoplemodeler_core::validation::pattern_empath_dismissive_gap(&patterns(), &rep_scores())
-        {
-            flags.push("flag_pattern_empath_dismissive");
-        }
-        if peoplemodeler_core::validation::pattern_flexible_resister_gap(&patterns(), &rep_scores())
-        {
-            flags.push("flag_pattern_flexible_resister");
-        }
-        if peoplemodeler_core::validation::anchoring_open_gap(&biases(), &ocean()) {
-            flags.push("flag_anchoring_open");
-        }
-        if peoplemodeler_core::validation::pattern_helping_exploiter_gap(
-            &patterns(),
-            &motivations(),
-        ) {
-            flags.push("flag_pattern_helping_exploiter");
-        }
-        if peoplemodeler_core::validation::pattern_warmth_dismissive_gap(&patterns(), &ocean()) {
-            flags.push("flag_pattern_warmth_dismissive");
-        }
-        if peoplemodeler_core::validation::pattern_discipline_shirker_gap(&patterns(), &ocean()) {
-            flags.push("flag_pattern_discipline_shirker");
-        }
-        if peoplemodeler_core::validation::pattern_claimed_calm_volatile_gap(&patterns(), &ocean())
-        {
-            flags.push("flag_pattern_claimed_calm_volatile");
-        }
-        if peoplemodeler_core::validation::pattern_fairness_exploiter_gap(
-            &patterns(),
-            &motivations(),
-        ) {
-            flags.push("flag_pattern_fairness_exploiter");
-        }
-        if peoplemodeler_core::validation::pattern_achievement_complacent_gap(
-            &patterns(),
-            &motivations(),
-        ) {
-            flags.push("flag_pattern_achievement_complacent");
-        }
-        if peoplemodeler_core::validation::pattern_learning_resister_gap(
-            &patterns(),
-            &motivations(),
-        ) {
-            flags.push("flag_pattern_learning_resister");
-        }
-        if peoplemodeler_core::validation::pattern_extravert_quiet_gap(&patterns(), &ocean()) {
-            flags.push("flag_pattern_extravert_quiet");
-        }
-        if peoplemodeler_core::validation::pattern_open_resister_gap(&patterns(), &ocean()) {
-            flags.push("flag_pattern_open_resister");
-        }
-        if peoplemodeler_core::validation::pattern_recognition_dismissive_gap(
-            &patterns(),
-            &motivations(),
-        ) {
-            flags.push("flag_pattern_recognition_dismissive");
-        }
-        if peoplemodeler_core::validation::availability_calm_gap(&biases(), &rep_scores()) {
-            flags.push("flag_availability_calm");
-        }
-        flags.extend(peoplemodeler_core::validation::style_gap_flags(
-            &styles(),
-            &rep_scores(),
-        ));
-        flags
     });
+    let set_risk_appetite = EventHandler::new(move |v: u8| {
+        let mut binding = ctx.draft();
+        let mut p = binding.write();
+        match mask_mut_of(&mut p, facet) {
+            Some(m) => m.risk_appetite = Some(v),
+            None => p.risk_appetite = Some(v),
+        }
+    });
+    ResilienceRiskField {
+        resilience,
+        risk_appetite,
+        set_resilience,
+        set_risk_appetite,
+    }
+}
 
-    let pers_id = p.id.clone();
+#[component]
+fn PersonEditForm(initial: Option<Person>) -> Element {
+    let lang = use_context::<Signal<Lang>>();
+    let mut toast_sig = use_context::<Signal<Option<String>>>();
+    let is_new = initial.is_none();
+    let base = initial.unwrap_or_else(blank_person);
+    let pers_id = base.id.clone();
+
+    // Single draft: every field writes into this one Person. `saved` is a
+    // memo derived from the prop (never from the live draft), so Discard
+    // always restores the as-loaded state no matter how much has been typed.
+    let draft = use_signal(|| base.clone());
+    let mode = use_signal(|| FacetKind::Base);
+    let open = use_signal(|| ALL_EDIT_SECTIONS.to_vec());
+    let saved = use_memo(move || base.clone());
+    let work_active = use_memo(move || draft.read().persona.is_some());
+    let online_active = use_memo(move || draft.read().online_persona.is_some());
+
+    let ctx = PersonEditState {
+        draft,
+        mode,
+        open,
+        saved,
+        work_active,
+        online_active,
+    };
+    use_context_provider(|| ctx);
 
     let mut save = move || {
-        let person = Person {
-            persona: if persona_enabled() {
-                Some(PersonaMask {
-                    ocean: if has_ocean() {
-                        Some(work_ocean())
-                    } else {
-                        None
-                    },
-                    rep_scores: if has_rep() { Some(work_rep()) } else { None },
-                    motivations: if has_motivations() {
-                        Some(work_motivations())
-                    } else {
-                        None
-                    },
-                    biases: if has_biases() {
-                        Some(work_biases())
-                    } else {
-                        None
-                    },
-                    behavioral_patterns: if has_patterns() {
-                        Some(work_patterns())
-                    } else {
-                        None
-                    },
-                    styles: if has_styles() {
-                        Some(work_styles())
-                    } else {
-                        None
-                    },
-                    values: if has_values() {
-                        Some(work_values())
-                    } else {
-                        None
-                    },
-                    resilience: if has_resilience() {
-                        Some(work_resilience())
-                    } else {
-                        None
-                    },
-                    risk_appetite: if has_risk_appetite() {
-                        Some(work_risk_appetite())
-                    } else {
-                        None
-                    },
-                })
-            } else {
-                None
-            },
-            online_persona: if online_persona_enabled() {
-                Some(PersonaMask {
-                    ocean: if has_online_ocean() {
-                        Some(online_ocean())
-                    } else {
-                        None
-                    },
-                    rep_scores: if has_online_rep() {
-                        Some(online_rep())
-                    } else {
-                        None
-                    },
-                    motivations: if has_online_motivations() {
-                        Some(online_motivations())
-                    } else {
-                        None
-                    },
-                    biases: if has_online_biases() {
-                        Some(online_biases())
-                    } else {
-                        None
-                    },
-                    behavioral_patterns: if has_online_patterns() {
-                        Some(online_patterns())
-                    } else {
-                        None
-                    },
-                    styles: if has_online_styles() {
-                        Some(online_styles())
-                    } else {
-                        None
-                    },
-                    values: if has_online_values() {
-                        Some(online_values())
-                    } else {
-                        None
-                    },
-                    resilience: if has_online_resilience() {
-                        Some(online_resilience())
-                    } else {
-                        None
-                    },
-                    risk_appetite: if has_online_risk_appetite() {
-                        Some(online_risk_appetite())
-                    } else {
-                        None
-                    },
-                })
-            } else {
-                None
-            },
-            id: pers_id.clone(),
-            name: name(),
-            role: role(),
-            context: context(),
-            avatar_emoji: emoji(),
-            tags: parse_tags(&tags_str()),
-            notes: notes(),
-            motivations: motivations(),
-            biases: biases(),
-            rep_scores: rep_scores(),
-            behavioral_patterns: patterns(),
-            styles: styles(),
-            values: values(),
-            ocean: ocean(),
-            resilience: Some(resilience()),
-            risk_appetite: Some(risk_appetite()),
-            confidence: confidence(),
-            log: p.log.clone(),
-            created_at: if is_new {
-                chrono::Utc::now().timestamp_millis()
-            } else {
-                p.created_at
-            },
-            updated_at: chrono::Utc::now().timestamp_millis(),
-        };
+        let mut person = draft.read().clone();
+        if is_new {
+            person.created_at = chrono::Utc::now().timestamp_millis();
+        }
+        person.updated_at = chrono::Utc::now().timestamp_millis();
         if let Err(e) = db::save_person(&person) {
             toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
             return;
@@ -595,704 +738,44 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
         });
     };
 
+    // Render counter, unconditionally instrumented: the E2E suite runs
+    // against the release build, so this must be present there too. It
+    // proves keystrokes never re-run the whole form (the counter only ticks
+    // when the shell itself re-renders, which after mount is only on a
+    // language switch).
+    let render_count = use_hook(|| std::rc::Rc::new(std::cell::Cell::new(0u32)));
+    let renders = next_render_count(render_count.get());
+    render_count.set(renders);
+
     let form_new_title = crate::tr!("form_new_title", lang());
     let form_edit_title = crate::tr!("form_edit_title", lang());
-    let form_name = crate::tr!("form_name", lang());
-    let form_role = crate::tr!("form_role", lang());
-    let form_context = crate::tr!("form_context", lang());
-    let form_avatar = crate::tr!("form_avatar", lang());
-    let form_tags = crate::tr!("form_tags", lang());
-    let form_notes = crate::tr!("form_notes", lang());
-    let form_confidence = crate::tr!("form_confidence", lang());
-    let confidence_hint = crate::tr!("confidence_hint", lang());
-    let reliability_title = crate::tr!("reliability_title", lang());
-    let form_ocean_title = crate::tr!("form_ocean_title", lang());
     let form_save = crate::tr!("form_save", lang());
     let form_cancel = crate::tr!("form_cancel", lang());
-    let persona_section = crate::tr!("persona_section", lang());
-    let persona_online_section = crate::tr!("persona_online_section", lang());
-    let persona_copy_base = crate::tr!("persona_copy_base", lang());
-    let persona_clear = crate::tr!("persona_clear", lang());
-    let persona_balance = crate::tr!("persona_balance_title", lang());
     let facet_base = crate::tr!("facet_base", lang());
     let facet_online = crate::tr!("facet_online", lang());
-    let edit_motivations = crate::tr!("edit_motivations", lang());
-    let edit_biases = crate::tr!("edit_biases", lang());
-    let edit_reputation = crate::tr!("edit_reputation", lang());
-    let edit_patterns = crate::tr!("edit_patterns", lang());
-    let edit_styles = crate::tr!("edit_styles", lang());
-    let edit_values = crate::tr!("edit_values", lang());
-
-    // Built from the originally-loaded person (`p`/`wp`), NOT from the live
-    // signals — those change on every keystroke/slider move, and since this
-    // whole component body re-runs on every such change (Dioxus reactivity),
-    // reading the live signals here would make "saved" always equal to
-    // whatever was just edited, so Discard would revert a section to itself
-    // and appear to do nothing. `p` and `wp` are derived from the `initial`
-    // prop each render but that prop itself never changes during editing,
-    // so they reliably still hold the values as-loaded.
-    let saved = SavedSections {
-        ocean: p.ocean.clone(),
-        resilience: p.resilience.unwrap_or(5),
-        risk_appetite: p.risk_appetite.unwrap_or(5),
-        motivations: p.motivations.clone(),
-        biases: p.biases.clone(),
-        rep_scores: p.rep_scores.clone(),
-        patterns: p.behavioral_patterns.clone(),
-        styles: p.styles.clone(),
-        values: p.values.clone(),
-        work_ocean: wp
-            .as_ref()
-            .and_then(|w| w.ocean.clone())
-            .unwrap_or_else(|| p.ocean.clone()),
-        work_resilience: wp
-            .as_ref()
-            .and_then(|w| w.resilience)
-            .unwrap_or_else(|| p.resilience.unwrap_or(5)),
-        work_risk_appetite: wp
-            .as_ref()
-            .and_then(|w| w.risk_appetite)
-            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5)),
-        work_motivations: wp
-            .as_ref()
-            .and_then(|w| w.motivations.clone())
-            .unwrap_or_else(|| p.motivations.clone()),
-        work_biases: wp
-            .as_ref()
-            .and_then(|w| w.biases.clone())
-            .unwrap_or_else(|| p.biases.clone()),
-        work_rep: wp
-            .as_ref()
-            .and_then(|w| w.rep_scores.clone())
-            .unwrap_or_else(|| p.rep_scores.clone()),
-        work_patterns: wp
-            .as_ref()
-            .and_then(|w| w.behavioral_patterns.clone())
-            .unwrap_or_else(|| p.behavioral_patterns.clone()),
-        work_styles: wp
-            .as_ref()
-            .and_then(|w| w.styles.clone())
-            .unwrap_or_else(|| p.styles.clone()),
-        work_values: wp
-            .as_ref()
-            .and_then(|w| w.values.clone())
-            .unwrap_or_else(|| p.values.clone()),
-        has_ocean: wp.as_ref().is_some_and(|w| w.ocean.is_some()),
-        has_rep: wp.as_ref().is_some_and(|w| w.rep_scores.is_some()),
-        has_motivations: wp.as_ref().is_some_and(|w| w.motivations.is_some()),
-        has_biases: wp.as_ref().is_some_and(|w| w.biases.is_some()),
-        has_patterns: wp.as_ref().is_some_and(|w| w.behavioral_patterns.is_some()),
-        has_styles: wp.as_ref().is_some_and(|w| w.styles.is_some()),
-        has_values: wp.as_ref().is_some_and(|w| w.values.is_some()),
-        has_resilience: wp.as_ref().is_some_and(|w| w.resilience.is_some()),
-        has_risk_appetite: wp.as_ref().is_some_and(|w| w.risk_appetite.is_some()),
-        online_ocean: op
-            .as_ref()
-            .and_then(|m| m.ocean.clone())
-            .unwrap_or_else(|| p.ocean.clone()),
-        online_resilience: op
-            .as_ref()
-            .and_then(|m| m.resilience)
-            .unwrap_or_else(|| p.resilience.unwrap_or(5)),
-        online_risk_appetite: op
-            .as_ref()
-            .and_then(|m| m.risk_appetite)
-            .unwrap_or_else(|| p.risk_appetite.unwrap_or(5)),
-        online_motivations: op
-            .as_ref()
-            .and_then(|m| m.motivations.clone())
-            .unwrap_or_else(|| p.motivations.clone()),
-        online_biases: op
-            .as_ref()
-            .and_then(|m| m.biases.clone())
-            .unwrap_or_else(|| p.biases.clone()),
-        online_rep: op
-            .as_ref()
-            .and_then(|m| m.rep_scores.clone())
-            .unwrap_or_else(|| p.rep_scores.clone()),
-        online_patterns: op
-            .as_ref()
-            .and_then(|m| m.behavioral_patterns.clone())
-            .unwrap_or_else(|| p.behavioral_patterns.clone()),
-        online_styles: op
-            .as_ref()
-            .and_then(|m| m.styles.clone())
-            .unwrap_or_else(|| p.styles.clone()),
-        online_values: op
-            .as_ref()
-            .and_then(|m| m.values.clone())
-            .unwrap_or_else(|| p.values.clone()),
-        has_online_ocean: op.as_ref().is_some_and(|m| m.ocean.is_some()),
-        has_online_rep: op.as_ref().is_some_and(|m| m.rep_scores.is_some()),
-        has_online_motivations: op.as_ref().is_some_and(|m| m.motivations.is_some()),
-        has_online_biases: op.as_ref().is_some_and(|m| m.biases.is_some()),
-        has_online_patterns: op.as_ref().is_some_and(|m| m.behavioral_patterns.is_some()),
-        has_online_styles: op.as_ref().is_some_and(|m| m.styles.is_some()),
-        has_online_values: op.as_ref().is_some_and(|m| m.values.is_some()),
-        has_online_resilience: op.as_ref().is_some_and(|m| m.resilience.is_some()),
-        has_online_risk_appetite: op.as_ref().is_some_and(|m| m.risk_appetite.is_some()),
-    };
-
-    // RepDimSlider keeps its on/off + value state in its own local
-    // use_signal, initialized once from its start_on/start_val props — so
-    // it never reacts when rep_scores is reset out from under it (e.g. by
-    // discard or copy-from-base). Bumping this on every external write to
-    // the rep scores, and folding it into each RepDimSlider's `key`, forces
-    // Dioxus to remount those sliders fresh instead of leaving their stale
-    // local state in place.
-    let mut rep_reset_gen = use_signal(|| 0u32);
-
-    // Wrapped in Rc<RefCell<...>> so it can be cheaply cloned into each
-    // section's own "discard" button handler below (it needs FnMut, since
-    // calling .set() on the captured signals requires mutable access to
-    // this closure's own captured copies), instead of being moved/consumed
-    // by the first one.
-    let discard: std::rc::Rc<std::cell::RefCell<dyn FnMut(EditSectionId)>> =
-        std::rc::Rc::new(std::cell::RefCell::new(move |section: EditSectionId| {
-            let base = is_base_facet(edit_mode());
-            let online = is_online_facet(edit_mode());
-            match section {
-                EditSectionId::ResilienceRisk => {
-                    if base {
-                        resilience.set(saved.resilience);
-                        risk_appetite.set(saved.risk_appetite);
-                    } else if online {
-                        online_resilience.set(saved.online_resilience);
-                        online_risk_appetite.set(saved.online_risk_appetite);
-                        has_online_resilience.set(saved.has_online_resilience);
-                        has_online_risk_appetite.set(saved.has_online_risk_appetite);
-                    } else {
-                        work_resilience.set(saved.work_resilience);
-                        work_risk_appetite.set(saved.work_risk_appetite);
-                        has_resilience.set(saved.has_resilience);
-                        has_risk_appetite.set(saved.has_risk_appetite);
-                    }
-                }
-                EditSectionId::Ocean => {
-                    if base {
-                        ocean.set(saved.ocean.clone());
-                    } else if online {
-                        online_ocean.set(saved.online_ocean.clone());
-                        has_online_ocean.set(saved.has_online_ocean);
-                    } else {
-                        work_ocean.set(saved.work_ocean.clone());
-                        has_ocean.set(saved.has_ocean);
-                    }
-                }
-                EditSectionId::Motivations => {
-                    if base {
-                        motivations.set(saved.motivations.clone());
-                    } else if online {
-                        online_motivations.set(saved.online_motivations.clone());
-                        has_online_motivations.set(saved.has_online_motivations);
-                    } else {
-                        work_motivations.set(saved.work_motivations.clone());
-                        has_motivations.set(saved.has_motivations);
-                    }
-                }
-                EditSectionId::Biases => {
-                    if base {
-                        biases.set(saved.biases.clone());
-                    } else if online {
-                        online_biases.set(saved.online_biases.clone());
-                        has_online_biases.set(saved.has_online_biases);
-                    } else {
-                        work_biases.set(saved.work_biases.clone());
-                        has_biases.set(saved.has_biases);
-                    }
-                }
-                EditSectionId::Reputation => {
-                    if base {
-                        rep_scores.set(saved.rep_scores.clone());
-                    } else if online {
-                        online_rep.set(saved.online_rep.clone());
-                        has_online_rep.set(saved.has_online_rep);
-                    } else {
-                        work_rep.set(saved.work_rep.clone());
-                        has_rep.set(saved.has_rep);
-                    }
-                    rep_reset_gen.set(next_reset_gen(rep_reset_gen()));
-                }
-                EditSectionId::Patterns => {
-                    if base {
-                        patterns.set(saved.patterns.clone());
-                    } else if online {
-                        online_patterns.set(saved.online_patterns.clone());
-                        has_online_patterns.set(saved.has_online_patterns);
-                    } else {
-                        work_patterns.set(saved.work_patterns.clone());
-                        has_patterns.set(saved.has_patterns);
-                    }
-                }
-                EditSectionId::Styles => {
-                    if base {
-                        styles.set(saved.styles.clone());
-                    } else if online {
-                        online_styles.set(saved.online_styles.clone());
-                        has_online_styles.set(saved.has_online_styles);
-                    } else {
-                        work_styles.set(saved.work_styles.clone());
-                        has_styles.set(saved.has_styles);
-                    }
-                }
-                EditSectionId::Values => {
-                    if base {
-                        values.set(saved.values.clone());
-                    } else if online {
-                        online_values.set(saved.online_values.clone());
-                        has_online_values.set(saved.has_online_values);
-                    } else {
-                        work_values.set(saved.work_values.clone());
-                        has_values.set(saved.has_values);
-                    }
-                }
-            }
-        }));
-
-    // All sections start expanded so the form is fully usable/testable
-    // without first clicking through an accordion; collapsing a section
-    // is an opt-in convenience, not the default state.
-    let open_sec = use_signal(|| ALL_EDIT_SECTIONS.to_vec());
+    let persona_section = crate::tr!("persona_section", lang());
 
     rsx! {
-        div { class: "page page-edit",
+        div {
+            class: "page page-edit",
+            "data-edit-renders": renders,
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
                 div { class: "facet-bar edit-mode-bar",
-                    FacetToggle { facet: edit_mode, base_label: facet_base, work_label: persona_section, online_label: facet_online }
-                    // Always renders the same markup in both facets — only
-                    // its visibility (not its presence) depends on the mode
-                    // — so this row's real height in Personal life always
-                    // matches Work Persona's exactly, byte for byte,
-                    // instead of guessing at a min-height that has to keep
-                    // up with wrapped button text at every locale/width.
-                    // visibility:hidden (rather than display:none) both
-                    // hides it and removes it from the tab order.
-                    div {
-                        class: "persona-actions",
-                        class: if edit_mode() != FacetKind::Work { "persona-actions-hidden" },
-                        aria_hidden: if edit_mode() != FacetKind::Work { "true" },
-                        label { class: "dim-toggle",
-                            input { r#type: "checkbox",
-                                checked: persona_enabled(),
-                                oninput: move |e| persona_enabled.set(e.value() == "true")
-                            }
-                            if persona_enabled() { "✓ " } else { "✗ " }
-                            "{persona_section}"
-                        }
-                        button { class: "btn btn-small",
-                            onclick: move |_| {
-                                persona_enabled.set(true);
-                                work_ocean.set(p.ocean.clone());
-                                work_rep.set(p.rep_scores.clone());
-                                rep_reset_gen.set(next_reset_gen(rep_reset_gen()));
-                                work_motivations.set(p.motivations.clone());
-                                work_biases.set(p.biases.clone());
-                                work_patterns.set(p.behavioral_patterns.clone());
-                                work_styles.set(p.styles.clone());
-                                work_values.set(p.values.clone());
-                                work_resilience.set(p.resilience.unwrap_or(5));
-                                work_risk_appetite.set(p.risk_appetite.unwrap_or(5));
-                                has_ocean.set(true);
-                                has_rep.set(true);
-                                has_motivations.set(true);
-                                has_biases.set(true);
-                                has_patterns.set(true);
-                                has_styles.set(true);
-                                has_values.set(true);
-                                has_resilience.set(true);
-                                has_risk_appetite.set(true);
-                            },
-                            "{persona_copy_base}"
-                        }
-                        button { class: "btn btn-small",
-                            onclick: move |_| { persona_enabled.set(false); },
-                            "{persona_clear}"
-                        }
-                    }
-                    // Same layout-forcing row for the Online persona: always
-                    // rendered, visible only in the Online facet, so the three
-                    // facets' edit-mode bars keep identical heights and no
-                    // section moves when switching.
-                    div {
-                        class: "persona-actions",
-                        class: if edit_mode() != FacetKind::Online { "persona-actions-hidden" },
-                        aria_hidden: if edit_mode() != FacetKind::Online { "true" },
-                        label { class: "dim-toggle",
-                            input { r#type: "checkbox",
-                                checked: online_persona_enabled(),
-                                oninput: move |e| online_persona_enabled.set(e.value() == "true")
-                            }
-                            if online_persona_enabled() { "✓ " } else { "✗ " }
-                            "{persona_online_section}"
-                        }
-                        button { class: "btn btn-small",
-                            onclick: move |_| {
-                                online_persona_enabled.set(true);
-                                online_ocean.set(p_online.ocean.clone());
-                                online_rep.set(p_online.rep_scores.clone());
-                                rep_reset_gen.set(next_reset_gen(rep_reset_gen()));
-                                online_motivations.set(p_online.motivations.clone());
-                                online_biases.set(p_online.biases.clone());
-                                online_patterns.set(p_online.behavioral_patterns.clone());
-                                online_styles.set(p_online.styles.clone());
-                                online_values.set(p_online.values.clone());
-                                online_resilience.set(p_online.resilience.unwrap_or(5));
-                                online_risk_appetite.set(p_online.risk_appetite.unwrap_or(5));
-                                has_online_ocean.set(true);
-                                has_online_rep.set(true);
-                                has_online_motivations.set(true);
-                                has_online_biases.set(true);
-                                has_online_patterns.set(true);
-                                has_online_styles.set(true);
-                                has_online_values.set(true);
-                                has_online_resilience.set(true);
-                                has_online_risk_appetite.set(true);
-                            },
-                            "{persona_copy_base}"
-                        }
-                        button { class: "btn btn-small",
-                            onclick: move |_| { online_persona_enabled.set(false); },
-                            "{persona_clear}"
-                        }
-                    }
+                    FacetToggle { facet: mode, base_label: facet_base, work_label: persona_section, online_label: facet_online }
+                    PersonaActions { facet: FacetKind::Work }
+                    PersonaActions { facet: FacetKind::Online }
                 }
 
-                label { "{form_name}" }
-                input { aria_label: "{form_name}", value: "{name}", oninput: move |e| name.set(e.value()) }
+                NameField {}
+                RoleField {}
+                ContextField {}
+                EmojiField {}
+                TagsField {}
+                NotesField {}
+                ConfidenceField {}
 
-                label { "{form_role}" }
-                input { aria_label: "{form_role}", value: "{role}", oninput: move |e| role.set(e.value()) }
-
-                label { "{form_context}" }
-                textarea { aria_label: "{form_context}", value: "{context}", oninput: move |e| context.set(e.value()) }
-
-                label { "{form_avatar}" }
-                div { class: "emoji-picker", role: "radiogroup", aria_label: "{form_avatar}",
-                    for e in AVATAR_EMOJIS {
-                        button {
-                            class: "emoji-btn",
-                            class: if emoji() == *e { "selected" },
-                            role: "radio",
-                            aria_label: "{crate::tr!(\"aria_avatar_prefix\", lang())} {e}",
-                            aria_checked: if emoji() == *e { "true" } else { "false" },
-                            onclick: move |_| emoji.set(e.to_string()),
-                            "{e}"
-                        }
-                    }
-                }
-
-                label { "{form_tags}" }
-                input { aria_label: "{form_tags}", value: "{tags_str}", oninput: move |e| tags_str.set(e.value()) }
-
-                label { "{form_notes}" }
-                textarea { aria_label: "{form_notes}", value: "{notes}", rows: "4", oninput: move |e| notes.set(e.value()) }
-
-                fieldset { class: "reliability",
-                    legend { "{reliability_title}" }
-                    div { class: "reliability-hint", "{confidence_hint}" }
-                    label { "{form_confidence}" }
-                    div { class: "ocean-slider",
-                        StepperSlider {
-                            min: 1, max: 10, value: confidence(), display: format!("{}/10", confidence()),
-                            onchange: move |v| confidence.set(v),
-                        }
-                    }
-                }
-
-                if edit_mode() == FacetKind::Base {
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::ResilienceRisk,
-                        title: persona_balance,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::ResilienceRisk) })),
-                        ResilienceRiskInputs { resilience, risk_appetite }
-                    }
-
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Ocean,
-                        title: form_ocean_title,
-                        header: {
-                            let flags = ocean_rep_flags();
-                            if flags.is_empty() {
-                                None
-                            } else {
-                                let tooltip = flags
-                                    .iter()
-                                    .map(|k| crate::i18n::tr(k, lang()))
-                                    .collect::<Vec<_>>()
-                                    .join("\n");
-                                Some(rsx! {
-                                    span {
-                                        class: "warning-badge",
-                                        title: "{tooltip}",
-                                        "⚠ {flags.len()}"
-                                    }
-                                })
-                            }
-                        },
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
-                        progress: Some(progress_badge(ocean_filled_count(&ocean()), Some(5))),
-                        OceanInputs { ocean }
-                    }
-
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Motivations,
-                        title: edit_motivations,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
-                        progress: Some(progress_badge(motivations().len(), Some(peoplemodeler_core::model_config::CFG.completeness.motivation_cap))),
-                        MotEditPanel { motivations, lang: lang() }
-                    }
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Biases,
-                        title: edit_biases,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
-                        progress: Some(progress_badge(biases().len(), Some(peoplemodeler_core::model_config::CFG.completeness.bias_cap))),
-                        BiasEditPanel { biases, lang: lang() }
-                    }
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Reputation,
-                        title: edit_reputation,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                        progress: Some(progress_badge(rep_filled_count(&rep_scores()), Some(13))),
-                        RepEditPanel { rep_scores, lang: lang(), reset_gen: rep_reset_gen() }
-                    }
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Patterns,
-                        title: edit_patterns,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
-                        progress: Some(progress_badge(patterns().len(), Some(peoplemodeler_core::model_config::CFG.completeness.pattern_cap))),
-                        PatternEditPanel { patterns, lang: lang() }
-                    }
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Styles,
-                        title: edit_styles,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
-                        progress: Some(progress_badge(styles().len(), Some(peoplemodeler_core::model_config::CFG.completeness.style_cap))),
-                        StyleEditPanel { styles, lang: lang() }
-                    }
-                    FacetSection {
-                        mode: FacetKind::Base,
-                        open: open_sec,
-                        id: EditSectionId::Values,
-                        title: edit_values,
-                        on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
-                        progress: Some(progress_badge(values().len(), Some(peoplemodeler_core::model_config::CFG.completeness.values_cap))),
-                        ValEditPanel { values, lang: lang() }
-                    }
-                }
-
-                if edit_mode() == FacetKind::Work {
-                // ---- Work persona (mask) ----
-                if persona_enabled() {
-                        // Resilience & risk appetite
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::ResilienceRisk,
-                            title: persona_balance,
-                            header: Some(rsx! {
-                                BucketToggle { has: has_resilience }
-                                BucketToggle { has: has_risk_appetite }
-                            }),
-                            active: Some(persona_panel_active(has_resilience(), has_risk_appetite())),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::ResilienceRisk) })),
-                            ResilienceRiskInputs { resilience: work_resilience, risk_appetite: work_risk_appetite }
-                        }
-
-                        // OCEAN
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Ocean,
-                            title: form_ocean_title,
-                            has: Some(has_ocean),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
-                            progress: Some(progress_badge(ocean_filled_count(&work_ocean()), Some(5))),
-                            OceanInputs { ocean: work_ocean }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Motivations,
-                            title: edit_motivations,
-                            has: Some(has_motivations),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
-                            progress: Some(progress_badge(work_motivations().len(), Some(peoplemodeler_core::model_config::CFG.completeness.motivation_cap))),
-                            MotEditPanel { motivations: work_motivations, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Biases,
-                            title: edit_biases,
-                            has: Some(has_biases),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
-                            progress: Some(progress_badge(work_biases().len(), Some(peoplemodeler_core::model_config::CFG.completeness.bias_cap))),
-                            BiasEditPanel { biases: work_biases, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Reputation,
-                            title: edit_reputation,
-                            has: Some(has_rep),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                            progress: Some(progress_badge(rep_filled_count(&work_rep()), Some(13))),
-                            RepEditPanel { rep_scores: work_rep, lang: lang(), reset_gen: rep_reset_gen() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Patterns,
-                            title: edit_patterns,
-                            has: Some(has_patterns),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
-                            progress: Some(progress_badge(work_patterns().len(), Some(peoplemodeler_core::model_config::CFG.completeness.pattern_cap))),
-                            PatternEditPanel { patterns: work_patterns, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Styles,
-                            title: edit_styles,
-                            has: Some(has_styles),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
-                            progress: Some(progress_badge(work_styles().len(), Some(peoplemodeler_core::model_config::CFG.completeness.style_cap))),
-                            StyleEditPanel { styles: work_styles, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Work,
-                            open: open_sec,
-                            id: EditSectionId::Values,
-                            title: edit_values,
-                            has: Some(has_values),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
-                            progress: Some(progress_badge(work_values().len(), Some(peoplemodeler_core::model_config::CFG.completeness.values_cap))),
-                            ValEditPanel { values: work_values, lang: lang() }
-                        }
-                    }
-                }
-
-                if edit_mode() == FacetKind::Online {
-                // ---- Online persona (mask) ----
-                if online_persona_enabled() {
-                        // Resilience & risk appetite
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::ResilienceRisk,
-                            title: persona_balance,
-                            header: Some(rsx! {
-                                BucketToggle { has: has_online_resilience }
-                                BucketToggle { has: has_online_risk_appetite }
-                            }),
-                            active: Some(persona_panel_active(
-                                has_online_resilience(),
-                                has_online_risk_appetite(),
-                            )),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::ResilienceRisk) })),
-                            ResilienceRiskInputs { resilience: online_resilience, risk_appetite: online_risk_appetite }
-                        }
-
-                        // OCEAN
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Ocean,
-                            title: form_ocean_title,
-                            has: Some(has_online_ocean),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
-                            progress: Some(progress_badge(ocean_filled_count(&online_ocean()), Some(5))),
-                            OceanInputs { ocean: online_ocean }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Motivations,
-                            title: edit_motivations,
-                            has: Some(has_online_motivations),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
-                            progress: Some(progress_badge(online_motivations().len(), Some(peoplemodeler_core::model_config::CFG.completeness.motivation_cap))),
-                            MotEditPanel { motivations: online_motivations, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Biases,
-                            title: edit_biases,
-                            has: Some(has_online_biases),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
-                            progress: Some(progress_badge(online_biases().len(), Some(peoplemodeler_core::model_config::CFG.completeness.bias_cap))),
-                            BiasEditPanel { biases: online_biases, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Reputation,
-                            title: edit_reputation,
-                            has: Some(has_online_rep),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
-                            progress: Some(progress_badge(rep_filled_count(&online_rep()), Some(13))),
-                            RepEditPanel { rep_scores: online_rep, lang: lang(), reset_gen: rep_reset_gen() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Patterns,
-                            title: edit_patterns,
-                            has: Some(has_online_patterns),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
-                            progress: Some(progress_badge(online_patterns().len(), Some(peoplemodeler_core::model_config::CFG.completeness.pattern_cap))),
-                            PatternEditPanel { patterns: online_patterns, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Styles,
-                            title: edit_styles,
-                            has: Some(has_online_styles),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
-                            progress: Some(progress_badge(online_styles().len(), Some(peoplemodeler_core::model_config::CFG.completeness.style_cap))),
-                            StyleEditPanel { styles: online_styles, lang: lang() }
-                        }
-
-                        FacetSection {
-                            mode: FacetKind::Online,
-                            open: open_sec,
-                            id: EditSectionId::Values,
-                            title: edit_values,
-                            has: Some(has_online_values),
-                            on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
-                            progress: Some(progress_badge(online_values().len(), Some(peoplemodeler_core::model_config::CFG.completeness.values_cap))),
-                            ValEditPanel { values: online_values, lang: lang() }
-                        }
-                    }
-                }
+                FacetSections {}
 
                 div { class: "edit-actions-bar form-actions",
                     button { class: "btn btn-primary", aria_label: "{form_save}", onclick: move |_| save(), "{form_save}" }
@@ -1303,57 +786,358 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     }
 }
 
+/// One Base/Work/Online facet toggle row: always rendered in every facet so
+/// the edit-mode bars keep identical heights; hidden (visibility, not
+/// presence) when not the active facet.
 #[component]
-fn BucketToggle(has: Signal<bool>) -> Element {
+fn PersonaActions(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
     let lang = use_context::<Signal<Lang>>();
-    rsx! {
-        label { class: "dim-toggle bucket-toggle",
-            input { r#type: "checkbox",
-                checked: has(),
-                oninput: move |e| has.set(e.value() == "true")
-            }
-            if has() { "{crate::tr!(\"bucket_override\", lang())}" } else { "{crate::tr!(\"bucket_inherits_base\", lang())}" }
-        }
-    }
-}
-
-/// Small "how much of this is filled in" badge for a section header —
-/// visible even while the section is collapsed. `total: None` means an
-/// open-ended list (just show the count); `Some(n)` means a fixed set of
-/// slots (OCEAN's 5 traits, Reputation's 13 dimensions) and renders as
-/// "filled/total".
-fn progress_badge(filled: usize, total: Option<usize>) -> Element {
-    let text = match total {
-        Some(total) => format!("{filled}/{total}"),
-        None => filled.to_string(),
+    let hidden = use_memo(move || ctx.mode() != facet);
+    let enabled = use_memo(move || ctx.persona_active(facet));
+    let (section_label, copy_label, clear_label) = if is_work_facet(facet) {
+        (
+            crate::tr!("persona_section", lang()),
+            crate::tr!("persona_copy_base", lang()),
+            crate::tr!("persona_clear", lang()),
+        )
+    } else {
+        (
+            crate::tr!("persona_online_section", lang()),
+            crate::tr!("persona_copy_base", lang()),
+            crate::tr!("persona_clear", lang()),
+        )
     };
-    let complete = total.is_none_or(|total| filled >= total);
     rsx! {
-        span {
-            class: if complete { "progress-badge complete" } else { "progress-badge" },
-            "{text}"
+        div {
+            class: "persona-actions",
+            class: if hidden() { "persona-actions-hidden" },
+            aria_hidden: if hidden() { "true" },
+            label { class: "dim-toggle",
+                input { r#type: "checkbox",
+                    checked: enabled(),
+                    oninput: move |e| ctx.set_persona_enabled(facet, e.value() == "true")
+                }
+                if enabled() { "✓ " } else { "✗ " }
+                "{section_label}"
+            }
+            button { class: "btn btn-small", onclick: move |_| ctx.copy_base(facet), "{copy_label}" }
+            button { class: "btn btn-small", onclick: move |_| ctx.clear_persona(facet), "{clear_label}" }
         }
     }
 }
 
-fn ocean_filled_count(o: &OceanScores) -> usize {
-    [
-        o.openness,
-        o.conscientiousness,
-        o.extraversion,
-        o.agreeableness,
-        o.neuroticism,
-    ]
-    .iter()
-    .filter(|v| v.is_some())
-    .count()
+/// Renders the 8 edit sections for whichever facet is active (persona
+/// sections only when that persona is enabled), all scoped children so a
+/// keystroke inside one section never rerenders the others.
+#[component]
+fn FacetSections() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mode = use_memo(move || ctx.mode());
+    let work_enabled = use_memo(move || ctx.work_active());
+    let online_enabled = use_memo(move || ctx.online_active());
+
+    let resilience_work = use_memo(move || {
+        persona_panel_active(
+            ctx.bucket_defined(FacetKind::Work, FacetBucket::Resilience),
+            ctx.bucket_defined(FacetKind::Work, FacetBucket::RiskAppetite),
+        )
+    });
+    let resilience_online = use_memo(move || {
+        persona_panel_active(
+            ctx.bucket_defined(FacetKind::Online, FacetBucket::Resilience),
+            ctx.bucket_defined(FacetKind::Online, FacetBucket::RiskAppetite),
+        )
+    });
+
+    let cf = peoplemodeler_core::model_config::CFG.completeness;
+    let mot_cap = cf.motivation_cap;
+    let bias_cap = cf.bias_cap;
+    let pattern_cap = cf.pattern_cap;
+    let style_cap = cf.style_cap;
+    let values_cap = cf.values_cap;
+
+    let persona_balance = crate::tr!("persona_balance_title", lang());
+    let form_ocean_title = crate::tr!("form_ocean_title", lang());
+    let edit_motivations = crate::tr!("edit_motivations", lang());
+    let edit_biases = crate::tr!("edit_biases", lang());
+    let edit_reputation = crate::tr!("edit_reputation", lang());
+    let edit_patterns = crate::tr!("edit_patterns", lang());
+    let edit_styles = crate::tr!("edit_styles", lang());
+    let edit_values = crate::tr!("edit_values", lang());
+
+    rsx! {
+        if mode() == FacetKind::Base {
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::ResilienceRisk,
+                title: persona_balance,
+                ResilienceRiskInputs { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Ocean,
+                title: form_ocean_title,
+                header: Some(rsx! { OceanWarningBadge {} }),
+                progress: Some(rsx! { OceanProgress { facet: FacetKind::Base } }),
+                OceanInputs { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Motivations,
+                title: edit_motivations,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Motivations, cap: mot_cap } }),
+                MotEditPanel { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Biases,
+                title: edit_biases,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Biases, cap: bias_cap } }),
+                BiasEditPanel { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Reputation,
+                title: edit_reputation,
+                progress: Some(rsx! { RepProgress { facet: FacetKind::Base } }),
+                RepEditPanel { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Patterns,
+                title: edit_patterns,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
+                PatternEditPanel { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Styles,
+                title: edit_styles,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Styles, cap: style_cap } }),
+                StyleEditPanel { facet: FacetKind::Base }
+            }
+            FacetSection {
+                facet: FacetKind::Base,
+                open: ctx.open,
+                id: EditSectionId::Values,
+                title: edit_values,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Values, cap: values_cap } }),
+                ValEditPanel { facet: FacetKind::Base }
+            }
+        }
+
+        if mode() == FacetKind::Work && work_enabled() {
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::ResilienceRisk,
+                title: persona_balance,
+                active: Some(resilience_work),
+                header: Some(rsx! {
+                    BucketToggle { facet: FacetKind::Work, bucket: FacetBucket::Resilience }
+                    BucketToggle { facet: FacetKind::Work, bucket: FacetBucket::RiskAppetite }
+                }),
+                ResilienceRiskInputs { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Ocean,
+                title: form_ocean_title,
+                bucket: FacetBucket::Ocean,
+                progress: Some(rsx! { OceanProgress { facet: FacetKind::Work } }),
+                OceanInputs { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Motivations,
+                title: edit_motivations,
+                bucket: FacetBucket::Motivations,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Motivations, cap: mot_cap } }),
+                MotEditPanel { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Biases,
+                title: edit_biases,
+                bucket: FacetBucket::Biases,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Biases, cap: bias_cap } }),
+                BiasEditPanel { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Reputation,
+                title: edit_reputation,
+                bucket: FacetBucket::Reputation,
+                progress: Some(rsx! { RepProgress { facet: FacetKind::Work } }),
+                RepEditPanel { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Patterns,
+                title: edit_patterns,
+                bucket: FacetBucket::Patterns,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
+                PatternEditPanel { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Styles,
+                title: edit_styles,
+                bucket: FacetBucket::Styles,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Styles, cap: style_cap } }),
+                StyleEditPanel { facet: FacetKind::Work }
+            }
+            FacetSection {
+                facet: FacetKind::Work,
+                open: ctx.open,
+                id: EditSectionId::Values,
+                title: edit_values,
+                bucket: FacetBucket::Values,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Values, cap: values_cap } }),
+                ValEditPanel { facet: FacetKind::Work }
+            }
+        }
+
+        if mode() == FacetKind::Online && online_enabled() {
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::ResilienceRisk,
+                title: persona_balance,
+                active: Some(resilience_online),
+                header: Some(rsx! {
+                    BucketToggle { facet: FacetKind::Online, bucket: FacetBucket::Resilience }
+                    BucketToggle { facet: FacetKind::Online, bucket: FacetBucket::RiskAppetite }
+                }),
+                ResilienceRiskInputs { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Ocean,
+                title: form_ocean_title,
+                bucket: FacetBucket::Ocean,
+                progress: Some(rsx! { OceanProgress { facet: FacetKind::Online } }),
+                OceanInputs { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Motivations,
+                title: edit_motivations,
+                bucket: FacetBucket::Motivations,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Motivations, cap: mot_cap } }),
+                MotEditPanel { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Biases,
+                title: edit_biases,
+                bucket: FacetBucket::Biases,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Biases, cap: bias_cap } }),
+                BiasEditPanel { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Reputation,
+                title: edit_reputation,
+                bucket: FacetBucket::Reputation,
+                progress: Some(rsx! { RepProgress { facet: FacetKind::Online } }),
+                RepEditPanel { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Patterns,
+                title: edit_patterns,
+                bucket: FacetBucket::Patterns,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
+                PatternEditPanel { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Styles,
+                title: edit_styles,
+                bucket: FacetBucket::Styles,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Styles, cap: style_cap } }),
+                StyleEditPanel { facet: FacetKind::Online }
+            }
+            FacetSection {
+                facet: FacetKind::Online,
+                open: ctx.open,
+                id: EditSectionId::Values,
+                title: edit_values,
+                bucket: FacetBucket::Values,
+                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Values, cap: values_cap } }),
+                ValEditPanel { facet: FacetKind::Online }
+            }
+        }
+    }
 }
 
-fn rep_filled_count(r: &RepScores) -> usize {
-    RepDim::ALL
-        .iter()
-        .filter(|d| r.score(**d).is_some())
-        .count()
+/// Section chrome shared by every facet: base facets get the bare section,
+/// persona facets get the override bucket toggle header + the readonly
+/// `persona-panel` body wrapper, all behind the same predicates so the two
+/// sides can't drift.
+#[component]
+fn FacetSection(
+    facet: FacetKind,
+    open: Signal<Vec<EditSectionId>>,
+    id: EditSectionId,
+    title: &'static str,
+    #[props(default)] bucket: Option<FacetBucket>,
+    #[props(default)] active: Option<Memo<bool>>,
+    #[props(default)] header: Option<Element>,
+    #[props(default)] progress: Option<Element>,
+    children: Element,
+) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let on_discard = EventHandler::new(move |_| ctx.discard(id));
+    let is_persona = is_persona_facet(facet);
+    let panel_active = use_memo(move || match (facet, bucket, active) {
+        (facet, Some(b), None) => ctx.bucket_defined(facet, b),
+        (_, _, Some(active)) => active(),
+        _ => false,
+    });
+    let header = if is_persona {
+        match bucket {
+            Some(b) => header.or_else(|| Some(rsx! { BucketToggle { facet, bucket: b } })),
+            None => header,
+        }
+    } else {
+        header
+    };
+    let children = if is_persona {
+        let class = if panel_active() {
+            "persona-panel"
+        } else {
+            "persona-panel readonly"
+        };
+        rsx! { div { class, {children} } }
+    } else {
+        children
+    };
+    rsx! {
+        EditSection { open, id, title, header, progress, on_discard: Some(on_discard), {children} }
+    }
 }
 
 #[component]
@@ -1410,207 +1194,401 @@ fn EditSection(
     }
 }
 
-/// Renders one edit section for either facet. In persona (Work/Online) mode
-/// it adds the override bucket toggle header and wraps the body in
-/// `persona-panel` (readonly unless the bucket is defined); in Base mode it
-/// renders the supplied `header` (e.g. the OCEAN warning badge) and the body
-/// bare. This is the single place the Base/persona section chrome is defined,
-/// so the sides can no longer drift (missing badge, wrong readonly class,
-/// ...).
 #[component]
-fn FacetSection(
-    mode: FacetKind,
-    open: Signal<Vec<EditSectionId>>,
-    id: EditSectionId,
-    title: &'static str,
-    on_discard: Option<EventHandler<()>>,
-    #[props(default)] has: Option<Signal<bool>>,
-    #[props(default)] active: Option<bool>,
-    #[props(default)] header: Option<Element>,
-    #[props(default)] progress: Option<Element>,
-    children: Element,
-) -> Element {
-    let is_work = is_persona_facet(mode);
-    let header = if is_work {
-        header.or_else(|| has.map(|h| rsx! { BucketToggle { has: h } }))
-    } else {
-        header
-    };
-    let children = if is_work {
-        let active = active.unwrap_or_else(|| has.is_some_and(|h| h()));
-        let class = if active {
-            "persona-panel"
-        } else {
-            "persona-panel readonly"
-        };
-        rsx! { div { class, {children} } }
-    } else {
-        children
-    };
+fn BucketToggle(facet: FacetKind, bucket: FacetBucket) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let has = use_memo(move || ctx.bucket_defined(facet, bucket));
     rsx! {
-        EditSection { open, id, title, header, progress, on_discard, {children} }
+        label { class: "dim-toggle bucket-toggle",
+            input { r#type: "checkbox",
+                checked: has(),
+                oninput: move |e| ctx.set_bucket_defined(facet, bucket, e.value() == "true")
+            }
+            if has() { "{crate::tr!(\"bucket_override\", lang())}" } else { "{crate::tr!(\"bucket_inherits_base\", lang())}" }
+        }
     }
 }
 
+/// Conditional "⚠ N" consistency badge for the base OCEAN section. Empty when
+/// there are no flagged gaps (a zero-size element, matching the pre-badge
+/// layout).
 #[component]
-fn ResilienceRiskInputs(resilience: Signal<u8>, risk_appetite: Signal<u8>) -> Element {
+fn OceanWarningBadge() -> Element {
+    let ctx = use_context::<PersonEditState>();
     let lang = use_context::<Signal<Lang>>();
-    let form_resilience = crate::tr!("form_resilience", lang());
-    let form_risk_appetite = crate::tr!("form_risk_appetite", lang());
+    let flags = use_memo(move || {
+        let p = ctx.draft.read();
+        let mut flags = peoplemodeler_core::validation::ocean_rep_flags(&p.ocean, &p.rep_scores);
+        flags.extend(peoplemodeler_core::validation::rhetoric_gap_flags(
+            &p.ocean,
+            &p.rep_scores,
+            &p.motivations,
+        ));
+        if peoplemodeler_core::validation::pattern_calm_volatile_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_calm_volatile");
+        }
+        if peoplemodeler_core::validation::pattern_honest_exploiter_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_honest_exploiter");
+        }
+        if peoplemodeler_core::validation::bias_confirmation_open_gap(&p.biases, &p.ocean) {
+            flags.push("flag_bias_confirmation_open");
+        }
+        if peoplemodeler_core::validation::bias_favoritism_fairness_gap(&p.biases, &p.motivations) {
+            flags.push("flag_bias_favoritism_fairness");
+        }
+        if peoplemodeler_core::validation::authority_dominant_gap(&p.biases, &p.rep_scores) {
+            flags.push("flag_authority_dominant");
+        }
+        if peoplemodeler_core::validation::social_proof_open_gap(&p.biases, &p.ocean) {
+            flags.push("flag_social_proof_open");
+        }
+        if peoplemodeler_core::validation::sunk_cost_flexible_gap(&p.biases, &p.rep_scores) {
+            flags.push("flag_sunk_cost_flexible");
+        }
+        if peoplemodeler_core::validation::loss_aversion_risky_gap(&p.biases, p.risk_appetite) {
+            flags.push("flag_loss_aversion_risky");
+        }
+        if peoplemodeler_core::validation::dunning_kruger_humble_gap(&p.biases, &p.rep_scores) {
+            flags.push("flag_dunning_kruger_humble");
+        }
+        if peoplemodeler_core::validation::impostor_arrogant_gap(&p.biases, &p.rep_scores) {
+            flags.push("flag_impostor_arrogant");
+        }
+        if peoplemodeler_core::validation::recency_reliable_gap(&p.biases, &p.rep_scores) {
+            flags.push("flag_recency_reliable");
+        }
+        if peoplemodeler_core::validation::pattern_diplomat_escalator_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_diplomat_escalator");
+        }
+        if peoplemodeler_core::validation::pattern_fair_exploiter_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_fair_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_humble_dismissive_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_humble_dismissive");
+        }
+        if peoplemodeler_core::validation::pattern_trusting_paranoid_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_trusting_paranoid");
+        }
+        if peoplemodeler_core::validation::pattern_reliable_shirker_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_reliable_shirker");
+        }
+        if peoplemodeler_core::validation::pattern_hardworker_complacent_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_hardworker_complacent");
+        }
+        if peoplemodeler_core::validation::pattern_passive_blowup_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_passive_blowup");
+        }
+        if peoplemodeler_core::validation::pattern_assertive_quiet_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_assertive_quiet");
+        }
+        if peoplemodeler_core::validation::security_risky_gap(&p.motivations, p.risk_appetite) {
+            flags.push("flag_security_risky");
+        }
+        if peoplemodeler_core::validation::resilient_reactive_gap(p.resilience, &p.rep_scores) {
+            flags.push("flag_resilient_reactive");
+        }
+        if peoplemodeler_core::validation::risk_appetite_ambition_gap(
+            &p.motivations,
+            p.risk_appetite,
+        ) {
+            flags.push("flag_risk_appetite_ambition");
+        }
+        if peoplemodeler_core::validation::resilient_hides_gap(p.resilience, &p.rep_scores) {
+            flags.push("flag_resilient_hides");
+        }
+        if peoplemodeler_core::validation::pattern_generous_exploiter_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_generous_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_empath_dismissive_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_empath_dismissive");
+        }
+        if peoplemodeler_core::validation::pattern_flexible_resister_gap(
+            &p.behavioral_patterns,
+            &p.rep_scores,
+        ) {
+            flags.push("flag_pattern_flexible_resister");
+        }
+        if peoplemodeler_core::validation::anchoring_open_gap(&p.biases, &p.ocean) {
+            flags.push("flag_anchoring_open");
+        }
+        if peoplemodeler_core::validation::pattern_helping_exploiter_gap(
+            &p.behavioral_patterns,
+            &p.motivations,
+        ) {
+            flags.push("flag_pattern_helping_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_warmth_dismissive_gap(
+            &p.behavioral_patterns,
+            &p.ocean,
+        ) {
+            flags.push("flag_pattern_warmth_dismissive");
+        }
+        if peoplemodeler_core::validation::pattern_discipline_shirker_gap(
+            &p.behavioral_patterns,
+            &p.ocean,
+        ) {
+            flags.push("flag_pattern_discipline_shirker");
+        }
+        if peoplemodeler_core::validation::pattern_claimed_calm_volatile_gap(
+            &p.behavioral_patterns,
+            &p.ocean,
+        ) {
+            flags.push("flag_pattern_claimed_calm_volatile");
+        }
+        if peoplemodeler_core::validation::pattern_fairness_exploiter_gap(
+            &p.behavioral_patterns,
+            &p.motivations,
+        ) {
+            flags.push("flag_pattern_fairness_exploiter");
+        }
+        if peoplemodeler_core::validation::pattern_achievement_complacent_gap(
+            &p.behavioral_patterns,
+            &p.motivations,
+        ) {
+            flags.push("flag_pattern_achievement_complacent");
+        }
+        if peoplemodeler_core::validation::pattern_learning_resister_gap(
+            &p.behavioral_patterns,
+            &p.motivations,
+        ) {
+            flags.push("flag_pattern_learning_resister");
+        }
+        if peoplemodeler_core::validation::pattern_extravert_quiet_gap(
+            &p.behavioral_patterns,
+            &p.ocean,
+        ) {
+            flags.push("flag_pattern_extravert_quiet");
+        }
+        if peoplemodeler_core::validation::pattern_open_resister_gap(
+            &p.behavioral_patterns,
+            &p.ocean,
+        ) {
+            flags.push("flag_pattern_open_resister");
+        }
+        if peoplemodeler_core::validation::pattern_recognition_dismissive_gap(
+            &p.behavioral_patterns,
+            &p.motivations,
+        ) {
+            flags.push("flag_pattern_recognition_dismissive");
+        }
+        if peoplemodeler_core::validation::availability_calm_gap(&p.biases, &p.rep_scores) {
+            flags.push("flag_availability_calm");
+        }
+        flags.extend(peoplemodeler_core::validation::style_gap_flags(
+            &p.styles,
+            &p.rep_scores,
+        ));
+        flags
+    });
+    let flags_now = flags();
+    if flags_now.is_empty() {
+        return rsx! {};
+    }
+    let tooltip = flags_now
+        .iter()
+        .map(|k| crate::i18n::tr(k, lang()))
+        .collect::<Vec<_>>()
+        .join("\n");
     rsx! {
-        fieldset { class: "persona-balance",
-            legend { class: "sr-only", "{crate::tr!(\"persona_balance_title\", lang())}" }
-            label { "{form_resilience}" }
-            div { class: "ocean-slider",
-                StepperSlider {
-                    min: 1, max: 10, value: resilience(), display: format!("{}/10", resilience()),
-                    onchange: move |v| resilience.set(v),
-                }
-            }
-            label { "{form_risk_appetite}" }
-            div { class: "ocean-slider",
-                StepperSlider {
-                    min: 1, max: 10, value: risk_appetite(), display: format!("{}/10", risk_appetite()),
-                    onchange: move |v| risk_appetite.set(v),
-                }
-            }
+        span {
+            class: "warning-badge",
+            title: "{tooltip}",
+            "⚠ {flags_now.len()}"
         }
     }
 }
 
 #[component]
-fn OceanInputs(ocean: Signal<OceanScores>) -> Element {
-    let lang = use_context::<Signal<Lang>>();
-    rsx! {
-        fieldset { class: "ocean-inputs",
-            legend { class: "sr-only", "{crate::tr!(\"form_ocean_title\", lang())}" }
-            OceanSlider {
-                label: crate::tr!("ocean_openness", lang()),
-                val: ocean().openness,
-                onchange: move |v| { let mut o = ocean.write(); o.openness = v; },
-                low_hint: Some(crate::tr!("ocean_o_low", lang()).into()),
-                high_hint: Some(crate::tr!("ocean_o_high", lang()).into()),
+fn OceanProgress(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let count = use_memo(move || {
+        let p = ctx.draft.read();
+        match mask_of(&p, facet) {
+            Some(m) => {
+                let o = m.ocean.clone().unwrap_or_else(|| p.ocean.clone());
+                ocean_filled_count(&o)
             }
-            OceanSlider {
-                label: crate::tr!("ocean_conscientiousness", lang()),
-                val: ocean().conscientiousness,
-                onchange: move |v| { let mut o = ocean.write(); o.conscientiousness = v; },
-                low_hint: Some(crate::tr!("ocean_c_low", lang()).into()),
-                high_hint: Some(crate::tr!("ocean_c_high", lang()).into()),
-            }
-            OceanSlider {
-                label: crate::tr!("ocean_extraversion", lang()),
-                val: ocean().extraversion,
-                onchange: move |v| { let mut o = ocean.write(); o.extraversion = v; },
-                low_hint: Some(crate::tr!("ocean_e_low", lang()).into()),
-                high_hint: Some(crate::tr!("ocean_e_high", lang()).into()),
-            }
-            OceanSlider {
-                label: crate::tr!("ocean_agreeableness", lang()),
-                val: ocean().agreeableness,
-                onchange: move |v| { let mut o = ocean.write(); o.agreeableness = v; },
-                low_hint: Some(crate::tr!("ocean_a_low", lang()).into()),
-                high_hint: Some(crate::tr!("ocean_a_high", lang()).into()),
-            }
-            OceanSlider {
-                label: crate::tr!("ocean_neuroticism", lang()),
-                val: ocean().neuroticism,
-                onchange: move |v| { let mut o = ocean.write(); o.neuroticism = v; },
-                low_hint: Some(crate::tr!("ocean_n_low", lang()).into()),
-                high_hint: Some(crate::tr!("ocean_n_high", lang()).into()),
-            }
-        }
-    }
-}
-
-#[component]
-fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: Lang) -> Element {
-    let cl = core_lang(lang);
-    let edit_motivations = crate::tr!("edit_motivations", lang);
-    let mut sel_type = use_signal(|| MotivationType::Achievement);
-    let mut sel_intensity = use_signal(|| 5u8);
-    let mut sel_notes = use_signal(String::new);
-    let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
-    let add_btn = crate::tr!("add_btn", lang);
-    let update_btn = crate::tr!("edit_update_btn", lang);
-    let mot_undefined_warning = crate::tr!("mot_undefined_warning", lang);
-
-    // Populate the add-row fields whenever the shared list section sets
-    // edit_idx to a row (its ✏ button only ever does `edit_idx.set(Some(i))`
-    // — it has no per-type knowledge of Motivation's fields, so syncing them
-    // here, reactively, is what keeps list_edit_section generic over T).
-    use_effect(move || {
-        if let Some(idx) = edit_idx()
-            && let Some(item) = motivations.read().get(idx)
-        {
-            sel_type.set(item.r#type);
-            sel_intensity.set(item.intensity);
-            sel_notes.set(item.notes.clone());
+            None => ocean_filled_count(&p.ocean),
         }
     });
-
-    let add_row = rsx! {
-        div { class: "helper-text", "{mot_undefined_warning}" }
-        div { class: "add-row",
-            select { value: "{sel_type}",
-                onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
-                for t in MotivationType::ALL {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
-                }
-            }
-            StepperSlider {
-                min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
-                onchange: move |v| { sel_intensity.set(v); }
-            }
-            input { placeholder: "{notes_pl}", value: "{sel_notes}",
-                oninput: move |e| { sel_notes.set(e.value()); }
-            }
-            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_motivation", lang) } else { crate::tr!("aria_add_motivation", lang) }, onclick: move |_| {
-                if let Some(idx) = edit_idx() {
-                    let mut items = motivations.write();
-                    if idx < items.len() {
-                        items[idx] = Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
-                    }
-                    edit_idx.set(None);
-                } else {
-                    motivations.write().push(Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
-                }
-                sel_notes.set(String::new());
-                sel_intensity.set(5);
-            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-        }
-        div { class: "helper-text", "{mot_helper(&sel_type(), lang)}" }
-    };
-
-    list_edit_section(
-        motivations,
-        edit_idx,
-        crate::tr!("aria_move_motivation_up", lang),
-        crate::tr!("aria_move_motivation_down", lang),
-        crate::tr!("aria_edit_motivation", lang),
-        crate::tr!("aria_delete_motivation", lang),
-        edit_motivations,
-        add_row,
-        || {},
-        move |_i, m: &Motivation| {
-            let m = m.clone();
-            rsx! {
-                strong { "{m.r#type.emoji()} {m.r#type.i18n(cl).label}" }
-                span { " {m.intensity}/10" }
-                span { " {m.notes}" }
-            }
-        },
-    )
+    progress_badge(count(), Some(5))
 }
 
-fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
-    let len = list.len();
-    if up && i > 0 {
-        list.swap(i, i - 1);
-    } else if !up && i + 1 < len {
-        list.swap(i, i + 1);
+#[component]
+fn RepProgress(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let count = use_memo(move || {
+        let p = ctx.draft.read();
+        match mask_of(&p, facet) {
+            Some(m) => {
+                let r = m.rep_scores.clone().unwrap_or_else(|| p.rep_scores.clone());
+                rep_filled_count(&r)
+            }
+            None => rep_filled_count(&p.rep_scores),
+        }
+    });
+    progress_badge(count(), Some(13))
+}
+
+#[component]
+fn ListProgress(facet: FacetKind, bucket: FacetBucket, cap: usize) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let count = use_memo(move || {
+        let p = ctx.draft.read();
+        list_len(&p, facet, bucket)
+    });
+    progress_badge(count(), Some(cap))
+}
+
+/// Small "how much of this is filled in" badge for a section header —
+/// visible even while the section is collapsed. `total: None` means an
+/// open-ended list (just show the count); `Some(n)` means a fixed set of
+/// slots (OCEAN's 5 traits, Reputation's 13 dimensions) and renders as
+/// "filled/total".
+fn progress_badge(filled: usize, total: Option<usize>) -> Element {
+    let text = match total {
+        Some(total) => format!("{filled}/{total}"),
+        None => filled.to_string(),
+    };
+    let complete = total.is_none_or(|total| filled >= total);
+    rsx! {
+        span {
+            class: if complete { "progress-badge complete" } else { "progress-badge" },
+            "{text}"
+        }
     }
+}
+
+fn ocean_filled_count(o: &OceanScores) -> usize {
+    [
+        o.openness,
+        o.conscientiousness,
+        o.extraversion,
+        o.agreeableness,
+        o.neuroticism,
+    ]
+    .iter()
+    .filter(|v| v.is_some())
+    .count()
+}
+
+fn rep_filled_count(r: &RepScores) -> usize {
+    RepDim::ALL
+        .iter()
+        .filter(|d| r.score(**d).is_some())
+        .count()
+}
+
+fn mot_helper(t: &MotivationType, lang: Lang) -> &'static str {
+    t.i18n(core_lang(lang)).desc
+}
+
+fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
+    t.i18n(core_lang(lang)).desc
+}
+
+fn style_helper(t: &StyleType, lang: Lang) -> &'static str {
+    t.i18n_desc(core_lang(lang))
+}
+
+fn value_helper(t: &ValueType, lang: Lang) -> &'static str {
+    t.i18n(core_lang(lang)).desc
+}
+
+fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
+    match t {
+        BehaviorTrigger::Stress => crate::tr!("pattern_helper_stress", lang),
+        BehaviorTrigger::Conflict => crate::tr!("pattern_helper_conflict", lang),
+        BehaviorTrigger::Success => crate::tr!("pattern_helper_success", lang),
+        BehaviorTrigger::Uncertainty => crate::tr!("pattern_helper_uncertainty", lang),
+        BehaviorTrigger::Recognition => crate::tr!("pattern_helper_recognition", lang),
+        BehaviorTrigger::Threatened => crate::tr!("pattern_helper_threat", lang),
+        BehaviorTrigger::Change => crate::tr!("pattern_helper_change", lang),
+        BehaviorTrigger::Feedback => crate::tr!("pattern_helper_feedback", lang),
+        BehaviorTrigger::Injustice => crate::tr!("pattern_helper_injustice", lang),
+    }
+}
+
+fn behavior_helper(t: &BehaviorResponse, lang: Lang) -> &'static str {
+    t.desc(core_lang(lang))
+}
+
+fn persona_panel_active(a: bool, b: bool) -> bool {
+    a || b
+}
+
+// Extracted so it's directly unit-testable: the discard closure that uses
+// this lives inside a Dioxus component and needs a live render context, so
+// cargo-mutants had no test able to exercise this comparison in isolation
+// (== -> != survived as an undetected mutant). A plain function keeps the
+// same behavior but can be called straight from a #[test].
+fn is_base_facet(mode: FacetKind) -> bool {
+    mode == FacetKind::Base
+}
+
+// Same reasoning: FacetSection's `is_work` check lives inside a Dioxus
+// component, invisible to a plain `cargo test` run.
+fn is_work_facet(mode: FacetKind) -> bool {
+    mode == FacetKind::Work
+}
+
+// Same reasoning as is_work_facet above: the Online persona's sections get
+// their `persona-panel` wrapper and default bucket toggle from inside
+// FacetSection, so the discriminant comparison is extracted for a direct
+// #[test].
+fn is_online_facet(mode: FacetKind) -> bool {
+    mode == FacetKind::Online
+}
+
+// Any non-base arena (work or online) is rendered as a persona panel, so a
+// single predicate drives FacetSection instead of special-casing each mask.
+fn is_persona_facet(mode: FacetKind) -> bool {
+    is_work_facet(mode) || is_online_facet(mode)
+}
+
+fn parse_tags(s: &str) -> Vec<Tag> {
+    s.split(',')
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+        .map(|name| Tag { name, color: None })
+        .collect()
 }
 
 /// Shared "add a new X, then browse/edit/reorder/delete existing Xs" list
@@ -1643,8 +1621,8 @@ fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
 /// generic over every item type without needing per-type closures wired
 /// through every row.
 #[allow(clippy::too_many_arguments)]
-fn list_edit_section<T: Clone + 'static>(
-    mut items: Signal<Vec<T>>,
+fn list_edit_section<T: Clone + PartialEq + 'static>(
+    items: ListField<T>,
     mut edit_idx: Signal<Option<usize>>,
     move_up_label: &str,
     move_down_label: &str,
@@ -1656,7 +1634,10 @@ fn list_edit_section<T: Clone + 'static>(
     render_row: impl Fn(usize, &T) -> Element,
 ) -> Element {
     let on_delete = std::rc::Rc::new(std::cell::RefCell::new(on_delete));
-    let rows = items()
+    let len = items.val.read().len();
+    let rows = items
+        .val
+        .read()
         .iter()
         .enumerate()
         .map(|(i, item)| {
@@ -1666,13 +1647,27 @@ fn list_edit_section<T: Clone + 'static>(
                     button {
                         class: "reorder-btn",
                         aria_label: "{move_up_label}",
-                        onclick: move |_| { swap_item_in_list(&mut items.write(), i, true); },
+                        onclick: {
+                            let row_items = items.clone();
+                            move |_| {
+                                if i > 0 {
+                                    row_items.swap(i, i - 1);
+                                }
+                            }
+                        },
                         "▲"
                     }
                     button {
                         class: "reorder-btn",
                         aria_label: "{move_down_label}",
-                        onclick: move |_| { swap_item_in_list(&mut items.write(), i, false); },
+                        onclick: {
+                            let row_items = items.clone();
+                            move |_| {
+                                if i + 1 < len {
+                                    row_items.swap(i, i + 1);
+                                }
+                            }
+                        },
                         "▼"
                     }
                     button {
@@ -1685,7 +1680,10 @@ fn list_edit_section<T: Clone + 'static>(
                     button {
                         class: "btn btn-small",
                         aria_label: "{delete_label}",
-                        onclick: move |_| { items.write().remove(i); (row_on_delete.borrow_mut())(); },
+                        onclick: {
+                            let row_items = items.clone();
+                            move |_| { row_items.remove(i); (row_on_delete.borrow_mut())(); }
+                        },
                         "✕"
                     }
                 }
@@ -1705,190 +1703,129 @@ fn list_edit_section<T: Clone + 'static>(
 }
 
 #[component]
-fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
-    let cl = core_lang(lang);
-    let edit_values = crate::tr!("edit_values", lang);
-    let mut sel_type = use_signal(|| ValueType::Career);
-    let mut sel_intensity = use_signal(|| 5u8);
-    let mut sel_priority = use_signal(|| 5u8);
-    let mut sel_notes = use_signal(String::new);
-    let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
-    let priority_label = crate::tr!("edit_priority", lang);
-    let value_intensity_helper = crate::tr!("value_intensity_helper", lang);
-    let value_priority_helper = crate::tr!("value_priority_helper", lang);
-    let add_btn = crate::tr!("add_btn", lang);
-    let update_btn = crate::tr!("edit_update_btn", lang);
-
-    use_effect(move || {
-        if let Some(idx) = edit_idx()
-            && let Some(item) = values.read().get(idx)
-        {
-            sel_type.set(item.r#type);
-            sel_intensity.set(item.intensity);
-            sel_priority.set(item.priority);
-            sel_notes.set(item.notes.clone());
-        }
-    });
-
-    let add_row = rsx! {
-        div { class: "add-row",
-            select { value: "{sel_type}",
-                onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
-                for t in ValueType::ALL {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
-                }
-            }
-            div { class: "dual-range",
+fn ResilienceRiskInputs(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let field = use_resilience_risk(ctx, facet);
+    let form_resilience = crate::tr!("form_resilience", lang());
+    let form_risk_appetite = crate::tr!("form_risk_appetite", lang());
+    rsx! {
+        fieldset { class: "persona-balance",
+            legend { class: "sr-only", "{crate::tr!(\"persona_balance_title\", lang())}" }
+            label { "{form_resilience}" }
+            div { class: "ocean-slider",
                 StepperSlider {
-                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
-                    onchange: move |v| { sel_intensity.set(v); }
+                    min: 1, max: 10, value: field.resilience(), display: format!("{}/10", field.resilience()),
+                    onchange: move |v| field.set_resilience.call(v),
                 }
-                span { class: "range-label", "I" }
+            }
+            label { "{form_risk_appetite}" }
+            div { class: "ocean-slider",
                 StepperSlider {
-                    min: 1, max: 10, value: sel_priority(), display: format!("{}", sel_priority()),
-                    onchange: move |v| { sel_priority.set(v); }
+                    min: 1, max: 10, value: field.risk_appetite(), display: format!("{}/10", field.risk_appetite()),
+                    onchange: move |v| field.set_risk_appetite.call(v),
                 }
-                span { class: "range-label", "{priority_label}" }
             }
-            input { placeholder: "{notes_pl}", value: "{sel_notes}",
-                oninput: move |e| { sel_notes.set(e.value()); }
-            }
-            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_value", lang) } else { crate::tr!("aria_add_value", lang) }, onclick: move |_| {
-                if let Some(idx) = edit_idx() {
-                    let mut items = values.write();
-                    if idx < items.len() {
-                        items[idx] = Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() };
-                    }
-                    edit_idx.set(None);
-                } else {
-                    values.write().push(Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() });
-                }
-                sel_notes.set(String::new());
-                sel_intensity.set(5);
-                sel_priority.set(5);
-            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
         }
-        div { class: "helper-text",
-            div { "{value_helper(&sel_type(), lang)}" }
-            div { "{value_intensity_helper}" }
-            div { "{value_priority_helper}" }
-        }
-    };
-
-    list_edit_section(
-        values,
-        edit_idx,
-        crate::tr!("aria_move_value_up", lang),
-        crate::tr!("aria_move_value_down", lang),
-        crate::tr!("aria_edit_value", lang),
-        crate::tr!("aria_delete_value", lang),
-        edit_values,
-        add_row,
-        || {},
-        move |_i, v: &Value| {
-            let v = v.clone();
-            rsx! {
-                strong { "{v.r#type.emoji()} {v.r#type.i18n(cl).label}" }
-                span { " I{v.intensity}/10 P{v.priority}/10" }
-                span { " {v.notes}" }
-            }
-        },
-    )
+    }
 }
 
 #[component]
-fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
-    let cl = core_lang(lang);
-    let edit_biases = crate::tr!("edit_biases", lang);
-    let mut sel_type = use_signal(|| BiasType::Confirmation);
-    let mut sel_intensity = use_signal(|| 5u8);
-    let mut sel_evidence = use_signal(String::new);
-    let mut edit_idx = use_signal(|| None::<usize>);
-    let bias_undefined_warning = crate::tr!("bias_undefined_warning", lang);
-    let bias_scale_hint = crate::tr!("bias_scale_hint", lang);
-    let evidence_pl = crate::tr!("edit_evidence_placeholder", lang);
-    let add_btn = crate::tr!("add_btn", lang);
-    let update_btn = crate::tr!("edit_update_btn", lang);
-
-    use_effect(move || {
-        if let Some(idx) = edit_idx()
-            && let Some(item) = biases.read().get(idx)
-        {
-            sel_type.set(item.r#type);
-            sel_intensity.set(item.intensity);
-            sel_evidence.set(item.evidence.clone());
+fn OceanInputs(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let field = use_major_field(
+        ctx,
+        facet,
+        |p| &p.ocean,
+        |p| &mut p.ocean,
+        |m| &m.ocean,
+        |m| &mut m.ocean,
+    );
+    rsx! {
+        fieldset { class: "ocean-inputs",
+            legend { class: "sr-only", "{crate::tr!(\"form_ocean_title\", lang())}" }
+            OceanSlider {
+                label: crate::tr!("ocean_openness", lang()),
+                val: field.val.read().openness,
+                onchange: move |v| {
+                    let mut o = field.val.read().clone();
+                    o.openness = v;
+                    field.set.call(o);
+                },
+                low_hint: Some(crate::tr!("ocean_o_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_o_high", lang()).into()),
+            }
+            OceanSlider {
+                label: crate::tr!("ocean_conscientiousness", lang()),
+                val: field.val.read().conscientiousness,
+                onchange: move |v| {
+                    let mut o = field.val.read().clone();
+                    o.conscientiousness = v;
+                    field.set.call(o);
+                },
+                low_hint: Some(crate::tr!("ocean_c_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_c_high", lang()).into()),
+            }
+            OceanSlider {
+                label: crate::tr!("ocean_extraversion", lang()),
+                val: field.val.read().extraversion,
+                onchange: move |v| {
+                    let mut o = field.val.read().clone();
+                    o.extraversion = v;
+                    field.set.call(o);
+                },
+                low_hint: Some(crate::tr!("ocean_e_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_e_high", lang()).into()),
+            }
+            OceanSlider {
+                label: crate::tr!("ocean_agreeableness", lang()),
+                val: field.val.read().agreeableness,
+                onchange: move |v| {
+                    let mut o = field.val.read().clone();
+                    o.agreeableness = v;
+                    field.set.call(o);
+                },
+                low_hint: Some(crate::tr!("ocean_a_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_a_high", lang()).into()),
+            }
+            OceanSlider {
+                label: crate::tr!("ocean_neuroticism", lang()),
+                val: field.val.read().neuroticism,
+                onchange: move |v| {
+                    let mut o = field.val.read().clone();
+                    o.neuroticism = v;
+                    field.set.call(o);
+                },
+                low_hint: Some(crate::tr!("ocean_n_low", lang()).into()),
+                high_hint: Some(crate::tr!("ocean_n_high", lang()).into()),
+            }
         }
-    });
-
-    let add_row = rsx! {
-        div { class: "helper-text", "{bias_undefined_warning}" }
-        div { class: "helper-text", "{bias_scale_hint}" }
-        div { class: "add-row",
-            select { value: "{sel_type}",
-                onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
-                for t in BiasType::ALL {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
-                }
-            }
-            StepperSlider {
-                min: 0, max: 10, value: sel_intensity(), display: format!("{}/10", sel_intensity()),
-                onchange: move |v| { sel_intensity.set(v); }
-            }
-            input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
-                oninput: move |e| { sel_evidence.set(e.value()); }
-            }
-            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_bias", lang) } else { crate::tr!("aria_add_bias", lang) }, onclick: move |_| {
-                if let Some(idx) = edit_idx() {
-                    let mut items = biases.write();
-                    if idx < items.len() {
-                        items[idx] = Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
-                    }
-                    edit_idx.set(None);
-                } else {
-                    biases.write().push(Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() });
-                }
-                sel_evidence.set(String::new());
-                sel_intensity.set(5);
-            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-        }
-        div { class: "helper-text", "{bias_helper(&sel_type(), lang)}" }
-    };
-
-    list_edit_section(
-        biases,
-        edit_idx,
-        crate::tr!("aria_move_bias_up", lang),
-        crate::tr!("aria_move_bias_down", lang),
-        crate::tr!("aria_edit_bias", lang),
-        crate::tr!("aria_delete_bias", lang),
-        edit_biases,
-        add_row,
-        || {},
-        move |_i, b: &Bias| {
-            let b = b.clone();
-            rsx! {
-                strong { "{b.r#type.emoji()} {b.r#type.i18n(cl).label}" }
-                span { " {b.intensity}/10" }
-                span { " {b.evidence}" }
-            }
-        },
-    )
+    }
 }
 
 #[component]
-fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, reset_gen: u32) -> Element {
-    let cl = core_lang(lang);
-    let edit_rep = crate::tr!("edit_reputation", lang);
-    let rep_undefined_warning = crate::tr!("rep_undefined_warning", lang);
-    let rep_scale_hint = crate::tr!("rep_scale_hint", lang);
+fn RepEditPanel(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let edit_rep = crate::tr!("edit_reputation", lang());
+    let rep_undefined_warning = crate::tr!("rep_undefined_warning", lang());
+    let rep_scale_hint = crate::tr!("rep_scale_hint", lang());
+    let field = use_major_field(
+        ctx,
+        facet,
+        |p| &p.rep_scores,
+        |p| &mut p.rep_scores,
+        |m| &m.rep_scores,
+        |m| &mut m.rep_scores,
+    );
 
     let rep_data: Vec<_> = RepDim::ALL
         .iter()
         .map(|dim| {
             let ri = dim.i18n(cl);
-            let cur = rep_scores.read().score(*dim);
-            (*dim, ri, cur)
+            (*dim, ri)
         })
         .collect();
 
@@ -1898,37 +1835,20 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, reset_gen: u32) -> El
             div { class: "helper-text", "{rep_undefined_warning}" }
             div { class: "helper-text", "{rep_scale_hint}" }
             div { class: "section-items",
-                {rep_data.into_iter().map(|(dim, ri, cur)| {
-                    let start_val = cur.unwrap_or(5);
-                    let start_on = cur.is_some();
+                {rep_data.into_iter().map(|(dim, ri)| {
+                    let cur = field.val.read().score(dim);
                     rsx! {
                         RepDimSlider {
-                            key: "{dim:?}-{reset_gen}",
                             dim,
                             label_a: ri.label_a,
                             label_b: ri.label_b,
                             desc: ri.desc,
-                            start_val,
-                            start_on,
-                            onchange: move |(on, val): (bool, u8)| {
-                                let mut s = rep_scores.write();
-                                let new = if on { Some(val.clamp(0, 10)) } else { None };
-                                match dim {
-                                    RepDim::HardworkerLazy => s.hardworker_lazy = new,
-                                    RepDim::AuthoritativeSubmissive => s.authoritative_submissive = new,
-                                    RepDim::HonestDeceitful => s.honest_deceitful = new,
-                                    RepDim::ReliableFlaky => s.reliable_flaky = new,
-                                    RepDim::HumbleArrogant => s.humble_arrogant = new,
-                                    RepDim::CalmReactive => s.calm_reactive = new,
-                                    RepDim::DiplomaticBlunt => s.diplomatic_blunt = new,
-                                    RepDim::GenerousSelfish => s.generous_selfish = new,
-                                    RepDim::FairFavoritism => s.fair_favoritism = new,
-                                    RepDim::TrustingSuspicious => s.trusting_suspicious = new,
-                                    RepDim::AssertivePassive => s.assertive_passive = new,
-                                    RepDim::EmpatheticDetached => s.empathetic_detached = new,
-                                    RepDim::AdaptableRigid => s.adaptable_rigid = new,
-                                }
-                            }
+                            val: cur,
+                            onchange: move |new| {
+                                let mut s = field.val.read().clone();
+                                set_rep_dim(&mut s, dim, new);
+                                field.set.call(s);
+                            },
                         }
                     }
                 })}
@@ -1937,19 +1857,40 @@ fn RepEditPanel(rep_scores: Signal<RepScores>, lang: Lang, reset_gen: u32) -> El
     }
 }
 
+fn set_rep_dim(r: &mut RepScores, dim: RepDim, new: Option<u8>) {
+    match dim {
+        RepDim::HardworkerLazy => r.hardworker_lazy = new,
+        RepDim::AuthoritativeSubmissive => r.authoritative_submissive = new,
+        RepDim::HonestDeceitful => r.honest_deceitful = new,
+        RepDim::ReliableFlaky => r.reliable_flaky = new,
+        RepDim::HumbleArrogant => r.humble_arrogant = new,
+        RepDim::CalmReactive => r.calm_reactive = new,
+        RepDim::DiplomaticBlunt => r.diplomatic_blunt = new,
+        RepDim::GenerousSelfish => r.generous_selfish = new,
+        RepDim::FairFavoritism => r.fair_favoritism = new,
+        RepDim::TrustingSuspicious => r.trusting_suspicious = new,
+        RepDim::AssertivePassive => r.assertive_passive = new,
+        RepDim::EmpatheticDetached => r.empathetic_detached = new,
+        RepDim::AdaptableRigid => r.adaptable_rigid = new,
+    }
+}
+
+/// A reputation slider, fully controlled: its on/off state and value are
+/// props derived from the facet-resolved RepScores, and every interaction
+/// reports back through `onchange`. No local slider state survives an
+/// external reset (discard/copy-from-base), fixing the "underrun out from
+/// under it" remount hack (`rep_reset_gen`) for good.
 #[component]
 fn RepDimSlider(
     dim: RepDim,
     label_a: &'static str,
     label_b: &'static str,
     desc: &'static str,
-    start_val: u8,
-    start_on: bool,
-    onchange: EventHandler<(bool, u8)>,
+    val: Option<u8>,
+    onchange: EventHandler<Option<u8>>,
 ) -> Element {
-    let mut on = use_signal(|| start_on);
-    let mut val = use_signal(|| start_val);
-
+    let on = val.is_some();
+    let shown = val.unwrap_or(5);
     rsx! {
         div { class: "ocean-slider",
             div { class: "ocean-header",
@@ -1958,148 +1899,33 @@ fn RepDimSlider(
                 }
                 label { class: "dim-toggle",
                     input { r#type: "checkbox",
-                        checked: on(),
+                        checked: on,
                         oninput: move |e| {
                             let new = e.value() == "true";
-                            on.set(new);
-                            onchange.call((new, val()));
+                            onchange.call(if new { Some(shown) } else { None });
                         }
                     }
-                    if on() { "✓" } else { "✗" }
+                    if on { "✓" } else { "✗" }
                 }
             }
-            if on() {
+            if on {
                 div { class: "rep-slider-bar",
                     span { class: "rep-pole-b", "{label_b}" }
-                    input { r#type: "range", min: "0", max: "10", value: "{val}",
+                    input { r#type: "range", min: "0", max: "10", value: "{shown}",
                         oninput: move |e| {
                             let v = e.value().parse().unwrap_or(5);
-                            val.set(v);
-                            onchange.call((true, v));
+                            onchange.call(Some(v));
                         }
                     }
                     span { class: "rep-pole-a", "{label_a}" }
                 }
                 div { class: "rep-dim-value",
-                    strong { "{val}/10" }
+                    strong { "{shown}/10" }
                     span { " — {desc}" }
                 }
             }
         }
     }
-}
-
-#[component]
-fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Element {
-    let edit_patterns = crate::tr!("edit_patterns", lang);
-    let ctx_stress = crate::tr!("ctx_stress", lang);
-    let ctx_conflict = crate::tr!("ctx_conflict", lang);
-    let ctx_success = crate::tr!("ctx_success", lang);
-    let ctx_uncertainty = crate::tr!("ctx_uncertainty", lang);
-    let ctx_recognition = crate::tr!("ctx_recognition", lang);
-    let ctx_threatened = crate::tr!("ctx_threatened", lang);
-    let ctx_change = crate::tr!("ctx_change", lang);
-    let ctx_feedback = crate::tr!("ctx_feedback", lang);
-    let ctx_injustice = crate::tr!("ctx_injustice", lang);
-    let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
-    let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
-    let mut sel_notes = use_signal(String::new);
-    let mut edit_idx = use_signal(|| None::<usize>);
-
-    let cl = core_lang(lang);
-
-    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
-    let add_btn = crate::tr!("add_btn", lang);
-    let update_btn = crate::tr!("edit_update_btn", lang);
-    let trigger_label = move |t: BehaviorTrigger| -> &'static str {
-        match t {
-            BehaviorTrigger::Stress => ctx_stress,
-            BehaviorTrigger::Conflict => ctx_conflict,
-            BehaviorTrigger::Success => ctx_success,
-            BehaviorTrigger::Uncertainty => ctx_uncertainty,
-            BehaviorTrigger::Recognition => ctx_recognition,
-            BehaviorTrigger::Threatened => ctx_threatened,
-            BehaviorTrigger::Change => ctx_change,
-            BehaviorTrigger::Feedback => ctx_feedback,
-            BehaviorTrigger::Injustice => ctx_injustice,
-        }
-    };
-
-    use_effect(move || {
-        if let Some(idx) = edit_idx()
-            && let Some(item) = patterns.read().get(idx)
-        {
-            sel_trigger.set(item.trigger);
-            sel_behavior.set(item.predicted_behavior);
-            sel_notes.set(item.notes.clone());
-        }
-    });
-
-    let add_row = rsx! {
-        div { class: "add-row",
-            select { value: "{sel_trigger}",
-                onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]); },
-                option { value: "Stress", "{ctx_stress}" }
-                option { value: "Conflict", "{ctx_conflict}" }
-                option { value: "Success", "{ctx_success}" }
-                option { value: "Uncertainty", "{ctx_uncertainty}" }
-                option { value: "Recognition", "{ctx_recognition}" }
-                option { value: "Threatened", "{ctx_threatened}" }
-                option { value: "Change", "{ctx_change}" }
-                option { value: "Feedback", "{ctx_feedback}" }
-                option { value: "Injustice", "{ctx_injustice}" }
-            }
-            select { value: "{sel_behavior().serde_name()}",
-                onchange: move |e| { let _ = parse_response(&e.value()).map(|v| sel_behavior.set(v)); },
-                for opt in BehaviorResponse::options_for(sel_trigger()) {
-                    option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
-                }
-            }
-            input {
-                r#type: "text",
-                placeholder: "{notes_pl}",
-                value: "{sel_notes()}",
-                oninput: move |e| sel_notes.set(e.value()),
-            }
-            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_pattern", lang) } else { crate::tr!("aria_add_pattern", lang) }, onclick: move |_| {
-                if let Some(idx) = edit_idx() {
-                    let mut items = patterns.write();
-                    if idx < items.len() {
-                        items[idx] = BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() };
-                    }
-                    edit_idx.set(None);
-                } else {
-                    patterns.write().push(BehavioralPattern { trigger: sel_trigger(), predicted_behavior: sel_behavior(), notes: sel_notes() });
-                }
-                sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
-                sel_notes.set(String::new());
-            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-        }
-        div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang)}" }
-        div { class: "helper-text", "{behavior_helper(&sel_behavior(), lang)}" }
-    };
-
-    list_edit_section(
-        patterns,
-        edit_idx,
-        crate::tr!("aria_move_pattern_up", lang),
-        crate::tr!("aria_move_pattern_down", lang),
-        crate::tr!("aria_edit_pattern", lang),
-        crate::tr!("aria_delete_pattern", lang),
-        edit_patterns,
-        add_row,
-        move || sel_notes.set(String::new()),
-        move |_i, bp: &BehavioralPattern| {
-            let bp = bp.clone();
-            rsx! {
-                strong { "{trigger_label(bp.trigger)}" }
-                span { " {bp.predicted_behavior.label(cl)}" }
-                if !bp.notes.is_empty() {
-                    span { class: "item-notes", " — {bp.notes}" }
-                }
-            }
-        },
-    )
 }
 
 #[component]
@@ -2170,172 +1996,711 @@ fn OceanSlider(
     }
 }
 
-fn mot_helper(t: &MotivationType, lang: Lang) -> &'static str {
-    t.i18n(core_lang(lang)).desc
-}
-
-fn bias_helper(t: &BiasType, lang: Lang) -> &'static str {
-    t.i18n(core_lang(lang)).desc
-}
-
-fn style_helper(t: &StyleType, lang: Lang) -> &'static str {
-    t.i18n_desc(core_lang(lang))
-}
-
-fn value_helper(t: &ValueType, lang: Lang) -> &'static str {
-    t.i18n(core_lang(lang)).desc
-}
-
-fn pattern_helper(t: &BehaviorTrigger, lang: Lang) -> &'static str {
-    match t {
-        BehaviorTrigger::Stress => crate::tr!("pattern_helper_stress", lang),
-        BehaviorTrigger::Conflict => crate::tr!("pattern_helper_conflict", lang),
-        BehaviorTrigger::Success => crate::tr!("pattern_helper_success", lang),
-        BehaviorTrigger::Uncertainty => crate::tr!("pattern_helper_uncertainty", lang),
-        BehaviorTrigger::Recognition => crate::tr!("pattern_helper_recognition", lang),
-        BehaviorTrigger::Threatened => crate::tr!("pattern_helper_threat", lang),
-        BehaviorTrigger::Change => crate::tr!("pattern_helper_change", lang),
-        BehaviorTrigger::Feedback => crate::tr!("pattern_helper_feedback", lang),
-        BehaviorTrigger::Injustice => crate::tr!("pattern_helper_injustice", lang),
+#[component]
+fn NameField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_name = crate::tr!("form_name", lang());
+    let value = use_memo(move || draft.read().name.clone());
+    rsx! {
+        label { "{form_name}" }
+        input { aria_label: "{form_name}", value: value(), oninput: move |e| draft.write().name = e.value() }
     }
 }
 
-fn behavior_helper(t: &BehaviorResponse, lang: Lang) -> &'static str {
-    t.desc(core_lang(lang))
-}
-
-fn parse_tags(s: &str) -> Vec<Tag> {
-    s.split(',')
-        .map(|t| t.trim().to_string())
-        .filter(|t| !t.is_empty())
-        .map(|name| Tag { name, color: None })
-        .collect()
-}
-
-fn persona_panel_active(a: bool, b: bool) -> bool {
-    a || b
-}
-
-// Extracted so it's directly unit-testable: the discard closure that uses
-// this lives inside a Dioxus component and needs a live render context, so
-// cargo-mutants had no test able to exercise this comparison in isolation
-// (== -> != survived as an undetected mutant). A plain function keeps the
-// same behavior but can be called straight from a #[test].
-fn is_base_facet(mode: FacetKind) -> bool {
-    mode == FacetKind::Base
-}
-
-// Same reasoning: FacetSection's `is_work` check lives inside a Dioxus
-// component, invisible to a plain `cargo test` run.
-fn is_work_facet(mode: FacetKind) -> bool {
-    mode == FacetKind::Work
-}
-
-// Same reasoning as is_work_facet above: the Online persona's sections get
-// their `persona-panel` wrapper and default bucket toggle from inside
-// FacetSection, so the discriminant comparison is extracted for a direct
-// #[test].
-fn is_online_facet(mode: FacetKind) -> bool {
-    mode == FacetKind::Online
-}
-
-// Any non-base arena (work or online) is rendered as a persona panel, so a
-// single predicate drives FacetSection instead of special-casing each mask.
-fn is_persona_facet(mode: FacetKind) -> bool {
-    is_work_facet(mode) || is_online_facet(mode)
-}
-
-// Same reasoning as is_base_facet above: rep_reset_gen only ever gets
-// bumped from inside a Dioxus closure, invisible to cargo-mutants' plain
-// `cargo test` run (the Playwright suite that actually exercises the
-// resulting remount doesn't run under cargo-mutants at all). Extracting
-// the arithmetic gives it a direct #[test], independent of any UI.
-fn next_reset_gen(current: u32) -> u32 {
-    current + 1
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum EditSectionId {
-    ResilienceRisk,
-    Ocean,
-    Motivations,
-    Biases,
-    Reputation,
-    Patterns,
-    Styles,
-    Values,
-}
-
-const ALL_EDIT_SECTIONS: [EditSectionId; 8] = [
-    EditSectionId::ResilienceRisk,
-    EditSectionId::Ocean,
-    EditSectionId::Motivations,
-    EditSectionId::Biases,
-    EditSectionId::Reputation,
-    EditSectionId::Patterns,
-    EditSectionId::Styles,
-    EditSectionId::Values,
-];
-
-// Sections open independently (not a single-open accordion): toggling one
-// section never hides the others, so the whole form stays usable/testable
-// at once. Each id just gets added to / removed from the open set.
-fn toggle_section(mut current: Vec<EditSectionId>, target: EditSectionId) -> Vec<EditSectionId> {
-    if let Some(pos) = current.iter().position(|x| *x == target) {
-        current.remove(pos);
-    } else {
-        current.push(target);
+#[component]
+fn RoleField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_role = crate::tr!("form_role", lang());
+    let value = use_memo(move || draft.read().role.clone());
+    rsx! {
+        label { "{form_role}" }
+        input { aria_label: "{form_role}", value: value(), oninput: move |e| draft.write().role = e.value() }
     }
-    current
 }
 
-#[derive(Clone)]
-struct SavedSections {
-    ocean: OceanScores,
-    resilience: u8,
-    risk_appetite: u8,
-    motivations: Vec<Motivation>,
-    biases: Vec<Bias>,
-    rep_scores: RepScores,
-    patterns: Vec<BehavioralPattern>,
-    styles: Vec<PersonalStyle>,
-    values: Vec<Value>,
-    work_ocean: OceanScores,
-    work_resilience: u8,
-    work_risk_appetite: u8,
-    work_motivations: Vec<Motivation>,
-    work_biases: Vec<Bias>,
-    work_rep: RepScores,
-    work_patterns: Vec<BehavioralPattern>,
-    work_styles: Vec<PersonalStyle>,
-    work_values: Vec<Value>,
-    online_ocean: OceanScores,
-    online_resilience: u8,
-    online_risk_appetite: u8,
-    online_motivations: Vec<Motivation>,
-    online_biases: Vec<Bias>,
-    online_rep: RepScores,
-    online_patterns: Vec<BehavioralPattern>,
-    online_styles: Vec<PersonalStyle>,
-    online_values: Vec<Value>,
-    has_ocean: bool,
-    has_rep: bool,
-    has_motivations: bool,
-    has_biases: bool,
-    has_patterns: bool,
-    has_styles: bool,
-    has_values: bool,
-    has_resilience: bool,
-    has_risk_appetite: bool,
-    has_online_ocean: bool,
-    has_online_rep: bool,
-    has_online_motivations: bool,
-    has_online_biases: bool,
-    has_online_patterns: bool,
-    has_online_styles: bool,
-    has_online_values: bool,
-    has_online_resilience: bool,
-    has_online_risk_appetite: bool,
+#[component]
+fn ContextField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_context = crate::tr!("form_context", lang());
+    let value = use_memo(move || draft.read().context.clone());
+    rsx! {
+        label { "{form_context}" }
+        textarea { aria_label: "{form_context}", value: value(), oninput: move |e| draft.write().context = e.value() }
+    }
+}
+
+#[component]
+fn EmojiField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_avatar = crate::tr!("form_avatar", lang());
+    let emoji = use_memo(move || draft.read().avatar_emoji.clone());
+    rsx! {
+        label { "{form_avatar}" }
+        div { class: "emoji-picker", role: "radiogroup", aria_label: "{form_avatar}",
+            for e in AVATAR_EMOJIS {
+                button {
+                    class: "emoji-btn",
+                    class: if emoji() == *e { "selected" },
+                    role: "radio",
+                    aria_label: "{crate::tr!(\"aria_avatar_prefix\", lang())} {e}",
+                    aria_checked: if emoji() == *e { "true" } else { "false" },
+                    onclick: move |_| draft.write().avatar_emoji = e.to_string(),
+                    "{e}"
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn TagsField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_tags = crate::tr!("form_tags", lang());
+    let mut raw = use_signal(move || {
+        draft
+            .read()
+            .tags
+            .iter()
+            .map(|t| t.name.clone())
+            .collect::<Vec<_>>()
+            .join(", ")
+    });
+    rsx! {
+        label { "{form_tags}" }
+        input { aria_label: "{form_tags}", value: "{raw}", oninput: move |e| {
+            let v = e.value();
+            raw.set(v.clone());
+            draft.write().tags = parse_tags(&v);
+        } }
+    }
+}
+
+#[component]
+fn NotesField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_notes = crate::tr!("form_notes", lang());
+    let value = use_memo(move || draft.read().notes.clone());
+    rsx! {
+        label { "{form_notes}" }
+        textarea { aria_label: "{form_notes}", value: value(), rows: "4", oninput: move |e| draft.write().notes = e.value() }
+    }
+}
+
+#[component]
+fn ConfidenceField() -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let mut draft = ctx.draft();
+    let form_confidence = crate::tr!("form_confidence", lang());
+    let confidence_hint = crate::tr!("confidence_hint", lang());
+    let reliability_title = crate::tr!("reliability_title", lang());
+    let value = use_memo(move || draft.read().confidence);
+    rsx! {
+        fieldset { class: "reliability",
+            legend { "{reliability_title}" }
+            div { class: "reliability-hint", "{confidence_hint}" }
+            label { "{form_confidence}" }
+            div { class: "ocean-slider",
+                StepperSlider {
+                    min: 1, max: 10, value: value(), display: format!("{}/10", value()),
+                    onchange: move |v| draft.write().confidence = v,
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn MotEditPanel(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let items = use_list_field(
+        ctx,
+        facet,
+        |p| &p.motivations,
+        |p| &mut p.motivations,
+        |m| &m.motivations,
+        |m| &mut m.motivations,
+    );
+    let edit_idx = use_signal(|| None::<usize>);
+    let edit_motivations = crate::tr!("edit_motivations", lang());
+    let add_row = rsx! {
+        MotAddRow { items: items.clone(), edit_idx }
+    };
+    list_edit_section(
+        items.clone(),
+        edit_idx,
+        crate::tr!("aria_move_motivation_up", lang()),
+        crate::tr!("aria_move_motivation_down", lang()),
+        crate::tr!("aria_edit_motivation", lang()),
+        crate::tr!("aria_delete_motivation", lang()),
+        edit_motivations,
+        add_row,
+        || {},
+        move |_i, m: &Motivation| {
+            let m = m.clone();
+            rsx! {
+                strong { "{m.r#type.emoji()} {m.r#type.i18n(cl).label}" }
+                span { " {m.intensity}/10" }
+                span { " {m.notes}" }
+            }
+        },
+    )
+}
+
+#[component]
+fn MotAddRow(items: ListField<Motivation>, edit_idx: Signal<Option<usize>>) -> Element {
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let mut sel_type = use_signal(|| MotivationType::Achievement);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_notes = use_signal(String::new);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang());
+    let add_btn = crate::tr!("add_btn", lang());
+    let update_btn = crate::tr!("edit_update_btn", lang());
+    let mot_undefined_warning = crate::tr!("mot_undefined_warning", lang());
+
+    // Populate the add-row fields whenever the shared list section sets
+    // edit_idx to a row (its ✏ button only ever does `edit_idx.set(Some(i))`
+    // — it has no per-type knowledge of Motivation's fields, so syncing them
+    // here, reactively, is what keeps list_edit_section generic over T).
+    use_effect(move || {
+        let Some(idx) = edit_idx() else {
+            return;
+        };
+        let items_read = items.val.read();
+        if let Some(item) = items_read.get(idx) {
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_notes.set(item.notes.clone());
+        }
+    });
+
+    rsx! {
+        div { class: "helper-text", "{mot_undefined_warning}" }
+        div { class: "add-row",
+            select { value: "{sel_type}",
+                onchange: move |e| { sel_type.set(parse_mot_type(&e.value())); },
+                for t in MotivationType::ALL {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
+                }
+            }
+            StepperSlider {
+                min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                onchange: move |v| { sel_intensity.set(v); }
+            }
+            input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                oninput: move |e| { sel_notes.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_motivation", lang()) } else { crate::tr!("aria_add_motivation", lang()) }, onclick: move |_| {
+                let new_item = Motivation { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
+                if let Some(idx) = edit_idx() {
+                    items.replace(idx, new_item);
+                    edit_idx.set(None);
+                } else {
+                    items.push(new_item);
+                }
+                sel_notes.set(String::new());
+                sel_intensity.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{mot_helper(&sel_type(), lang())}" }
+    }
+}
+
+#[component]
+fn ValEditPanel(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let items = use_list_field(
+        ctx,
+        facet,
+        |p| &p.values,
+        |p| &mut p.values,
+        |m| &m.values,
+        |m| &mut m.values,
+    );
+    let edit_idx = use_signal(|| None::<usize>);
+    let edit_values = crate::tr!("edit_values", lang());
+    let add_row = rsx! {
+        ValAddRow { items: items.clone(), edit_idx }
+    };
+    list_edit_section(
+        items.clone(),
+        edit_idx,
+        crate::tr!("aria_move_value_up", lang()),
+        crate::tr!("aria_move_value_down", lang()),
+        crate::tr!("aria_edit_value", lang()),
+        crate::tr!("aria_delete_value", lang()),
+        edit_values,
+        add_row,
+        || {},
+        move |_i, v: &Value| {
+            let v = v.clone();
+            rsx! {
+                strong { "{v.r#type.emoji()} {v.r#type.i18n(cl).label}" }
+                span { " I{v.intensity}/10 P{v.priority}/10" }
+                span { " {v.notes}" }
+            }
+        },
+    )
+}
+
+#[component]
+fn ValAddRow(items: ListField<Value>, edit_idx: Signal<Option<usize>>) -> Element {
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let mut sel_type = use_signal(|| ValueType::Career);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_priority = use_signal(|| 5u8);
+    let mut sel_notes = use_signal(String::new);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang());
+    let priority_label = crate::tr!("edit_priority", lang());
+    let value_intensity_helper = crate::tr!("value_intensity_helper", lang());
+    let value_priority_helper = crate::tr!("value_priority_helper", lang());
+    let add_btn = crate::tr!("add_btn", lang());
+    let update_btn = crate::tr!("edit_update_btn", lang());
+
+    use_effect(move || {
+        let Some(idx) = edit_idx() else {
+            return;
+        };
+        let items_read = items.val.read();
+        if let Some(item) = items_read.get(idx) {
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_priority.set(item.priority);
+            sel_notes.set(item.notes.clone());
+        }
+    });
+
+    rsx! {
+        div { class: "add-row",
+            select { value: "{sel_type}",
+                onchange: move |e| { sel_type.set(parse_val_type(&e.value())); },
+                for t in ValueType::ALL {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
+                }
+            }
+            div { class: "dual-range",
+                StepperSlider {
+                    min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                    onchange: move |v| { sel_intensity.set(v); }
+                }
+                span { class: "range-label", "I" }
+                StepperSlider {
+                    min: 1, max: 10, value: sel_priority(), display: format!("{}", sel_priority()),
+                    onchange: move |v| { sel_priority.set(v); }
+                }
+                span { class: "range-label", "{priority_label}" }
+            }
+            input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                oninput: move |e| { sel_notes.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_value", lang()) } else { crate::tr!("aria_add_value", lang()) }, onclick: move |_| {
+                let new_item = Value { r#type: sel_type(), intensity: sel_intensity(), priority: sel_priority(), notes: sel_notes() };
+                if let Some(idx) = edit_idx() {
+                    items.replace(idx, new_item);
+                    edit_idx.set(None);
+                } else {
+                    items.push(new_item);
+                }
+                sel_notes.set(String::new());
+                sel_intensity.set(5);
+                sel_priority.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text",
+            div { "{value_helper(&sel_type(), lang())}" }
+            div { "{value_intensity_helper}" }
+            div { "{value_priority_helper}" }
+        }
+    }
+}
+
+#[component]
+fn BiasEditPanel(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let items = use_list_field(
+        ctx,
+        facet,
+        |p| &p.biases,
+        |p| &mut p.biases,
+        |m| &m.biases,
+        |m| &mut m.biases,
+    );
+    let edit_idx = use_signal(|| None::<usize>);
+    let edit_biases = crate::tr!("edit_biases", lang());
+    let add_row = rsx! {
+        BiasAddRow { items: items.clone(), edit_idx }
+    };
+    list_edit_section(
+        items.clone(),
+        edit_idx,
+        crate::tr!("aria_move_bias_up", lang()),
+        crate::tr!("aria_move_bias_down", lang()),
+        crate::tr!("aria_edit_bias", lang()),
+        crate::tr!("aria_delete_bias", lang()),
+        edit_biases,
+        add_row,
+        || {},
+        move |_i, b: &Bias| {
+            let b = b.clone();
+            rsx! {
+                strong { "{b.r#type.emoji()} {b.r#type.i18n(cl).label}" }
+                span { " {b.intensity}/10" }
+                span { " {b.evidence}" }
+            }
+        },
+    )
+}
+
+#[component]
+fn BiasAddRow(items: ListField<Bias>, edit_idx: Signal<Option<usize>>) -> Element {
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let mut sel_type = use_signal(|| BiasType::Confirmation);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_evidence = use_signal(String::new);
+    let bias_undefined_warning = crate::tr!("bias_undefined_warning", lang());
+    let bias_scale_hint = crate::tr!("bias_scale_hint", lang());
+    let evidence_pl = crate::tr!("edit_evidence_placeholder", lang());
+    let add_btn = crate::tr!("add_btn", lang());
+    let update_btn = crate::tr!("edit_update_btn", lang());
+
+    use_effect(move || {
+        let Some(idx) = edit_idx() else {
+            return;
+        };
+        let items_read = items.val.read();
+        if let Some(item) = items_read.get(idx) {
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_evidence.set(item.evidence.clone());
+        }
+    });
+
+    rsx! {
+        div { class: "helper-text", "{bias_undefined_warning}" }
+        div { class: "helper-text", "{bias_scale_hint}" }
+        div { class: "add-row",
+            select { value: "{sel_type}",
+                onchange: move |e| { sel_type.set(parse_bias_type(&e.value())); },
+                for t in BiasType::ALL {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n(cl).label}" }
+                }
+            }
+            StepperSlider {
+                min: 0, max: 10, value: sel_intensity(), display: format!("{}/10", sel_intensity()),
+                onchange: move |v| { sel_intensity.set(v); }
+            }
+            input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
+                oninput: move |e| { sel_evidence.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_bias", lang()) } else { crate::tr!("aria_add_bias", lang()) }, onclick: move |_| {
+                let new_item = Bias { r#type: sel_type(), intensity: sel_intensity(), evidence: sel_evidence() };
+                if let Some(idx) = edit_idx() {
+                    items.replace(idx, new_item);
+                    edit_idx.set(None);
+                } else {
+                    items.push(new_item);
+                }
+                sel_evidence.set(String::new());
+                sel_intensity.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{bias_helper(&sel_type(), lang())}" }
+    }
+}
+
+#[component]
+fn PatternEditPanel(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let items = use_list_field(
+        ctx,
+        facet,
+        |p| &p.behavioral_patterns,
+        |p| &mut p.behavioral_patterns,
+        |m| &m.behavioral_patterns,
+        |m| &mut m.behavioral_patterns,
+    );
+    let edit_idx = use_signal(|| None::<usize>);
+    let edit_patterns = crate::tr!("edit_patterns", lang());
+    let ctx_stress = crate::tr!("ctx_stress", lang());
+    let ctx_conflict = crate::tr!("ctx_conflict", lang());
+    let ctx_success = crate::tr!("ctx_success", lang());
+    let ctx_uncertainty = crate::tr!("ctx_uncertainty", lang());
+    let ctx_recognition = crate::tr!("ctx_recognition", lang());
+    let ctx_threatened = crate::tr!("ctx_threatened", lang());
+    let ctx_change = crate::tr!("ctx_change", lang());
+    let ctx_feedback = crate::tr!("ctx_feedback", lang());
+    let ctx_injustice = crate::tr!("ctx_injustice", lang());
+    let trigger_label = move |t: BehaviorTrigger| -> &'static str {
+        match t {
+            BehaviorTrigger::Stress => ctx_stress,
+            BehaviorTrigger::Conflict => ctx_conflict,
+            BehaviorTrigger::Success => ctx_success,
+            BehaviorTrigger::Uncertainty => ctx_uncertainty,
+            BehaviorTrigger::Recognition => ctx_recognition,
+            BehaviorTrigger::Threatened => ctx_threatened,
+            BehaviorTrigger::Change => ctx_change,
+            BehaviorTrigger::Feedback => ctx_feedback,
+            BehaviorTrigger::Injustice => ctx_injustice,
+        }
+    };
+    let add_row = rsx! {
+        PatternAddRow { items: items.clone(), edit_idx }
+    };
+    list_edit_section(
+        items.clone(),
+        edit_idx,
+        crate::tr!("aria_move_pattern_up", lang()),
+        crate::tr!("aria_move_pattern_down", lang()),
+        crate::tr!("aria_edit_pattern", lang()),
+        crate::tr!("aria_delete_pattern", lang()),
+        edit_patterns,
+        add_row,
+        // Deleting a row clears the local notes buffer so stale text isn't
+        // carried into the next "add" — mirrored inside PatternAddRow via
+        // shrink-detection, since its copy of sel_notes lives there now.
+        || {},
+        move |_i, bp: &BehavioralPattern| {
+            let bp = bp.clone();
+            rsx! {
+                strong { "{trigger_label(bp.trigger)}" }
+                span { " {bp.predicted_behavior.label(cl)}" }
+                if !bp.notes.is_empty() {
+                    span { class: "item-notes", " — {bp.notes}" }
+                }
+            }
+        },
+    )
+}
+
+#[component]
+fn PatternAddRow(items: ListField<BehavioralPattern>, edit_idx: Signal<Option<usize>>) -> Element {
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let ctx_stress = crate::tr!("ctx_stress", lang());
+    let ctx_conflict = crate::tr!("ctx_conflict", lang());
+    let ctx_success = crate::tr!("ctx_success", lang());
+    let ctx_uncertainty = crate::tr!("ctx_uncertainty", lang());
+    let ctx_recognition = crate::tr!("ctx_recognition", lang());
+    let ctx_threatened = crate::tr!("ctx_threatened", lang());
+    let ctx_change = crate::tr!("ctx_change", lang());
+    let ctx_feedback = crate::tr!("ctx_feedback", lang());
+    let ctx_injustice = crate::tr!("ctx_injustice", lang());
+    let mut sel_trigger = use_signal(|| BehaviorTrigger::Stress);
+    let mut sel_behavior = use_signal(|| BehaviorResponse::SeeksSupport);
+    let mut sel_notes = use_signal(String::new);
+
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang());
+    let add_btn = crate::tr!("add_btn", lang());
+    let update_btn = crate::tr!("edit_update_btn", lang());
+
+    // The old editor cleared its notes buffer when a row was deleted; that
+    // state now lives here, so the clear happens on list shrink (our own ✕
+    // in list_edit_section drives the removal).
+    let last_len = use_hook(|| std::rc::Rc::new(std::cell::Cell::new(usize::MAX)));
+    use_effect(move || {
+        let len = items.val.read().len();
+        if len < last_len.get() {
+            sel_notes.set(String::new());
+        }
+        last_len.set(len);
+    });
+
+    use_effect(move || {
+        let Some(idx) = edit_idx() else {
+            return;
+        };
+        let items_read = items.val.read();
+        if let Some(item) = items_read.get(idx) {
+            sel_trigger.set(item.trigger);
+            sel_behavior.set(item.predicted_behavior);
+            sel_notes.set(item.notes.clone());
+        }
+    });
+
+    rsx! {
+        div { class: "add-row",
+            select { value: "{sel_trigger}",
+                onchange: move |e| { sel_trigger.set(parse_trigger(&e.value())); sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]); },
+                option { value: "Stress", "{ctx_stress}" }
+                option { value: "Conflict", "{ctx_conflict}" }
+                option { value: "Success", "{ctx_success}" }
+                option { value: "Uncertainty", "{ctx_uncertainty}" }
+                option { value: "Recognition", "{ctx_recognition}" }
+                option { value: "Threatened", "{ctx_threatened}" }
+                option { value: "Change", "{ctx_change}" }
+                option { value: "Feedback", "{ctx_feedback}" }
+                option { value: "Injustice", "{ctx_injustice}" }
+            }
+            select { value: "{sel_behavior().serde_name()}",
+                onchange: move |e| { let _ = parse_response(&e.value()).map(|v| sel_behavior.set(v)); },
+                for opt in BehaviorResponse::options_for(sel_trigger()) {
+                    option { value: "{opt.serde_name()}", "{opt.label(cl)}" }
+                }
+            }
+            input {
+                r#type: "text",
+                placeholder: "{notes_pl}",
+                value: "{sel_notes()}",
+                oninput: move |e| sel_notes.set(e.value()),
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_pattern", lang()) } else { crate::tr!("aria_add_pattern", lang()) }, onclick: move |_| {
+                let new_item = BehavioralPattern {
+                    trigger: sel_trigger(),
+                    predicted_behavior: sel_behavior(),
+                    notes: sel_notes(),
+                };
+                if let Some(idx) = edit_idx() {
+                    items.replace(idx, new_item);
+                    edit_idx.set(None);
+                } else {
+                    items.push(new_item);
+                }
+                sel_behavior.set(BehaviorResponse::options_for(sel_trigger())[0]);
+                sel_notes.set(String::new());
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{pattern_helper(&sel_trigger(), lang())}" }
+        div { class: "helper-text", "{behavior_helper(&sel_behavior(), lang())}" }
+    }
+}
+
+#[component]
+fn StyleEditPanel(facet: FacetKind) -> Element {
+    let ctx = use_context::<PersonEditState>();
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let items = use_list_field(
+        ctx,
+        facet,
+        |p| &p.styles,
+        |p| &mut p.styles,
+        |m| &m.styles,
+        |m| &mut m.styles,
+    );
+    let edit_idx = use_signal(|| None::<usize>);
+    let panel_title = crate::tr!("edit_styles", lang());
+    let add_row = rsx! {
+        StyleAddRow { items: items.clone(), edit_idx }
+    };
+    list_edit_section(
+        items.clone(),
+        edit_idx,
+        crate::tr!("aria_move_style_up", lang()),
+        crate::tr!("aria_move_style_down", lang()),
+        crate::tr!("aria_edit_style", lang()),
+        crate::tr!("aria_delete_style", lang()),
+        panel_title,
+        add_row,
+        || {},
+        move |_i, s: &PersonalStyle| {
+            let s = s.clone();
+            rsx! {
+                span { class: "style-cat-badge", "{s.r#type.category().i18n_label(cl)}" }
+                strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
+                span { " {s.intensity}/10" }
+                span { " {s.notes}" }
+            }
+        },
+    )
+}
+
+#[component]
+fn StyleAddRow(items: ListField<PersonalStyle>, edit_idx: Signal<Option<usize>>) -> Element {
+    use peoplemodeler_core::models::StyleCategory;
+
+    let lang = use_context::<Signal<Lang>>();
+    let cl = core_lang(lang());
+    let mut sel_category = use_signal(|| StyleCategory::Communication);
+    let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
+    let mut sel_intensity = use_signal(|| 5u8);
+    let mut sel_notes = use_signal(String::new);
+    let notes_pl = crate::tr!("edit_notes_placeholder", lang());
+    let add_btn = crate::tr!("add_btn", lang());
+    let update_btn = crate::tr!("edit_update_btn", lang());
+
+    use_effect(move || {
+        let cat = sel_category();
+        let current = sel_type();
+        if let Some(coerced) = style_selection_reconcile(cat, current) {
+            sel_type.set(coerced);
+        }
+    });
+
+    use_effect(move || {
+        let Some(idx) = edit_idx() else {
+            return;
+        };
+        let items_read = items.val.read();
+        if let Some(item) = items_read.get(idx) {
+            sel_category.set(item.r#type.category());
+            sel_type.set(item.r#type);
+            sel_intensity.set(item.intensity);
+            sel_notes.set(item.notes.clone());
+        }
+    });
+
+    rsx! {
+        div { class: "add-row",
+            select {
+                value: "{sel_category():?}",
+                onchange: move |e| {
+                    let cat = parse_style_category(&e.value());
+                    sel_category.set(cat);
+                },
+                for cat in StyleCategory::ALL {
+                    option { value: "{cat:?}", "{cat.i18n_label(cl)}" }
+                }
+            }
+            select { value: "{sel_type()}",
+                onchange: move |e| { sel_type.set(parse_style_type(&e.value())); },
+                for t in StyleType::options_for(sel_category()) {
+                    option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
+                }
+            }
+            StepperSlider {
+                min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
+                onchange: move |v| { sel_intensity.set(v); }
+            }
+            input { placeholder: "{notes_pl}", value: "{sel_notes}",
+                oninput: move |e| { sel_notes.set(e.value()); }
+            }
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_style", lang()) } else { crate::tr!("aria_add_style", lang()) }, onclick: move |_| {
+                let new_item = PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
+                if let Some(idx) = edit_idx() {
+                    items.replace(idx, new_item);
+                    edit_idx.set(None);
+                } else {
+                    items.push(new_item);
+                }
+                sel_notes.set(String::new());
+                sel_intensity.set(5);
+            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
+        }
+        div { class: "helper-text", "{style_helper(&sel_type(), lang())}" }
+    }
 }
 
 fn parse_mot_type(s: &str) -> MotivationType {
@@ -2432,107 +2797,77 @@ fn style_selection_reconcile(cat: StyleCategory, sel: StyleType) -> Option<Style
     if coerced == sel { None } else { Some(coerced) }
 }
 
-#[component]
-fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: Lang) -> Element {
-    use peoplemodeler_core::models::StyleCategory;
+/// A tick of the render counter, extracted for a direct #[test] (the counting
+/// itself lives in a Dioxus component body).
+fn next_render_count(current: u32) -> u32 {
+    current + 1
+}
 
-    let cl = core_lang(lang);
-    let panel_title = crate::tr!("edit_styles", lang);
-    let mut sel_category = use_signal(|| StyleCategory::Communication);
-    let mut sel_type = use_signal(|| StyleType::DirectCommunicator);
-    let mut sel_intensity = use_signal(|| 5u8);
-    let mut sel_notes = use_signal(String::new);
-    let mut edit_idx = use_signal(|| None::<usize>);
-    let notes_pl = crate::tr!("edit_notes_placeholder", lang);
-    let add_btn = crate::tr!("add_btn", lang);
-    let update_btn = crate::tr!("edit_update_btn", lang);
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum EditSectionId {
+    ResilienceRisk,
+    Ocean,
+    Motivations,
+    Biases,
+    Reputation,
+    Patterns,
+    Styles,
+    Values,
+}
 
-    use_effect(move || {
-        let cat = sel_category();
-        let current = sel_type();
-        if let Some(coerced) = style_selection_reconcile(cat, current) {
-            sel_type.set(coerced);
-        }
-    });
+const ALL_EDIT_SECTIONS: [EditSectionId; 8] = [
+    EditSectionId::ResilienceRisk,
+    EditSectionId::Ocean,
+    EditSectionId::Motivations,
+    EditSectionId::Biases,
+    EditSectionId::Reputation,
+    EditSectionId::Patterns,
+    EditSectionId::Styles,
+    EditSectionId::Values,
+];
 
-    use_effect(move || {
-        if let Some(idx) = edit_idx()
-            && let Some(item) = styles.read().get(idx)
-        {
-            sel_category.set(item.r#type.category());
-            sel_type.set(item.r#type);
-            sel_intensity.set(item.intensity);
-            sel_notes.set(item.notes.clone());
-        }
-    });
-
-    let add_row = rsx! {
-        div { class: "add-row",
-            select {
-                value: "{sel_category():?}",
-                onchange: move |e| {
-                    let cat = parse_style_category(&e.value());
-                    sel_category.set(cat);
-                },
-                for cat in StyleCategory::ALL {
-                    option { value: "{cat:?}", "{cat.i18n_label(cl)}" }
-                }
-            }
-            select { value: "{sel_type()}",
-                onchange: move |e| { sel_type.set(parse_style_type(&e.value())); },
-                for t in StyleType::options_for(sel_category()) {
-                    option { value: "{t:?}", "{t.emoji()} {t.i18n_label(cl)}" }
-                }
-            }
-            StepperSlider {
-                min: 1, max: 10, value: sel_intensity(), display: format!("{}", sel_intensity()),
-                onchange: move |v| { sel_intensity.set(v); }
-            }
-            input { placeholder: "{notes_pl}", value: "{sel_notes}",
-                oninput: move |e| { sel_notes.set(e.value()); }
-            }
-            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_style", lang) } else { crate::tr!("aria_add_style", lang) }, onclick: move |_| {
-                if let Some(idx) = edit_idx() {
-                    let mut items = styles.write();
-                    if idx < items.len() {
-                        items[idx] = PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() };
-                    }
-                    edit_idx.set(None);
-                } else {
-                    styles.write().push(PersonalStyle { r#type: sel_type(), intensity: sel_intensity(), notes: sel_notes() });
-                }
-                sel_notes.set(String::new());
-                sel_intensity.set(5);
-            }, if edit_idx().is_some() { "{update_btn}" } else { "{add_btn}" } }
-        }
-        div { class: "helper-text", "{style_helper(&sel_type(), lang)}" }
-    };
-
-    list_edit_section(
-        styles,
-        edit_idx,
-        crate::tr!("aria_move_style_up", lang),
-        crate::tr!("aria_move_style_down", lang),
-        crate::tr!("aria_edit_style", lang),
-        crate::tr!("aria_delete_style", lang),
-        panel_title,
-        add_row,
-        || {},
-        move |_i, s: &PersonalStyle| {
-            let s = s.clone();
-            rsx! {
-                span { class: "style-cat-badge", "{s.r#type.category().i18n_label(cl)}" }
-                strong { "{s.r#type.emoji()} {s.r#type.i18n_label(cl)}" }
-                span { " {s.intensity}/10" }
-                span { " {s.notes}" }
-            }
-        },
-    )
+// Sections open independently (not a single-open accordion): toggling one
+// section never hides the others, so the whole form stays usable/testable
+// at once. Each id just gets added to / removed from the open set.
+fn toggle_section(mut current: Vec<EditSectionId>, target: EditSectionId) -> Vec<EditSectionId> {
+    if let Some(pos) = current.iter().position(|x| *x == target) {
+        current.remove(pos);
+    } else {
+        current.push(target);
+    }
+    current
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_person() -> Person {
+        let mut base = blank_person();
+        base.id = "person-1".into();
+        base.name = "Base Name".into();
+        base.ocean.openness = Some(8);
+        base.ocean.conscientiousness = Some(7);
+        base.motivations.push(Motivation {
+            r#type: MotivationType::Power,
+            intensity: 9,
+            notes: "base mot".into(),
+        });
+        base.persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(5),
+                ..OceanScores::default()
+            }),
+            motivations: Some(vec![Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 3,
+                notes: "work mot".into(),
+            }]),
+            ..PersonaMask::default()
+        });
+        base.online_persona = None;
+        base
+    }
 
     #[test]
     fn mot_helper_all_variants() {
@@ -2731,68 +3066,6 @@ mod tests {
     fn parse_style_type_invalid() {
         let st = parse_style_type("bogus");
         assert_eq!(st, StyleType::DirectCommunicator);
-    }
-
-    #[test]
-    fn swap_item_in_list_up() {
-        let mut v = vec!["a", "b", "c"];
-        swap_item_in_list(&mut v, 1, true);
-        assert_eq!(v, vec!["b", "a", "c"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_down() {
-        let mut v = vec!["a", "b", "c"];
-        swap_item_in_list(&mut v, 1, false);
-        assert_eq!(v, vec!["a", "c", "b"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_first_up_noop() {
-        let mut v = vec!["a", "b", "c"];
-        swap_item_in_list(&mut v, 0, true);
-        assert_eq!(v, vec!["a", "b", "c"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_last_down_noop() {
-        let mut v = vec!["a", "b", "c"];
-        swap_item_in_list(&mut v, 2, false);
-        assert_eq!(v, vec!["a", "b", "c"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_single_element() {
-        let mut v = vec!["a"];
-        swap_item_in_list(&mut v, 0, true);
-        assert_eq!(v, vec!["a"]);
-        swap_item_in_list(&mut v, 0, false);
-        assert_eq!(v, vec!["a"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_two_elements_up() {
-        let mut v = vec!["a", "b"];
-        swap_item_in_list(&mut v, 1, true);
-        assert_eq!(v, vec!["b", "a"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_two_elements_down() {
-        let mut v = vec!["a", "b"];
-        swap_item_in_list(&mut v, 0, false);
-        assert_eq!(v, vec!["b", "a"]);
-    }
-
-    #[test]
-    fn swap_item_in_list_integers() {
-        let mut v = vec![1, 2, 3, 4];
-        swap_item_in_list(&mut v, 0, true);
-        assert_eq!(v, vec![1, 2, 3, 4]);
-        swap_item_in_list(&mut v, 2, true);
-        assert_eq!(v, vec![1, 3, 2, 4]);
-        swap_item_in_list(&mut v, 2, false);
-        assert_eq!(v, vec![1, 3, 4, 2]);
     }
 
     #[test]
@@ -3070,9 +3343,9 @@ mod tests {
     }
 
     #[test]
-    fn next_reset_gen_increments_by_one() {
-        assert_eq!(next_reset_gen(0), 1);
-        assert_eq!(next_reset_gen(7), 8);
+    fn next_render_count_increments_by_one() {
+        assert_eq!(next_render_count(0), 1);
+        assert_eq!(next_render_count(41), 42);
     }
 
     #[test]
@@ -3087,5 +3360,134 @@ mod tests {
         assert_eq!(open, vec![b], "closing a leaves b open");
         let open = toggle_section(open, b);
         assert!(open.is_empty(), "closing the last one leaves nothing open");
+    }
+
+    #[test]
+    fn mask_of_is_none_for_base() {
+        let p = test_person();
+        assert!(mask_of(&p, FacetKind::Base).is_none());
+        assert!(mask_of(&p, FacetKind::Work).is_some());
+        assert!(mask_of(&p, FacetKind::Online).is_none());
+    }
+
+    #[test]
+    fn discard_base_section_restores_saved_value_only() {
+        let saved = test_person();
+        let mut draft = test_person();
+        // Edit the base ocean and leave the persona untouched.
+        draft.ocean.openness = Some(2);
+        draft.ocean.conscientiousness = Some(9);
+        draft.name = "edited".into();
+        discard_section(EditSectionId::Ocean, FacetKind::Base, &saved, &mut draft);
+        assert_eq!(draft.ocean, saved.ocean);
+        assert_eq!(draft.name, "edited", "unrelated edits untouched");
+    }
+
+    #[test]
+    fn discard_base_resilience_risk_restores_defaults() {
+        let mut saved = test_person();
+        saved.resilience = Some(9);
+        saved.risk_appetite = Some(3);
+        let mut draft = test_person();
+        draft.resilience = Some(1);
+        draft.risk_appetite = Some(10);
+        discard_section(
+            EditSectionId::ResilienceRisk,
+            FacetKind::Base,
+            &saved,
+            &mut draft,
+        );
+        assert_eq!(draft.resilience, saved.resilience);
+        assert_eq!(draft.risk_appetite, saved.risk_appetite);
+    }
+
+    #[test]
+    fn discard_work_section_restores_saved_mask_bucket() {
+        let saved = test_person();
+        let mut draft = test_person();
+        let m = draft.persona.as_mut().unwrap();
+        m.ocean = Some(OceanScores {
+            openness: Some(10),
+            ..OceanScores::default()
+        });
+        draft.ocean.openness = Some(1);
+        discard_section(EditSectionId::Ocean, FacetKind::Work, &saved, &mut draft);
+        // Mask bucket reverts to the saved mask (openness 5), untouched by
+        // the base edits.
+        assert_eq!(
+            draft
+                .persona
+                .as_ref()
+                .unwrap()
+                .ocean
+                .as_ref()
+                .unwrap()
+                .openness,
+            Some(5)
+        );
+        assert_eq!(draft.ocean.openness, Some(1), "base untouched");
+    }
+
+    #[test]
+    fn discard_work_unset_bucket_falls_back_to_inherit() {
+        let mut saved = test_person();
+        saved.persona.as_mut().unwrap().biases = Some(vec![]);
+        let mut draft = test_person();
+        draft.persona.as_mut().unwrap().biases = Some(vec![Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 8,
+            evidence: "draft".into(),
+        }]);
+        discard_section(EditSectionId::Biases, FacetKind::Work, &saved, &mut draft);
+        // Saved mask had biases SOME(empty) → restore that; values were unset
+        // in saved → None.
+        assert_eq!(
+            draft
+                .persona
+                .as_ref()
+                .unwrap()
+                .biases
+                .as_ref()
+                .unwrap()
+                .len(),
+            0
+        );
+        assert_eq!(draft.persona.as_ref().unwrap().values, None);
+    }
+
+    #[test]
+    fn discard_without_persona_is_noop() {
+        let mut saved = test_person();
+        saved.persona = None;
+        let mut draft = test_person();
+        draft.persona = None;
+        discard_section(EditSectionId::Ocean, FacetKind::Work, &saved, &mut draft);
+        assert!(draft.persona.is_none());
+    }
+
+    #[test]
+    fn bucket_base_value_materializes_on_enable() {
+        let mut p = test_person();
+        p.persona = Some(PersonaMask::default());
+        let bucket = FacetBucket::Ocean;
+        let value = bucket.base_value(&p);
+        bucket.set_on_mask(p.persona.as_mut().unwrap(), true, value);
+        let m = p.persona.as_ref().unwrap();
+        assert!(m.ocean.is_some(), "bucket materializes on enable");
+        assert_eq!(m.ocean.as_ref().unwrap().openness, Some(8));
+        let off_value = bucket.base_value(&p);
+        bucket.set_on_mask(p.persona.as_mut().unwrap(), false, off_value);
+        assert!(p.persona.as_ref().unwrap().ocean.is_none());
+    }
+
+    #[test]
+    fn list_len_resolves_through_mask_and_base() {
+        let p = test_person();
+        // work mask overrides motivations (1) — base also has 1.
+        assert_eq!(list_len(&p, FacetKind::Work, FacetBucket::Motivations), 1);
+        // online has no mask → inherits base values (0 biassed).
+        assert_eq!(list_len(&p, FacetKind::Online, FacetBucket::Biases), 0);
+        // base list.
+        assert_eq!(list_len(&p, FacetKind::Base, FacetBucket::Motivations), 1);
     }
 }
