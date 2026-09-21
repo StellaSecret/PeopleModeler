@@ -390,6 +390,20 @@ fieldset.section legend{
 .edit-section.open .chevron{transform:rotate(90deg)}
 .edit-section-badge{flex:none;display:flex;align-items:center;gap:0.5rem}
 .edit-section-discard{flex:none}
+/* Per-section completion indicator: "3/5" (fixed slots like OCEAN's 5
+   traits or Reputation's 13 dimensions) or a bare count (open-ended lists
+   like Motivations). Lives in the header, so it's visible even while the
+   section is collapsed — the whole point is telling at a glance which
+   sections still need attention without opening each one. */
+.edit-section-progress{flex:none}
+.progress-badge{
+  font-size:0.65rem;font-weight:600;letter-spacing:0.03em;
+  padding:0.1rem 0.45rem;border-radius:999px;white-space:nowrap;
+  color:var(--text-muted);border:1px solid var(--border);background:transparent
+}
+.progress-badge.complete{
+  color:var(--cyan);border-color:var(--cyan)
+}
 .edit-section-body{border-top:1px solid var(--border);padding:0.8rem}
 /* Collapsed sections stay mounted (so scripts/tests/a11y tools can still
    query their contents) but are visually hidden and take no layout space. */
