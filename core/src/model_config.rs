@@ -260,12 +260,16 @@ pub const CFG: ModelConfig = ModelConfig {
         hierarchy_rep_diff_min: 3,
     },
     completeness: CompletenessConfig {
-        motivation_cap: 3,
-        bias_cap: 11,
+        // Caps equal the number of selectable types per dimension, so every
+        // entry a user adds counts toward completeness (5 OCEAN + 10
+        // motivations + 12 biases + 13 reputation + 8 style categories + 9
+        // patterns + 10 values = 67). Keep `denominator` equal to the sum.
+        motivation_cap: 10,
+        bias_cap: 12,
         style_cap: 8,
-        pattern_cap: 5,
-        values_cap: 3,
-        denominator: 48.0,
+        pattern_cap: 9,
+        values_cap: 10,
+        denominator: 67.0,
     },
     profile: ProfileConfig {
         default_total: 50,

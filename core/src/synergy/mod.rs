@@ -3083,26 +3083,18 @@ mod tests {
     #[test]
     fn test_profile_completeness_full() {
         let mut p = make_person(Some(8), Some(7), Some(6), Some(9), Some(3));
-        p.motivations = vec![
-            Motivation {
-                r#type: MotivationType::Achievement,
+        p.motivations = MotivationType::ALL
+            .iter()
+            .map(|t| Motivation {
+                r#type: *t,
                 intensity: 8,
                 notes: String::new(),
-            },
-            Motivation {
-                r#type: MotivationType::Power,
-                intensity: 5,
-                notes: String::new(),
-            },
-            Motivation {
-                r#type: MotivationType::Affiliation,
-                intensity: 7,
-                notes: String::new(),
-            },
-        ];
-        p.biases = (0..11)
-            .map(|i| Bias {
-                r#type: BiasType::ALL[i],
+            })
+            .collect();
+        p.biases = BiasType::ALL
+            .iter()
+            .map(|t| Bias {
+                r#type: *t,
                 intensity: 5,
                 evidence: String::new(),
             })
@@ -3165,53 +3157,23 @@ mod tests {
                 notes: String::new(),
             },
         ];
-        p.behavioral_patterns = vec![
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Change,
+        p.behavioral_patterns = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| BehavioralPattern {
+                trigger: *t,
                 predicted_behavior: BehaviorResponse::BecomesDefensive,
                 notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Feedback,
-                predicted_behavior: BehaviorResponse::BecomesDefensive,
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Success,
-                predicted_behavior: BehaviorResponse::BecomesDefensive,
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Conflict,
-                predicted_behavior: BehaviorResponse::BecomesDefensive,
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::BecomesDefensive,
-                notes: String::new(),
-            },
-        ];
-        p.values = vec![
-            crate::models::Value {
-                r#type: crate::models::ValueType::Career,
+            })
+            .collect();
+        p.values = ValueType::ALL
+            .iter()
+            .map(|t| crate::models::Value {
+                r#type: *t,
                 intensity: 8,
                 priority: 7,
                 notes: String::new(),
-            },
-            crate::models::Value {
-                r#type: crate::models::ValueType::Family,
-                intensity: 6,
-                priority: 9,
-                notes: String::new(),
-            },
-            crate::models::Value {
-                r#type: crate::models::ValueType::Health,
-                intensity: 5,
-                priority: 5,
-                notes: String::new(),
-            },
-        ];
+            })
+            .collect();
         let c = profile_completeness(&p);
         assert!((c - 1.0).abs() < 0.001, "full: {c}");
     }
@@ -3220,7 +3182,7 @@ mod tests {
     fn test_profile_completeness_ocean_only() {
         let p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let c = profile_completeness(&p);
-        let expected = 5.0 / 48.0;
+        let expected = 5.0 / CFG.completeness.denominator;
         assert!((c - expected).abs() < 0.001, "ocean only: {c}");
     }
 
@@ -3260,7 +3222,7 @@ mod tests {
             },
         ];
         let c = profile_completeness(&p);
-        let expected = (13.0 + 3.0) / 48.0;
+        let expected = (13.0 + 3.0) / CFG.completeness.denominator;
         assert!((c - expected).abs() < 0.001, "rep+mot: {c}");
     }
 
@@ -3280,7 +3242,7 @@ mod tests {
             },
         ];
         let c = profile_completeness(&p);
-        let expected = 2.0 / 48.0;
+        let expected = 2.0 / CFG.completeness.denominator;
         assert!((c - expected).abs() < 0.001, "2 mot: {c}");
     }
 
@@ -6049,7 +6011,7 @@ mod tests {
     fn test_profile_completeness_full_one() {
         let p = full_profile();
         let c = profile_completeness(&p);
-        assert!(c > 0.5, "full profile > 0.5, got {}", c);
+        assert!(c > 0.3, "full profile > 0.3, got {}", c);
         assert!(c <= 1.0, "full profile <= 1.0");
     }
 

@@ -974,7 +974,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             class: "emoji-btn",
                             class: if emoji() == *e { "selected" },
                             role: "radio",
-                            aria_label: "Avatar {e}",
+                            aria_label: "{crate::tr!(\"aria_avatar_prefix\", lang())} {e}",
                             aria_checked: if emoji() == *e { "true" } else { "false" },
                             onclick: move |_| emoji.set(e.to_string()),
                             "{e}"
@@ -1035,6 +1035,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             }
                         },
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
+                        progress: Some(progress_badge(ocean_filled_count(&ocean()), Some(5))),
                         OceanInputs { ocean }
                     }
 
@@ -1044,6 +1045,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Motivations,
                         title: edit_motivations,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
+                        progress: Some(progress_badge(motivations().len(), Some(peoplemodeler_core::model_config::CFG.completeness.motivation_cap))),
                         MotEditPanel { motivations, lang: lang() }
                     }
                     FacetSection {
@@ -1052,6 +1054,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Biases,
                         title: edit_biases,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
+                        progress: Some(progress_badge(biases().len(), Some(peoplemodeler_core::model_config::CFG.completeness.bias_cap))),
                         BiasEditPanel { biases, lang: lang() }
                     }
                     FacetSection {
@@ -1060,6 +1063,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Reputation,
                         title: edit_reputation,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
+                        progress: Some(progress_badge(rep_filled_count(&rep_scores()), Some(13))),
                         RepEditPanel { rep_scores, lang: lang(), reset_gen: rep_reset_gen() }
                     }
                     FacetSection {
@@ -1068,6 +1072,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Patterns,
                         title: edit_patterns,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
+                        progress: Some(progress_badge(patterns().len(), Some(peoplemodeler_core::model_config::CFG.completeness.pattern_cap))),
                         PatternEditPanel { patterns, lang: lang() }
                     }
                     FacetSection {
@@ -1076,6 +1081,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Styles,
                         title: edit_styles,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
+                        progress: Some(progress_badge(styles().len(), Some(peoplemodeler_core::model_config::CFG.completeness.style_cap))),
                         StyleEditPanel { styles, lang: lang() }
                     }
                     FacetSection {
@@ -1084,6 +1090,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                         id: EditSectionId::Values,
                         title: edit_values,
                         on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
+                        progress: Some(progress_badge(values().len(), Some(peoplemodeler_core::model_config::CFG.completeness.values_cap))),
                         ValEditPanel { values, lang: lang() }
                     }
                 }
@@ -1114,6 +1121,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: form_ocean_title,
                             has: Some(has_ocean),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
+                            progress: Some(progress_badge(ocean_filled_count(&work_ocean()), Some(5))),
                             OceanInputs { ocean: work_ocean }
                         }
 
@@ -1124,6 +1132,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_motivations,
                             has: Some(has_motivations),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
+                            progress: Some(progress_badge(work_motivations().len(), Some(peoplemodeler_core::model_config::CFG.completeness.motivation_cap))),
                             MotEditPanel { motivations: work_motivations, lang: lang() }
                         }
 
@@ -1134,6 +1143,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_biases,
                             has: Some(has_biases),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
+                            progress: Some(progress_badge(work_biases().len(), Some(peoplemodeler_core::model_config::CFG.completeness.bias_cap))),
                             BiasEditPanel { biases: work_biases, lang: lang() }
                         }
 
@@ -1144,6 +1154,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_reputation,
                             has: Some(has_rep),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
+                            progress: Some(progress_badge(rep_filled_count(&work_rep()), Some(13))),
                             RepEditPanel { rep_scores: work_rep, lang: lang(), reset_gen: rep_reset_gen() }
                         }
 
@@ -1154,6 +1165,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_patterns,
                             has: Some(has_patterns),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
+                            progress: Some(progress_badge(work_patterns().len(), Some(peoplemodeler_core::model_config::CFG.completeness.pattern_cap))),
                             PatternEditPanel { patterns: work_patterns, lang: lang() }
                         }
 
@@ -1164,6 +1176,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_styles,
                             has: Some(has_styles),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
+                            progress: Some(progress_badge(work_styles().len(), Some(peoplemodeler_core::model_config::CFG.completeness.style_cap))),
                             StyleEditPanel { styles: work_styles, lang: lang() }
                         }
 
@@ -1174,6 +1187,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_values,
                             has: Some(has_values),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
+                            progress: Some(progress_badge(work_values().len(), Some(peoplemodeler_core::model_config::CFG.completeness.values_cap))),
                             ValEditPanel { values: work_values, lang: lang() }
                         }
                     }
@@ -1208,6 +1222,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: form_ocean_title,
                             has: Some(has_online_ocean),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Ocean) })),
+                            progress: Some(progress_badge(ocean_filled_count(&online_ocean()), Some(5))),
                             OceanInputs { ocean: online_ocean }
                         }
 
@@ -1218,6 +1233,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_motivations,
                             has: Some(has_online_motivations),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Motivations) })),
+                            progress: Some(progress_badge(online_motivations().len(), Some(peoplemodeler_core::model_config::CFG.completeness.motivation_cap))),
                             MotEditPanel { motivations: online_motivations, lang: lang() }
                         }
 
@@ -1228,6 +1244,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_biases,
                             has: Some(has_online_biases),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Biases) })),
+                            progress: Some(progress_badge(online_biases().len(), Some(peoplemodeler_core::model_config::CFG.completeness.bias_cap))),
                             BiasEditPanel { biases: online_biases, lang: lang() }
                         }
 
@@ -1238,6 +1255,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_reputation,
                             has: Some(has_online_rep),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Reputation) })),
+                            progress: Some(progress_badge(rep_filled_count(&online_rep()), Some(13))),
                             RepEditPanel { rep_scores: online_rep, lang: lang(), reset_gen: rep_reset_gen() }
                         }
 
@@ -1248,6 +1266,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_patterns,
                             has: Some(has_online_patterns),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Patterns) })),
+                            progress: Some(progress_badge(online_patterns().len(), Some(peoplemodeler_core::model_config::CFG.completeness.pattern_cap))),
                             PatternEditPanel { patterns: online_patterns, lang: lang() }
                         }
 
@@ -1258,6 +1277,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_styles,
                             has: Some(has_online_styles),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Styles) })),
+                            progress: Some(progress_badge(online_styles().len(), Some(peoplemodeler_core::model_config::CFG.completeness.style_cap))),
                             StyleEditPanel { styles: online_styles, lang: lang() }
                         }
 
@@ -1268,6 +1288,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
                             title: edit_values,
                             has: Some(has_online_values),
                             on_discard: Some(EventHandler::new({ let discard = discard.clone(); move |_| (discard.borrow_mut())(EditSectionId::Values) })),
+                            progress: Some(progress_badge(online_values().len(), Some(peoplemodeler_core::model_config::CFG.completeness.values_cap))),
                             ValEditPanel { values: online_values, lang: lang() }
                         }
                     }
@@ -1284,15 +1305,55 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
 #[component]
 fn BucketToggle(has: Signal<bool>) -> Element {
+    let lang = use_context::<Signal<Lang>>();
     rsx! {
         label { class: "dim-toggle bucket-toggle",
             input { r#type: "checkbox",
                 checked: has(),
                 oninput: move |e| has.set(e.value() == "true")
             }
-            if has() { "Override" } else { "Inherits base" }
+            if has() { "{crate::tr!(\"bucket_override\", lang())}" } else { "{crate::tr!(\"bucket_inherits_base\", lang())}" }
         }
     }
+}
+
+/// Small "how much of this is filled in" badge for a section header —
+/// visible even while the section is collapsed. `total: None` means an
+/// open-ended list (just show the count); `Some(n)` means a fixed set of
+/// slots (OCEAN's 5 traits, Reputation's 13 dimensions) and renders as
+/// "filled/total".
+fn progress_badge(filled: usize, total: Option<usize>) -> Element {
+    let text = match total {
+        Some(total) => format!("{filled}/{total}"),
+        None => filled.to_string(),
+    };
+    let complete = total.is_none_or(|total| filled >= total);
+    rsx! {
+        span {
+            class: if complete { "progress-badge complete" } else { "progress-badge" },
+            "{text}"
+        }
+    }
+}
+
+fn ocean_filled_count(o: &OceanScores) -> usize {
+    [
+        o.openness,
+        o.conscientiousness,
+        o.extraversion,
+        o.agreeableness,
+        o.neuroticism,
+    ]
+    .iter()
+    .filter(|v| v.is_some())
+    .count()
+}
+
+fn rep_filled_count(r: &RepScores) -> usize {
+    RepDim::ALL
+        .iter()
+        .filter(|d| r.score(**d).is_some())
+        .count()
 }
 
 #[component]
@@ -1301,10 +1362,12 @@ fn EditSection(
     id: EditSectionId,
     title: &'static str,
     header: Option<Element>,
+    #[props(default)] progress: Option<Element>,
     on_discard: Option<EventHandler<()>>,
     children: Element,
 ) -> Element {
     let is_open = open().contains(&id);
+    let lang = use_context::<Signal<Lang>>();
     rsx! {
         div {
             class: "edit-section",
@@ -1318,6 +1381,14 @@ fn EditSection(
                     span { class: "chevron", if is_open { "▾" } else { "▸" } }
                     span { "{title}" }
                 }
+                // How much of this section is filled in — visible even
+                // while collapsed, so a person can tell at a glance which
+                // sections still need attention without opening each one.
+                // Independent of `header` (the override checkbox / warning
+                // badge) so the two never have to fight over one slot.
+                if let Some(p) = progress {
+                    div { class: "edit-section-progress", { p } }
+                }
                 if let Some(h) = header {
                     div { class: "edit-section-badge", { h } }
                 }
@@ -1325,7 +1396,7 @@ fn EditSection(
                     button {
                         class: "btn btn-small edit-section-discard",
                         r#type: "button",
-                        aria_label: "Discard {title}",
+                        aria_label: "{crate::tr!(\"aria_discard_prefix\", lang())} {title}",
                         onclick: move |_| d.call(()),
                         "↺"
                     }
@@ -1356,6 +1427,7 @@ fn FacetSection(
     #[props(default)] has: Option<Signal<bool>>,
     #[props(default)] active: Option<bool>,
     #[props(default)] header: Option<Element>,
+    #[props(default)] progress: Option<Element>,
     children: Element,
 ) -> Element {
     let is_work = is_persona_facet(mode);
@@ -1376,7 +1448,7 @@ fn FacetSection(
         children
     };
     rsx! {
-        EditSection { open, id, title, header, on_discard, {children} }
+        EditSection { open, id, title, header, progress, on_discard, {children} }
     }
 }
 
@@ -1494,7 +1566,7 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: Lang) -> Element {
             input { placeholder: "{notes_pl}", value: "{sel_notes}",
                 oninput: move |e| { sel_notes.set(e.value()); }
             }
-            button { class: "btn", aria_label: if edit_idx().is_some() { "Update motivation" } else { "Add motivation" }, onclick: move |_| {
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_motivation", lang) } else { crate::tr!("aria_add_motivation", lang) }, onclick: move |_| {
                 if let Some(idx) = edit_idx() {
                     let mut items = motivations.write();
                     if idx < items.len() {
@@ -1514,7 +1586,10 @@ fn MotEditPanel(motivations: Signal<Vec<Motivation>>, lang: Lang) -> Element {
     list_edit_section(
         motivations,
         edit_idx,
-        "motivation",
+        crate::tr!("aria_move_motivation_up", lang),
+        crate::tr!("aria_move_motivation_down", lang),
+        crate::tr!("aria_edit_motivation", lang),
+        crate::tr!("aria_delete_motivation", lang),
         edit_motivations,
         add_row,
         || {},
@@ -1551,10 +1626,15 @@ fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
 /// Clone/PartialEq bounds that come with it) entirely — the closures here
 /// are just ordinary `Fn`/`FnMut`, nothing fancier.
 ///
-/// `noun` must match the noun already baked into the pre-existing
-/// aria-labels exactly (e.g. "motivation", "pattern") — several Playwright
-/// tests locate these buttons by their exact aria-label text
-/// (`"Add motivation"`, `"Delete bias"`, etc.), so this isn't cosmetic.
+/// `move_up_label`/`move_down_label`/`edit_label`/`delete_label` must
+/// resolve, in English, to exactly the pre-existing aria-label text (e.g.
+/// "Move motivation up", "Delete bias") — several Playwright tests locate
+/// these buttons by that exact text — so callers pass fully-translated
+/// phrases (via `crate::tr!`) rather than this function templating a raw
+/// noun onto a suffix itself: the equivalent French phrases don't inflect
+/// uniformly (grammatical gender differs per noun — "un biais" vs "une
+/// motivation"), so a single template can't produce correct French for
+/// all five callers.
 ///
 /// The caller owns `edit_idx` and is expected to react to it (typically
 /// via `use_effect`) to populate its own add-row fields when the user
@@ -1562,10 +1642,14 @@ fn swap_item_in_list<T>(list: &mut [T], i: usize, up: bool) {
 /// `Some(i)`, it never reads item fields itself, which is what keeps it
 /// generic over every item type without needing per-type closures wired
 /// through every row.
+#[allow(clippy::too_many_arguments)]
 fn list_edit_section<T: Clone + 'static>(
     mut items: Signal<Vec<T>>,
     mut edit_idx: Signal<Option<usize>>,
-    noun: &str,
+    move_up_label: &str,
+    move_down_label: &str,
+    edit_label: &str,
+    delete_label: &str,
     legend_text: &str,
     add_row: Element,
     on_delete: impl FnMut() + 'static,
@@ -1581,26 +1665,26 @@ fn list_edit_section<T: Clone + 'static>(
                 div { class: "list-item",
                     button {
                         class: "reorder-btn",
-                        aria_label: "Move {noun} up",
+                        aria_label: "{move_up_label}",
                         onclick: move |_| { swap_item_in_list(&mut items.write(), i, true); },
                         "▲"
                     }
                     button {
                         class: "reorder-btn",
-                        aria_label: "Move {noun} down",
+                        aria_label: "{move_down_label}",
                         onclick: move |_| { swap_item_in_list(&mut items.write(), i, false); },
                         "▼"
                     }
                     button {
                         class: "btn btn-small",
-                        aria_label: "Edit {noun}",
+                        aria_label: "{edit_label}",
                         onclick: move |_| { edit_idx.set(Some(i)); },
                         "✏"
                     }
                     {render_row(i, item)}
                     button {
                         class: "btn btn-small",
-                        aria_label: "Delete {noun}",
+                        aria_label: "{delete_label}",
                         onclick: move |_| { items.write().remove(i); (row_on_delete.borrow_mut())(); },
                         "✕"
                     }
@@ -1670,7 +1754,7 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
             input { placeholder: "{notes_pl}", value: "{sel_notes}",
                 oninput: move |e| { sel_notes.set(e.value()); }
             }
-            button { class: "btn", aria_label: if edit_idx().is_some() { "Update value" } else { "Add value" }, onclick: move |_| {
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_value", lang) } else { crate::tr!("aria_add_value", lang) }, onclick: move |_| {
                 if let Some(idx) = edit_idx() {
                     let mut items = values.write();
                     if idx < items.len() {
@@ -1695,7 +1779,10 @@ fn ValEditPanel(values: Signal<Vec<Value>>, lang: Lang) -> Element {
     list_edit_section(
         values,
         edit_idx,
-        "value",
+        crate::tr!("aria_move_value_up", lang),
+        crate::tr!("aria_move_value_down", lang),
+        crate::tr!("aria_edit_value", lang),
+        crate::tr!("aria_delete_value", lang),
         edit_values,
         add_row,
         || {},
@@ -1751,7 +1838,7 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
             input { placeholder: "{evidence_pl}", value: "{sel_evidence}",
                 oninput: move |e| { sel_evidence.set(e.value()); }
             }
-            button { class: "btn", aria_label: if edit_idx().is_some() { "Update bias" } else { "Add bias" }, onclick: move |_| {
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_bias", lang) } else { crate::tr!("aria_add_bias", lang) }, onclick: move |_| {
                 if let Some(idx) = edit_idx() {
                     let mut items = biases.write();
                     if idx < items.len() {
@@ -1771,7 +1858,10 @@ fn BiasEditPanel(biases: Signal<Vec<Bias>>, lang: Lang) -> Element {
     list_edit_section(
         biases,
         edit_idx,
-        "bias",
+        crate::tr!("aria_move_bias_up", lang),
+        crate::tr!("aria_move_bias_down", lang),
+        crate::tr!("aria_edit_bias", lang),
+        crate::tr!("aria_delete_bias", lang),
         edit_biases,
         add_row,
         || {},
@@ -1971,7 +2061,7 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
                 value: "{sel_notes()}",
                 oninput: move |e| sel_notes.set(e.value()),
             }
-            button { class: "btn", aria_label: if edit_idx().is_some() { "Update pattern" } else { "Add pattern" }, onclick: move |_| {
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_pattern", lang) } else { crate::tr!("aria_add_pattern", lang) }, onclick: move |_| {
                 if let Some(idx) = edit_idx() {
                     let mut items = patterns.write();
                     if idx < items.len() {
@@ -1992,7 +2082,10 @@ fn PatternEditPanel(patterns: Signal<Vec<BehavioralPattern>>, lang: Lang) -> Ele
     list_edit_section(
         patterns,
         edit_idx,
-        "pattern",
+        crate::tr!("aria_move_pattern_up", lang),
+        crate::tr!("aria_move_pattern_down", lang),
+        crate::tr!("aria_edit_pattern", lang),
+        crate::tr!("aria_delete_pattern", lang),
         edit_patterns,
         add_row,
         move || sel_notes.set(String::new()),
@@ -2398,7 +2491,7 @@ fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: Lang) -> Element {
             input { placeholder: "{notes_pl}", value: "{sel_notes}",
                 oninput: move |e| { sel_notes.set(e.value()); }
             }
-            button { class: "btn", aria_label: if edit_idx().is_some() { "Update style" } else { "Add style" }, onclick: move |_| {
+            button { class: "btn", aria_label: if edit_idx().is_some() { crate::tr!("aria_update_style", lang) } else { crate::tr!("aria_add_style", lang) }, onclick: move |_| {
                 if let Some(idx) = edit_idx() {
                     let mut items = styles.write();
                     if idx < items.len() {
@@ -2418,7 +2511,10 @@ fn StyleEditPanel(styles: Signal<Vec<PersonalStyle>>, lang: Lang) -> Element {
     list_edit_section(
         styles,
         edit_idx,
-        "style",
+        crate::tr!("aria_move_style_up", lang),
+        crate::tr!("aria_move_style_down", lang),
+        crate::tr!("aria_edit_style", lang),
+        crate::tr!("aria_delete_style", lang),
         panel_title,
         add_row,
         || {},
