@@ -1685,6 +1685,54 @@ mod tests {
     }
 
     #[test]
+    fn facet_person_without_work_mask_keeps_full_clone() {
+        // No work persona, but an online persona set: the merge guard must
+        // return `self.clone()` untouched (not re-resolve through the facet
+        // view, which would strip the online persona). This is the case that
+        // catches an `&&` sneaking into the `||` guard.
+        let base = Person {
+            id: "p3".into(),
+            name: "No Work Mask".into(),
+            role: "r".into(),
+            context: "c".into(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            persona: None,
+            online_persona: Some(PersonaMask {
+                ocean: Some(OceanScores {
+                    openness: Some(4),
+                    ..OceanScores::default()
+                }),
+                ..PersonaMask::default()
+            }),
+            ocean: OceanScores {
+                openness: Some(7),
+                ..OceanScores::default()
+            },
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 1,
+            updated_at: 2,
+        };
+
+        let merged = base.facet_person(FacetKind::Work);
+        assert_eq!(
+            merged, base,
+            "no work persona means the full clone is returned"
+        );
+        assert_eq!(merged.online_persona, base.online_persona);
+    }
+
+    #[test]
     fn facet_person_online_merges_online_persona() {
         let base = Person {
             id: "p3".into(),

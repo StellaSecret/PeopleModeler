@@ -231,6 +231,7 @@ impl FacetBucket {
 /// Owned copy of one base bucket, kept in an opaque enum so `FacetBucket` can
 /// lift values out of a `Person` before the persona mask gets a mutable
 /// borrow (the borrow checker would otherwise reject reading both at once).
+#[derive(Debug, Clone, PartialEq)]
 enum BucketValue {
     Ocean(OceanScores),
     Rep(RepScores),
@@ -315,6 +316,123 @@ fn mask_mut_of(p: &mut Person, facet: FacetKind) -> Option<&mut PersonaMask> {
         FacetKind::Work => p.persona.as_mut(),
         FacetKind::Online => p.online_persona.as_mut(),
     }
+}
+
+// ── Pure decision helpers ───────────────────────────────────────────────
+// Every toggle/accessor on `PersonEditState` and the list/panel components
+// is a one-line forward to one of these. They hold all the logic so a plain
+// `#[test]` can reach it instead of cargo-mutants only ever seeing Dioxus
+// `Signal`/`Memo` reads inside components (the whole reason the mutations
+// below were invisible to the suite).
+
+/// Whether a persona facet is enabled, given the resolved work/online flags.
+fn persona_active_for(work: bool, online: bool, facet: FacetKind) -> bool {
+    if is_work_facet(facet) { work } else { online }
+}
+
+/// Whether a persona mask bucket is an explicit override for `facet` (the
+/// base facet has no mask, so it is never defined there).
+fn bucket_defined_in(p: &Person, facet: FacetKind, bucket: FacetBucket) -> bool {
+    mask_of(p, facet).is_some_and(|m| bucket.is_defined(m))
+}
+
+/// Enable/disable a persona facet on the draft: enabling materializes an
+/// empty default mask only when none already exists; disabling drops the
+/// mask entirely (back to pure base semantics).
+fn set_persona_state(p: &mut Person, facet: FacetKind, on: bool) {
+    match facet {
+        FacetKind::Work => {
+            if on {
+                if p.persona.is_none() {
+                    p.persona = Some(PersonaMask::default());
+                }
+            } else {
+                p.persona = None;
+            }
+        }
+        FacetKind::Online => {
+            if on {
+                if p.online_persona.is_none() {
+                    p.online_persona = Some(PersonaMask::default());
+                }
+            } else {
+                p.online_persona = None;
+            }
+        }
+        FacetKind::Base => {}
+    }
+}
+
+/// The "copy from base profile" mask: every bucket becomes an explicit
+/// override seeded from the as-loaded base; unset scalars default to 5.
+fn base_copy_mask(saved: &Person) -> PersonaMask {
+    PersonaMask {
+        ocean: Some(saved.ocean.clone()),
+        rep_scores: Some(saved.rep_scores.clone()),
+        motivations: Some(saved.motivations.clone()),
+        biases: Some(saved.biases.clone()),
+        behavioral_patterns: Some(saved.behavioral_patterns.clone()),
+        styles: Some(saved.styles.clone()),
+        values: Some(saved.values.clone()),
+        resilience: Some(saved.resilience.unwrap_or(5)),
+        risk_appetite: Some(saved.risk_appetite.unwrap_or(5)),
+    }
+}
+
+/// Unconditionally assign `mask` as the persona for `facet` (base: no-op).
+fn set_persona_mask(p: &mut Person, facet: FacetKind, mask: PersonaMask) {
+    match facet {
+        FacetKind::Work => p.persona = Some(mask),
+        FacetKind::Online => p.online_persona = Some(mask),
+        FacetKind::Base => {}
+    }
+}
+
+/// Drop the persona for `facet` (base: no-op).
+fn clear_persona_mask(p: &mut Person, facet: FacetKind) {
+    match facet {
+        FacetKind::Work => p.persona = None,
+        FacetKind::Online => p.online_persona = None,
+        FacetKind::Base => {}
+    }
+}
+
+/// Toggle an override bucket on the draft for `facet`, materializing the
+/// base value when the mask exists (base facet: no-op).
+fn set_bucket_state(p: &mut Person, facet: FacetKind, bucket: FacetBucket, on: bool) {
+    let base = bucket.base_value(p);
+    if let Some(m) = mask_mut_of(p, facet) {
+        bucket.set_on_mask(m, on, base);
+    }
+}
+
+/// Is a facet's action row hidden while editing `mode`? Rows stay mounted
+/// (equal bar heights), just visually hidden when not the active facet.
+fn persona_row_hidden(mode: FacetKind, facet: FacetKind) -> bool {
+    mode != facet
+}
+
+/// Whether a persona section panel is editable: an explicit `active` memo
+/// wins when present; otherwise the bucket override toggle decides.
+fn section_panel_active(active: Option<bool>, bucket_defined: Option<bool>) -> bool {
+    match (active, bucket_defined) {
+        (Some(active), _) => active,
+        (None, Some(defined)) => defined,
+        _ => false,
+    }
+}
+
+/// A fixed-cap list is complete once `filled` reaches `total`; an uncapped
+/// list (`None`) is always complete.
+fn progress_complete(filled: usize, total: Option<usize>) -> bool {
+    total.is_none_or(|total| filled >= total)
+}
+
+/// The pattern editor clears its notes buffer only when the list shrank
+/// since the last render (the first render sees `usize::MAX` as the last
+/// length, so an empty list clears once on mount).
+fn notes_clear_on_shrink(len: usize, last: usize) -> bool {
+    len < last
 }
 
 /// Number of rows in a resolved list bucket: the mask's override when set,
@@ -425,12 +543,15 @@ impl PersonEditState {
     fn draft(&self) -> Signal<Person> {
         self.draft
     }
+    #[cfg_attr(test, mutants::skip)]
     fn mode(&self) -> FacetKind {
         (self.mode)()
     }
+    #[cfg_attr(test, mutants::skip)]
     fn work_active(&self) -> bool {
         (self.work_active)()
     }
+    #[cfg_attr(test, mutants::skip)]
     fn online_active(&self) -> bool {
         (self.online_active)()
     }
@@ -438,89 +559,50 @@ impl PersonEditState {
         (self.saved)()
     }
 
+    #[cfg_attr(test, mutants::skip)]
     fn persona_active(&self, facet: FacetKind) -> bool {
-        if is_work_facet(facet) {
-            self.work_active()
-        } else {
-            self.online_active()
-        }
+        persona_active_for(self.work_active(), self.online_active(), facet)
     }
 
+    #[cfg_attr(test, mutants::skip)]
     fn bucket_defined(&self, facet: FacetKind, bucket: FacetBucket) -> bool {
         let draft = self.draft();
         let p = draft.read();
-        mask_of(&p, facet).is_some_and(|m| bucket.is_defined(m))
+        bucket_defined_in(&p, facet, bucket)
     }
 
+    #[cfg_attr(test, mutants::skip)]
     fn set_persona_enabled(&self, facet: FacetKind, on: bool) {
         let mut draft = self.draft();
         let mut p = draft.write();
-        match facet {
-            FacetKind::Work => {
-                if on {
-                    if p.persona.is_none() {
-                        p.persona = Some(PersonaMask::default());
-                    }
-                } else {
-                    p.persona = None;
-                }
-            }
-            FacetKind::Online => {
-                if on {
-                    if p.online_persona.is_none() {
-                        p.online_persona = Some(PersonaMask::default());
-                    }
-                } else {
-                    p.online_persona = None;
-                }
-            }
-            FacetKind::Base => {}
-        }
+        set_persona_state(&mut p, facet, on);
     }
 
     /// "Copy from base profile": every bucket becomes an explicit override
     /// seeded from the as-loaded base (the same snapshot Discard restores).
+    #[cfg_attr(test, mutants::skip)]
     fn copy_base(&self, facet: FacetKind) {
-        let s = self.saved();
-        let mask = PersonaMask {
-            ocean: Some(s.ocean.clone()),
-            rep_scores: Some(s.rep_scores.clone()),
-            motivations: Some(s.motivations.clone()),
-            biases: Some(s.biases.clone()),
-            behavioral_patterns: Some(s.behavioral_patterns.clone()),
-            styles: Some(s.styles.clone()),
-            values: Some(s.values.clone()),
-            resilience: Some(s.resilience.unwrap_or(5)),
-            risk_appetite: Some(s.risk_appetite.unwrap_or(5)),
-        };
+        let mask = base_copy_mask(&self.saved());
         let mut draft = self.draft();
         let mut p = draft.write();
-        match facet {
-            FacetKind::Work => p.persona = Some(mask),
-            FacetKind::Online => p.online_persona = Some(mask),
-            FacetKind::Base => {}
-        }
+        set_persona_mask(&mut p, facet, mask);
     }
 
+    #[cfg_attr(test, mutants::skip)]
     fn clear_persona(&self, facet: FacetKind) {
         let mut draft = self.draft();
         let mut p = draft.write();
-        match facet {
-            FacetKind::Work => p.persona = None,
-            FacetKind::Online => p.online_persona = None,
-            FacetKind::Base => {}
-        }
+        clear_persona_mask(&mut p, facet);
     }
 
+    #[cfg_attr(test, mutants::skip)]
     fn set_bucket_defined(&self, facet: FacetKind, bucket: FacetBucket, on: bool) {
         let mut draft = self.draft();
         let mut p = draft.write();
-        let base = bucket.base_value(&p);
-        if let Some(m) = mask_mut_of(&mut p, facet) {
-            bucket.set_on_mask(m, on, base);
-        }
+        set_bucket_state(&mut p, facet, bucket, on);
     }
 
+    #[cfg_attr(test, mutants::skip)]
     fn discard(&self, section: EditSectionId) {
         let facet = self.mode();
         let saved = self.saved();
@@ -547,16 +629,37 @@ enum ListOp<T> {
     Swap(usize, usize),
 }
 
+/// Apply one edit op to a resolved list. Extracted out of the Dioxus
+/// `EventHandler` so the mutation behavior is unit-testable.
+fn apply_list_op<T>(list: &mut Vec<T>, op: ListOp<T>) {
+    match op {
+        ListOp::Push(item) => list.push(item),
+        ListOp::Replace(i, item) => {
+            if let Some(slot) = list.get_mut(i) {
+                *slot = item;
+            }
+        }
+        ListOp::Remove(i) => {
+            list.remove(i);
+        }
+        ListOp::Swap(i, j) => list.swap(i, j),
+    }
+}
+
 impl<T: Clone + PartialEq + 'static> ListField<T> {
+    #[cfg_attr(test, mutants::skip)]
     fn push(&self, item: T) {
         self.set.call(ListOp::Push(item));
     }
+    #[cfg_attr(test, mutants::skip)]
     fn replace(&self, i: usize, item: T) {
         self.set.call(ListOp::Replace(i, item));
     }
+    #[cfg_attr(test, mutants::skip)]
     fn remove(&self, i: usize) {
         self.set.call(ListOp::Remove(i));
     }
+    #[cfg_attr(test, mutants::skip)]
     fn swap(&self, i: usize, j: usize) {
         self.set.call(ListOp::Swap(i, j));
     }
@@ -585,18 +688,7 @@ fn use_list_field<T: Clone + PartialEq + 'static>(
             Some(m) => mask_bucket_mut(m).get_or_insert_with(Vec::new),
             None => base_mut(&mut p),
         };
-        match op {
-            ListOp::Push(item) => list.push(item),
-            ListOp::Replace(i, item) => {
-                if let Some(slot) = list.get_mut(i) {
-                    *slot = item;
-                }
-            }
-            ListOp::Remove(i) => {
-                list.remove(i);
-            }
-            ListOp::Swap(i, j) => list.swap(i, j),
-        }
+        apply_list_op(list, op);
     });
     ListField { val, set }
 }
@@ -646,9 +738,11 @@ struct ResilienceRiskField {
 }
 
 impl ResilienceRiskField {
+    #[cfg_attr(test, mutants::skip)]
     fn resilience(&self) -> u8 {
         (self.resilience)()
     }
+    #[cfg_attr(test, mutants::skip)]
     fn risk_appetite(&self) -> u8 {
         (self.risk_appetite)()
     }
@@ -793,7 +887,7 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 fn PersonaActions(facet: FacetKind) -> Element {
     let ctx = use_context::<PersonEditState>();
     let lang = use_context::<Signal<Lang>>();
-    let hidden = use_memo(move || ctx.mode() != facet);
+    let hidden = use_memo(move || persona_row_hidden(ctx.mode(), facet));
     let enabled = use_memo(move || ctx.persona_active(facet));
     let (section_label, copy_label, clear_label) = if is_work_facet(facet) {
         (
@@ -1112,10 +1206,10 @@ fn FacetSection(
     let ctx = use_context::<PersonEditState>();
     let on_discard = EventHandler::new(move |_| ctx.discard(id));
     let is_persona = is_persona_facet(facet);
-    let panel_active = use_memo(move || match (facet, bucket, active) {
-        (facet, Some(b), None) => ctx.bucket_defined(facet, b),
-        (_, _, Some(active)) => active(),
-        _ => false,
+    let panel_active = use_memo(move || {
+        let active_memo = active.map(|a| a());
+        let bucket_defined = bucket.map(|b| ctx.bucket_defined(facet, b));
+        section_panel_active(active_memo, bucket_defined)
     });
     let header = if is_persona {
         match bucket {
@@ -1487,7 +1581,7 @@ fn progress_badge(filled: usize, total: Option<usize>) -> Element {
         Some(total) => format!("{filled}/{total}"),
         None => filled.to_string(),
     };
-    let complete = total.is_none_or(|total| filled >= total);
+    let complete = progress_complete(filled, total);
     rsx! {
         span {
             class: if complete { "progress-badge complete" } else { "progress-badge" },
@@ -2522,7 +2616,7 @@ fn PatternAddRow(items: ListField<BehavioralPattern>, edit_idx: Signal<Option<us
     let last_len = use_hook(|| std::rc::Rc::new(std::cell::Cell::new(usize::MAX)));
     use_effect(move || {
         let len = items.val.read().len();
-        if len < last_len.get() {
+        if notes_clear_on_shrink(len, last_len.get()) {
             sel_notes.set(String::new());
         }
         last_len.set(len);
@@ -3489,5 +3583,431 @@ mod tests {
         assert_eq!(list_len(&p, FacetKind::Online, FacetBucket::Biases), 0);
         // base list.
         assert_eq!(list_len(&p, FacetKind::Base, FacetBucket::Motivations), 1);
+    }
+
+    fn person_with_full_base_lists() -> Person {
+        let mut p = test_person();
+        p.persona = Some(PersonaMask::default());
+        p.rep_scores.hardworker_lazy = Some(6);
+        p.biases.push(Bias {
+            r#type: BiasType::Confirmation,
+            intensity: 5,
+            evidence: "".into(),
+        });
+        p.behavioral_patterns.push(BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::SeeksSupport,
+            notes: "".into(),
+        });
+        p.styles.push(PersonalStyle {
+            r#type: StyleType::DirectCommunicator,
+            intensity: 5,
+            notes: "".into(),
+        });
+        p.values.push(Value {
+            r#type: ValueType::Career,
+            intensity: 5,
+            priority: 5,
+            notes: "".into(),
+        });
+        p
+    }
+
+    #[test]
+    fn list_len_covers_every_list_bucket_branch() {
+        let p = person_with_full_base_lists();
+        for bucket in [
+            FacetBucket::Motivations,
+            FacetBucket::Biases,
+            FacetBucket::Patterns,
+            FacetBucket::Styles,
+            FacetBucket::Values,
+        ] {
+            assert_eq!(
+                list_len(&p, FacetKind::Base, bucket),
+                1,
+                "{bucket:?} base list"
+            );
+            assert_eq!(
+                list_len(&p, FacetKind::Online, bucket),
+                1,
+                "{bucket:?} online has no mask so it inherits base"
+            );
+            assert_eq!(
+                list_len(&p, FacetKind::Work, bucket),
+                1,
+                "{bucket:?} an untouched work mask inherits base"
+            );
+        }
+    }
+
+    #[test]
+    fn list_len_uses_mask_override_when_set() {
+        let mut p = person_with_full_base_lists();
+        p.persona.as_mut().unwrap().motivations = Some(vec![
+            Motivation {
+                r#type: MotivationType::Power,
+                intensity: 9,
+                notes: "a".into(),
+            },
+            Motivation {
+                r#type: MotivationType::Learning,
+                intensity: 6,
+                notes: "b".into(),
+            },
+        ]);
+        assert_eq!(list_len(&p, FacetKind::Work, FacetBucket::Motivations), 2);
+        assert_eq!(
+            list_len(&p, FacetKind::Base, FacetBucket::Motivations),
+            1,
+            "base list unchanged by the override"
+        );
+    }
+
+    const ALL_BUCKETS: [FacetBucket; 9] = [
+        FacetBucket::Ocean,
+        FacetBucket::Reputation,
+        FacetBucket::Motivations,
+        FacetBucket::Biases,
+        FacetBucket::Patterns,
+        FacetBucket::Styles,
+        FacetBucket::Values,
+        FacetBucket::Resilience,
+        FacetBucket::RiskAppetite,
+    ];
+
+    fn mask_bucket_value(m: &PersonaMask, bucket: FacetBucket) -> Option<BucketValue> {
+        match bucket {
+            FacetBucket::Ocean => m.ocean.clone().map(BucketValue::Ocean),
+            FacetBucket::Reputation => m.rep_scores.clone().map(BucketValue::Rep),
+            FacetBucket::Motivations => m.motivations.clone().map(BucketValue::Motivations),
+            FacetBucket::Biases => m.biases.clone().map(BucketValue::Biases),
+            FacetBucket::Patterns => m.behavioral_patterns.clone().map(BucketValue::Patterns),
+            FacetBucket::Styles => m.styles.clone().map(BucketValue::Styles),
+            FacetBucket::Values => m.values.clone().map(BucketValue::Values),
+            FacetBucket::Resilience => m.resilience.map(BucketValue::Resilience),
+            FacetBucket::RiskAppetite => m.risk_appetite.map(BucketValue::RiskAppetite),
+        }
+    }
+
+    #[test]
+    fn set_on_mask_clears_and_materializes_for_every_bucket() {
+        let p = test_person();
+        for bucket in ALL_BUCKETS {
+            let mut m = PersonaMask::default();
+            assert!(!bucket.is_defined(&m), "{bucket:?} starts undefined");
+            let base = bucket.base_value(&p);
+            bucket.set_on_mask(&mut m, true, base.clone());
+            assert!(bucket.is_defined(&m), "{bucket:?} materializes on enable");
+            bucket.set_on_mask(&mut m, true, base.clone());
+            assert!(
+                bucket.is_defined(&m),
+                "{bucket:?} stays defined on re-enable"
+            );
+            bucket.set_on_mask(&mut m, false, base.clone());
+            assert!(!bucket.is_defined(&m), "{bucket:?} clears on disable");
+            bucket.set_on_mask(&mut m, false, base);
+            assert!(
+                !bucket.is_defined(&m),
+                "{bucket:?} disabling an undefined bucket is a no-op"
+            );
+        }
+    }
+
+    #[test]
+    fn set_on_mask_materializes_exact_base_values() {
+        let p = person_with_full_base_lists();
+        for bucket in ALL_BUCKETS {
+            let mut m = PersonaMask::default();
+            let base = bucket.base_value(&p);
+            bucket.set_on_mask(&mut m, true, base.clone());
+            let stored = mask_bucket_value(&m, bucket)
+                .unwrap_or_else(|| panic!("{bucket:?} not defined after materialize"));
+            assert_eq!(
+                stored, base,
+                "{bucket:?} materialized value must match the base"
+            );
+        }
+    }
+
+    #[test]
+    fn set_rep_dim_writes_only_its_dimension() {
+        for dim in RepDim::ALL {
+            let mut r = RepScores::default();
+            set_rep_dim(&mut r, dim, Some(7));
+            assert_eq!(r.score(dim), Some(7), "{dim:?} written");
+            for other in RepDim::ALL {
+                if other != dim {
+                    assert_eq!(r.score(other), None, "{dim:?} wrote a sibling {other:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn persona_active_for_picks_flag_by_facet() {
+        assert!(persona_active_for(true, false, FacetKind::Work));
+        assert!(!persona_active_for(false, false, FacetKind::Work));
+        assert!(persona_active_for(false, true, FacetKind::Online));
+        assert!(!persona_active_for(false, false, FacetKind::Online));
+        assert!(
+            persona_active_for(false, true, FacetKind::Base),
+            "base facet falls through to the online flag like the original"
+        );
+    }
+
+    #[test]
+    fn bucket_defined_in_reads_mask_override_only() {
+        let p = test_person();
+        assert!(bucket_defined_in(
+            &p,
+            FacetKind::Work,
+            FacetBucket::Motivations
+        ));
+        assert!(bucket_defined_in(&p, FacetKind::Work, FacetBucket::Ocean));
+        assert!(!bucket_defined_in(&p, FacetKind::Work, FacetBucket::Biases));
+        assert!(!bucket_defined_in(
+            &p,
+            FacetKind::Work,
+            FacetBucket::Reputation
+        ));
+        assert!(
+            !bucket_defined_in(&p, FacetKind::Base, FacetBucket::Ocean),
+            "the base facet has no mask to be defined in"
+        );
+        assert!(
+            !bucket_defined_in(&p, FacetKind::Online, FacetBucket::Ocean),
+            "no online persona means nothing is defined there either"
+        );
+    }
+
+    #[test]
+    fn set_persona_state_enable_is_idempotent_and_disable_clears() {
+        let mut p = test_person();
+        p.persona = None;
+        p.online_persona = None;
+
+        set_persona_state(&mut p, FacetKind::Work, true);
+        assert!(p.persona.is_some(), "enabling work creates a default mask");
+
+        let custom = PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(9),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        };
+        p.persona = Some(custom.clone());
+        set_persona_state(&mut p, FacetKind::Work, true);
+        assert_eq!(
+            p.persona,
+            Some(custom),
+            "re-enabling an existing persona must not clobber it"
+        );
+
+        set_persona_state(&mut p, FacetKind::Work, false);
+        assert!(p.persona.is_none(), "disabling drops the work persona");
+
+        set_persona_state(&mut p, FacetKind::Online, true);
+        assert!(p.online_persona.is_some(), "enabling online creates a mask");
+        set_persona_state(&mut p, FacetKind::Online, false);
+        assert!(
+            p.online_persona.is_none(),
+            "disabling drops the online persona"
+        );
+
+        set_persona_state(&mut p, FacetKind::Base, true);
+        assert!(p.persona.is_none(), "the base facet never gains a persona");
+        assert!(p.online_persona.is_none());
+    }
+
+    #[test]
+    fn base_copy_mask_seeds_every_bucket_and_defaults_unset_scalars() {
+        let mut saved = test_person();
+        saved.resilience = None;
+        saved.risk_appetite = None;
+        let mask = base_copy_mask(&saved);
+        assert_eq!(mask.ocean, Some(saved.ocean.clone()));
+        assert_eq!(mask.rep_scores, Some(saved.rep_scores.clone()));
+        assert_eq!(mask.motivations, Some(saved.motivations.clone()));
+        assert_eq!(mask.biases, Some(saved.biases.clone()));
+        assert_eq!(
+            mask.behavioral_patterns,
+            Some(saved.behavioral_patterns.clone())
+        );
+        assert_eq!(mask.styles, Some(saved.styles.clone()));
+        assert_eq!(mask.values, Some(saved.values.clone()));
+        assert_eq!(
+            mask.resilience,
+            Some(5),
+            "unset base resilience copies as 5"
+        );
+        assert_eq!(
+            mask.risk_appetite,
+            Some(5),
+            "unset base risk appetite copies as 5"
+        );
+    }
+
+    #[test]
+    fn base_copy_mask_keeps_explicit_scalar_values() {
+        let mut saved = test_person();
+        saved.resilience = Some(8);
+        saved.risk_appetite = Some(2);
+        let mask = base_copy_mask(&saved);
+        assert_eq!(mask.resilience, Some(8));
+        assert_eq!(mask.risk_appetite, Some(2));
+    }
+
+    #[test]
+    fn set_persona_mask_writes_only_its_facet() {
+        let mut p = test_person();
+        let mask = PersonaMask::default();
+        set_persona_mask(&mut p, FacetKind::Work, mask.clone());
+        assert_eq!(p.persona, Some(mask));
+        set_persona_mask(&mut p, FacetKind::Online, PersonaMask::default());
+        assert!(p.online_persona.is_some(), "online persona gets assigned");
+        let kept = p.persona.clone();
+        set_persona_mask(
+            &mut p,
+            FacetKind::Base,
+            PersonaMask {
+                ocean: Some(OceanScores::default()),
+                ..PersonaMask::default()
+            },
+        );
+        assert_eq!(p.persona, kept, "base facet is a no-op");
+    }
+
+    #[test]
+    fn clear_persona_mask_drops_only_the_target_facet() {
+        let mut p = test_person();
+        clear_persona_mask(&mut p, FacetKind::Work);
+        assert!(p.persona.is_none());
+        assert!(p.online_persona.is_none(), "online persona untouched");
+        let mut q = test_person();
+        clear_persona_mask(&mut q, FacetKind::Base);
+        assert!(q.persona.is_some(), "base facet is a no-op");
+        let kept = q.persona.clone();
+        clear_persona_mask(&mut q, FacetKind::Online);
+        assert!(q.online_persona.is_none());
+        assert_eq!(q.persona, kept, "work persona untouched by online clear");
+    }
+
+    #[test]
+    fn set_bucket_state_toggles_mask_bucket_and_ignores_base() {
+        let mut p = test_person();
+        p.online_persona = Some(PersonaMask::default());
+        set_bucket_state(&mut p, FacetKind::Work, FacetBucket::Biases, true);
+        assert!(bucket_defined_in(&p, FacetKind::Work, FacetBucket::Biases));
+        set_bucket_state(&mut p, FacetKind::Work, FacetBucket::Biases, false);
+        assert!(!bucket_defined_in(&p, FacetKind::Work, FacetBucket::Biases));
+        set_bucket_state(&mut p, FacetKind::Online, FacetBucket::Ocean, true);
+        assert!(bucket_defined_in(&p, FacetKind::Online, FacetBucket::Ocean));
+        let work_ocean = p.persona.as_ref().unwrap().ocean.clone();
+        let online_ocean = p.online_persona.as_ref().unwrap().ocean.clone();
+        set_bucket_state(&mut p, FacetKind::Base, FacetBucket::Ocean, true);
+        assert_eq!(
+            p.persona.as_ref().unwrap().ocean,
+            work_ocean,
+            "base facet must not write into the work mask"
+        );
+        assert_eq!(
+            p.online_persona.as_ref().unwrap().ocean,
+            online_ocean,
+            "base facet must not write into the online mask"
+        );
+
+        // A facet with no persona has no mask to write into: the toggle is
+        // a genuine no-op there.
+        let mut q = test_person();
+        set_bucket_state(&mut q, FacetKind::Online, FacetBucket::Ocean, true);
+        assert!(
+            !bucket_defined_in(&q, FacetKind::Online, FacetBucket::Ocean),
+            "no online persona, no bucket to define"
+        );
+    }
+
+    #[test]
+    fn persona_row_hidden_matches_active_facet_only() {
+        assert!(!persona_row_hidden(FacetKind::Work, FacetKind::Work));
+        assert!(persona_row_hidden(FacetKind::Base, FacetKind::Work));
+        assert!(persona_row_hidden(FacetKind::Work, FacetKind::Online));
+        assert!(!persona_row_hidden(FacetKind::Online, FacetKind::Online));
+    }
+
+    #[test]
+    fn section_panel_active_prefers_explicit_and_falls_back_to_bucket() {
+        assert!(section_panel_active(Some(true), None));
+        assert!(
+            !section_panel_active(Some(false), Some(true)),
+            "an explicit active memo wins over the bucket toggle"
+        );
+        assert!(section_panel_active(None, Some(true)));
+        assert!(!section_panel_active(None, Some(false)));
+        assert!(!section_panel_active(None, None));
+    }
+
+    #[test]
+    fn progress_complete_handles_cap_and_exact_fill() {
+        assert!(
+            progress_complete(0, None),
+            "uncapped list is always complete"
+        );
+        assert!(progress_complete(0, Some(0)), "0/0 is complete");
+        assert!(!progress_complete(4, Some(5)));
+        assert!(progress_complete(5, Some(5)), "exact fill is complete");
+        assert!(progress_complete(6, Some(5)));
+    }
+
+    #[test]
+    fn notes_clear_on_shrink_only_on_actual_shrink() {
+        assert!(notes_clear_on_shrink(3, 5), "shrinking clears");
+        assert!(!notes_clear_on_shrink(5, 5), "stable length does not clear");
+        assert!(!notes_clear_on_shrink(6, 5), "growing does not clear");
+        assert!(
+            notes_clear_on_shrink(0, usize::MAX),
+            "the first render sees an empty list as shrunk"
+        );
+    }
+
+    #[test]
+    fn ocean_filled_count_counts_only_set_traits() {
+        let mut o = OceanScores::default();
+        assert_eq!(ocean_filled_count(&o), 0);
+        o.openness = Some(8);
+        o.extraversion = Some(6);
+        assert_eq!(ocean_filled_count(&o), 2);
+    }
+
+    #[test]
+    fn rep_filled_count_counts_only_scored_dimensions() {
+        let mut r = RepScores::default();
+        assert_eq!(rep_filled_count(&r), 0);
+        r.hardworker_lazy = Some(5);
+        r.diplomatic_blunt = Some(8);
+        assert_eq!(rep_filled_count(&r), 2);
+    }
+
+    #[test]
+    fn apply_list_op_push_replace_remove_swap() {
+        let mut v: Vec<u8> = vec![1, 2, 3];
+        apply_list_op(&mut v, ListOp::Push(4));
+        assert_eq!(v, vec![1, 2, 3, 4]);
+        apply_list_op(&mut v, ListOp::Replace(1, 9));
+        assert_eq!(v, vec![1, 9, 3, 4]);
+        apply_list_op(&mut v, ListOp::Replace(100, 7));
+        assert_eq!(v, vec![1, 9, 3, 4], "out-of-range replace is a no-op");
+        apply_list_op(&mut v, ListOp::Swap(0, 2));
+        assert_eq!(v, vec![3, 9, 1, 4]);
+        apply_list_op(&mut v, ListOp::Remove(1));
+        assert_eq!(v, vec![3, 1, 4]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn apply_list_op_remove_out_of_range_panics() {
+        let mut v: Vec<u8> = vec![1];
+        apply_list_op(&mut v, ListOp::Remove(5));
     }
 }

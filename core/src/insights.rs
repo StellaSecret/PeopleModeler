@@ -371,4 +371,11 @@ mod tests {
             "no persona, no mask: {out}"
         );
     }
+
+    #[test]
+    fn mask_band_fr_maps_every_band() {
+        assert_eq!(mask_band_fr(crate::synergy::MaskBand::Low), "faible");
+        assert_eq!(mask_band_fr(crate::synergy::MaskBand::Moderate), "modéré");
+        assert_eq!(mask_band_fr(crate::synergy::MaskBand::High), "élevé");
+    }
 }
