@@ -110,7 +110,7 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                                     .and_then(|r| r.as_string());
                                 if let Some(json) = result {
                                     match drive::restore_from_json(&json) {
-                                        Ok(n) => s3.set(format!("{} {} persons, {} relationships", crate::tr!("sync_restored", lang), n.persons, n.relationships)),
+                                        Ok(n) => s3.set(format!("{} {} persons, {} relationships, {} teams", crate::tr!("sync_restored", lang), n.persons, n.relationships, n.teams)),
                                         Err(e) => s3.set(format!("❌ {e}")),
                                     }
                                 }
@@ -396,7 +396,7 @@ pub fn SyncPage() -> Element {
                             spawn_async(async move {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_restore(&t, pp_ref).await {
-                                    Ok(n) => s.set(format!("{} {} persons, {} relationships from Drive", crate::tr!("sync_restored", ll), n.persons, n.relationships)),
+                                    Ok(n) => s.set(format!("{} {} persons, {} relationships, {} teams from Drive", crate::tr!("sync_restored", ll), n.persons, n.relationships, n.teams)),
                                     Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
                                 }
                             });

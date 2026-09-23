@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use peoplemodeler_core::models::{Person, Prediction, Relationship};
+use peoplemodeler_core::models::{Person, Prediction, Relationship, Team};
 
 use crate::db;
 
@@ -12,15 +12,18 @@ struct BackupData {
     predictions: Vec<Prediction>,
     #[serde(default)]
     relationships: Vec<Relationship>,
+    #[serde(default)]
+    teams: Vec<Team>,
 }
 
 pub fn build_backup() -> String {
     let data = BackupData {
-        version: 2,
+        version: 3,
         exported_at: chrono::Utc::now().timestamp_millis(),
         persons: db::all_persons(),
         predictions: db::all_predictions(),
         relationships: db::all_relationships(),
+        teams: db::all_teams(),
     };
     serde_json::to_string_pretty(&data).expect("BackupData serialization failed")
 }
@@ -28,6 +31,7 @@ pub fn build_backup() -> String {
 pub struct RestoreCount {
     pub persons: usize,
     pub relationships: usize,
+    pub teams: usize,
 }
 
 pub fn restore_from_json(json: &str) -> Result<RestoreCount, String> {
@@ -43,9 +47,13 @@ pub fn restore_from_json(json: &str) -> Result<RestoreCount, String> {
         db::save_relationship(r)
             .map_err(|e| format!("Restore failed (relationship {}): {e}", r.id))?;
     }
+    for t in &data.teams {
+        db::save_team(t).map_err(|e| format!("Restore failed (team {}): {e}", t.id))?;
+    }
     Ok(RestoreCount {
         persons: data.persons.len(),
         relationships: data.relationships.len(),
+        teams: data.teams.len(),
     })
 }
 
@@ -371,6 +379,13 @@ mod tests {
             }],
             predictions: vec![],
             relationships: vec![],
+            teams: vec![peoplemodeler_core::models::Team {
+                id: "rt-team-001".into(),
+                name: "Roundtrip Team".into(),
+                icon: "👥".into(),
+                member_ids: vec![],
+                created_at: now,
+            }],
         };
 
         let json = serde_json::to_string_pretty(&original).unwrap();
@@ -382,6 +397,8 @@ mod tests {
         assert_eq!(restored.persons[0].name, "Roundtrip Tester");
         assert_eq!(restored.persons[0].tags.len(), 2);
         assert_eq!(restored.persons[0].tags[1].color.as_deref(), Some("#ff0"));
+        assert_eq!(restored.teams.len(), 1);
+        assert_eq!(restored.teams[0].name, "Roundtrip Team");
     }
 
     #[test]
@@ -465,7 +482,7 @@ mod tests {
         let json = build_backup();
         assert!(!json.is_empty());
         let data: BackupData = serde_json::from_str(&json).unwrap();
-        assert_eq!(data.version, 2);
+        assert_eq!(data.version, 3);
     }
 
     #[test]
@@ -500,9 +517,18 @@ mod tests {
             updated_at: 200,
         };
         crate::db::save_person(&p).unwrap();
+        let t = peoplemodeler_core::models::Team {
+            id: "backup-test-team-1".into(),
+            name: "Backup Team".into(),
+            icon: "👥".into(),
+            member_ids: vec![],
+            created_at: 100,
+        };
+        crate::db::save_team(&t).unwrap();
         let json = build_backup();
         let data: BackupData = serde_json::from_str(&json).unwrap();
         assert!(data.persons.iter().any(|x| x.id == "backup-test-1"));
+        assert!(data.teams.iter().any(|x| x.id == "backup-test-team-1"));
     }
 
     #[test]
