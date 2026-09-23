@@ -117,6 +117,7 @@ fn blank_person() -> Person {
     Person {
         persona: None,
         online_persona: None,
+        private_persona: None,
         primary_facet: FacetKind::Base,
         id: uuid::Uuid::new_v4().to_string(),
         name: String::new(),
@@ -149,15 +150,28 @@ fn blank_person_with_facet(primary: FacetKind) -> Person {
     p
 }
 
-/// Tab label of the anchor facet: the person's primary context, suffixed so a
-/// primary=Work person's anchor tab ("At work (main)") can't be confused with
-/// the separate At-Work mask slot.
-fn anchor_facet_label(p: &Person, lang: crate::i18n::Lang) -> String {
-    format!(
-        "{}{}",
-        p.primary_facet.label(crate::i18n::core_lang(lang)),
-        crate::tr!("facet_main_suffix", lang)
-    )
+/// Tab label of a context in the edit-mode facet toggle: the anchor context
+/// (`kind == primary`) gets its plain name suffixed with "(main)"; every
+/// other context wears its persona label ("Work Persona", "Personal life
+/// Persona", "Online").
+pub(crate) fn facet_tab_label(
+    kind: FacetKind,
+    primary: FacetKind,
+    lang: crate::i18n::Lang,
+) -> String {
+    if kind == primary {
+        format!(
+            "{}{}",
+            kind.label(crate::i18n::core_lang(lang)),
+            crate::tr!("facet_main_suffix", lang)
+        )
+    } else {
+        match kind {
+            FacetKind::Work => crate::tr!("persona_section", lang).to_string(),
+            FacetKind::Online => crate::tr!("facet_online", lang).to_string(),
+            FacetKind::Base => crate::tr!("persona_base_section", lang).to_string(),
+        }
+    }
 }
 
 /// The mask a person wears in one arena. `None` on a bucket means "same as
@@ -351,18 +365,27 @@ impl BucketValue {
     }
 }
 
-/// The persona mask for `facet` (`None` for the base facet).
+/// The persona mask for `facet` — `None` for the context the inline anchor
+/// fields represent (`person.primary_facet`), since that context is always
+/// "base". Mirrors `Person::mask_for`, kept here so the form helpers stay
+/// standalone/unit-testable.
 fn mask_of(p: &Person, facet: FacetKind) -> Option<&PersonaMask> {
+    if facet == p.primary_facet {
+        return None;
+    }
     match facet {
-        FacetKind::Base => None,
+        FacetKind::Base => p.private_persona.as_ref(),
         FacetKind::Work => p.persona.as_ref(),
         FacetKind::Online => p.online_persona.as_ref(),
     }
 }
 
 fn mask_mut_of(p: &mut Person, facet: FacetKind) -> Option<&mut PersonaMask> {
+    if facet == p.primary_facet {
+        return None;
+    }
     match facet {
-        FacetKind::Base => None,
+        FacetKind::Base => p.private_persona.as_mut(),
         FacetKind::Work => p.persona.as_mut(),
         FacetKind::Online => p.online_persona.as_mut(),
     }
@@ -375,22 +398,51 @@ fn mask_mut_of(p: &mut Person, facet: FacetKind) -> Option<&mut PersonaMask> {
 // `Signal`/`Memo` reads inside components (the whole reason the mutations
 // below were invisible to the suite).
 
-/// Whether a persona facet is enabled, given the resolved work/online flags.
-fn persona_active_for(work: bool, online: bool, facet: FacetKind) -> bool {
-    if is_work_facet(facet) { work } else { online }
+/// Whether a persona facet is enabled, given the resolved per-context flags.
+/// The anchor context (`facet == primary`) never wears a mask, so it is never
+/// "enabled" as a persona.
+fn persona_active_for(
+    primary: FacetKind,
+    base: bool,
+    work: bool,
+    online: bool,
+    facet: FacetKind,
+) -> bool {
+    if facet == primary {
+        false
+    } else {
+        match facet {
+            FacetKind::Base => base,
+            FacetKind::Work => work,
+            FacetKind::Online => online,
+        }
+    }
 }
 
 /// Whether a persona mask bucket is an explicit override for `facet` (the
-/// base facet has no mask, so it is never defined there).
+/// anchor context has no mask, so it is never defined there).
 fn bucket_defined_in(p: &Person, facet: FacetKind, bucket: FacetBucket) -> bool {
     mask_of(p, facet).is_some_and(|m| bucket.is_defined(m))
 }
 
 /// Enable/disable a persona facet on the draft: enabling materializes an
 /// empty default mask only when none already exists; disabling drops the
-/// mask entirely (back to pure base semantics).
+/// mask entirely (back to pure anchor semantics). No-op for the anchor
+/// context.
 fn set_persona_state(p: &mut Person, facet: FacetKind, on: bool) {
+    if facet == p.primary_facet {
+        return;
+    }
     match facet {
+        FacetKind::Base => {
+            if on {
+                if p.private_persona.is_none() {
+                    p.private_persona = Some(PersonaMask::default());
+                }
+            } else {
+                p.private_persona = None;
+            }
+        }
         FacetKind::Work => {
             if on {
                 if p.persona.is_none() {
@@ -409,7 +461,6 @@ fn set_persona_state(p: &mut Person, facet: FacetKind, on: bool) {
                 p.online_persona = None;
             }
         }
-        FacetKind::Base => {}
     }
 }
 
@@ -429,22 +480,20 @@ fn base_copy_mask(saved: &Person) -> PersonaMask {
     }
 }
 
-/// Unconditionally assign `mask` as the persona for `facet` (base: no-op).
+/// Unconditionally assign `mask` as the persona for `facet` (anchor: no-op).
 fn set_persona_mask(p: &mut Person, facet: FacetKind, mask: PersonaMask) {
-    match facet {
-        FacetKind::Work => p.persona = Some(mask),
-        FacetKind::Online => p.online_persona = Some(mask),
-        FacetKind::Base => {}
+    if facet == p.primary_facet {
+        return;
     }
+    p.set_persona_slot(facet, Some(mask));
 }
 
-/// Drop the persona for `facet` (base: no-op).
+/// Drop the persona for `facet` (anchor: no-op).
 fn clear_persona_mask(p: &mut Person, facet: FacetKind) {
-    match facet {
-        FacetKind::Work => p.persona = None,
-        FacetKind::Online => p.online_persona = None,
-        FacetKind::Base => {}
+    if facet == p.primary_facet {
+        return;
     }
+    p.set_persona_slot(facet, None);
 }
 
 /// Toggle an override bucket on the draft for `facet`, materializing the
@@ -456,10 +505,20 @@ fn set_bucket_state(p: &mut Person, facet: FacetKind, bucket: FacetBucket, on: b
     }
 }
 
+/// Row label of a persona mask (the "enable" checkbox + copy/clear buttons).
+fn persona_mask_label(facet: FacetKind, lang: crate::i18n::Lang) -> &'static str {
+    match facet {
+        FacetKind::Work => crate::tr!("persona_section", lang),
+        FacetKind::Online => crate::tr!("persona_online_section", lang),
+        FacetKind::Base => crate::tr!("persona_base_section", lang),
+    }
+}
+
 /// Is a facet's action row hidden while editing `mode`? Rows stay mounted
-/// (equal bar heights), just visually hidden when not the active facet.
-fn persona_row_hidden(mode: FacetKind, facet: FacetKind) -> bool {
-    mode != facet
+/// (equal bar heights), just visually hidden when not the active facet or
+/// when the row is the anchor context (which never wears a mask).
+fn persona_row_hidden(primary: FacetKind, mode: FacetKind, facet: FacetKind) -> bool {
+    facet == primary || mode != facet
 }
 
 /// Whether a persona section panel is editable: an explicit `active` memo
@@ -519,7 +578,7 @@ fn list_len(p: &Person, facet: FacetKind, bucket: FacetBucket) -> usize {
 /// closure, now unit-testable. Writes `saved`'s per-facet snapshot back onto
 /// the draft for exactly one section.
 fn discard_section(section: EditSectionId, facet: FacetKind, saved: &Person, draft: &mut Person) {
-    if is_base_facet(facet) {
+    if facet == draft.primary_facet {
         match section {
             EditSectionId::ResilienceRisk => {
                 draft.resilience = saved.resilience;
@@ -581,6 +640,7 @@ struct PersonEditState {
     mode: Signal<FacetKind>,
     open: Signal<Vec<EditSectionId>>,
     saved: Memo<Person>,
+    base_active: Memo<bool>,
     work_active: Memo<bool>,
     online_active: Memo<bool>,
 }
@@ -598,6 +658,10 @@ impl PersonEditState {
         (self.mode)()
     }
     #[cfg_attr(test, mutants::skip)]
+    fn base_active(&self) -> bool {
+        (self.base_active)()
+    }
+    #[cfg_attr(test, mutants::skip)]
     fn work_active(&self) -> bool {
         (self.work_active)()
     }
@@ -611,7 +675,14 @@ impl PersonEditState {
 
     #[cfg_attr(test, mutants::skip)]
     fn persona_active(&self, facet: FacetKind) -> bool {
-        persona_active_for(self.work_active(), self.online_active(), facet)
+        let primary = self.draft().read().primary_facet;
+        persona_active_for(
+            primary,
+            self.base_active(),
+            self.work_active(),
+            self.online_active(),
+            facet,
+        )
     }
 
     #[cfg_attr(test, mutants::skip)]
@@ -845,29 +916,43 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let is_new = initial.is_none();
     let base = initial.unwrap_or_else(blank_person);
     let pers_id = base.id.clone();
-    let facet_base = anchor_facet_label(&base, lang());
-    let facet_online = crate::tr!("facet_online", lang());
-    let persona_section = crate::tr!("persona_section", lang());
 
     // Single draft: every field writes into this one Person. `saved` is a
     // memo derived from the prop (never from the live draft), so Discard
     // always restores the as-loaded state no matter how much has been typed.
     let draft = use_signal(|| base.clone());
-    let mode = use_signal(|| FacetKind::Base);
+    // The editor opens on the anchor context: the inline fields ARE that
+    // context's data, so "main" is the first tab.
+    let mode = use_signal(|| base.primary_facet);
     let open = use_signal(|| ALL_EDIT_SECTIONS.to_vec());
     let saved = use_memo(move || base.clone());
+    let base_active = use_memo(move || draft.read().private_persona.is_some());
     let work_active = use_memo(move || draft.read().persona.is_some());
     let online_active = use_memo(move || draft.read().online_persona.is_some());
 
-    let ctx = PersonEditState {
+    let mut ctx = PersonEditState {
         draft,
         mode,
         open,
         saved,
+        base_active,
         work_active,
         online_active,
     };
     use_context_provider(|| ctx);
+
+    // Re-point the anchor context at another tab and jump straight to it. The
+    // swap is draft-level, so Cancel/Discard restores the previous layout.
+    let mut switch_primary = move |new: FacetKind| {
+        ctx.draft.write().set_primary_facet(new);
+        ctx.mode.set(new);
+        ctx.open.set(ALL_EDIT_SECTIONS.to_vec());
+    };
+    // Derived label state: the tabs and the "main context" selector follow
+    // the draft's anchor, but only when that anchor changes (never per
+    // keystroke, so the whole form doesn't re-run on every edit).
+    let primary = use_memo(move || ctx.draft().read().primary_facet);
+    let main_context_label = crate::tr!("main_context_label", lang());
 
     let mut save = move || {
         let mut person = draft.read().clone();
@@ -906,7 +991,24 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
             h2 { if is_new { "{form_new_title}" } else { "{form_edit_title}" } }
             div { class: "form",
                 div { class: "facet-bar edit-mode-bar",
-                    FacetToggle { facet: mode, base_label: facet_base, work_label: persona_section, online_label: facet_online }
+                    FacetToggle { facet: mode, primary: primary(), base_label: facet_tab_label(FacetKind::Base, primary(), lang()), work_label: facet_tab_label(FacetKind::Work, primary(), lang()), online_label: facet_tab_label(FacetKind::Online, primary(), lang()), group_label: Some(primary().label(crate::i18n::core_lang(lang())).to_string()) }
+                }
+
+                div { class: "main-context-bar",
+                    span { class: "main-context-label", "{main_context_label}" }
+                    for kind in FacetKind::ALL {
+                        button {
+                            class: if primary() == kind { "main-context-btn active" } else { "main-context-btn" },
+                            role: "radio",
+                            aria_checked: if primary() == kind { "true" } else { "false" },
+                            onclick: move |_| switch_primary(kind),
+                            "{kind.label(crate::i18n::core_lang(lang()))}"
+                        }
+                    }
+                }
+
+                div { class: "persona-actions-bar",
+                    PersonaActions { facet: FacetKind::Base }
                     PersonaActions { facet: FacetKind::Work }
                     PersonaActions { facet: FacetKind::Online }
                 }
@@ -932,26 +1034,20 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
 
 /// One Base/Work/Online facet toggle row: always rendered in every facet so
 /// the edit-mode bars keep identical heights; hidden (visibility, not
-/// presence) when not the active facet.
+/// presence) when not the active facet or when the row is the anchor context
+/// (the anchor never wears a persona mask).
 #[component]
 fn PersonaActions(facet: FacetKind) -> Element {
     let ctx = use_context::<PersonEditState>();
     let lang = use_context::<Signal<Lang>>();
-    let hidden = use_memo(move || persona_row_hidden(ctx.mode(), facet));
+    let hidden = use_memo(move || {
+        let primary = ctx.draft().read().primary_facet;
+        persona_row_hidden(primary, ctx.mode(), facet)
+    });
     let enabled = use_memo(move || ctx.persona_active(facet));
-    let (section_label, copy_label, clear_label) = if is_work_facet(facet) {
-        (
-            crate::tr!("persona_section", lang()),
-            crate::tr!("persona_copy_base", lang()),
-            crate::tr!("persona_clear", lang()),
-        )
-    } else {
-        (
-            crate::tr!("persona_online_section", lang()),
-            crate::tr!("persona_copy_base", lang()),
-            crate::tr!("persona_clear", lang()),
-        )
-    };
+    let section_label = persona_mask_label(facet, lang());
+    let copy_label = crate::tr!("persona_copy_base", lang());
+    let clear_label = crate::tr!("persona_clear", lang());
     rsx! {
         div {
             class: "persona-actions",
@@ -979,6 +1075,8 @@ fn FacetSections() -> Element {
     let ctx = use_context::<PersonEditState>();
     let lang = use_context::<Signal<Lang>>();
     let mode = use_memo(move || ctx.mode());
+    let primary = use_memo(move || ctx.draft().read().primary_facet);
+    let base_enabled = use_memo(move || ctx.base_active());
     let work_enabled = use_memo(move || ctx.work_active());
     let online_enabled = use_memo(move || ctx.online_active());
 
@@ -992,6 +1090,12 @@ fn FacetSections() -> Element {
         persona_panel_active(
             ctx.bucket_defined(FacetKind::Online, FacetBucket::Resilience),
             ctx.bucket_defined(FacetKind::Online, FacetBucket::RiskAppetite),
+        )
+    });
+    let resilience_base = use_memo(move || {
+        persona_panel_active(
+            ctx.bucket_defined(FacetKind::Base, FacetBucket::Resilience),
+            ctx.bucket_defined(FacetKind::Base, FacetBucket::RiskAppetite),
         )
     });
 
@@ -1012,226 +1116,161 @@ fn FacetSections() -> Element {
     let edit_values = crate::tr!("edit_values", lang());
 
     rsx! {
-        if mode() == FacetKind::Base {
+        if mode() == primary() {
+            // Anchor context: the inline fields are this context's data, so
+            // the sections render bare (no override toggles). `facet` is the
+            // live mode so every scoped child reads the anchor inline values.
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::ResilienceRisk,
                 title: persona_balance,
-                ResilienceRiskInputs { facet: FacetKind::Base }
+                ResilienceRiskInputs { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Ocean,
                 title: form_ocean_title,
                 header: Some(rsx! { OceanWarningBadge {} }),
-                progress: Some(rsx! { OceanProgress { facet: FacetKind::Base } }),
-                OceanInputs { facet: FacetKind::Base }
+                progress: Some(rsx! { OceanProgress { facet: mode() } }),
+                OceanInputs { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Motivations,
                 title: edit_motivations,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Motivations, cap: mot_cap } }),
-                MotEditPanel { facet: FacetKind::Base }
+                progress: Some(rsx! { ListProgress { facet: mode(), bucket: FacetBucket::Motivations, cap: mot_cap } }),
+                MotEditPanel { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Biases,
                 title: edit_biases,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Biases, cap: bias_cap } }),
-                BiasEditPanel { facet: FacetKind::Base }
+                progress: Some(rsx! { ListProgress { facet: mode(), bucket: FacetBucket::Biases, cap: bias_cap } }),
+                BiasEditPanel { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Reputation,
                 title: edit_reputation,
-                progress: Some(rsx! { RepProgress { facet: FacetKind::Base } }),
-                RepEditPanel { facet: FacetKind::Base }
+                progress: Some(rsx! { RepProgress { facet: mode() } }),
+                RepEditPanel { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Patterns,
                 title: edit_patterns,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
-                PatternEditPanel { facet: FacetKind::Base }
+                progress: Some(rsx! { ListProgress { facet: mode(), bucket: FacetBucket::Patterns, cap: pattern_cap } }),
+                PatternEditPanel { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Styles,
                 title: edit_styles,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Styles, cap: style_cap } }),
-                StyleEditPanel { facet: FacetKind::Base }
+                progress: Some(rsx! { ListProgress { facet: mode(), bucket: FacetBucket::Styles, cap: style_cap } }),
+                StyleEditPanel { facet: mode() }
             }
             FacetSection {
-                facet: FacetKind::Base,
+                facet: mode(),
                 open: ctx.open,
                 id: EditSectionId::Values,
                 title: edit_values,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Base, bucket: FacetBucket::Values, cap: values_cap } }),
-                ValEditPanel { facet: FacetKind::Base }
+                progress: Some(rsx! { ListProgress { facet: mode(), bucket: FacetBucket::Values, cap: values_cap } }),
+                ValEditPanel { facet: mode() }
             }
         }
 
-        if mode() == FacetKind::Work && work_enabled() {
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::ResilienceRisk,
-                title: persona_balance,
-                active: Some(resilience_work),
-                header: Some(rsx! {
-                    BucketToggle { facet: FacetKind::Work, bucket: FacetBucket::Resilience }
-                    BucketToggle { facet: FacetKind::Work, bucket: FacetBucket::RiskAppetite }
-                }),
-                ResilienceRiskInputs { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Ocean,
-                title: form_ocean_title,
-                bucket: FacetBucket::Ocean,
-                progress: Some(rsx! { OceanProgress { facet: FacetKind::Work } }),
-                OceanInputs { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Motivations,
-                title: edit_motivations,
-                bucket: FacetBucket::Motivations,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Motivations, cap: mot_cap } }),
-                MotEditPanel { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Biases,
-                title: edit_biases,
-                bucket: FacetBucket::Biases,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Biases, cap: bias_cap } }),
-                BiasEditPanel { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Reputation,
-                title: edit_reputation,
-                bucket: FacetBucket::Reputation,
-                progress: Some(rsx! { RepProgress { facet: FacetKind::Work } }),
-                RepEditPanel { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Patterns,
-                title: edit_patterns,
-                bucket: FacetBucket::Patterns,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
-                PatternEditPanel { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Styles,
-                title: edit_styles,
-                bucket: FacetBucket::Styles,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Styles, cap: style_cap } }),
-                StyleEditPanel { facet: FacetKind::Work }
-            }
-            FacetSection {
-                facet: FacetKind::Work,
-                open: ctx.open,
-                id: EditSectionId::Values,
-                title: edit_values,
-                bucket: FacetBucket::Values,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Work, bucket: FacetBucket::Values, cap: values_cap } }),
-                ValEditPanel { facet: FacetKind::Work }
-            }
-        }
-
-        if mode() == FacetKind::Online && online_enabled() {
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::ResilienceRisk,
-                title: persona_balance,
-                active: Some(resilience_online),
-                header: Some(rsx! {
-                    BucketToggle { facet: FacetKind::Online, bucket: FacetBucket::Resilience }
-                    BucketToggle { facet: FacetKind::Online, bucket: FacetBucket::RiskAppetite }
-                }),
-                ResilienceRiskInputs { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Ocean,
-                title: form_ocean_title,
-                bucket: FacetBucket::Ocean,
-                progress: Some(rsx! { OceanProgress { facet: FacetKind::Online } }),
-                OceanInputs { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Motivations,
-                title: edit_motivations,
-                bucket: FacetBucket::Motivations,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Motivations, cap: mot_cap } }),
-                MotEditPanel { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Biases,
-                title: edit_biases,
-                bucket: FacetBucket::Biases,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Biases, cap: bias_cap } }),
-                BiasEditPanel { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Reputation,
-                title: edit_reputation,
-                bucket: FacetBucket::Reputation,
-                progress: Some(rsx! { RepProgress { facet: FacetKind::Online } }),
-                RepEditPanel { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Patterns,
-                title: edit_patterns,
-                bucket: FacetBucket::Patterns,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
-                PatternEditPanel { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Styles,
-                title: edit_styles,
-                bucket: FacetBucket::Styles,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Styles, cap: style_cap } }),
-                StyleEditPanel { facet: FacetKind::Online }
-            }
-            FacetSection {
-                facet: FacetKind::Online,
-                open: ctx.open,
-                id: EditSectionId::Values,
-                title: edit_values,
-                bucket: FacetBucket::Values,
-                progress: Some(rsx! { ListProgress { facet: FacetKind::Online, bucket: FacetBucket::Values, cap: values_cap } }),
-                ValEditPanel { facet: FacetKind::Online }
+        // Non-anchor contexts render as persona panels whose buckets are
+        // explicit overrides over the anchor profile, shown only when the
+        // mask exists (the "enable" row is in PersonaActions) and only while
+        // that facet is the active tab.
+        for (kind, enabled, resilience) in [
+            (FacetKind::Base, base_enabled, resilience_base),
+            (FacetKind::Work, work_enabled, resilience_work),
+            (FacetKind::Online, online_enabled, resilience_online),
+        ] {
+            if mode() == kind && mode() != primary() && enabled() {
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::ResilienceRisk,
+                    title: persona_balance,
+                    active: Some(resilience),
+                    header: Some(rsx! {
+                        BucketToggle { facet: kind, bucket: FacetBucket::Resilience }
+                        BucketToggle { facet: kind, bucket: FacetBucket::RiskAppetite }
+                    }),
+                    ResilienceRiskInputs { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Ocean,
+                    title: form_ocean_title,
+                    bucket: FacetBucket::Ocean,
+                    progress: Some(rsx! { OceanProgress { facet: kind } }),
+                    OceanInputs { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Motivations,
+                    title: edit_motivations,
+                    bucket: FacetBucket::Motivations,
+                    progress: Some(rsx! { ListProgress { facet: kind, bucket: FacetBucket::Motivations, cap: mot_cap } }),
+                    MotEditPanel { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Biases,
+                    title: edit_biases,
+                    bucket: FacetBucket::Biases,
+                    progress: Some(rsx! { ListProgress { facet: kind, bucket: FacetBucket::Biases, cap: bias_cap } }),
+                    BiasEditPanel { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Reputation,
+                    title: edit_reputation,
+                    bucket: FacetBucket::Reputation,
+                    progress: Some(rsx! { RepProgress { facet: kind } }),
+                    RepEditPanel { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Patterns,
+                    title: edit_patterns,
+                    bucket: FacetBucket::Patterns,
+                    progress: Some(rsx! { ListProgress { facet: kind, bucket: FacetBucket::Patterns, cap: pattern_cap } }),
+                    PatternEditPanel { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Styles,
+                    title: edit_styles,
+                    bucket: FacetBucket::Styles,
+                    progress: Some(rsx! { ListProgress { facet: kind, bucket: FacetBucket::Styles, cap: style_cap } }),
+                    StyleEditPanel { facet: kind }
+                }
+                FacetSection {
+                    facet: kind,
+                    open: ctx.open,
+                    id: EditSectionId::Values,
+                    title: edit_values,
+                    bucket: FacetBucket::Values,
+                    progress: Some(rsx! { ListProgress { facet: kind, bucket: FacetBucket::Values, cap: values_cap } }),
+                    ValEditPanel { facet: kind }
+                }
             }
         }
     }
@@ -1255,7 +1294,8 @@ fn FacetSection(
 ) -> Element {
     let ctx = use_context::<PersonEditState>();
     let on_discard = EventHandler::new(move |_| ctx.discard(id));
-    let is_persona = is_persona_facet(facet);
+    let primary = ctx.draft().read().primary_facet;
+    let is_persona = is_persona_facet(facet, primary);
     let panel_active = use_memo(move || {
         let active_memo = active.map(|a| a());
         let bucket_defined = bucket.map(|b| ctx.bucket_defined(facet, b));
@@ -1701,30 +1741,10 @@ fn persona_panel_active(a: bool, b: bool) -> bool {
 // Extracted so it's directly unit-testable: the discard closure that uses
 // this lives inside a Dioxus component and needs a live render context, so
 // cargo-mutants had no test able to exercise this comparison in isolation
-// (== -> != survived as an undetected mutant). A plain function keeps the
-// same behavior but can be called straight from a #[test].
-fn is_base_facet(mode: FacetKind) -> bool {
-    mode == FacetKind::Base
-}
-
-// Same reasoning: FacetSection's `is_work` check lives inside a Dioxus
-// component, invisible to a plain `cargo test` run.
-fn is_work_facet(mode: FacetKind) -> bool {
-    mode == FacetKind::Work
-}
-
-// Same reasoning as is_work_facet above: the Online persona's sections get
-// their `persona-panel` wrapper and default bucket toggle from inside
-// FacetSection, so the discriminant comparison is extracted for a direct
-// #[test].
-fn is_online_facet(mode: FacetKind) -> bool {
-    mode == FacetKind::Online
-}
-
-// Any non-base arena (work or online) is rendered as a persona panel, so a
-// single predicate drives FacetSection instead of special-casing each mask.
-fn is_persona_facet(mode: FacetKind) -> bool {
-    is_work_facet(mode) || is_online_facet(mode)
+/// Any non-anchor context is rendered as a persona panel whose buckets are
+/// explicit overrides over the anchor profile (the anchor is the only "base").
+fn is_persona_facet(facet: FacetKind, primary: FacetKind) -> bool {
+    facet != primary
 }
 
 fn parse_tags(s: &str) -> Vec<Tag> {
@@ -3027,21 +3047,29 @@ mod tests {
     }
 
     #[test]
-    fn anchor_label_uses_primary_context_not_private_life() {
+    fn tab_labels_anchor_primary_and_masks() {
         let en = crate::i18n::Lang::En;
         let suffix = crate::tr!("facet_main_suffix", en);
+        let base = FacetKind::Base;
+        let work = FacetKind::Work;
+        let online = FacetKind::Online;
+        // Anchor context always shows its name + "(main)".
         assert_eq!(
-            anchor_facet_label(&blank_person(), en),
+            facet_tab_label(base, base, en),
             format!("Personal life{suffix}")
         );
+        assert_eq!(facet_tab_label(work, work, en), format!("At work{suffix}"));
         assert_eq!(
-            anchor_facet_label(&blank_person_with_facet(FacetKind::Work), en),
-            format!("At work{suffix}")
-        );
-        assert_eq!(
-            anchor_facet_label(&blank_person_with_facet(FacetKind::Online), en),
+            facet_tab_label(online, online, en),
             format!("Online{suffix}")
         );
+        // Non-anchor contexts keep their persona labels.
+        assert_eq!(facet_tab_label(work, base, en), "Work Persona");
+        assert_eq!(facet_tab_label(online, base, en), "Online");
+        assert_eq!(facet_tab_label(base, work, en), "Personal life Persona");
+        assert_eq!(facet_tab_label(online, work, en), "Online");
+        assert_eq!(facet_tab_label(base, online, en), "Personal life Persona");
+        assert_eq!(facet_tab_label(work, online, en), "Work Persona");
     }
 
     #[test]
@@ -3472,49 +3500,19 @@ mod tests {
     }
 
     #[test]
-    fn is_base_facet_distinguishes_base_and_work() {
-        assert!(is_base_facet(FacetKind::Base), "Base facet is base");
-        assert!(!is_base_facet(FacetKind::Work), "Work facet is not base");
-        assert!(
-            !is_base_facet(FacetKind::Online),
-            "Online facet is not base"
-        );
-    }
-
-    #[test]
-    fn is_work_facet_distinguishes_base_and_work() {
-        assert!(is_work_facet(FacetKind::Work), "Work facet is work");
-        assert!(!is_work_facet(FacetKind::Base), "Base facet is not work");
-        assert!(
-            !is_work_facet(FacetKind::Online),
-            "Online facet is not work"
-        );
-    }
-
-    #[test]
-    fn is_online_facet_distinguishes_online_from_base_and_work() {
-        assert!(is_online_facet(FacetKind::Online), "Online facet is online");
-        assert!(
-            !is_online_facet(FacetKind::Base),
-            "Base facet is not online"
-        );
-        assert!(
-            !is_online_facet(FacetKind::Work),
-            "Work facet is not online"
-        );
-    }
-
-    #[test]
-    fn is_persona_facet_covers_work_and_online_only() {
-        assert!(is_persona_facet(FacetKind::Work), "Work is a persona facet");
-        assert!(
-            is_persona_facet(FacetKind::Online),
-            "Online is a persona facet"
-        );
-        assert!(
-            !is_persona_facet(FacetKind::Base),
-            "Base is not a persona facet"
-        );
+    fn is_persona_facet_gates_by_primary() {
+        let kinds = [FacetKind::Base, FacetKind::Work, FacetKind::Online];
+        for &primary in &kinds {
+            for &facet in &kinds {
+                // The anchor context is the only non-persona arena; every
+                // other context wears a mask over it.
+                assert_eq!(
+                    is_persona_facet(facet, primary),
+                    facet != primary,
+                    "facet={facet:?} primary={primary:?}"
+                );
+            }
+        }
     }
 
     #[test]
@@ -3827,14 +3825,56 @@ mod tests {
 
     #[test]
     fn persona_active_for_picks_flag_by_facet() {
-        assert!(persona_active_for(true, false, FacetKind::Work));
-        assert!(!persona_active_for(false, false, FacetKind::Work));
-        assert!(persona_active_for(false, true, FacetKind::Online));
-        assert!(!persona_active_for(false, false, FacetKind::Online));
-        assert!(
-            persona_active_for(false, true, FacetKind::Base),
-            "base facet falls through to the online flag like the original"
-        );
+        // Anchor context never wears a mask, whatever its flags say.
+        assert!(!persona_active_for(
+            FacetKind::Work,
+            false,
+            true,
+            false,
+            FacetKind::Work
+        ));
+        assert!(!persona_active_for(
+            FacetKind::Base,
+            true,
+            false,
+            false,
+            FacetKind::Base
+        ));
+        assert!(persona_active_for(
+            FacetKind::Work,
+            true,
+            false,
+            false,
+            FacetKind::Base
+        ));
+        assert!(persona_active_for(
+            FacetKind::Base,
+            false,
+            true,
+            false,
+            FacetKind::Work
+        ));
+        assert!(!persona_active_for(
+            FacetKind::Base,
+            false,
+            false,
+            false,
+            FacetKind::Work
+        ));
+        assert!(persona_active_for(
+            FacetKind::Base,
+            false,
+            false,
+            true,
+            FacetKind::Online
+        ));
+        assert!(!persona_active_for(
+            FacetKind::Base,
+            false,
+            false,
+            false,
+            FacetKind::Online
+        ));
     }
 
     #[test]
@@ -3900,6 +3940,45 @@ mod tests {
         set_persona_state(&mut p, FacetKind::Base, true);
         assert!(p.persona.is_none(), "the base facet never gains a persona");
         assert!(p.online_persona.is_none());
+    }
+
+    #[test]
+    fn set_persona_state_base_becomes_private_mask_when_primary_is_work() {
+        let mut p = blank_person_with_facet(FacetKind::Work);
+        assert_eq!(p.primary_facet, FacetKind::Work);
+        assert!(p.private_persona.is_none());
+
+        set_persona_state(&mut p, FacetKind::Base, true);
+        assert!(
+            p.private_persona.is_some(),
+            "enabling the Base facet under a Work primary creates the private mask"
+        );
+        assert!(
+            mask_of(&p, FacetKind::Base).is_some(),
+            "mask_of(Base) reads the private persona"
+        );
+
+        set_persona_state(&mut p, FacetKind::Base, false);
+        assert!(
+            p.private_persona.is_none(),
+            "disabling drops the private persona"
+        );
+        assert!(mask_of(&p, FacetKind::Base).is_none());
+    }
+
+    #[test]
+    fn mask_of_gates_by_primary_facet() {
+        let mut p = blank_person_with_facet(FacetKind::Work);
+        p.persona = Some(PersonaMask::default());
+        p.online_persona = Some(PersonaMask::default());
+        p.private_persona = Some(PersonaMask::default());
+
+        assert!(
+            mask_of(&p, FacetKind::Work).is_none(),
+            "the anchor context never reads a mask"
+        );
+        assert!(mask_of(&p, FacetKind::Base).is_some());
+        assert!(mask_of(&p, FacetKind::Online).is_some());
     }
 
     #[test]
@@ -4010,11 +4089,34 @@ mod tests {
     }
 
     #[test]
-    fn persona_row_hidden_matches_active_facet_only() {
-        assert!(!persona_row_hidden(FacetKind::Work, FacetKind::Work));
-        assert!(persona_row_hidden(FacetKind::Base, FacetKind::Work));
-        assert!(persona_row_hidden(FacetKind::Work, FacetKind::Online));
-        assert!(!persona_row_hidden(FacetKind::Online, FacetKind::Online));
+    fn persona_row_hidden_matches_active_facet_except_anchor() {
+        // Visible only for the active tab, and never for the anchor context
+        // (the anchor has no mask row).
+        assert!(!persona_row_hidden(
+            FacetKind::Base,
+            FacetKind::Work,
+            FacetKind::Work
+        ));
+        assert!(persona_row_hidden(
+            FacetKind::Base,
+            FacetKind::Work,
+            FacetKind::Base
+        ));
+        assert!(persona_row_hidden(
+            FacetKind::Base,
+            FacetKind::Work,
+            FacetKind::Online
+        ));
+        assert!(persona_row_hidden(
+            FacetKind::Base,
+            FacetKind::Base,
+            FacetKind::Base
+        ));
+        assert!(persona_row_hidden(
+            FacetKind::Work,
+            FacetKind::Work,
+            FacetKind::Work
+        ));
     }
 
     #[test]

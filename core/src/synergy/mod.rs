@@ -128,6 +128,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: "test".into(),
             name: "Test".into(),

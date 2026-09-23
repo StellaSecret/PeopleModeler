@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     BehaviorTrigger, FacetKind, Person, Prediction, RelationType, Relationship, RepDim,
 };
-use peoplemodeler_core::synergy::{MaskBand, compute_person_profile, mask_gap, synergy_bands};
+use peoplemodeler_core::synergy::{MaskBand, compute_person_profile, mask_gap_for, synergy_bands};
 
 use crate::Route;
 use crate::components::facet::FacetToggle;
@@ -48,29 +48,28 @@ pub fn PersonDetail(id: String) -> Element {
     match p {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
         Some(orig) => {
-            let facet_base_label = format!(
-                "{}{}",
-                orig.primary_facet.label(crate::i18n::core_lang(lang())),
-                crate::tr!("facet_main_suffix", lang())
+            let facet_base_label = crate::pages::person_edit::facet_tab_label(
+                FacetKind::Base,
+                orig.primary_facet,
+                lang(),
             );
-            let facet_work_label = crate::tr!("facet_work", lang());
-            let facet_online_label = crate::tr!("facet_online", lang());
+            let facet_work_label = crate::pages::person_edit::facet_tab_label(
+                FacetKind::Work,
+                orig.primary_facet,
+                lang(),
+            );
+            let facet_online_label = crate::pages::person_edit::facet_tab_label(
+                FacetKind::Online,
+                orig.primary_facet,
+                lang(),
+            );
+            let primary = orig.primary_facet;
             let persona_section_label = crate::tr!("persona_section", lang());
-            let has_persona = orig.persona.is_some() || orig.online_persona.is_some();
-            let facet = use_signal(|| FacetKind::Base);
-            let mask_info = match facet() {
-                FacetKind::Base => {
-                    if orig.persona.is_some() {
-                        mask_gap(orig)
-                    } else {
-                        None
-                    }
-                }
-                FacetKind::Work => mask_gap(orig),
-                FacetKind::Online => {
-                    peoplemodeler_core::synergy::mask_gap_for(orig, FacetKind::Online)
-                }
-            };
+            let has_persona = orig.private_persona.is_some()
+                || orig.persona.is_some()
+                || orig.online_persona.is_some();
+            let facet = use_signal(move || primary);
+            let mask_info = mask_gap_for(orig, facet());
             let mask_badge = mask_info.map(|m| {
                 let label = match m.band {
                     MaskBand::Low => crate::tr!("mask_gap_low", lang()),
@@ -84,11 +83,7 @@ pub fn PersonDetail(id: String) -> Element {
                 };
                 (label, cls, format!("{:.0}%", m.gap * 100.0))
             });
-            let facet_person: Person = match facet() {
-                FacetKind::Work => orig.facet_person(FacetKind::Work),
-                FacetKind::Online => orig.facet_person(FacetKind::Online),
-                FacetKind::Base => orig.clone(),
-            };
+            let facet_person: Person = orig.facet_person(facet());
             let person = &facet_person;
             let edit_btn = crate::tr!("edit_btn", lang());
             let delete_btn = crate::tr!("delete_btn", lang());
@@ -297,7 +292,7 @@ pub fn PersonDetail(id: String) -> Element {
                         p { class: "context", "{person.context}" }
                         if has_persona {
                             div { class: "facet-bar",
-                                FacetToggle { facet, base_label: facet_base_label, work_label: facet_work_label, online_label: facet_online_label, group_label: Some(persona_section_label.to_string()) }
+                                FacetToggle { facet, base_label: facet_base_label, work_label: facet_work_label, online_label: facet_online_label, primary: Some(primary), group_label: Some(persona_section_label.to_string()) }
                                 if let Some((mask_label, mask_cls, mask_pct)) = mask_badge {
                                     span { class: "mask-badge {mask_cls}", title: "Δ {mask_pct}", "{mask_label}" }
                                 }

@@ -11,7 +11,7 @@ fn list_profile_src(p: &Person, facet: FacetKind) -> Person {
     match facet {
         FacetKind::Work => p.facet_person(FacetKind::Work),
         FacetKind::Online => p.facet_person(FacetKind::Online),
-        FacetKind::Base => p.clone(),
+        FacetKind::Base => p.facet_person(FacetKind::Base),
     }
 }
 
@@ -180,6 +180,7 @@ mod tests {
                 }),
                 ..PersonaMask::default()
             }),
+            private_persona: None,
             ocean: OceanScores {
                 extraversion: Some(2),
                 ..OceanScores::default()
@@ -218,5 +219,28 @@ mod tests {
         assert_eq!(online_src.ocean.extraversion, Some(7));
         let base_src = list_profile_src(&p, FacetKind::Base);
         assert_eq!(base_src.ocean.extraversion, Some(2));
+    }
+
+    #[test]
+    fn list_profile_src_base_tab_reads_private_mask_for_work_primary() {
+        let mut p = fixture_person();
+        p.primary_facet = FacetKind::Work;
+        p.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                extraversion: Some(11),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        let base_src = list_profile_src(&p, FacetKind::Base);
+        assert_eq!(
+            base_src.ocean.extraversion,
+            Some(11),
+            "the Personal-life tab must blend the private persona onto the work anchor"
+        );
+        assert!(
+            base_src.private_persona.is_none(),
+            "merged view strips masks"
+        );
     }
 }

@@ -746,6 +746,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: id.into(),
             name: "Test Person".into(),
@@ -997,6 +998,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: "full".into(),
             name: "Full Person".into(),
@@ -1239,6 +1241,7 @@ mod tests {
         let original = Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: "json-eq".into(),
             name: "JSON Compare".into(),

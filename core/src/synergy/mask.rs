@@ -50,12 +50,15 @@ pub fn mask_gap(p: &Person) -> Option<MaskGap> {
 /// synergy scoring (a masked pair can look very compatible in one arena and
 /// incompatible in another, or the reverse).
 pub fn mask_gap_for(p: &Person, kind: FacetKind) -> Option<MaskGap> {
+    if kind == p.primary_facet {
+        return None;
+    }
     match kind {
-        FacetKind::Base => return None,
+        FacetKind::Base => p.private_persona.as_ref()?,
         FacetKind::Work => p.persona.as_ref()?,
         FacetKind::Online => p.online_persona.as_ref()?,
     };
-    let base = p.facet_view(FacetKind::Base);
+    let base = p.facet_view(p.primary_facet);
     let arena = p.facet_view(kind);
 
     let mut num = 0.0;
@@ -241,5 +244,28 @@ mod tests {
         assert!(mask_gap_for(&p, FacetKind::Base).is_none());
         let g = mask_gap_for(&p, FacetKind::Online).unwrap();
         assert!(g.gap > 0.0, "gap = {}", g.gap);
+    }
+
+    #[test]
+    fn work_primary_reports_personal_life_gap() {
+        let mut p = moon();
+        p.primary_facet = FacetKind::Work;
+        p.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(1),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        assert!(
+            mask_gap(&p).is_none(),
+            "a work-primary person has no work mask: work gap is None"
+        );
+        let g = mask_gap_for(&p, FacetKind::Base).unwrap();
+        assert!(
+            g.gap > 0.0,
+            "gap between the work anchor and the personal-life mask: {}",
+            g.gap
+        );
     }
 }

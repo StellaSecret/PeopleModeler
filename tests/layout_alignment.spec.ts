@@ -37,12 +37,18 @@ function facetOption(page: Page, name: string) {
 
 // A freshly-created person has no work mask, and the Work Persona facet only
 // renders its edit sections once the mask is enabled (otherwise it just shows
-// the "enable" row). "Copy from base profile" is the first button in the first
-// persona-actions row; clicking it enables the mask and fills every bucket, so
-// the Work facet exposes the full section chrome the alignment guard compares
-// against Personal life. Positional so it stays locale-independent.
+// the "enable" row). "Copy from base profile" is the copy button in the
+// currently visible persona-actions row (only the active, non-anchor row is
+// visible — the others are visibility:hidden); clicking it enables the mask
+// and fills every bucket, so the Work facet exposes the full section chrome
+// the alignment guard compares against Personal life. Positional so it stays
+// locale-independent.
 async function enableWorkMask(page: Page) {
-  await page.locator('.persona-actions').first().locator('button').first().click();
+  await page
+    .locator('.persona-actions:not(.persona-actions-hidden)')
+    .locator('button')
+    .first()
+    .click();
 }
 
 async function gotoEdit(page: Page, personId: string) {
@@ -169,14 +175,14 @@ test.describe('Facet tab pixel alignment', () => {
     // visibility:hidden — never display:none — specifically so it keeps
     // occupying space. If that ever regresses to display:none (or back to
     // a guessed min-height placeholder), this is what would catch it.
-    // There is now one reserved row per persona mask (Work first, then
-    // Online), so scope each lookup to its row instead of matching both.
+    // There is one reserved row per mask (Base first, then Work, then
+    // Online), so scope each lookup to its row instead of matching all.
     await clearStorage(page);
     const personId = await createPerson(page, 'Persona Actions Height Test');
     await gotoEdit(page, personId);
 
-    const workActions = page.locator('.persona-actions').first();
-    const onlineActions = page.locator('.persona-actions').nth(1);
+    const workActions = page.locator('.persona-actions').nth(1);
+    const onlineActions = page.locator('.persona-actions').nth(2);
 
     const hiddenWorkBox = await workActions.boundingBox();
     const hiddenOnlineBox = await onlineActions.boundingBox();
