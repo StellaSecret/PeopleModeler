@@ -4,7 +4,7 @@ use peoplemodeler_core::models::{BehaviorTrigger, FacetKind, Person, RelationTyp
 
 use peoplemodeler_core::synergy::{
     MaskBand, RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds,
-    mask_gap, mask_gap_for, synergy_bands,
+    mask_gap_for, synergy_bands,
 };
 
 use crate::db;
@@ -535,11 +535,7 @@ fn PersonCard(person: Person, mask: Option<(String, String, String)>) -> Element
 }
 
 fn mask_badge(p: &Person, kind: FacetKind, lang: Lang) -> Option<(String, String, String)> {
-    let gap = match kind {
-        FacetKind::Base => mask_gap(p),
-        FacetKind::Work => mask_gap(p),
-        FacetKind::Online => mask_gap_for(p, FacetKind::Online),
-    };
+    let gap = mask_gap_for(p, kind);
     gap.map(|m| {
         let (label, cls) = match m.band {
             MaskBand::Low => (crate::tr!("mask_gap_low", lang), "mask-low"),
@@ -666,7 +662,10 @@ fn analysis_pair(a: &Person, b: &Person, kind: FacetKind) -> (Person, Person) {
             a.facet_person(FacetKind::Online),
             b.facet_person(FacetKind::Online),
         ),
-        FacetKind::Base => (a.clone(), b.clone()),
+        FacetKind::Base => (
+            a.facet_person(FacetKind::Base),
+            b.facet_person(FacetKind::Base),
+        ),
     }
 }
 
@@ -1180,10 +1179,32 @@ mod tests {
         );
     }
 
+    #[test]
+    fn analysis_pair_base_kind_blends_private_mask_for_work_primary() {
+        let mut a = p("a");
+        a.primary_facet = FacetKind::Work;
+        a.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(2),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        let (ba, _) = analysis_pair(&a, &p("b"), FacetKind::Base);
+        assert_eq!(
+            ba.ocean.openness,
+            Some(2),
+            "the Base arm must blend the personal-life mask onto the work anchor"
+        );
+        assert!(ba.private_persona.is_none(), "merged view strips masks");
+        assert_eq!(ba.name, "a", "identity fields carried over");
+    }
+
     fn p(name: &str) -> Person {
         Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: name.into(),
             name: name.into(),

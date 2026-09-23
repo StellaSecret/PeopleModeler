@@ -920,6 +920,9 @@ fn en(key: &'static str) -> &'static str {
         // Online persona (mask)
         "persona_online_section" => "Online Persona",
 
+        // Personal-life persona (mask, when the anchor context is not Base)
+        "persona_base_section" => "Personal life Persona",
+
         // Facet toggle
         "facet_auto" => "Automatic",
         "facet_base" => "Personal life",
@@ -927,6 +930,7 @@ fn en(key: &'static str) -> &'static str {
         "facet_online" => "Online",
         "facet_main" => "Main",
         "facet_main_suffix" => " (main)",
+        "main_context_label" => "Main context:",
 
         // Personal-context picker (new-person flow)
         "persona_context_prompt" => "Where do you know this person from?",
@@ -1774,6 +1778,9 @@ fn fr(key: &'static str) -> &'static str {
         // Online persona (mask)
         "persona_online_section" => "Persona en ligne",
 
+        // Personal-life persona (mask, when the anchor context is not Base)
+        "persona_base_section" => "Persona de la vie privée",
+
         // Facet toggle
         "facet_auto" => "Automatique",
         "facet_base" => "Vie privée",
@@ -1781,6 +1788,7 @@ fn fr(key: &'static str) -> &'static str {
         "facet_online" => "En ligne",
         "facet_main" => "Principal",
         "facet_main_suffix" => " (principal)",
+        "main_context_label" => "Contexte principal :",
 
         // Personal-context picker (new-person flow)
         "persona_context_prompt" => "D'où connaissez-vous cette personne ?",
@@ -2287,12 +2295,14 @@ pub(crate) const VALID_KEYS: &[&str] = &[
     "persona_clear",
     "persona_balance_title",
     "persona_online_section",
+    "persona_base_section",
     "facet_base",
     "facet_work",
     "facet_online",
     "facet_auto",
     "facet_main",
     "facet_main_suffix",
+    "main_context_label",
     "persona_context_prompt",
     "persona_context_change",
     "mask_gap_low",

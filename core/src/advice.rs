@@ -642,6 +642,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: "test-001".into(),
             name: "Test".into(),
@@ -914,6 +915,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: "multi".into(),
             name: "Multi".into(),

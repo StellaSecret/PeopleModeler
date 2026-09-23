@@ -337,6 +337,7 @@ mod tests {
             persons: vec![Person {
                 persona: None,
                 online_persona: None,
+                private_persona: None,
                 primary_facet: FacetKind::Base,
                 id: "rt-001".into(),
                 name: "Roundtrip Tester".into(),
@@ -475,6 +476,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: "backup-test-1".into(),
             name: "Backup Test".into(),

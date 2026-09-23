@@ -50,14 +50,14 @@ test.describe('Edit form render scope', () => {
     //
     // The persona-actions row for Work is only visible once the Work facet is
     // the active mode (the row hides with `persona-actions-hidden` otherwise),
-    // so switch the mode bar first, like the layout-alignment specs do.
+    // so switch the mode bar first, like the layout-alignment specs do, and
+    // target the one visible row (the anchor and other masks stay hidden).
     await page
       .locator('div.facet-bar .facet-toggle .facet-btn')
       .filter({ hasText: 'Work Persona' })
       .click();
     const workCheckbox = page
-      .locator('.persona-actions')
-      .first()
+      .locator('.persona-actions:not(.persona-actions-hidden)')
       .locator('input[type="checkbox"]');
     await workCheckbox.check();
     await expect(workCheckbox).toBeChecked();

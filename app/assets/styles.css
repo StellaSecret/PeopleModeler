@@ -253,17 +253,22 @@ body{
    JS-measured --top-bar-h are both covered by the var). */
 :where(button,input,select,textarea,a,.edit-section,.ocean-slider,.stepper-slider,.persona-actions,.rel-add-form,.rel-person-row,.card,.analysis-card,.breakdown-section,.compatibility-card){scroll-margin-top:calc(var(--top-bar-h,64px) + 124px);scroll-margin-bottom:96px}
 .edit-mode-bar .facet-toggle{align-self:flex-start}
-/* The persona actions row is rendered in BOTH facets (empty in Personal
-   life) so the bar keeps the same height in Personal life vs At work even
-   on narrow screens — previously At work only rendered this row, which
-   wrapped the toolbar to a second line on mobile and pushed every section
-   below it down by that extra height. */
+/* The persona actions rows are rendered in ALL THREE facets (empty in the
+   anchor context) so the bar keeps the same height whatever tab is active —
+   previously At work only rendered this row, which wrapped the toolbar to a
+   second line on mobile and pushed every section below it down by that extra
+   height. */
 .persona-actions{width:100%;display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;flex-wrap:nowrap;min-height:2.4rem}
+.persona-actions-bar{display:flex;flex-direction:column;gap:0.2rem;width:100%}
 /* Personal life renders this same row (not a smaller placeholder) so its
-   real height always matches Work Persona's exactly — visibility:hidden
+   real height always matches the other masks' exactly — visibility:hidden
    keeps its layout footprint (unlike display:none) while also dropping it
    out of the tab order, so nothing invisible is keyboard-focusable. */
 .persona-actions-hidden{visibility:hidden}
+.main-context-bar{display:flex;align-items:center;gap:0.3rem;width:100%;flex-wrap:wrap;min-width:0}
+.main-context-label{font-size:0.72rem;color:var(--text-muted);white-space:nowrap;flex:none}
+.main-context-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:var(--font-body);font-size:0.72rem;padding:0.2rem 0.6rem;border-radius:100px;cursor:pointer;white-space:nowrap}
+.main-context-btn.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .persona-panel.readonly{opacity:0.45;pointer-events:none}
 .persona-panel.readonly .bucket-toggle{pointer-events:auto}
 .bucket-toggle{flex:none;white-space:nowrap;font-size:0.72rem;color:var(--text-muted);cursor:pointer}

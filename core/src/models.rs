@@ -903,6 +903,8 @@ pub enum FacetKind {
 }
 
 impl FacetKind {
+    pub const ALL: [Self; 3] = [Self::Base, Self::Work, Self::Online];
+
     pub fn label(&self, lang: crate::i18n::Lang) -> &'static str {
         match (self, lang) {
             (Self::Base, crate::i18n::Lang::Fr) => "Vie privée",
@@ -1084,8 +1086,13 @@ pub struct Person {
     pub persona: Option<PersonaMask>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub online_persona: Option<PersonaMask>,
+    /// The mask the person wears in their personal life. Only meaningful when
+    /// `primary_facet` is a non-base context (the inline anchor is then work
+    /// or online); present only then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private_persona: Option<PersonaMask>,
     /// The context the inline anchor fields represent (the person's primary /
-    /// most-known persona, not necessarily their private life). The two
+    /// most-known persona, not necessarily their private life). The
     /// `PersonaMask` deltas above are always relative to this anchor.
     #[serde(default)]
     pub primary_facet: FacetKind,
@@ -1105,6 +1112,10 @@ pub struct Person {
 fn default_confidence() -> u8 {
     5
 }
+
+/// Scalar fallback used when capturing a context's view as a full persona
+/// mask (mirrors the app's "copy from base profile" seeding).
+const CAPTURE_DEFAULT: u8 = 5;
 
 impl Person {
     pub fn top_motivation(&self) -> Option<&Motivation> {
@@ -1156,10 +1167,14 @@ impl Person {
         }
     }
 
-    /// The arena persona mask for `kind` (`None` for the base facet).
+    /// The arena persona mask for `kind` — `None` for the context the inline
+    /// fields anchor (`primary_facet`), since that context is always "base".
     fn mask_for(&self, kind: FacetKind) -> Option<&PersonaMask> {
+        if kind == self.primary_facet {
+            return None;
+        }
         match kind {
-            FacetKind::Base => None,
+            FacetKind::Base => self.private_persona.as_ref(),
             FacetKind::Work => self.persona.as_ref(),
             FacetKind::Online => self.online_persona.as_ref(),
         }
@@ -1171,13 +1186,14 @@ impl Person {
     /// read for that facet. The clone carries no persona, which keeps those
     /// computations persona-agnostic.
     pub fn facet_person(&self, kind: FacetKind) -> Person {
-        if kind == FacetKind::Base || self.mask_for(kind).is_none() {
+        if self.mask_for(kind).is_none() {
             return self.clone();
         }
         let v = self.facet_view(kind);
         Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             ocean: v.ocean,
             rep_scores: v.rep_scores,
             motivations: v.motivations,
@@ -1188,6 +1204,59 @@ impl Person {
             resilience: v.resilience,
             risk_appetite: v.risk_appetite,
             ..self.clone()
+        }
+    }
+
+    /// Re-point the inline anchor fields at another context. The new anchor
+    /// becomes the target's materialized view; every other context is kept as
+    /// a full-capture mask of its own pre-swap view, so no context's data
+    /// changes. No-op when `new` is already the primary facet.
+    pub fn set_primary_facet(&mut self, new: FacetKind) {
+        if new == self.primary_facet {
+            return;
+        }
+        let before = self.clone();
+        for kind in FacetKind::ALL {
+            let view = before.facet_view(kind);
+            if kind == new {
+                self.apply_inline_view(&view);
+            } else {
+                let mask = PersonaMask {
+                    ocean: Some(view.ocean.clone()),
+                    rep_scores: Some(view.rep_scores.clone()),
+                    motivations: Some(view.motivations.clone()),
+                    biases: Some(view.biases.clone()),
+                    behavioral_patterns: Some(view.behavioral_patterns.clone()),
+                    styles: Some(view.styles.clone()),
+                    values: Some(view.values.clone()),
+                    resilience: Some(view.resilience.unwrap_or(CAPTURE_DEFAULT)),
+                    risk_appetite: Some(view.risk_appetite.unwrap_or(CAPTURE_DEFAULT)),
+                };
+                self.set_persona_slot(kind, Some(mask));
+            }
+        }
+        self.primary_facet = new;
+    }
+
+    fn apply_inline_view(&mut self, v: &FacetView) {
+        self.ocean = v.ocean.clone();
+        self.rep_scores = v.rep_scores.clone();
+        self.motivations = v.motivations.clone();
+        self.biases = v.biases.clone();
+        self.behavioral_patterns = v.behavioral_patterns.clone();
+        self.styles = v.styles.clone();
+        self.values = v.values.clone();
+        self.resilience = v.resilience;
+        self.risk_appetite = v.risk_appetite;
+    }
+
+    /// Assign a persona mask to a context slot regardless of which context is
+    /// primary (the anchor context simply stores it as a mask).
+    pub fn set_persona_slot(&mut self, kind: FacetKind, mask: Option<PersonaMask>) {
+        match kind {
+            FacetKind::Base => self.private_persona = mask,
+            FacetKind::Work => self.persona = mask,
+            FacetKind::Online => self.online_persona = mask,
         }
     }
 }
@@ -1600,6 +1669,7 @@ mod tests {
                 risk_appetite: Some(6),
             }),
             online_persona: None,
+            private_persona: None,
             ocean: OceanScores {
                 openness: Some(7),
                 conscientiousness: Some(6),
@@ -1691,6 +1761,7 @@ mod tests {
                 }),
                 ..PersonaMask::default()
             }),
+            private_persona: None,
             online_persona: Some(PersonaMask {
                 ocean: Some(OceanScores {
                     openness: Some(4),
@@ -1735,6 +1806,7 @@ mod tests {
             styles: vec![],
             values: vec![],
             persona: None,
+            private_persona: None,
             online_persona: Some(PersonaMask {
                 ocean: Some(OceanScores {
                     openness: Some(4),
@@ -1790,6 +1862,7 @@ mod tests {
                 }),
                 ..PersonaMask::default()
             }),
+            private_persona: None,
             online_persona: Some(PersonaMask {
                 ocean: Some(OceanScores {
                     openness: Some(9),
@@ -1824,5 +1897,173 @@ mod tests {
             base.persona.as_ref().unwrap().ocean.clone().unwrap(),
             "work facet is independent of the online mask"
         );
+    }
+
+    #[test]
+    fn private_persona_is_omitted_when_none_and_round_trips() {
+        let p = Person {
+            id: "p".into(),
+            primary_facet: FacetKind::Work,
+            ..blank_person()
+        };
+        let raw = serde_json::to_string(&p).unwrap();
+        assert!(!raw.contains("private_persona"));
+        let back: Person = serde_json::from_str(&raw).unwrap();
+        assert_eq!(back.primary_facet, FacetKind::Work);
+        assert_eq!(back.private_persona, None);
+        assert_eq!(back, p, "omitted private mask round-trips as None");
+    }
+
+    #[test]
+    fn mask_for_gates_by_primary_facet() {
+        let mut p = blank_person();
+        p.primary_facet = FacetKind::Work;
+        p.persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(2),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        p.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(9),
+                extraversion: Some(8),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        // The anchor context (Work) has no mask: it IS the inline fields.
+        assert_eq!(p.mask_for(FacetKind::Work), None);
+        // Personal life is the new mask slot under a work-primary person.
+        assert_eq!(
+            p.facet_view(FacetKind::Base).ocean.openness,
+            Some(9),
+            "base facet reads the private persona mask"
+        );
+        assert_eq!(
+            p.facet_view(FacetKind::Work).ocean.openness,
+            None,
+            "work facet reads the anchor inline values"
+        );
+    }
+
+    #[test]
+    fn facet_person_base_merges_private_persona_for_non_base_primary() {
+        let mut p = blank_person();
+        p.primary_facet = FacetKind::Work;
+        p.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(9),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        let personal = p.facet_person(FacetKind::Base);
+        assert_eq!(personal.ocean.openness, Some(9), "merged inline value");
+        assert_eq!(personal.persona, None);
+        assert_eq!(personal.online_persona, None);
+        assert_eq!(
+            personal.private_persona, None,
+            "merged clone must be persona-agnostic"
+        );
+        // The anchor facet remains a raw clone carrying its masks (same as the
+        // legacy base-facet behavior for base-primary people).
+        let anchor = p.facet_person(FacetKind::Work);
+        assert_eq!(anchor.persona, p.persona);
+        assert_eq!(anchor.private_persona, p.private_persona);
+    }
+
+    #[test]
+    fn set_primary_facet_preserves_every_context_view() {
+        let mut p = blank_person();
+        p.primary_facet = FacetKind::Base;
+        p.ocean = OceanScores {
+            openness: Some(7),
+            ..OceanScores::default()
+        };
+        // Concrete scalars so the full-capture normalization (None -> 5) never
+        // has anything to normalize: every view round-trips exactly.
+        p.resilience = Some(6);
+        p.risk_appetite = Some(7);
+        p.persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(3),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        p.online_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                extraversion: Some(4),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        p.primary_facet = FacetKind::Base;
+        let before: Vec<_> = FacetKind::ALL
+            .into_iter()
+            .map(|k| p.facet_view(k))
+            .collect();
+
+        p.set_primary_facet(FacetKind::Work);
+        p.set_primary_facet(FacetKind::Base); // round-trip back
+        let after: Vec<_> = FacetKind::ALL
+            .into_iter()
+            .map(|k| p.facet_view(k))
+            .collect();
+
+        assert_eq!(p.primary_facet, FacetKind::Base);
+        for (b, a) in before.iter().zip(&after) {
+            assert_eq!(b, a, "context view must survive the round-trip");
+        }
+        assert_eq!(
+            p.persona
+                .as_ref()
+                .and_then(|m| m.ocean.as_ref())
+                .and_then(|o| o.openness),
+            Some(3),
+            "work regained its original data as a mask after the round-trip"
+        );
+    }
+
+    #[test]
+    fn set_primary_facet_is_noop_for_current_primary() {
+        let mut p = blank_person();
+        p.primary_facet = FacetKind::Online;
+        let snapshot = p.clone();
+        p.set_primary_facet(FacetKind::Online);
+        assert_eq!(p, snapshot);
+    }
+
+    // Minimal bare person for new facade tests, so another new field never
+    // means touching every struct literal again.
+    fn blank_person() -> Person {
+        Person {
+            id: "p".into(),
+            name: "n".into(),
+            role: String::new(),
+            context: String::new(),
+            avatar_emoji: "🧑".into(),
+            tags: vec![],
+            notes: String::new(),
+            motivations: vec![],
+            biases: vec![],
+            rep_scores: RepScores::default(),
+            behavioral_patterns: vec![],
+            styles: vec![],
+            values: vec![],
+            persona: None,
+            online_persona: None,
+            private_persona: None,
+            primary_facet: FacetKind::Base,
+            ocean: OceanScores::default(),
+            resilience: None,
+            risk_appetite: None,
+            log: vec![],
+            confidence: 5,
+            created_at: 0,
+            updated_at: 0,
+        }
     }
 }

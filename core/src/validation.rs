@@ -2166,6 +2166,7 @@ mod tests {
         let person = Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: String::new(),
             name: String::new(),
@@ -3493,6 +3494,7 @@ mod tests {
         let person = Person {
             persona: None,
             online_persona: None,
+            private_persona: None,
             primary_facet: FacetKind::Base,
             id: String::new(),
             name: String::new(),

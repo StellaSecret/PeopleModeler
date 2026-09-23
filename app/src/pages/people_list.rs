@@ -3,16 +3,13 @@ use peoplemodeler_core::models::{FacetKind, Person};
 use peoplemodeler_core::synergy::{compute_person_profile, synergy_bands};
 
 use crate::Route;
-use crate::components::facet::FacetToggle;
 use crate::db;
 use crate::i18n::Lang;
 
-fn list_profile_src(p: &Person, facet: FacetKind) -> Person {
-    match facet {
-        FacetKind::Work => p.facet_person(FacetKind::Work),
-        FacetKind::Online => p.facet_person(FacetKind::Online),
-        FacetKind::Base => p.clone(),
-    }
+/// A ranking view: `None` anchors on each person's own primary context,
+/// `Some(facet)` on that facet's materialized view for everyone.
+fn list_profile_src(p: &Person, rank: Option<FacetKind>) -> Person {
+    p.facet_person(rank.unwrap_or(p.primary_facet))
 }
 
 #[component]
@@ -21,7 +18,7 @@ pub fn PeopleList() -> Element {
     let nav = use_navigator();
     let persons = use_signal(db::all_persons);
     let mut search = use_signal(String::new);
-    let facet = use_signal(|| FacetKind::Base);
+    let mut rank = use_signal(|| None::<FacetKind>);
 
     let profiles = use_memo(move || {
         let all = persons();
@@ -31,7 +28,7 @@ pub fn PeopleList() -> Element {
                     p.id.clone(),
                     p.name.clone(),
                     p.avatar_emoji.clone(),
-                    compute_person_profile(&list_profile_src(p, facet())),
+                    compute_person_profile(&list_profile_src(p, rank())),
                 )
             })
             .collect::<Vec<_>>()
@@ -40,7 +37,8 @@ pub fn PeopleList() -> Element {
     let search_placeholder = crate::tr!("search_placeholder", lang());
     let no_people = crate::tr!("no_people_yet", lang());
     let no_search_results = crate::tr!("no_search_results", lang());
-    let facet_base = crate::tr!("facet_main", lang());
+    let facet_main = crate::tr!("facet_main", lang());
+    let facet_base = crate::tr!("facet_base", lang());
     let facet_work = crate::tr!("facet_work", lang());
     let facet_online = crate::tr!("facet_online", lang());
     let name_hdr = crate::tr!("pl_name", lang());
@@ -62,7 +60,36 @@ pub fn PeopleList() -> Element {
                     value: "{search}",
                     oninput: move |e| search.set(e.value()),
                 }
-                FacetToggle { facet, base_label: facet_base, work_label: facet_work, online_label: facet_online, group_label: Some(format!("{facet_base} / {facet_work} / {facet_online}")) }
+                div { class: "facet-toggle", role: "radiogroup", aria_label: "{facet_main} / {facet_base} / {facet_work} / {facet_online}",
+                    button {
+                        class: if rank().is_none() { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if rank().is_none() { "true" } else { "false" },
+                        onclick: move |_| rank.set(None),
+                        "{facet_main}"
+                    }
+                    button {
+                        class: if rank() == Some(FacetKind::Base) { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if rank() == Some(FacetKind::Base) { "true" } else { "false" },
+                        onclick: move |_| rank.set(Some(FacetKind::Base)),
+                        "{facet_base}"
+                    }
+                    button {
+                        class: if rank() == Some(FacetKind::Work) { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if rank() == Some(FacetKind::Work) { "true" } else { "false" },
+                        onclick: move |_| rank.set(Some(FacetKind::Work)),
+                        "{facet_work}"
+                    }
+                    button {
+                        class: if rank() == Some(FacetKind::Online) { "facet-btn active" } else { "facet-btn" },
+                        role: "radio",
+                        aria_checked: if rank() == Some(FacetKind::Online) { "true" } else { "false" },
+                        onclick: move |_| rank.set(Some(FacetKind::Online)),
+                        "{facet_online}"
+                    }
+                }
             }
             {
             let q = search().to_lowercase();
@@ -180,6 +207,7 @@ mod tests {
                 }),
                 ..PersonaMask::default()
             }),
+            private_persona: None,
             ocean: OceanScores {
                 extraversion: Some(2),
                 ..OceanScores::default()
@@ -196,10 +224,10 @@ mod tests {
     #[test]
     fn list_profile_src_switches_to_merged_persona_on_work() {
         let p = fixture_person();
-        let base_src = list_profile_src(&p, FacetKind::Base);
+        let base_src = list_profile_src(&p, Some(FacetKind::Base));
         assert!(base_src.persona.is_some(), "base facet keeps the persona");
         assert_eq!(base_src.ocean.extraversion, Some(2));
-        let work_src = list_profile_src(&p, FacetKind::Work);
+        let work_src = list_profile_src(&p, Some(FacetKind::Work));
         assert!(
             work_src.persona.is_none(),
             "merged work facet drops the mask"
@@ -210,13 +238,67 @@ mod tests {
     #[test]
     fn list_profile_src_switches_to_merged_persona_on_online() {
         let p = fixture_person();
-        let online_src = list_profile_src(&p, FacetKind::Online);
+        let online_src = list_profile_src(&p, Some(FacetKind::Online));
         assert!(
             online_src.persona.is_none(),
             "merged online facet drops the mask"
         );
         assert_eq!(online_src.ocean.extraversion, Some(7));
-        let base_src = list_profile_src(&p, FacetKind::Base);
+        let base_src = list_profile_src(&p, Some(FacetKind::Base));
         assert_eq!(base_src.ocean.extraversion, Some(2));
+    }
+
+    #[test]
+    fn list_profile_src_base_tab_reads_private_mask_for_work_primary() {
+        let mut p = fixture_person();
+        p.primary_facet = FacetKind::Work;
+        p.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                extraversion: Some(11),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        let base_src = list_profile_src(&p, Some(FacetKind::Base));
+        assert_eq!(
+            base_src.ocean.extraversion,
+            Some(11),
+            "the Personal-life tab must blend the private persona onto the work anchor"
+        );
+        assert!(
+            base_src.private_persona.is_none(),
+            "merged view strips masks"
+        );
+    }
+
+    #[test]
+    fn list_profile_src_principal_anchors_on_each_persons_primary() {
+        // Base-primary: "Principal" ranking is the plain base view.
+        let base_p = fixture_person();
+        let base_src = list_profile_src(&base_p, None);
+        assert!(base_src.persona.is_some(), "principal keeps the masks");
+        assert_eq!(base_src.ocean.extraversion, Some(2));
+
+        // Work-primary with a private mask: "Principal" ranks the work anchor,
+        // never the personal-life blend (that one is the Base tab's job).
+        let mut work_p = fixture_person();
+        work_p.primary_facet = FacetKind::Work;
+        work_p.private_persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                extraversion: Some(11),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+        let work_src = list_profile_src(&work_p, None);
+        assert_eq!(
+            work_src.ocean.extraversion,
+            Some(2),
+            "principal = the person's own anchor, not personal life"
+        );
+        assert!(
+            work_src.persona.is_some(),
+            "work anchor keeps the work mask"
+        );
     }
 }
