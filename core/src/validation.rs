@@ -1046,8 +1046,8 @@ pub fn all_person_flags(person: &Person) -> Vec<&'static str> {
 mod tests {
     use super::*;
     use crate::models::{
-        BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation,
-        MotivationType, OceanScores, Person, RepScores,
+        BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, FacetKind,
+        Motivation, MotivationType, OceanScores, Person, RepScores,
     };
 
     #[test]
@@ -2166,6 +2166,7 @@ mod tests {
         let person = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: String::new(),
             name: String::new(),
             role: String::new(),
@@ -3492,6 +3493,7 @@ mod tests {
         let person = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: String::new(),
             name: String::new(),
             role: String::new(),

@@ -46,9 +46,14 @@ export async function gotoNewPerson(page: Page) {
   await page.goto('/PeopleModeler/person/new');
   await page.waitForTimeout(1000);
   await dismissTutorial(page);
-  // The "start from scratch" label is localized (FR: "Vierge (commencer de
-  // zéro)"), so target the skip button structurally instead of by text.
-  await page.locator('.template-skip button').click();
+  // New-person flow asks for the person's context first ("Where do you know
+  // this person from?"), then the template picker. Pick the default main
+  // context (first card = Personal life), then start from scratch. The
+  // "start from scratch" label is localized (FR: "Vierge (commencer de
+  // zéro)"), so target the skip button structurally instead of by text. The
+  // template step now also shows a "Change context" button, so take the last.
+  await page.locator('.template-card').first().click();
+  await page.locator('.template-skip button').last().click();
 }
 
 export async function clearStorage(page: Page) {

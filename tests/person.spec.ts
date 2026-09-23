@@ -101,4 +101,28 @@ test.describe('Person Page — Dioxus', () => {
     await page.waitForURL(/\/person\//);
     await expect(page.locator('.danger-warning')).toContainText(/arrogant/i);
   });
+
+  test('work-only person uses Work as primary context, not Personal life', async ({ page }) => {
+    // Second person: pick the Work context first, then start from scratch.
+    await page.goto('/PeopleModeler/person/new');
+    await page.waitForTimeout(500);
+    await page.locator('.template-card', { hasText: 'At work' }).click();
+    await page.locator('.template-skip button').last().click();
+    await page.locator('label:has-text("Name") + input').fill('Work Wendy');
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\//);
+    // Editor: the anchor tab opens active and is labeled with the suffix that
+    // disambiguates it from the separate At-Work mask slot.
+    await page.click('a:has-text("Edit")');
+    await expect(page.locator('.facet-btn.active')).toContainText('At work (main)');
+    // The detail header only shows the facet bar once a persona mask exists,
+    // so give her an Online persona, save, and confirm the primary wins.
+    await page.locator('.facet-btn', { hasText: 'Online' }).click();
+    await page
+      .locator('.persona-actions:not(.persona-actions-hidden) input[type="checkbox"]')
+      .check();
+    await page.click('button:has-text("Save")');
+    await page.waitForURL(/\/person\/[^/]+$/);
+    await expect(page.locator('.facet-btn.active')).toContainText('At work (main)');
+  });
 });

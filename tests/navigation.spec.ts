@@ -35,10 +35,12 @@ test.describe('SPA Navigation', () => {
     await expect(page).toHaveURL(/\/PeopleModeler\/?$/);
   });
 
-  test('/person/new loads template picker then form after selection', async ({ page }) => {
+  test('/person/new loads context picker, template picker, then form', async ({ page }) => {
     await page.goto('/PeopleModeler/person/new');
     await expect(page.locator('h2')).toContainText('New Person');
-    // Template picker shown first; click blank to reveal form
+    // Context picker shown first: pick the default main context
+    await page.getByText('Personal life').click();
+    // Template picker next; click blank to reveal form
     await page.getByText('Blank (start from scratch)').click();
     await expect(page.locator('label:has-text("Name")')).toBeVisible();
   });

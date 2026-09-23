@@ -48,7 +48,11 @@ pub fn PersonDetail(id: String) -> Element {
     match p {
         None => rsx! { div { class: "page", h2 { "{not_found}" } } },
         Some(orig) => {
-            let facet_base_label = crate::tr!("facet_base", lang());
+            let facet_base_label = format!(
+                "{}{}",
+                orig.primary_facet.label(crate::i18n::core_lang(lang())),
+                crate::tr!("facet_main_suffix", lang())
+            );
             let facet_work_label = crate::tr!("facet_work", lang());
             let facet_online_label = crate::tr!("facet_online", lang());
             let persona_section_label = crate::tr!("persona_section", lang());

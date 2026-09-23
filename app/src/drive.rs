@@ -326,7 +326,7 @@ fn mock_backup_json() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use peoplemodeler_core::models::{OceanScores, Person, RepScores, Tag};
+    use peoplemodeler_core::models::{FacetKind, OceanScores, Person, RepScores, Tag};
 
     #[test]
     fn test_backup_serde_roundtrip() {
@@ -337,6 +337,7 @@ mod tests {
             persons: vec![Person {
                 persona: None,
                 online_persona: None,
+                primary_facet: FacetKind::Base,
                 id: "rt-001".into(),
                 name: "Roundtrip Tester".into(),
                 role: "QA".into(),
@@ -474,6 +475,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "backup-test-1".into(),
             name: "Backup Test".into(),
             role: "Tester".into(),

@@ -636,12 +636,13 @@ pub fn risk_mitigation_pair(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::Person;
+    use crate::models::{FacetKind, Person};
 
     fn test_person() -> Person {
         Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "test-001".into(),
             name: "Test".into(),
             role: "Tester".into(),
@@ -913,6 +914,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "multi".into(),
             name: "Multi".into(),
             role: String::new(),

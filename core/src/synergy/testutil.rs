@@ -15,6 +15,7 @@ pub(crate) fn make_person(
     Person {
         persona: None,
         online_persona: None,
+        primary_facet: FacetKind::Base,
         id: "test".into(),
         name: "Test".into(),
         role: String::new(),

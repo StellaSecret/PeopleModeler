@@ -23,6 +23,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "demo-001".into(),
             name: "Alexandre Dubois".into(),
             role: "Directeur Commercial".into(),
@@ -343,6 +344,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "bp-test".into(),
             name: "Pattern Test".into(),
             role: String::new(),
@@ -448,6 +450,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "rep-test".into(),
             name: "Rep Test".into(),
             role: String::new(),
@@ -603,6 +606,7 @@ mod tests {
             let p = Person {
                 persona: None,
                 online_persona: None,
+                primary_facet: FacetKind::Base,
                 id: "v-test".into(),
                 name: "V".into(),
                 role: String::new(),
@@ -954,6 +958,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "empty".into(),
             name: "Empty".into(),
             role: String::new(),
@@ -991,6 +996,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "clean".into(),
             name: "Clean".into(),
             role: String::new(),
@@ -1425,6 +1431,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "adv-test".into(),
             name: "Adv".into(),
             role: String::new(),
@@ -1503,6 +1510,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "rm-test".into(),
             name: "RM".into(),
             role: String::new(),
@@ -1557,6 +1565,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "mega".into(),
             name: "Mega".into(),
             role: String::new(),
@@ -1758,6 +1767,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "evidence-test".into(),
             name: "Ev".into(),
             role: String::new(),
@@ -2118,6 +2128,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "x".into(),
             name: "Test".into(),
             role: String::new(),

@@ -77,6 +77,15 @@ pub fn tr(key: &'static str, lang: Lang) -> &'static str {
     }
 }
 
+/// Bridge from the app's UI language to the core engine's language enum used
+/// by facet/persona label mapping.
+pub fn core_lang(lang: Lang) -> peoplemodeler_core::i18n::Lang {
+    match lang {
+        Lang::Fr => peoplemodeler_core::i18n::Lang::Fr,
+        Lang::En => peoplemodeler_core::i18n::Lang::En,
+    }
+}
+
 pub fn tr_danger_details(details: &str, lang: Lang) -> String {
     if details.is_empty() {
         return String::new();
@@ -916,6 +925,12 @@ fn en(key: &'static str) -> &'static str {
         "facet_base" => "Personal life",
         "facet_work" => "At work",
         "facet_online" => "Online",
+        "facet_main" => "Main",
+        "facet_main_suffix" => " (main)",
+
+        // Personal-context picker (new-person flow)
+        "persona_context_prompt" => "Where do you know this person from?",
+        "persona_context_change" => "Change context",
 
         // Mask badge (person detail / compare / team)
         "mask_gap_low" => "No mask",
@@ -1764,6 +1779,12 @@ fn fr(key: &'static str) -> &'static str {
         "facet_base" => "Vie privée",
         "facet_work" => "Au travail",
         "facet_online" => "En ligne",
+        "facet_main" => "Principal",
+        "facet_main_suffix" => " (principal)",
+
+        // Personal-context picker (new-person flow)
+        "persona_context_prompt" => "D'où connaissez-vous cette personne ?",
+        "persona_context_change" => "Changer de contexte",
 
         // Mask badge (person detail / compare / team)
         "mask_gap_low" => "Pas de masque",
@@ -2270,6 +2291,10 @@ pub(crate) const VALID_KEYS: &[&str] = &[
     "facet_work",
     "facet_online",
     "facet_auto",
+    "facet_main",
+    "facet_main_suffix",
+    "persona_context_prompt",
+    "persona_context_change",
     "mask_gap_low",
     "mask_gap_moderate",
     "mask_gap_high",

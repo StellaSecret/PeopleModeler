@@ -42,32 +42,62 @@ fn person_from_template(
 pub fn PersonNew() -> Element {
     let lang = use_context::<Signal<Lang>>();
     let mut selected = use_signal(|| None::<usize>);
+    let mut facet_choice = use_signal(|| None::<FacetKind>);
     let templates = crate::templates::all();
     let new_person_title = crate::tr!("form_new_title", lang());
     let template_title = crate::tr!("template_title", lang());
     let template_blank = crate::tr!("template_blank", lang());
+    let context_prompt = crate::tr!("persona_context_prompt", lang());
+    let context_change = crate::tr!("persona_context_change", lang());
+    let facet_base = crate::tr!("facet_base", lang());
+    let facet_work = crate::tr!("facet_work", lang());
+    let facet_online = crate::tr!("facet_online", lang());
 
-    match selected() {
-        Some(idx) => {
-            let person = person_from_template(idx, &templates, blank_person());
-            rsx! { PersonEditForm { initial: person } }
-        }
+    match facet_choice() {
         None => rsx! {
             div { class: "page",
                 h2 { "{new_person_title}" }
-                h3 { "{template_title}" }
+                h3 { "{context_prompt}" }
                 div { class: "template-grid",
-                    for (i, tpl) in templates.iter().enumerate() {
-                        button { class: "template-card", onclick: move |_| selected.set(Some(i)),
-                            span { class: "template-emoji", "{tpl.emoji}" }
-                            strong { "{tpl.name}" }
-                        }
+                    button { class: "template-card", onclick: move |_| facet_choice.set(Some(FacetKind::Base)),
+                        span { class: "template-emoji", "👤" }
+                        strong { "{facet_base}" }
+                    }
+                    button { class: "template-card", onclick: move |_| facet_choice.set(Some(FacetKind::Work)),
+                        span { class: "template-emoji", "💼" }
+                        strong { "{facet_work}" }
+                    }
+                    button { class: "template-card", onclick: move |_| facet_choice.set(Some(FacetKind::Online)),
+                        span { class: "template-emoji", "🎮" }
+                        strong { "{facet_online}" }
                     }
                 }
-                p { class: "template-skip",
-                    button { class: "btn", onclick: move |_| selected.set(Some(999)), "{template_blank}" }
-                }
             }
+        },
+        Some(primary) => match selected() {
+            Some(idx) => {
+                let person =
+                    person_from_template(idx, &templates, blank_person_with_facet(primary));
+                rsx! { PersonEditForm { initial: person } }
+            }
+            None => rsx! {
+                div { class: "page",
+                    h2 { "{new_person_title}" }
+                    h3 { "{template_title}" }
+                    div { class: "template-grid",
+                        for (i, tpl) in templates.iter().enumerate() {
+                            button { class: "template-card", onclick: move |_| selected.set(Some(i)),
+                                span { class: "template-emoji", "{tpl.emoji}" }
+                                strong { "{tpl.name}" }
+                            }
+                        }
+                    }
+                    p { class: "template-skip",
+                        button { class: "btn", onclick: move |_| { selected.set(None); facet_choice.set(None); }, "{context_change}" }
+                        button { class: "btn", onclick: move |_| selected.set(Some(999)), "{template_blank}" }
+                    }
+                }
+            },
         },
     }
 }
@@ -87,6 +117,7 @@ fn blank_person() -> Person {
     Person {
         persona: None,
         online_persona: None,
+        primary_facet: FacetKind::Base,
         id: uuid::Uuid::new_v4().to_string(),
         name: String::new(),
         role: String::new(),
@@ -108,6 +139,25 @@ fn blank_person() -> Person {
         created_at: chrono::Utc::now().timestamp_millis(),
         updated_at: chrono::Utc::now().timestamp_millis(),
     }
+}
+
+/// A blank person whose anchor profile is the given context, not private life
+/// by default (a work-only person never needs a "Personal life" tab).
+fn blank_person_with_facet(primary: FacetKind) -> Person {
+    let mut p = blank_person();
+    p.primary_facet = primary;
+    p
+}
+
+/// Tab label of the anchor facet: the person's primary context, suffixed so a
+/// primary=Work person's anchor tab ("At work (main)") can't be confused with
+/// the separate At-Work mask slot.
+fn anchor_facet_label(p: &Person, lang: crate::i18n::Lang) -> String {
+    format!(
+        "{}{}",
+        p.primary_facet.label(crate::i18n::core_lang(lang)),
+        crate::tr!("facet_main_suffix", lang)
+    )
 }
 
 /// The mask a person wears in one arena. `None` on a bucket means "same as
@@ -795,6 +845,9 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let is_new = initial.is_none();
     let base = initial.unwrap_or_else(blank_person);
     let pers_id = base.id.clone();
+    let facet_base = anchor_facet_label(&base, lang());
+    let facet_online = crate::tr!("facet_online", lang());
+    let persona_section = crate::tr!("persona_section", lang());
 
     // Single draft: every field writes into this one Person. `saved` is a
     // memo derived from the prop (never from the live draft), so Discard
@@ -845,9 +898,6 @@ fn PersonEditForm(initial: Option<Person>) -> Element {
     let form_edit_title = crate::tr!("form_edit_title", lang());
     let form_save = crate::tr!("form_save", lang());
     let form_cancel = crate::tr!("form_cancel", lang());
-    let facet_base = crate::tr!("facet_base", lang());
-    let facet_online = crate::tr!("facet_online", lang());
-    let persona_section = crate::tr!("persona_section", lang());
 
     rsx! {
         div {
@@ -2961,6 +3011,37 @@ mod tests {
         });
         base.online_persona = None;
         base
+    }
+
+    #[test]
+    fn blank_person_with_facet_sets_primary_context() {
+        assert_eq!(blank_person().primary_facet, FacetKind::Base);
+        assert_eq!(
+            blank_person_with_facet(FacetKind::Work).primary_facet,
+            FacetKind::Work
+        );
+        assert_eq!(
+            blank_person_with_facet(FacetKind::Online).primary_facet,
+            FacetKind::Online
+        );
+    }
+
+    #[test]
+    fn anchor_label_uses_primary_context_not_private_life() {
+        let en = crate::i18n::Lang::En;
+        let suffix = crate::tr!("facet_main_suffix", en);
+        assert_eq!(
+            anchor_facet_label(&blank_person(), en),
+            format!("Personal life{suffix}")
+        );
+        assert_eq!(
+            anchor_facet_label(&blank_person_with_facet(FacetKind::Work), en),
+            format!("At work{suffix}")
+        );
+        assert_eq!(
+            anchor_facet_label(&blank_person_with_facet(FacetKind::Online), en),
+            format!("Online{suffix}")
+        );
     }
 
     #[test]

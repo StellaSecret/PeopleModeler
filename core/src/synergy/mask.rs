@@ -4,10 +4,10 @@ use super::components::{
 use crate::model_config::CFG;
 use crate::models::{FacetKind, Person, RepDim};
 
-/// How strong an arena persona diverges from the authentic (base) self.
+/// How strong an arena persona diverges from the anchor (primary) profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum MaskBand {
-    /// The mask is thin or absent: base and arena behavior are near-identical.
+    /// The mask is thin or absent: anchor and arena behavior are near-identical.
     Low,
     /// Noticeable but partial differences; some channels shift in the arena.
     Moderate,
@@ -30,18 +30,18 @@ impl MaskBand {
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MaskGap {
     /// Mean divergence (0..1) over the seven behavior channels, weighted by the
-    /// base weights. 0 = the arena facet is identical to the base profile.
+    /// anchor weights. 0 = the arena facet is identical to the anchor profile.
     pub gap: f64,
     pub band: MaskBand,
 }
 
-/// Divergence between the base (authentic self) and work (mask) facets of a
+/// Divergence between the anchor (primary) and work (mask) facets of a
 /// person. Returns `None` when the person has no work persona.
 pub fn mask_gap(p: &Person) -> Option<MaskGap> {
     mask_gap_for(p, FacetKind::Work)
 }
 
-/// Divergence between the base facet and the arena persona (`Work` or
+/// Divergence between the anchor facet and the arena persona (`Work` or
 /// `Online`) of a person. Returns `None` when the person has no mask for that
 /// arena.
 ///

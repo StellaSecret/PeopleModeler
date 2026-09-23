@@ -1184,6 +1184,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: name.into(),
             name: name.into(),
             role: String::new(),

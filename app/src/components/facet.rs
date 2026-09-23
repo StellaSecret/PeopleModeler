@@ -9,7 +9,7 @@ use peoplemodeler_core::models::FacetKind;
 #[component]
 pub fn FacetToggle(
     facet: Signal<FacetKind>,
-    base_label: &'static str,
+    #[props(into)] base_label: String,
     work_label: &'static str,
     online_label: &'static str,
     #[props(default)] group_label: Option<String>,

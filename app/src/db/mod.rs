@@ -723,9 +723,9 @@ impl StorageBackend for SqliteStorage {
 mod tests {
     use super::*;
     use peoplemodeler_core::models::{
-        BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation,
-        MotivationType, OceanScores, Person, Prediction, RelationType, Relationship, RepScores,
-        Tag, Team,
+        BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, FacetKind,
+        Motivation, MotivationType, OceanScores, Person, Prediction, RelationType, Relationship,
+        RepScores, Tag, Team,
     };
 
     fn test_db() -> SqliteStorage {
@@ -746,6 +746,7 @@ mod tests {
         Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: id.into(),
             name: "Test Person".into(),
             role: "Engineer".into(),
@@ -996,6 +997,7 @@ mod tests {
         let p = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "full".into(),
             name: "Full Person".into(),
             role: "Manager".into(),
@@ -1237,6 +1239,7 @@ mod tests {
         let original = Person {
             persona: None,
             online_persona: None,
+            primary_facet: FacetKind::Base,
             id: "json-eq".into(),
             name: "JSON Compare".into(),
             role: "Tester".into(),

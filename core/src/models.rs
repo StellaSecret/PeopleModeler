@@ -892,7 +892,8 @@ pub struct OceanScores {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum FacetKind {
-    /// Private life: the authentic self. Always the fallback facet.
+    /// The anchor profile: the person's primary context (their most-known
+    /// persona). Always the fallback facet.
     #[default]
     Base,
     /// The arena where work-type relationships are scored.
@@ -915,8 +916,9 @@ impl FacetKind {
 }
 
 /// Optional arena persona: the mask a person wears in a given arena (work,
-/// online...). Each field is a delta over the base profile (which always
-/// represents the authentic self). `None` on a bucket means "same as base".
+/// online...). Each field is a delta over the anchor profile (which represents
+/// the person's primary context, see `Person::primary_facet`). `None` on a
+/// bucket means "same as the anchor".
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct PersonaMask {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1082,6 +1084,11 @@ pub struct Person {
     pub persona: Option<PersonaMask>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub online_persona: Option<PersonaMask>,
+    /// The context the inline anchor fields represent (the person's primary /
+    /// most-known persona, not necessarily their private life). The two
+    /// `PersonaMask` deltas above are always relative to this anchor.
+    #[serde(default)]
+    pub primary_facet: FacetKind,
     pub ocean: OceanScores,
     #[serde(default, deserialize_with = "clamp_u8_opt_1_10")]
     pub resilience: Option<u8>,
@@ -1491,9 +1498,30 @@ mod tests {
     }
 
     #[test]
+    fn primary_facet_defaults_to_base_on_legacy_backup() {
+        let raw = r#"{"id":"p","name":"n","role":"","context":"","avatar_emoji":"a",
+            "notes":"","motivations":[],"biases":[],"behavioral_patterns":[],
+            "ocean":{},"created_at":0,"updated_at":0}"#;
+        let p: Person = serde_json::from_str(raw).unwrap();
+        assert_eq!(p.primary_facet, FacetKind::Base);
+    }
+
+    #[test]
+    fn primary_facet_survives_round_trip() {
+        let raw = r#"{"id":"p","name":"n","role":"","context":"","avatar_emoji":"a",
+            "notes":"","motivations":[],"biases":[],"behavioral_patterns":[],
+            "ocean":{},"created_at":0,"updated_at":0,"primary_facet":"Work"}"#;
+        let p: Person = serde_json::from_str(raw).unwrap();
+        assert_eq!(p.primary_facet, FacetKind::Work);
+        let back: Person = serde_json::from_str(&serde_json::to_string(&p).unwrap()).unwrap();
+        assert_eq!(back.primary_facet, FacetKind::Work);
+    }
+
+    #[test]
     fn facet_person_merges_persona_buckets() {
         let base = Person {
             id: "p1".into(),
+            primary_facet: FacetKind::Base,
             name: "Base".into(),
             role: "r".into(),
             context: "c".into(),
@@ -1639,6 +1667,7 @@ mod tests {
     fn facet_person_base_ignores_persona() {
         let base = Person {
             id: "p2".into(),
+            primary_facet: FacetKind::Base,
             name: "Base".into(),
             role: "r".into(),
             context: "c".into(),
@@ -1692,6 +1721,7 @@ mod tests {
         // catches an `&&` sneaking into the `||` guard.
         let base = Person {
             id: "p3".into(),
+            primary_facet: FacetKind::Base,
             name: "No Work Mask".into(),
             role: "r".into(),
             context: "c".into(),
@@ -1736,6 +1766,7 @@ mod tests {
     fn facet_person_online_merges_online_persona() {
         let base = Person {
             id: "p3".into(),
+            primary_facet: FacetKind::Base,
             name: "Base".into(),
             role: "r".into(),
             context: "c".into(),

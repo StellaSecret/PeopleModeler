@@ -40,7 +40,7 @@ pub fn PeopleList() -> Element {
     let search_placeholder = crate::tr!("search_placeholder", lang());
     let no_people = crate::tr!("no_people_yet", lang());
     let no_search_results = crate::tr!("no_search_results", lang());
-    let facet_base = crate::tr!("facet_base", lang());
+    let facet_base = crate::tr!("facet_main", lang());
     let facet_work = crate::tr!("facet_work", lang());
     let facet_online = crate::tr!("facet_online", lang());
     let name_hdr = crate::tr!("pl_name", lang());
@@ -153,6 +153,7 @@ mod tests {
     fn fixture_person() -> Person {
         Person {
             id: "i".into(),
+            primary_facet: FacetKind::Base,
             name: "A".into(),
             role: String::new(),
             context: String::new(),
