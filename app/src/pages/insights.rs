@@ -1505,7 +1505,9 @@ mod tests {
         let base_out = stress_strategy(&base, Lang::En);
         assert!(has(&base_out, "strategy_stress_fallback", Lang::En));
 
-        let work = base.facet_person(FacetKind::Work);
+        let work = base
+            .facet_person(FacetKind::Work)
+            .expect("base defines a work persona above");
         let work_out = stress_strategy(&work, Lang::En);
         assert!(has(&work_out, "strategy_stress_high_n", Lang::En));
         assert!(!has(&work_out, "strategy_stress_fallback", Lang::En));

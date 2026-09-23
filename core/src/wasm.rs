@@ -79,7 +79,7 @@ pub fn suggest_prediction_facet(person_json: &str, context: &str, facet: &str) -
         "online" => crate::models::FacetKind::Online,
         _ => crate::models::FacetKind::Base,
     };
-    let pm = p.facet_person(kind);
+    let pm = p.facet_person(kind).unwrap_or_else(|| p.clone());
     crate::predictions::suggest_outcome(&pm, context)
 }
 
@@ -128,6 +128,8 @@ pub fn compute_synergy_with_rel(
         rtype,
         strength: strength.clamp(1, 10),
     });
+    // `null` when the relationship's arena is not a defined context for one of
+    // the persons (no arena persona): the pair is not scoreable there.
     let brk = compute_synergy_score_ctx(&a, &b, ctx.as_ref(), &[], &[]);
     serde_json::to_string(&brk).unwrap_or_else(|_| "{}".into())
 }
@@ -559,7 +561,8 @@ mod tests {
     #[test]
     fn test_compute_synergy_with_rel_json_output() {
         let json = demo_person_json();
-        let result = compute_synergy_with_rel(&json, &json, "Manages", 3);
+        // "Friends" lives in the base arena, which demo persons define.
+        let result = compute_synergy_with_rel(&json, &json, "Friends", 3);
         let v: serde_json::Value = serde_json::from_str(&result).expect("valid JSON output");
         assert!(v["total"].is_number(), "total missing");
         assert_eq!(v["band"], 12, "strength 3 → band 12");
@@ -574,6 +577,15 @@ mod tests {
             assert_eq!(row.len(), 2, "row is (context, score)");
             assert!(row[1].as_u64().is_some(), "context score is a number");
         }
+    }
+
+    #[test]
+    fn test_compute_synergy_with_rel_undefined_arena_is_null() {
+        // A work relationship between persons with no work persona: the arena
+        // is undefined for both, so the pair is not scoreable → null.
+        let json = demo_person_json();
+        let result = compute_synergy_with_rel(&json, &json, "Manages", 3);
+        assert_eq!(result, "null", "undefined work arena must serialize null");
     }
 
     #[test]

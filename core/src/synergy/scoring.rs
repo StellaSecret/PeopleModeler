@@ -35,24 +35,28 @@ pub fn compute_synergy_score_with_preds(
 ///
 /// The work facet is applied automatically: work-type relationships
 /// (`WorksWith`, `Manages`, `ReportsTo`, `Mentors`, `Collaborates`) score the
-/// persons' work personas (inheriting base channels where a persona bucket is
-/// unset); personal relationships (`Friends`, `Family`, `Partner`) and
-/// context-free scoring always use the base profile.
+/// persons' work personas; personal relationships (`Friends`, `Family`,
+/// `Partner`) and context-free scoring always use the base profile. When the
+/// relationship's facet is not a defined context for either person (no arena
+/// persona and not their primary facet), the pair is not scoreable in that
+/// arena and `None` is returned.
 pub fn compute_synergy_score_ctx(
     a: &Person,
     b: &Person,
     ctx: Option<&RelContext>,
     a_preds: &[Prediction],
     b_preds: &[Prediction],
-) -> SynergyBreakdown {
+) -> Option<SynergyBreakdown> {
     let kind = ctx.map(|r| r.rtype.facet()).unwrap_or(FacetKind::Base);
     compute_synergy_score_facet(a, b, ctx, kind, a_preds, b_preds)
 }
 
 /// Synergy with an explicitly chosen facet. `FacetKind::Base` reproduces the
-/// legacy context-free behavior exactly; `FacetKind::Work` and
-/// `FacetKind::Online` score both persons through their arena personas (base
-/// channels inherited where unset).
+/// legacy context-free behavior exactly for base-primary people.
+/// `FacetKind::Work` and `FacetKind::Online` score both persons through their
+/// arena personas. `None` when the facet is not a defined context for either
+/// person: a missing persona means the person does not exist in that arena,
+/// so no score is fabricated from the anchor profile.
 pub fn compute_synergy_score_facet(
     a: &Person,
     b: &Person,
@@ -60,19 +64,10 @@ pub fn compute_synergy_score_facet(
     facet: FacetKind,
     a_preds: &[Prediction],
     b_preds: &[Prediction],
-) -> SynergyBreakdown {
-    let merged = match facet {
-        FacetKind::Base => false,
-        FacetKind::Work => a.persona.is_some() || b.persona.is_some(),
-        FacetKind::Online => a.online_persona.is_some() || b.online_persona.is_some(),
-    };
-    if merged {
-        let am = a.facet_person(facet);
-        let bm = b.facet_person(facet);
-        compute_synergy_score_inner(&am, &bm, ctx, a_preds, b_preds)
-    } else {
-        compute_synergy_score_inner(a, b, ctx, a_preds, b_preds)
-    }
+) -> Option<SynergyBreakdown> {
+    let am = a.facet_person(facet)?;
+    let bm = b.facet_person(facet)?;
+    Some(compute_synergy_score_inner(&am, &bm, ctx, a_preds, b_preds))
 }
 
 /// Phase 4: per-context inputs re-weighted from the final bucket scores.

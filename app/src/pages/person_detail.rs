@@ -83,7 +83,7 @@ pub fn PersonDetail(id: String) -> Element {
                 };
                 (label, cls, format!("{:.0}%", m.gap * 100.0))
             });
-            let facet_person: Person = orig.facet_person(facet());
+            let facet_person: Person = orig.facet_person(facet()).unwrap_or_else(|| orig.clone());
             let person = &facet_person;
             let edit_btn = crate::tr!("edit_btn", lang());
             let delete_btn = crate::tr!("delete_btn", lang());

@@ -3,8 +3,7 @@ use peoplemodeler_core::insights::InsightContext;
 use peoplemodeler_core::models::{BehaviorTrigger, FacetKind, Person, RelationType};
 
 use peoplemodeler_core::synergy::{
-    MaskBand, RelContext, Trend, compute_synergy_score_ctx, compute_synergy_score_with_preds,
-    mask_gap_for, synergy_bands,
+    MaskBand, RelContext, Trend, compute_synergy_score_ctx, mask_gap_for, synergy_bands,
 };
 
 use crate::db;
@@ -109,6 +108,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
     let cl = core_lang(lang());
     let not_found = crate::tr!("person_not_found", lang());
     let compare_title = crate::tr!("compare_title", lang());
+    let compare_sub = crate::tr!("compare_sub", lang());
     let back_btn = crate::tr!("common_back", lang());
 
     match (p1(), p2()) {
@@ -121,18 +121,31 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 rtype,
                 strength: rel_strength().clamp(1, 10),
             });
-            let brk = match &ctx {
-                Some(rc) => compute_synergy_score_ctx(&a, &b, Some(rc), &a_preds, &b_preds),
-                None => compute_synergy_score_with_preds(&a, &b, &a_preds, &b_preds),
-            };
-            let score = brk.total;
+            let kind = ctx.map(|rc| rc.rtype.facet()).unwrap_or(FacetKind::Base);
             let na = a.name.clone();
             let nb = b.name.clone();
-            let kind = ctx.map(|rc| rc.rtype.facet()).unwrap_or(FacetKind::Base);
+            // `None` when the relationship's arena is not a defined context for
+            // either person (no arena persona, and not their primary facet).
+            let brk = compute_synergy_score_ctx(&a, &b, ctx.as_ref(), &a_preds, &b_preds);
+            let Some(brk) = brk else {
+                let missing = if a.has_facet(kind) { &nb } else { &na };
+                let facet_lbl = kind.label(cl);
+                let unavailable = crate::tr!("compare_facet_unavailable", lang());
+                return rsx! {
+                    div { class: "page",
+                        button { class: "btn", onclick: move |_| nav.go_back(), "{back_btn}" }
+                        h2 { "{compare_title}" }
+                        p { class: "compare-sub", "{compare_sub}" }
+                        div { class: "danger-warning wrap",
+                            "{unavailable} — {missing} ({facet_lbl})"
+                        }
+                    }
+                };
+            };
+            let score = brk.total;
             let (pa, pb) = analysis_pair(&a, &b, kind);
             let (synergies, frictions, (top_strategy, all_strategies)) =
                 compare_analysis(&pa, &pb, lang());
-            let compare_sub = crate::tr!("compare_sub", lang());
             let compare_vs = crate::tr!("compare_vs", lang());
             let compare_asymmetric = crate::tr!("compare_asymmetric", lang());
             let compare_benefit_more = crate::tr!("compare_benefit_more", lang());
@@ -655,16 +668,22 @@ fn MiniBars(scores: [Option<u8>; 5]) -> Element {
 fn analysis_pair(a: &Person, b: &Person, kind: FacetKind) -> (Person, Person) {
     match kind {
         FacetKind::Work => (
-            a.facet_person(FacetKind::Work),
-            b.facet_person(FacetKind::Work),
+            a.facet_person(FacetKind::Work)
+                .expect("work facet must be defined"),
+            b.facet_person(FacetKind::Work)
+                .expect("work facet must be defined"),
         ),
         FacetKind::Online => (
-            a.facet_person(FacetKind::Online),
-            b.facet_person(FacetKind::Online),
+            a.facet_person(FacetKind::Online)
+                .expect("online facet must be defined"),
+            b.facet_person(FacetKind::Online)
+                .expect("online facet must be defined"),
         ),
         FacetKind::Base => (
-            a.facet_person(FacetKind::Base),
-            b.facet_person(FacetKind::Base),
+            a.facet_person(FacetKind::Base)
+                .expect("base facet is always defined"),
+            b.facet_person(FacetKind::Base)
+                .expect("base facet is always defined"),
         ),
     }
 }
@@ -1146,14 +1165,17 @@ mod tests {
             risk_appetite: Some(9),
             ..PersonaMask::default()
         });
-        let (pa, _) = analysis_pair(&a, &p("b"), FacetKind::Work);
+        // The partner must also define the work arena for the pair to resolve.
+        let mut b = p("b");
+        b.persona = Some(PersonaMask::default());
+        let (pa, _) = analysis_pair(&a, &b, FacetKind::Work);
         assert_eq!(pa.persona, None, "merged work person is persona-agnostic");
         assert_eq!(pa.ocean.openness, Some(1), "uses persona ocean");
         assert_eq!(pa.resilience, Some(3), "uses persona resilience");
         assert_eq!(pa.risk_appetite, Some(9), "uses persona risk appetite");
         assert_eq!(pa.name, "a", "identity fields carried over");
 
-        let (ba, _) = analysis_pair(&a, &p("b"), FacetKind::Base);
+        let (ba, _) = analysis_pair(&a, &b, FacetKind::Base);
         assert_eq!(ba.ocean.openness, a.ocean.openness, "base keeps base ocean");
         assert!(ba.persona.is_some(), "base facet keeps persona");
     }
@@ -1168,11 +1190,16 @@ mod tests {
             }),
             ..PersonaMask::default()
         });
-        let (pa, _) = analysis_pair(&a, &p("b"), FacetKind::Online);
+        let mut b = p("b");
+        b.online_persona = Some(PersonaMask::default());
+        let (pa, _) = analysis_pair(&a, &b, FacetKind::Online);
         assert_eq!(pa.persona, None, "merged online person is persona-agnostic");
         assert_eq!(pa.ocean.openness, Some(4), "uses online persona ocean");
 
-        let (wa, _) = analysis_pair(&a, &p("b"), FacetKind::Work);
+        // The work facet needs its own mask on both persons.
+        a.persona = Some(PersonaMask::default());
+        b.persona = Some(PersonaMask::default());
+        let (wa, _) = analysis_pair(&a, &b, FacetKind::Work);
         assert_eq!(
             wa.ocean.openness, a.ocean.openness,
             "work facet ignores the online persona"

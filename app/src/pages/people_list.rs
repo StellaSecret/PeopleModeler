@@ -6,10 +6,13 @@ use crate::Route;
 use crate::db;
 use crate::i18n::Lang;
 
-/// A ranking view: `None` anchors on each person's own primary context,
-/// `Some(facet)` on that facet's materialized view for everyone.
-fn list_profile_src(p: &Person, rank: Option<FacetKind>) -> Person {
-    p.facet_person(rank.unwrap_or(p.primary_facet))
+/// A ranking view: `None` anchors on each person's own primary context (always
+/// defined), `Some(facet)` on that facet's materialized view. `None` when the
+/// person does not define the ranked arena: they only exist in their primary
+/// context, so their row is dropped instead of fabricating an anchor score.
+fn list_profile_src(p: &Person, rank: Option<FacetKind>) -> Option<Person> {
+    let kind = rank.unwrap_or(p.primary_facet);
+    p.facet_person(kind)
 }
 
 #[component]
@@ -23,13 +26,15 @@ pub fn PeopleList() -> Element {
     let profiles = use_memo(move || {
         let all = persons();
         all.iter()
-            .map(|p| {
-                (
-                    p.id.clone(),
-                    p.name.clone(),
-                    p.avatar_emoji.clone(),
-                    compute_person_profile(&list_profile_src(p, rank())),
-                )
+            .filter_map(|p| {
+                list_profile_src(p, rank()).map(|src| {
+                    (
+                        p.id.clone(),
+                        p.name.clone(),
+                        p.avatar_emoji.clone(),
+                        compute_person_profile(&src),
+                    )
+                })
             })
             .collect::<Vec<_>>()
     });
@@ -224,10 +229,10 @@ mod tests {
     #[test]
     fn list_profile_src_switches_to_merged_persona_on_work() {
         let p = fixture_person();
-        let base_src = list_profile_src(&p, Some(FacetKind::Base));
+        let base_src = list_profile_src(&p, Some(FacetKind::Base)).unwrap();
         assert!(base_src.persona.is_some(), "base facet keeps the persona");
         assert_eq!(base_src.ocean.extraversion, Some(2));
-        let work_src = list_profile_src(&p, Some(FacetKind::Work));
+        let work_src = list_profile_src(&p, Some(FacetKind::Work)).unwrap();
         assert!(
             work_src.persona.is_none(),
             "merged work facet drops the mask"
@@ -238,13 +243,13 @@ mod tests {
     #[test]
     fn list_profile_src_switches_to_merged_persona_on_online() {
         let p = fixture_person();
-        let online_src = list_profile_src(&p, Some(FacetKind::Online));
+        let online_src = list_profile_src(&p, Some(FacetKind::Online)).unwrap();
         assert!(
             online_src.persona.is_none(),
             "merged online facet drops the mask"
         );
         assert_eq!(online_src.ocean.extraversion, Some(7));
-        let base_src = list_profile_src(&p, Some(FacetKind::Base));
+        let base_src = list_profile_src(&p, Some(FacetKind::Base)).unwrap();
         assert_eq!(base_src.ocean.extraversion, Some(2));
     }
 
@@ -259,7 +264,7 @@ mod tests {
             }),
             ..PersonaMask::default()
         });
-        let base_src = list_profile_src(&p, Some(FacetKind::Base));
+        let base_src = list_profile_src(&p, Some(FacetKind::Base)).unwrap();
         assert_eq!(
             base_src.ocean.extraversion,
             Some(11),
@@ -275,7 +280,7 @@ mod tests {
     fn list_profile_src_principal_anchors_on_each_persons_primary() {
         // Base-primary: "Principal" ranking is the plain base view.
         let base_p = fixture_person();
-        let base_src = list_profile_src(&base_p, None);
+        let base_src = list_profile_src(&base_p, None).unwrap();
         assert!(base_src.persona.is_some(), "principal keeps the masks");
         assert_eq!(base_src.ocean.extraversion, Some(2));
 
@@ -290,7 +295,7 @@ mod tests {
             }),
             ..PersonaMask::default()
         });
-        let work_src = list_profile_src(&work_p, None);
+        let work_src = list_profile_src(&work_p, None).unwrap();
         assert_eq!(
             work_src.ocean.extraversion,
             Some(2),
@@ -300,5 +305,27 @@ mod tests {
             work_src.persona.is_some(),
             "work anchor keeps the work mask"
         );
+    }
+
+    #[test]
+    fn list_profile_src_drops_undefined_arena() {
+        // A base-primary person with work/online masks ranks in all three.
+        let p = fixture_person();
+        assert!(list_profile_src(&p, Some(FacetKind::Base)).is_some());
+        assert!(list_profile_src(&p, Some(FacetKind::Work)).is_some());
+        assert!(list_profile_src(&p, Some(FacetKind::Online)).is_some());
+
+        // No work persona → the person does not exist in the work arena.
+        let mut bare = fixture_person();
+        bare.persona = None;
+        assert_eq!(list_profile_src(&bare, Some(FacetKind::Work)), None);
+        // No private persona → no Personal-life arena for a work-primary person.
+        let mut work_p = fixture_person();
+        work_p.primary_facet = FacetKind::Work;
+        work_p.private_persona = None;
+        assert_eq!(list_profile_src(&work_p, Some(FacetKind::Base)), None);
+        // "Principal" always resolves to the person's own anchor.
+        assert!(list_profile_src(&bare, None).is_some());
+        assert!(list_profile_src(&work_p, None).is_some());
     }
 }

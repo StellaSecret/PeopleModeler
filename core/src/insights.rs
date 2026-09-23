@@ -88,14 +88,25 @@ pub fn generate_insight(ctx: InsightContext, p: &Person, lang: crate::i18n::Lang
 
 /// Insight for a specific facet. A persona facet runs the whole pipeline on
 /// the masked (persona-merged) profile and appends a mask-gap line when the
-/// person has a persona for that arena.
+/// person has a persona for that arena. A facet the person has no persona for
+/// is not a defined context: a "no persona" notice is returned instead of an
+/// insight fabricated from the anchor profile.
 pub fn generate_insight_facet(
     ctx: InsightContext,
     p: &Person,
     kind: FacetKind,
     lang: crate::i18n::Lang,
 ) -> String {
-    let pm = p.facet_person(kind);
+    let Some(pm) = p.facet_person(kind) else {
+        let facet = match kind {
+            FacetKind::Work => "professionnelle",
+            FacetKind::Online => "en ligne",
+            FacetKind::Base => "vie privée",
+        };
+        return format!(
+            "Aucune persona {facet} n'est définie pour cette personne : son comportement dans ce contexte est inconnu."
+        );
+    };
     let out = generate_insight(ctx, &pm, lang);
     let mask_line = match kind {
         FacetKind::Base => None,

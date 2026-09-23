@@ -222,7 +222,9 @@ test.describe('Compare — Advanced Synergy', () => {
 
     await page.goto(`/PeopleModeler/person/${id1}`);
     await page.waitForTimeout(500);
-    await addRelationship(page, 'Bob', 'WorksWith', 2);
+    // Friends scores on the base arena (both persons anchor on Personal life);
+    // a WorksWith prefill would land in the unresolvable Work arena.
+    await addRelationship(page, 'Bob', 'Friends', 2);
     await expect(page.locator('.rel-add-form')).toBeHidden();
     await expect(page.locator('.rel-person-row')).toContainText('Bob');
 
@@ -230,7 +232,7 @@ test.describe('Compare — Advanced Synergy', () => {
     await page.waitForTimeout(500);
 
     await expect(page.locator('.rel-context-row select')).toHaveValue(
-      'WorksWith',
+      'Friends',
     );
     await expect(page.locator('.rel-strength')).toContainText('Strength: 2/10');
     await expect(page.locator('.scale-band-hint')).toContainText('±12%');

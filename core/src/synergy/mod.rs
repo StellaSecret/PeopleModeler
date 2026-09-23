@@ -294,13 +294,16 @@ mod tests {
         let pair = |boss_rep: u8, sub_rep: u8| -> (Person, Person) {
             let mut boss = make_person(None, None, None, None, None);
             let mut sub = make_person(None, None, None, None, None);
+            boss.persona = Some(PersonaMask::default());
+            sub.persona = Some(PersonaMask::default());
             boss.rep_scores.authoritative_submissive = Some(boss_rep);
             sub.rep_scores.authoritative_submissive = Some(sub_rep);
             (boss, sub)
         };
         // Boundary: raw_rep = 1 - |6-3|/10 = 0.7 on the only shared dim.
         let (boss, sub) = pair(6, 3);
-        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[]);
+        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[])
+            .expect("both persons define their work persona");
         assert!(
             (brk.reputation - 0.7).abs() < 1e-9,
             "gap == min must not apply the hierarchy bonus, got {}",
@@ -308,7 +311,8 @@ mod tests {
         );
         // Positive control: gap 4 > 3 applies the bonus.
         let (boss, sub) = pair(7, 3);
-        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[]);
+        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[])
+            .expect("both persons define their work persona");
         assert!(
             (brk.reputation - 0.6 * 1.04).abs() < 1e-9,
             "gap > min must apply the hierarchy bonus, got {}",
@@ -329,6 +333,7 @@ mod tests {
         };
         let person = |authoritative: u8| -> Person {
             let mut p = make_person(None, None, None, None, None);
+            p.persona = Some(PersonaMask::default());
             p.rep_scores = RepScores {
                 hardworker_lazy: Some(10),
                 authoritative_submissive: Some(authoritative),
@@ -348,7 +353,8 @@ mod tests {
         };
         let boss = person(7);
         let sub = person(3);
-        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[]);
+        let brk = compute_synergy_score_ctx(&boss, &sub, Some(&ctx), &[], &[])
+            .expect("both persons define their work persona");
         // a_raw = 0.5*0.15 + 1.0*0.28*1.04 + 1.0*0.13 + 0.5*0.09 + 0.5*0.02
         //       = 0.5512 → / 0.67 * 100 = 82.27 (a « `*` → `/` » leaves 78.99).
         assert_eq!(brk.a_score, 82);
@@ -415,7 +421,8 @@ mod tests {
             }),
             &[],
             &[],
-        );
+        )
+        .expect("Family lives in the base arena");
         let stress_of = |brk: &SynergyBreakdown| {
             brk.per_context
                 .iter()
@@ -3845,7 +3852,8 @@ mod tests {
         let a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
         let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
         let legacy = compute_synergy_score_with_preds(&a, &b, &[], &[]);
-        let ctx = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        let ctx = compute_synergy_score_ctx(&a, &b, None, &[], &[])
+            .expect("base arena is always defined");
         assert_eq!(legacy.total, ctx.total);
         assert_eq!(legacy.a_score, ctx.a_score);
         assert_eq!(legacy.b_score, ctx.b_score);
@@ -3858,8 +3866,10 @@ mod tests {
 
     #[test]
     fn test_rel_context_changes_score() {
-        let a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
-        let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        let mut b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+        a.persona = Some(PersonaMask::default());
+        b.persona = Some(PersonaMask::default());
         let friends = RelContext {
             rtype: RelationType::Friends,
             strength: 6,
@@ -3868,8 +3878,10 @@ mod tests {
             rtype: RelationType::Manages,
             strength: 6,
         };
-        let f = compute_synergy_score_ctx(&a, &b, Some(&friends), &[], &[]);
-        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[]);
+        let f = compute_synergy_score_ctx(&a, &b, Some(&friends), &[], &[])
+            .expect("friends is a base relationship, always defined");
+        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[])
+            .expect("manages needs the work arena, which the personas define");
         assert_ne!(f.total, m.total, "relation type must change the score");
         assert_eq!(f.band, 8, "strength 6 → band 8");
     }
@@ -3879,6 +3891,8 @@ mod tests {
         // Both people identical except B (the subordinate) is Power-driven.
         let mut a = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
         let mut b = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
+        a.persona = Some(PersonaMask::default());
+        b.persona = Some(PersonaMask::default());
         a.motivations = vec![Motivation {
             r#type: MotivationType::Helping,
             intensity: 8,
@@ -3897,8 +3911,10 @@ mod tests {
             rtype: RelationType::Manages,
             strength: 6,
         };
-        let n = compute_synergy_score_ctx(&a, &b, Some(&neutral), &[], &[]);
-        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[]);
+        let n = compute_synergy_score_ctx(&a, &b, Some(&neutral), &[], &[])
+            .expect("works-with/manages need the work arena, defined above");
+        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[])
+            .expect("works-with/manages need the work arena, defined above");
         assert!(
             m.total < n.total,
             "Power-heavy subordinate must lower the Manages score ({} < {})",
@@ -3915,6 +3931,9 @@ mod tests {
         let mut b = make_person(Some(7), Some(7), Some(7), Some(7), Some(3));
         a.rep_scores.authoritative_submissive = Some(9);
         b.rep_scores.authoritative_submissive = Some(3);
+        // Manages/ReportsTo are work relationships: define the work arena.
+        a.persona = Some(PersonaMask::default());
+        b.persona = Some(PersonaMask::default());
         let manages = RelContext {
             rtype: RelationType::Manages,
             strength: 6,
@@ -3924,9 +3943,11 @@ mod tests {
             strength: 6,
         };
         // Manages: a is the boss (9) over submissive b (3) → bonus fires.
-        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[]);
+        let m = compute_synergy_score_ctx(&a, &b, Some(&manages), &[], &[])
+            .expect("manages/reports are work relationships; b defines its work persona");
         // ReportsTo: a reports to b, so b (3) is the "boss" → no bonus.
-        let r = compute_synergy_score_ctx(&a, &b, Some(&reports), &[], &[]);
+        let r = compute_synergy_score_ctx(&a, &b, Some(&reports), &[], &[])
+            .expect("manages/reports are work relationships; b defines its work persona");
         assert!(
             m.total >= r.total,
             "clear hierarchy should add a small bonus ({} >= {})",
@@ -3953,7 +3974,8 @@ mod tests {
             rtype: RelationType::Partner,
             strength: 2,
         };
-        let brk = compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[]);
+        let brk = compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[])
+            .expect("partner is a base relationship, always defined");
         assert_eq!(brk.band, 12, "weak relationship → wide band");
     }
 
@@ -4014,7 +4036,9 @@ mod tests {
         a.confidence = 10;
         b.confidence = 10;
         assert_eq!(
-            compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[]).band,
+            compute_synergy_score_ctx(&a, &b, Some(&weak), &[], &[])
+                .expect("partner is a base relationship, always defined")
+                .band,
             12,
             "weak relationship dominates even with high confidence"
         );
@@ -4022,7 +4046,9 @@ mod tests {
         a.confidence = 1;
         b.confidence = 10;
         assert_eq!(
-            compute_synergy_score_ctx(&a, &b, Some(&strong), &[], &[]).band,
+            compute_synergy_score_ctx(&a, &b, Some(&strong), &[], &[])
+                .expect("partner is a base relationship, always defined")
+                .band,
             12,
             "low profile confidence widens the band despite strong relationship"
         );
@@ -4030,7 +4056,9 @@ mod tests {
         a.confidence = 10;
         b.confidence = 9;
         assert_eq!(
-            compute_synergy_score_ctx(&a, &b, Some(&strong), &[], &[]).band,
+            compute_synergy_score_ctx(&a, &b, Some(&strong), &[], &[])
+                .expect("partner is a base relationship, always defined")
+                .band,
             4,
             "strong relationship + high confidence → narrow band"
         );
@@ -4041,7 +4069,8 @@ mod tests {
         let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
         a.confidence = 1;
         let b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
-        let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[])
+            .expect("no relationship context scores the base arena");
         assert_eq!(brk.band, 0, "no relationship context keeps legacy band 0");
     }
 
@@ -4160,14 +4189,16 @@ mod tests {
         let mut b = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
         b.id = "b".into();
 
-        let baseline = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        let baseline = compute_synergy_score_ctx(&a, &b, None, &[], &[])
+            .expect("no relationship context scores the base arena");
 
         a.log = vec![
             log_entry(1000, 2, Some("b")),
             log_entry(2000, 3, Some("b")),
             log_entry(3000, 1, Some("b")),
         ];
-        let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[]);
+        let brk = compute_synergy_score_ctx(&a, &b, None, &[], &[])
+            .expect("no relationship context scores the base arena");
         assert_eq!(
             brk.total, baseline.total,
             "logged interactions must not move the static point score"
@@ -5910,11 +5941,14 @@ mod tests {
         let a = {
             let mut p = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
             p.id = "a".into();
+            // Manages is a work relationship: define the work arena.
+            p.persona = Some(PersonaMask::default());
             p
         };
         let b = {
             let mut p = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
             p.id = "b".into();
+            p.persona = Some(PersonaMask::default());
             p
         };
         let rel = Relationship {
@@ -9890,13 +9924,16 @@ mod tests {
     #[test]
     fn work_relationships_score_through_persona() {
         let a = masked_person();
-        let b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let mut b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        b.persona = Some(PersonaMask::default());
         let ctx = |rt: RelationType| RelContext {
             rtype: rt,
             strength: 5,
         };
-        let work = compute_synergy_score_ctx(&a, &b, Some(&ctx(RelationType::WorksWith)), &[], &[]);
-        let base = compute_synergy_score_ctx(&a, &b, Some(&ctx(RelationType::Partner)), &[], &[]);
+        let work = compute_synergy_score_ctx(&a, &b, Some(&ctx(RelationType::WorksWith)), &[], &[])
+            .expect("work relationship needs the work personas");
+        let base = compute_synergy_score_ctx(&a, &b, Some(&ctx(RelationType::Partner)), &[], &[])
+            .expect("partner is a base relationship, always defined");
         assert!(
             work.total < base.total,
             "work {} should be lower than base {} (work persona diverges)",
@@ -9909,11 +9946,14 @@ mod tests {
     #[test]
     fn explicit_facet_matches_legacy_and_masks() {
         let a = masked_person();
-        let b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let mut b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        b.persona = Some(PersonaMask::default());
         let legacy = compute_synergy_score(&a, &b);
-        let base = compute_synergy_score_facet(&a, &b, None, FacetKind::Base, &[], &[]);
+        let base = compute_synergy_score_facet(&a, &b, None, FacetKind::Base, &[], &[])
+            .expect("the base arena is always defined");
         assert_eq!(legacy.total, base.total);
-        let work = compute_synergy_score_facet(&a, &b, None, FacetKind::Work, &[], &[]);
+        let work = compute_synergy_score_facet(&a, &b, None, FacetKind::Work, &[], &[])
+            .expect("both persons define their work persona");
         assert!(work.total < legacy.total);
     }
 
@@ -9930,15 +9970,21 @@ mod tests {
             }),
             ..PersonaMask::default()
         });
-        let b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        let mut b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
+        // b must exist in both the online and work arenas for those facets to
+        // be scoreable.
+        b.online_persona = Some(PersonaMask::default());
+        b.persona = Some(PersonaMask::default());
         let legacy = compute_synergy_score(&a, &b);
-        let online = compute_synergy_score_facet(&a, &b, None, FacetKind::Online, &[], &[]);
+        let online = compute_synergy_score_facet(&a, &b, None, FacetKind::Online, &[], &[])
+            .expect("both persons define their online persona");
         assert!(
             online.ocean < legacy.ocean,
             "online mask must drive the online facet score"
         );
         // The work facet scores the work persona, untouched by the online mask.
-        let work = compute_synergy_score_facet(&a, &b, None, FacetKind::Work, &[], &[]);
+        let work = compute_synergy_score_facet(&a, &b, None, FacetKind::Work, &[], &[])
+            .expect("both persons define their work persona");
         assert!(
             work.ocean < legacy.ocean,
             "work facet still uses its own work mask"
@@ -9947,18 +9993,39 @@ mod tests {
 
     #[test]
     fn inherited_persona_bucket_matches_base_score_exactly() {
-        // An empty persona must not change any score vs. no persona at all.
+        // An empty persona and a persona that captures every anchor bucket must
+        // produce the same score: an empty mask inherits the anchor, a capture
+        // mask re-states it explicitly.
         let a = masked_person();
         let base_b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
         let mut masked_b = base_b.clone();
         masked_b.persona = Some(PersonaMask::default());
+        let mut captured_b = base_b.clone();
+        captured_b.persona = Some(PersonaMask {
+            ocean: Some(base_b.ocean.clone()),
+            rep_scores: Some(base_b.rep_scores.clone()),
+            motivations: Some(base_b.motivations.clone()),
+            biases: Some(base_b.biases.clone()),
+            behavioral_patterns: Some(base_b.behavioral_patterns.clone()),
+            styles: Some(base_b.styles.clone()),
+            values: Some(base_b.values.clone()),
+            resilience: Some(base_b.resilience.unwrap_or(5)),
+            risk_appetite: Some(base_b.risk_appetite.unwrap_or(5)),
+        });
         let ctx = RelContext {
             rtype: RelationType::WorksWith,
             strength: 5,
         };
-        let plain = compute_synergy_score_ctx(&a, &base_b, Some(&ctx), &[], &[]);
-        let with_empty_mask = compute_synergy_score_ctx(&a, &masked_b, Some(&ctx), &[], &[]);
-        assert_eq!(plain.total, with_empty_mask.total);
+        let with_empty_mask = compute_synergy_score_ctx(&a, &masked_b, Some(&ctx), &[], &[])
+            .expect("where the empty persona defines the work arena");
+        let with_capture = compute_synergy_score_ctx(&a, &captured_b, Some(&ctx), &[], &[])
+            .expect("where the capture persona defines the work arena");
+        assert_eq!(with_empty_mask.total, with_capture.total);
+        // A persona-less b has no work facet: the pair is not scoreable there.
+        assert!(
+            compute_synergy_score_ctx(&a, &base_b, Some(&ctx), &[], &[]).is_none(),
+            "a person without a work persona must not score work relationships"
+        );
     }
 
     #[test]
@@ -9967,6 +10034,9 @@ mod tests {
         a.id = "a".into();
         let mut b = make_person(Some(6), Some(6), Some(6), Some(6), Some(6));
         b.id = "b".into();
+        // WorksWith is a work relationship: both persons must define the work
+        // arena for auto derivation to resolve it.
+        b.persona = Some(PersonaMask::default());
         let rels = vec![Relationship {
             id: "r1".into(),
             source_id: "a".into(),

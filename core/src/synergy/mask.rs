@@ -58,8 +58,12 @@ pub fn mask_gap_for(p: &Person, kind: FacetKind) -> Option<MaskGap> {
         FacetKind::Work => p.persona.as_ref()?,
         FacetKind::Online => p.online_persona.as_ref()?,
     };
-    let base = p.facet_view(p.primary_facet);
-    let arena = p.facet_view(kind);
+    let base = p
+        .facet_view(p.primary_facet)
+        .expect("the primary facet is always defined");
+    let arena = p
+        .facet_view(kind)
+        .expect("the non-primary facet just verified its persona mask");
 
     let mut num = 0.0;
     let mut wsum = 0.0;

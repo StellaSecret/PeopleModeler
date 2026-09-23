@@ -116,7 +116,14 @@ fn compute_team_synergy_inner(
             let kind = force_facet
                 .or_else(|| ctx.map(|r| r.rtype.facet()))
                 .unwrap_or(FacetKind::Base);
-            let breakdown = compute_synergy_score_facet(a, b, ctx.as_ref(), kind, a_preds, b_preds);
+            // A context a person does not exist in (no arena persona and not
+            // their primary facet): the pair is dropped from this facet's
+            // ranking instead of being scored with a fabricated anchor profile.
+            if !a.has_facet(kind) || !b.has_facet(kind) {
+                continue;
+            }
+            let breakdown = compute_synergy_score_facet(a, b, ctx.as_ref(), kind, a_preds, b_preds)
+                .expect("the pair just passed the has_facet gate");
 
             pairs.push(PairResult {
                 id_a: a.id.clone(),

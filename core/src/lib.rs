@@ -2025,6 +2025,7 @@ mod tests {
             "rep_scores": {},
             "behavioral_patterns": [{"trigger": "Change", "predicted_behavior": "embraces_change"}],
             "ocean": {"openness": 7, "conscientiousness": 6, "extraversion": 8, "agreeableness": 5, "neuroticism": 4},
+            "persona": {},
             "log": [], "predictions": [], "confidence": 5, "created_at": 0, "updated_at": 0
         }"#
         .into()

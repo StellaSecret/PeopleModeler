@@ -1125,8 +1125,19 @@ impl Person {
         self.biases.iter().max_by_key(|b| b.intensity)
     }
 
-    pub fn facet_view(&self, kind: FacetKind) -> FacetView {
-        FacetView {
+    /// Whether `kind` is a defined context for this person: either the anchor
+    /// (primary facet — always known) or an explicitly-stored arena mask. A
+    /// non-primary arena with no mask is an undefined persona: the person only
+    /// exists in their primary context.
+    pub fn has_facet(&self, kind: FacetKind) -> bool {
+        kind == self.primary_facet || self.mask_for(kind).is_some()
+    }
+
+    pub fn facet_view(&self, kind: FacetKind) -> Option<FacetView> {
+        if !self.has_facet(kind) {
+            return None;
+        }
+        Some(FacetView {
             kind,
             ocean: self
                 .mask_for(kind)
@@ -1164,7 +1175,7 @@ impl Person {
                 .mask_for(kind)
                 .and_then(|m| m.risk_appetite)
                 .or(self.risk_appetite),
-        }
+        })
     }
 
     /// The arena persona mask for `kind` — `None` for the context the inline
@@ -1181,16 +1192,20 @@ impl Person {
     }
 
     /// A clone with the behavior channels resolved under `kind`. Persona
-    /// buckets that are `None` inherit the base channel, so the merged person
-    /// is what every downstream computation (profile, insights, flags) would
-    /// read for that facet. The clone carries no persona, which keeps those
-    /// computations persona-agnostic.
-    pub fn facet_person(&self, kind: FacetKind) -> Person {
-        if self.mask_for(kind).is_none() {
-            return self.clone();
+    /// buckets that are `None` inherit the anchor channel, so the merged
+    /// person is what every downstream computation (profile, insights, flags)
+    /// would read for that facet. The clone carries no persona, which keeps
+    /// those computations persona-agnostic. `None` when the facet is not a
+    /// defined context for this person (no mask and not the anchor).
+    pub fn facet_person(&self, kind: FacetKind) -> Option<Person> {
+        if !self.has_facet(kind) {
+            return None;
         }
-        let v = self.facet_view(kind);
-        Person {
+        if kind == self.primary_facet {
+            return Some(self.clone());
+        }
+        let v = self.facet_view(kind)?;
+        Some(Person {
             persona: None,
             online_persona: None,
             private_persona: None,
@@ -1204,7 +1219,17 @@ impl Person {
             resilience: v.resilience,
             risk_appetite: v.risk_appetite,
             ..self.clone()
-        }
+        })
+    }
+
+    /// Full view of a context during a primary swap. An undefined context
+    /// materializes its anchor view: the swap itself is the act that defines
+    /// the target as the new anchor. The anchor is always defined.
+    fn capture_view(&self, kind: FacetKind) -> FacetView {
+        self.facet_view(kind).unwrap_or_else(|| {
+            self.facet_view(self.primary_facet)
+                .expect("anchor is defined")
+        })
     }
 
     /// Re-point the inline anchor fields at another context. The new anchor
@@ -1217,7 +1242,7 @@ impl Person {
         }
         let before = self.clone();
         for kind in FacetKind::ALL {
-            let view = before.facet_view(kind);
+            let view = before.capture_view(kind);
             if kind == new {
                 self.apply_inline_view(&view);
             } else {
@@ -1685,7 +1710,7 @@ mod tests {
             updated_at: 2,
         };
 
-        let merged = base.facet_person(FacetKind::Work);
+        let merged = base.facet_person(FacetKind::Work).unwrap();
         assert_eq!(merged.id, "p1", "identity must be kept");
         assert_eq!(merged.name, "Base");
         assert_eq!(
@@ -1778,18 +1803,20 @@ mod tests {
             updated_at: 2,
         };
 
-        let merged = base.facet_person(FacetKind::Base);
+        let merged = base.facet_person(FacetKind::Base).unwrap();
         assert_eq!(merged, base, "base facet must return an identical clone");
         assert_eq!(merged.persona, base.persona.clone());
         assert_eq!(merged.online_persona, base.online_persona.clone());
     }
 
     #[test]
-    fn facet_person_without_work_mask_keeps_full_clone() {
-        // No work persona, but an online persona set: the merge guard must
-        // return `self.clone()` untouched (not re-resolve through the facet
-        // view, which would strip the online persona). This is the case that
-        // catches an `&&` sneaking into the `||` guard.
+    fn facet_person_without_work_mask_is_undefined() {
+        // No work persona, but an online persona set. The work facet is not a
+        // defined context for this person: the merge guard must return `None`
+        // instead of resolving the anchor (which would fabricate a work
+        // persona from the base profile). This is the case that catches an
+        // `||` sneaking into the `&&` in the `has_facet` guard (an undefined
+        // arena must not fall back to the clone).
         let base = Person {
             id: "p3".into(),
             primary_facet: FacetKind::Base,
@@ -1826,12 +1853,21 @@ mod tests {
             updated_at: 2,
         };
 
-        let merged = base.facet_person(FacetKind::Work);
         assert_eq!(
-            merged, base,
-            "no work persona means the full clone is returned"
+            base.facet_person(FacetKind::Work),
+            None,
+            "undefined work facet"
         );
-        assert_eq!(merged.online_persona, base.online_persona);
+        assert!(
+            !base.has_facet(FacetKind::Work),
+            "no work persona means no work facet"
+        );
+        let anchor = base.facet_person(FacetKind::Base).unwrap();
+        assert_eq!(
+            anchor, base,
+            "anchor returns the raw clone with masks intact"
+        );
+        assert_eq!(anchor.online_persona, base.online_persona);
     }
 
     #[test]
@@ -1879,7 +1915,7 @@ mod tests {
             updated_at: 2,
         };
 
-        let merged = base.facet_person(FacetKind::Online);
+        let merged = base.facet_person(FacetKind::Online).unwrap();
         assert_eq!(
             merged.persona, None,
             "merged clone must be persona-agnostic"
@@ -1893,7 +1929,7 @@ mod tests {
             base.online_persona.as_ref().unwrap().ocean.clone().unwrap()
         );
         assert_eq!(
-            base.facet_person(FacetKind::Work).ocean,
+            base.facet_person(FacetKind::Work).unwrap().ocean,
             base.persona.as_ref().unwrap().ocean.clone().unwrap(),
             "work facet is independent of the online mask"
         );
@@ -1937,12 +1973,12 @@ mod tests {
         assert_eq!(p.mask_for(FacetKind::Work), None);
         // Personal life is the new mask slot under a work-primary person.
         assert_eq!(
-            p.facet_view(FacetKind::Base).ocean.openness,
+            p.facet_view(FacetKind::Base).unwrap().ocean.openness,
             Some(9),
             "base facet reads the private persona mask"
         );
         assert_eq!(
-            p.facet_view(FacetKind::Work).ocean.openness,
+            p.facet_view(FacetKind::Work).unwrap().ocean.openness,
             None,
             "work facet reads the anchor inline values"
         );
@@ -1959,7 +1995,7 @@ mod tests {
             }),
             ..PersonaMask::default()
         });
-        let personal = p.facet_person(FacetKind::Base);
+        let personal = p.facet_person(FacetKind::Base).unwrap();
         assert_eq!(personal.ocean.openness, Some(9), "merged inline value");
         assert_eq!(personal.persona, None);
         assert_eq!(personal.online_persona, None);
@@ -1969,7 +2005,7 @@ mod tests {
         );
         // The anchor facet remains a raw clone carrying its masks (same as the
         // legacy base-facet behavior for base-primary people).
-        let anchor = p.facet_person(FacetKind::Work);
+        let anchor = p.facet_person(FacetKind::Work).unwrap();
         assert_eq!(anchor.persona, p.persona);
         assert_eq!(anchor.private_persona, p.private_persona);
     }
@@ -2003,14 +2039,14 @@ mod tests {
         p.primary_facet = FacetKind::Base;
         let before: Vec<_> = FacetKind::ALL
             .into_iter()
-            .map(|k| p.facet_view(k))
+            .map(|k| p.facet_view(k).expect("all contexts defined"))
             .collect();
 
         p.set_primary_facet(FacetKind::Work);
         p.set_primary_facet(FacetKind::Base); // round-trip back
         let after: Vec<_> = FacetKind::ALL
             .into_iter()
-            .map(|k| p.facet_view(k))
+            .map(|k| p.facet_view(k).expect("all contexts defined"))
             .collect();
 
         assert_eq!(p.primary_facet, FacetKind::Base);
