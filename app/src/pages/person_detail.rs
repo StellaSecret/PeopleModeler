@@ -363,7 +363,7 @@ pub fn PersonDetail(id: String) -> Element {
                     }
 
                     {person_flags.iter().map(|k| {
-                        rsx! { div { class: "danger-warning", "⚠ {crate::i18n::tr(k, lang())}" } }
+                        rsx! { div { class: "danger-warning wrap", "⚠ {crate::i18n::tr(k, lang())}" } }
                     })}
 
                     div { class: "tab-bar", role: "tablist",
