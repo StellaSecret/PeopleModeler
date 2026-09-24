@@ -271,16 +271,29 @@ jobs:
               cp "$OVERLAY/app/proguard-rules.pro" "$APP_DIR/"
               echo "Copied proguard-rules.pro for GoogleDriveHelper keep rule"
             fi
-            # Add Google Play Services auth dependency to app/build.gradle.kts
-            BUILD_GRADLE=$(find "$APP_DIR" -maxdepth 1 -name "build.gradle.kts" 2>/dev/null | head -1)
-            if [ -f "$BUILD_GRADLE" ]; then
-              if ! grep -q "play-services-auth" "$BUILD_GRADLE"; then
-                sed -i '/material:/a\    implementation("com.google.android.gms:play-services-auth:21.2.0")' "$BUILD_GRADLE"
-                echo "Added play-services-auth dependency"
-              fi
-            fi
           else
             echo "WARNING: Android kotlin source dir not found"
+          fi
+      - name: Overlay Gradle config (AGP 9, drop material)
+        run: |
+          GRADLE_DIR=$(find target/dx -name "gradlew" -exec dirname {} \; 2>/dev/null | head -1)
+          if [ -n "$GRADLE_DIR" ]; then
+            OVERLAY="android/overlay"
+            if [ -f "$OVERLAY/build.gradle.kts" ] && [ -f "$OVERLAY/app/build.gradle.kts" ]; then
+              cp "$OVERLAY/build.gradle.kts" "$GRADLE_DIR/build.gradle.kts"
+              cp "$OVERLAY/app/build.gradle.kts" "$GRADLE_DIR/app/build.gradle.kts"
+              cp "$OVERLAY/gradle.properties" "$GRADLE_DIR/gradle.properties"
+              MANIFEST=$(find "$GRADLE_DIR" -path "*/src/main/AndroidManifest.xml" 2>/dev/null | head -1)
+              if [ -n "$MANIFEST" ]; then
+                sed -i 's/ android:extractNativeLibs="true"//' "$MANIFEST"
+                echo "Stripped android:extractNativeLibs from $MANIFEST"
+              fi
+              echo "Overlaid AGP 9 Gradle config (material removed, play-services-auth baked in)"
+            else
+              echo "WARNING: Overlay gradle files missing"
+            fi
+          else
+            echo "WARNING: gradlew dir not found — skipping Gradle overlay"
           fi
       - name: Rebuild APK with custom resources
         run: |
@@ -307,6 +320,15 @@ jobs:
             echo "WARNING: gradlew not found under target/dx/peoplemodeler-app/release/android"
             find target/dx -name "gradlew" 2>/dev/null || true
           fi
+      - name: Upload R8 mapping for Play warning triage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: r8-mapping
+          path: |
+            target/dx/**/app/build/outputs/mapping/release/*.txt
+            target/dx/**/app/build/outputs/**/output-metadata.json
+          retention-days: 7
       - name: Sign APK (sign unsigned release APK if present)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
