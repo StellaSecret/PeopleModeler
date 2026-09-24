@@ -7,15 +7,8 @@ use peoplemodeler_core::synergy::{MaskBand, compute_person_profile, mask_gap_for
 use crate::Route;
 use crate::components::facet::FacetToggle;
 use crate::db;
-use crate::i18n::Lang;
+use crate::i18n::{Lang, core_lang};
 use crate::pages::predictions::{PredictionList, format_date};
-
-fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
-    match l {
-        Lang::Fr => peoplemodeler_core::i18n::Lang::Fr,
-        Lang::En => peoplemodeler_core::i18n::Lang::En,
-    }
-}
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {

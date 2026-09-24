@@ -8,14 +8,7 @@ use peoplemodeler_core::models::{
 use crate::Route;
 use crate::components::facet::FacetToggle;
 use crate::db;
-use crate::i18n::Lang;
-
-fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
-    match l {
-        Lang::Fr => peoplemodeler_core::i18n::Lang::Fr,
-        Lang::En => peoplemodeler_core::i18n::Lang::En,
-    }
-}
+use crate::i18n::{Lang, core_lang};
 
 /// `idx` is `hash % templates.len()`, so it can never equal `templates.len()`;
 /// the `<=` mutant inside is behavior-equal to `<`.
@@ -3407,18 +3400,6 @@ mod tests {
         by_desc.sort();
         by_desc.dedup();
         assert_eq!(by_desc.len(), by_name.len());
-    }
-
-    #[test]
-    fn core_lang_maps_both_branches() {
-        assert!(matches!(
-            core_lang(Lang::Fr),
-            peoplemodeler_core::i18n::Lang::Fr
-        ));
-        assert!(matches!(
-            core_lang(Lang::En),
-            peoplemodeler_core::i18n::Lang::En
-        ));
     }
 
     #[test]

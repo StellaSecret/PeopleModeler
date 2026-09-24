@@ -7,14 +7,7 @@ use peoplemodeler_core::synergy::{
 };
 
 use crate::db;
-use crate::i18n::Lang;
-
-fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
-    match l {
-        Lang::Fr => peoplemodeler_core::i18n::Lang::Fr,
-        Lang::En => peoplemodeler_core::i18n::Lang::En,
-    }
-}
+use crate::i18n::{Lang, core_lang};
 
 /// i18n key for a per-context compatibility score label.
 fn ctx_key(c: InsightContext) -> crate::i18n::Key {
@@ -2453,22 +2446,6 @@ mod tests {
             !str.iter()
                 .any(|s| s.contains("Complémentarité comportementale"))
         );
-    }
-
-    #[test]
-    fn core_lang_en() {
-        assert!(matches!(
-            core_lang(Lang::En),
-            peoplemodeler_core::i18n::Lang::En
-        ));
-    }
-
-    #[test]
-    fn core_lang_fr() {
-        assert!(matches!(
-            core_lang(Lang::Fr),
-            peoplemodeler_core::i18n::Lang::Fr
-        ));
     }
 
     #[test]

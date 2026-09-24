@@ -2225,6 +2225,18 @@ mod tests {
     use super::*;
     use strum::IntoEnumIterator;
 
+    #[test]
+    fn core_lang_maps_both_branches() {
+        assert!(matches!(
+            core_lang(Lang::Fr),
+            peoplemodeler_core::i18n::Lang::Fr
+        ));
+        assert!(matches!(
+            core_lang(Lang::En),
+            peoplemodeler_core::i18n::Lang::En
+        ));
+    }
+
     const IDENTITY: &[Key] = &[
         Key::OceanVolatility,
         Key::OnlyNegativePatterns,

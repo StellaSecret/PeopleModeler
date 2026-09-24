@@ -78,10 +78,7 @@ struct ChordArc {
 #[component]
 pub fn Relationships() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let cl = match lang() {
-        Lang::Fr => peoplemodeler_core::i18n::Lang::Fr,
-        Lang::En => peoplemodeler_core::i18n::Lang::En,
-    };
+    let cl = crate::i18n::core_lang(lang());
     let nav = use_navigator();
     let rels = use_signal(db::all_relationships);
     let persons = use_signal(db::all_persons);
