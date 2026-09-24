@@ -3066,6 +3066,20 @@ mod tests {
     }
 
     #[test]
+    fn persona_mask_label_localized() {
+        for lang in [Lang::En, Lang::Fr] {
+            let work = persona_mask_label(FacetKind::Work, lang);
+            let online = persona_mask_label(FacetKind::Online, lang);
+            let base = persona_mask_label(FacetKind::Base, lang);
+            assert_eq!(work, crate::tr!(PersonaSection, lang));
+            assert_eq!(online, crate::tr!(PersonaOnlineSection, lang));
+            assert_eq!(base, crate::tr!(PersonaBaseSection, lang));
+            assert_ne!(work, online, "work and online labels differ");
+            assert_ne!(online, base, "online and base labels differ");
+        }
+    }
+
+    #[test]
     fn mot_helper_all_variants() {
         let lang = Lang::En;
         assert!(!mot_helper(&MotivationType::Achievement, lang).is_empty());

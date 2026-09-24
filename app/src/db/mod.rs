@@ -1712,8 +1712,8 @@ mod wasm_dispatch_tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     use peoplemodeler_core::models::{
-        Bias, BiasType, Motivation, MotivationType, OceanScores, Person, Prediction, RelationType,
-        Relationship, RepScores, Tag, Team,
+        Bias, BiasType, FacetKind, Motivation, MotivationType, OceanScores, Person, Prediction,
+        RelationType, Relationship, RepScores, Tag, Team,
     };
 
     fn init_db() {
@@ -1750,6 +1750,9 @@ mod wasm_dispatch_tests {
             values: vec![],
             ocean: OceanScores::default(),
             persona: None,
+            private_persona: None,
+            online_persona: None,
+            primary_facet: FacetKind::Base,
             resilience: None,
             risk_appetite: None,
             confidence: 5,
@@ -2000,6 +2003,46 @@ mod wasm_dispatch_tests {
         super::save_team(&t).unwrap();
         super::delete_team("wt3").unwrap();
         assert!(super::team("wt3").is_none());
+    }
+
+    // --- Pure helpers (kill the vec![]/None whole-body mutations in the
+    // wasm browser run, where plain #[test] items never execute) ---
+
+    #[wasm_bindgen_test]
+    fn wasm_touched_relationship_ids_filters_and_excludes() {
+        let rels = vec![
+            Relationship {
+                id: "wrel-src".into(),
+                source_id: "w-p".into(),
+                target_id: "other".into(),
+                ..make_relationship("unused")
+            },
+            Relationship {
+                id: "wrel-tgt".into(),
+                source_id: "other".into(),
+                target_id: "w-p".into(),
+                ..make_relationship("unused")
+            },
+            Relationship {
+                id: "wrel-keep".into(),
+                source_id: "other".into(),
+                target_id: "other2".into(),
+                ..make_relationship("unused")
+            },
+        ];
+        let mut got = super::touched_relationship_ids(&rels, "w-p");
+        got.sort();
+        assert_eq!(got, vec!["wrel-src".to_string(), "wrel-tgt".to_string()]);
+        assert!(super::touched_relationship_ids(&rels, "nobody").is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    fn wasm_decode_encrypted_json_round_trip() {
+        use base64::Engine;
+        let json = serde_json::to_string(&make_person("wdec")).unwrap();
+        let b64 = base64::engine::general_purpose::STANDARD.encode(json.as_bytes());
+        let decoded = super::decode_encrypted_json::<Person, _>(&b64, |d| Some(d.to_vec()));
+        assert_eq!(decoded.map(|p| p.id), Some("wdec".to_string()));
     }
 
     // --- Upsert behavior (catches upsert → () and == → != mutations) ---

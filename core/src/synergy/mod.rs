@@ -4335,6 +4335,27 @@ mod tests {
         }
     }
 
+    // Exactly one side of the pair lacks the forced facet: the gate must
+    // trigger on a *single* failure (`||`), dropping the pair instead of
+    // scoring it against a fabricated anchor profile.
+    #[test]
+    fn team_skips_pair_when_one_side_lacks_forced_facet() {
+        let mut a = make_person(Some(7), Some(8), Some(6), Some(5), Some(4));
+        a.id = "a".into();
+        a.persona = Some(PersonaMask::default()); // a has the Work arena
+        let b = {
+            let mut p = make_person(Some(6), Some(7), Some(8), Some(5), Some(3));
+            p.id = "b".into();
+            p // b has no work persona → only b fails the gate
+        };
+        let preds = std::collections::HashMap::new();
+        let team = compute_team_synergy_facet(&[a, b], &[], &preds, Some(FacetKind::Work));
+        assert!(
+            team.is_none(),
+            "one-sided facet miss must drop the pair, not score it"
+        );
+    }
+
     // === Mutation-killing tests for synergy.rs ===
 
     // --- rep_danger_penalty: exact values per dimension ---

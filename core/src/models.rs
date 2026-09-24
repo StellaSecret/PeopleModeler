@@ -2072,6 +2072,44 @@ mod tests {
         assert_eq!(p, snapshot);
     }
 
+    // Observable *material* change of the swap (not just a round-trip back to
+    // the starting state, which a dead body would survive): the anchor moves,
+    // the new anchor's data lands inline, and the old anchor's data survives
+    // as its mask.
+    #[test]
+    fn set_primary_facet_swaps_anchor_materially() {
+        let mut p = blank_person();
+        p.primary_facet = FacetKind::Base;
+        p.ocean = OceanScores {
+            openness: Some(7),
+            ..OceanScores::default()
+        };
+        p.persona = Some(PersonaMask {
+            ocean: Some(OceanScores {
+                openness: Some(3),
+                ..OceanScores::default()
+            }),
+            ..PersonaMask::default()
+        });
+
+        p.set_primary_facet(FacetKind::Work);
+
+        assert_eq!(p.primary_facet, FacetKind::Work, "anchor retargets");
+        assert_eq!(
+            p.ocean.openness,
+            Some(3),
+            "work's view becomes the inline anchor data"
+        );
+        let base = p
+            .facet_view(FacetKind::Base)
+            .expect("base stays defined via its captured mask");
+        assert_eq!(
+            base.ocean.openness,
+            Some(7),
+            "old anchor data is preserved as a mask"
+        );
+    }
+
     // Minimal bare person for new facade tests, so another new field never
     // means touching every struct literal again.
     fn blank_person() -> Person {
