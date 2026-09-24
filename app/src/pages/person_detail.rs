@@ -777,6 +777,7 @@ pub fn PersonDetail(id: String) -> Element {
                                                     } else {
                                                         button {
                                                             class: "btn-icon btn-danger",
+                                                            aria_label: "{crate::tr!(AriaDeleteLogEntry, lang())}",
                                                             onclick: {
                                                                 let eid = entry.id.clone();
                                                                 move |_| confirming_log_del.set(Some(eid.clone()))
@@ -1311,7 +1312,7 @@ fn RelationshipSection(
                                                         span { class: "rel-person-actions",
                                                             button {
                                                                 class: "btn-icon",
-                                                                title: "{common_edit}",
+                                                                aria_label: "{common_edit}",
                                                                 onclick: {
                                                                     let rid2 = rid.clone();
                                                                     move |_| start_edit(rid2.clone())
@@ -1320,7 +1321,7 @@ fn RelationshipSection(
                                                             }
                                                             button {
                                                                 class: "btn-icon",
-                                                                title: "{common_delete}",
+                                                                aria_label: "{common_delete}",
                                                                 onclick: {
                                                                     let rid2 = rid.clone();
                                                                     move |_| confirm_delete(rid2.clone())

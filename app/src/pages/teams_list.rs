@@ -82,6 +82,7 @@ pub fn TeamsList() -> Element {
                             }
                         } else {
                             button { class: "btn-ghost btn-sm teams-del-btn",
+                                aria_label: "{common_delete}",
                                 onclick: {
                                     let tid2 = tid.clone();
                                     move |_| confirming_del.set(Some(tid2.clone()))

@@ -159,8 +159,10 @@ fn App() -> Element {
         t.persist();
         #[cfg(target_arch = "wasm32")]
         if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+            let l = lang();
             let _ = doc.document_element().map(|el| {
                 let _ = el.set_attribute("data-theme", t.as_str());
+                let _ = el.set_attribute("lang", if l == Lang::Fr { "fr" } else { "en" });
             });
         }
     });
@@ -204,6 +206,7 @@ fn NavLayout() -> Element {
     let nav_timeline = crate::tr!(NavTimeline, lang());
     let nav_teams = crate::tr!(NavTeams, lang());
     let nav_sync = crate::tr!(NavSync, lang());
+    let skip_label = crate::tr!(AriaSkipToContent, lang());
     let toggle_lang = move |_| {
         let mut l = lang();
         l = match l {
@@ -226,6 +229,7 @@ fn NavLayout() -> Element {
     };
     rsx! {
         div { class: "app", "data-theme": theme().as_str(),
+            a { class: "skip-link", href: "#main-content", "{skip_label}" }
             header { class: "top-bar",
                 Link { to: Route::PeopleList {}, class: "logo",
                     "People"
@@ -256,12 +260,12 @@ fn NavLayout() -> Element {
                     }
                 }
             }
-            main { class: "content",
+            main { class: "content", id: "main-content",
                 Outlet::<Route> {}
             }
             div { class: "toast-container",
                 if let Some(msg) = toast() {
-                    div { class: "toast", key: "{msg}", "{msg}" }
+                    div { class: "toast", key: "{msg}", role: "status", "aria-live": "polite", aria_atomic: "true", "{msg}" }
                 }
             }
             crate::tutorial::TutorialModal { status: tutorial_status }
