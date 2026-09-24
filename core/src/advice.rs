@@ -611,7 +611,7 @@ pub fn per_context_advice(
         let w = weights[cat_idx];
         -w
     };
-    advice.sort_by(|a, b| sort_key(a).partial_cmp(&sort_key(b)).unwrap());
+    advice.sort_by(|a, b| sort_key(a).total_cmp(&sort_key(b)));
     advice
 }
 

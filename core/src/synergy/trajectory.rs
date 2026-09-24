@@ -23,7 +23,7 @@ pub(crate) fn trajectory_from(entries: &[&crate::models::InteractionEntry]) -> T
     let mut w_sum = 0.0;
     let mut v_sum = 0.0;
     for e in &dated {
-        let v = e.valence.unwrap() as f64 / CFG.trajectory.valence_scale;
+        let v = e.valence.unwrap_or(0) as f64 / CFG.trajectory.valence_scale;
         let age = (t_max - e.timestamp as f64).max(0.0);
         let w = (-age / CFG.trajectory.half_life_ms).exp();
         v_sum += v * w;
@@ -37,12 +37,12 @@ pub(crate) fn trajectory_from(entries: &[&crate::models::InteractionEntry]) -> T
         let mid = sorted.len() / 2;
         let early: f64 = sorted[..mid]
             .iter()
-            .map(|e| e.valence.unwrap() as f64 / CFG.trajectory.valence_scale)
+            .map(|e| e.valence.unwrap_or(0) as f64 / CFG.trajectory.valence_scale)
             .sum::<f64>()
             / mid as f64;
         let recent: f64 = sorted[mid..]
             .iter()
-            .map(|e| e.valence.unwrap() as f64 / CFG.trajectory.valence_scale)
+            .map(|e| e.valence.unwrap_or(0) as f64 / CFG.trajectory.valence_scale)
             .sum::<f64>()
             / (sorted.len() - mid) as f64;
         let momentum = recent - early;

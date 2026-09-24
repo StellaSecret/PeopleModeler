@@ -88,7 +88,7 @@ pub fn is_done() -> bool {
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let g = TUTORIAL_ACTIVE.lock().unwrap();
+        let g = TUTORIAL_ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
         g.is_none()
     }
 }
@@ -106,7 +106,7 @@ fn mark_done() {
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let mut g = TUTORIAL_ACTIVE.lock().unwrap();
+        let mut g = TUTORIAL_ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
         *g = None;
     }
 }
@@ -119,7 +119,7 @@ pub fn clear_mark() {
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let mut g = TUTORIAL_ACTIVE.lock().unwrap();
+        let mut g = TUTORIAL_ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
         *g = Some(0);
     }
 }

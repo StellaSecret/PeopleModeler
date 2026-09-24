@@ -100,26 +100,25 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                         .ok()
                         .and_then(|f| f.dyn_into::<web_sys::FileList>().ok());
                     if let Some(files) = files {
-                        if files.length() > 0 {
-                            let file = files.get(0).expect("file exists after length check");
-                            let reader = web_sys::FileReader::new().expect("FileReader creation failed");
-                            let r2 = reader.clone();
-                            let mut s3 = s2.clone();
-                            let onload = Closure::<dyn FnMut()>::new(move || {
-                                let result = r2.result().ok()
-                                    .and_then(|r| r.as_string());
-                                if let Some(json) = result {
-                                    match drive::restore_from_json(&json) {
-                                        Ok(n) => s3.set(format!("{} {} persons, {} relationships, {} teams", crate::tr!(SyncRestored, lang), n.persons, n.relationships, n.teams)),
-                                        Err(e) => s3.set(format!("❌ {e}")),
-                                    }
+                        let Some(file) = files.item(0) else {
+                            return;
+                        };
+                        let reader = web_sys::FileReader::new().expect("FileReader creation failed");
+                        let r2 = reader.clone();
+                        let mut s3 = s2.clone();
+                        let onload = Closure::<dyn FnMut()>::new(move || {
+                            let result = r2.result().ok().and_then(|r| r.as_string());
+                            if let Some(json) = result {
+                                match drive::restore_from_json(&json) {
+                                    Ok(n) => s3.set(format!("{} {} persons, {} relationships, {} teams", crate::tr!(SyncRestored, lang), n.persons, n.relationships, n.teams)),
+                                    Err(e) => s3.set(format!("❌ {e}")),
                                 }
-                            });
-                            reader.set_onload(Some(onload.as_ref().unchecked_ref()));
-                            onload.forget();
-                            let blob: &web_sys::Blob = file.unchecked_ref();
-                            let _ = reader.read_as_text(blob);
-                        }
+                            }
+                        });
+                        reader.set_onload(Some(onload.as_ref().unchecked_ref()));
+                        onload.forget();
+                        let blob: &web_sys::Blob = file.unchecked_ref();
+                        let _ = reader.read_as_text(blob);
                     }
                 });
                 if let Some(body) = doc.body() {

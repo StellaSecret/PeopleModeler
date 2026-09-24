@@ -8,14 +8,15 @@ use crate::model_config::CFG;
 use crate::models::{BiasType, Motivation, MotivationType, Person, Prediction, RepDim};
 
 pub(crate) fn avg_prediction_accuracy(predictions: &[Prediction]) -> Option<f64> {
-    let resolved: Vec<_> = predictions
+    let resolved: Vec<f64> = predictions
         .iter()
         .filter(|p| p.resolved && p.accuracy.is_some())
+        .map(|p| p.accuracy.unwrap_or(0) as f64)
         .collect();
     if resolved.len() < CFG.history.min_samples {
         return None;
     }
-    let sum: f64 = resolved.iter().map(|p| p.accuracy.unwrap() as f64).sum();
+    let sum: f64 = resolved.iter().sum();
     Some(sum / resolved.len() as f64)
 }
 

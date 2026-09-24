@@ -297,7 +297,7 @@ where
     F: FnOnce(&mut Option<Vec<Person>>) -> R,
 {
     let lock = PERSONS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
-    let mut guard = lock.lock().unwrap();
+    let mut guard = lock.lock().unwrap_or_else(|e| e.into_inner());
     f(&mut guard)
 }
 
@@ -307,7 +307,7 @@ where
     F: FnOnce(&mut Option<Vec<Prediction>>) -> R,
 {
     let lock = PREDICTIONS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
-    let mut guard = lock.lock().unwrap();
+    let mut guard = lock.lock().unwrap_or_else(|e| e.into_inner());
     f(&mut guard)
 }
 
@@ -317,7 +317,7 @@ where
     F: FnOnce(&mut Option<Vec<Relationship>>) -> R,
 {
     let lock = RELATIONSHIPS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
-    let mut guard = lock.lock().unwrap();
+    let mut guard = lock.lock().unwrap_or_else(|e| e.into_inner());
     f(&mut guard)
 }
 
@@ -327,7 +327,7 @@ where
     F: FnOnce(&mut Option<Vec<Team>>) -> R,
 {
     let lock = TEAMS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
-    let mut guard = lock.lock().unwrap();
+    let mut guard = lock.lock().unwrap_or_else(|e| e.into_inner());
     f(&mut guard)
 }
 
