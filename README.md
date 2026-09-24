@@ -1001,6 +1001,28 @@ text when flags fire — an honest profile and its manipulator twin diverge.
 
 ---
 
+## 🧭 Model roadmap — shipped
+
+Previous roadmap phases are all implemented and covered by tests; the file itself
+(`ROADMAP.md`) is gone. Full changelogs live in the git history. What each phase
+delivered:
+
+| Phase | Deliverable |
+|---|---|
+| 1 | Relationship context — per-type weight profiles, directional asymmetry (Manages/ReportsTo/Mentors), strength banding |
+| 2 | Confidence-banded scores (profile reliability, ±band display, data-quality UX) |
+| 3 | Temporal layer — typed log entries → per-pair trajectory + trend chips |
+| 4 | Context-specific compatibility output ("By situation" bars, context × relationship weight composition) |
+| 5 | Reputation weight rebalance (0.26 → 0.22, behavior buckets +4%) |
+| 6 | Values-alignment dimension (7th bucket, 8%) |
+| 7 | Prescriptive coaching (`core/src/advice.rs`, flag → actionable EN/FR advice) |
+| 8 | Opposite-bias modulation (complementarity table, −0.15 cap, shared-bias unchanged) |
+| 9a | Coefficient extraction into `core/src/model_config.rs` const table |
+| 9b | Team aggregation (`compute_team_synergy_facet`, weakest/strongest links, facet filter) |
+| 10 | Facets / work persona — `FacetKind`, `RelationType::facet()`, `mask_gap`, facet-aware scoring/insights/wasm |
+
+---
+
 ## 📄 License
 
 MIT — Free to use, modify, and distribute.
