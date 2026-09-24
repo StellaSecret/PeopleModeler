@@ -7,13 +7,13 @@ use crate::i18n::Lang;
 #[component]
 pub fn TeamsList() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let title = crate::tr!("teams_title", lang());
-    let all_label = crate::tr!("teams_all", lang());
-    let create_label = crate::tr!("teams_create", lang());
-    let confirm_delete = crate::tr!("confirm_delete_team", lang());
-    let members_fmt = crate::tr!("teams_members", lang());
-    let common_delete = crate::tr!("common_delete", lang());
-    let common_cancel = crate::tr!("common_cancel", lang());
+    let title = crate::tr!(TeamsTitle, lang());
+    let all_label = crate::tr!(TeamsAll, lang());
+    let create_label = crate::tr!(TeamsCreate, lang());
+    let confirm_delete = crate::tr!(ConfirmDeleteTeam, lang());
+    let members_fmt = crate::tr!(TeamsMembers, lang());
+    let common_delete = crate::tr!(CommonDelete, lang());
+    let common_cancel = crate::tr!(CommonCancel, lang());
 
     let all_count = db::all_persons().len();
     let mut teams = use_signal(db::all_teams);

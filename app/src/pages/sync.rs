@@ -6,7 +6,7 @@ use dioxus::prelude::*;
 
 fn tr_error(err: String, lang: Lang) -> String {
     match err.as_str() {
-        "sync_wrong_passphrase" => crate::tr!("sync_wrong_passphrase", lang).to_string(),
+        "sync_wrong_passphrase" => crate::tr!(SyncWrongPassphrase, lang).to_string(),
         _ => err,
     }
 }
@@ -83,7 +83,7 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
     use wasm_bindgen::JsCast;
     use wasm_bindgen::prelude::Closure;
     let s = status.clone();
-    let import_btn = crate::tr!("sync_import_btn", lang);
+    let import_btn = crate::tr!(SyncImportBtn, lang);
     rsx! {
         div { class: "form-row",
             button { class: "btn", aria_label: "{import_btn}", onclick: move |_| {
@@ -110,7 +110,7 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
                                     .and_then(|r| r.as_string());
                                 if let Some(json) = result {
                                     match drive::restore_from_json(&json) {
-                                        Ok(n) => s3.set(format!("{} {} persons, {} relationships, {} teams", crate::tr!("sync_restored", lang), n.persons, n.relationships, n.teams)),
+                                        Ok(n) => s3.set(format!("{} {} persons, {} relationships, {} teams", crate::tr!(SyncRestored, lang), n.persons, n.relationships, n.teams)),
                                         Err(e) => s3.set(format!("❌ {e}")),
                                     }
                                 }
@@ -138,8 +138,8 @@ fn import_button(lang: Lang, status: Signal<String>) -> Element {
 
 #[cfg(target_os = "android")]
 fn android_import_button(lang: Lang, status: Signal<String>) -> Element {
-    let import_btn = crate::tr!("sync_import_btn", lang);
-    let restore_ok = crate::tr!("sync_restored", lang);
+    let import_btn = crate::tr!(SyncImportBtn, lang);
+    let restore_ok = crate::tr!(SyncRestored, lang);
     rsx! {
         div { class: "form-row",
             button { class: "btn", aria_label: "{import_btn}", onclick: move |_| {
@@ -188,12 +188,12 @@ fn token_paste_ui(
 ) -> Element {
     #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
     if !has_token {
-        let ts1 = crate::tr!("sync_token_instruction_1", lang);
-        let ts2 = crate::tr!("sync_token_instruction_2", lang);
-        let ts3 = crate::tr!("sync_token_instruction_3", lang);
-        let ts4 = crate::tr!("sync_token_instruction_4", lang);
-        let paste_pl = crate::tr!("sync_paste_placeholder", lang);
-        let save_btn = crate::tr!("sync_save_token_btn", lang);
+        let ts1 = crate::tr!(SyncTokenInstruction1, lang);
+        let ts2 = crate::tr!(SyncTokenInstruction2, lang);
+        let ts3 = crate::tr!(SyncTokenInstruction3, lang);
+        let ts4 = crate::tr!(SyncTokenInstruction4, lang);
+        let paste_pl = crate::tr!(SyncPastePlaceholder, lang);
+        let save_btn = crate::tr!(SyncSaveTokenBtn, lang);
         return rsx! {
             div { class: "instruction-box",
                 p { class: "instruction-step", "{ts1}" }
@@ -214,7 +214,7 @@ fn token_paste_ui(
                         auth::set_token(&t);
                         token.set(t.clone());
                         paste_buf.set(String::new());
-                        status.set(crate::tr!("sync_token_saved", lang).into());
+                        status.set(crate::tr!(SyncTokenSaved, lang).into());
                     }
                 }, "{save_btn}" }
             }
@@ -294,23 +294,23 @@ pub fn SyncPage() -> Element {
         });
     }
 
-    let sync_title = crate::tr!("sync_title", lang());
-    let gdrive_title = crate::tr!("sync_gdrive_title", lang());
-    let not_configured = crate::tr!("sync_not_configured", lang());
-    let local_title = crate::tr!("sync_local_title", lang());
-    let local_desc = crate::tr!("sync_local_desc", lang());
-    let pp_label = crate::tr!("sync_passphrase_label", lang());
-    let pp_placeholder = crate::tr!("sync_passphrase_placeholder", lang());
-    let pp_show = crate::tr!("sync_passphrase_show", lang());
-    let pp_hide = crate::tr!("sync_passphrase_hide", lang());
-    let export_btn = crate::tr!("sync_export_btn", lang());
-    let token_loaded = crate::tr!("sync_token_loaded", lang());
-    let clear_btn = crate::tr!("sync_clear_btn", lang());
-    let sign_in = crate::tr!("sync_sign_in", lang());
-    let backup_btn = crate::tr!("sync_backup_btn", lang());
-    let restore_btn = crate::tr!("sync_restore_btn", lang());
-    let no_data_warn = crate::tr!("sync_no_data_warn", lang());
-    let view_backup = crate::tr!("sync_view_backup", lang());
+    let sync_title = crate::tr!(SyncTitle, lang());
+    let gdrive_title = crate::tr!(SyncGdriveTitle, lang());
+    let not_configured = crate::tr!(SyncNotConfigured, lang());
+    let local_title = crate::tr!(SyncLocalTitle, lang());
+    let local_desc = crate::tr!(SyncLocalDesc, lang());
+    let pp_label = crate::tr!(SyncPassphraseLabel, lang());
+    let pp_placeholder = crate::tr!(SyncPassphrasePlaceholder, lang());
+    let pp_show = crate::tr!(SyncPassphraseShow, lang());
+    let pp_hide = crate::tr!(SyncPassphraseHide, lang());
+    let export_btn = crate::tr!(SyncExportBtn, lang());
+    let token_loaded = crate::tr!(SyncTokenLoaded, lang());
+    let clear_btn = crate::tr!(SyncClearBtn, lang());
+    let sign_in = crate::tr!(SyncSignIn, lang());
+    let backup_btn = crate::tr!(SyncBackupBtn, lang());
+    let restore_btn = crate::tr!(SyncRestoreBtn, lang());
+    let no_data_warn = crate::tr!(SyncNoDataWarn, lang());
+    let view_backup = crate::tr!(SyncViewBackup, lang());
 
     rsx! {
         div { class: "page",
@@ -326,7 +326,7 @@ pub fn SyncPage() -> Element {
                     button { class: "btn btn-small", aria_label: "{clear_btn}", onclick: move |_| {
                         auth::clear_token();
                         token.set(String::new());
-                        status.set(crate::tr!("sync_token_cleared", lang()).into());
+                        status.set(crate::tr!(SyncTokenCleared, lang()).into());
                     }, "{clear_btn}" }
                         }
                     }
@@ -372,15 +372,15 @@ pub fn SyncPage() -> Element {
                                 return;
                             }
                             let t = token();
-                            if t.is_empty() { status.set(crate::tr!("sync_no_token", lang()).into()); return; }
+                            if t.is_empty() { status.set(crate::tr!(SyncNoToken, lang()).into()); return; }
                             let pp = passphrase();
                             let ll = lang();
-                            status.set(crate::tr!("sync_backing_up", ll).into());
+                            status.set(crate::tr!(SyncBackingUp, ll).into());
                             let mut s = status;
                             spawn_async(async move {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_backup(&t, pp_ref).await {
-                                    Ok(id) => s.set(format!("{} (file id: {id})", crate::tr!("sync_backed_up", ll))),
+                                    Ok(id) => s.set(format!("{} (file id: {id})", crate::tr!(SyncBackedUp, ll))),
                                     Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
                                 }
                             });
@@ -388,15 +388,15 @@ pub fn SyncPage() -> Element {
 
                         button { class: "btn", aria_label: "{restore_btn}", onclick: move |_| {
                             let t = token();
-                            if t.is_empty() { status.set(crate::tr!("sync_no_token", lang()).into()); return; }
+                            if t.is_empty() { status.set(crate::tr!(SyncNoToken, lang()).into()); return; }
                             let pp = passphrase();
                             let ll = lang();
-                            status.set(crate::tr!("sync_restoring", ll).into());
+                            status.set(crate::tr!(SyncRestoring, ll).into());
                             let mut s = status;
                             spawn_async(async move {
                                 let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
                                 match drive::drive_restore(&t, pp_ref).await {
-                                    Ok(n) => s.set(format!("{} {} persons, {} relationships, {} teams from Drive", crate::tr!("sync_restored", ll), n.persons, n.relationships, n.teams)),
+                                    Ok(n) => s.set(format!("{} {} persons, {} relationships, {} teams from Drive", crate::tr!(SyncRestored, ll), n.persons, n.relationships, n.teams)),
                                     Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
                                 }
                             });
@@ -428,7 +428,7 @@ pub fn SyncPage() -> Element {
                         }
                         let json = drive::build_backup();
                         export_file(&json);
-                        status.set(crate::tr!("sync_exported", lang()).into());
+                        status.set(crate::tr!(SyncExported, lang()).into());
                     }, "{export_btn}" }
                 }
 

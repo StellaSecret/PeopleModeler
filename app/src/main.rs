@@ -199,11 +199,11 @@ fn NavLayout() -> Element {
     let mut lang = use_context::<Signal<Lang>>();
     let mut theme = use_context::<Signal<Theme>>();
     let toast = use_context::<Signal<Option<String>>>();
-    let nav_people = crate::tr!("nav_people", lang());
-    let nav_relationships = crate::tr!("nav_relationships", lang());
-    let nav_timeline = crate::tr!("nav_timeline", lang());
-    let nav_teams = crate::tr!("nav_teams", lang());
-    let nav_sync = crate::tr!("nav_sync", lang());
+    let nav_people = crate::tr!(NavPeople, lang());
+    let nav_relationships = crate::tr!(NavRelationships, lang());
+    let nav_timeline = crate::tr!(NavTimeline, lang());
+    let nav_teams = crate::tr!(NavTeams, lang());
+    let nav_sync = crate::tr!(NavSync, lang());
     let toggle_lang = move |_| {
         let mut l = lang();
         l = match l {

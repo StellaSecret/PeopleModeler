@@ -17,14 +17,14 @@ fn core_lang(l: Lang) -> peoplemodeler_core::i18n::Lang {
 }
 
 /// i18n key for a per-context compatibility score label.
-fn ctx_key(c: InsightContext) -> &'static str {
+fn ctx_key(c: InsightContext) -> crate::i18n::Key {
     match c {
-        InsightContext::Decision => "ctx_decision",
-        InsightContext::Team => "ctx_team",
-        InsightContext::Stress => "ctx_stress",
-        InsightContext::Communication => "ctx_communication",
-        InsightContext::Leadership => "ctx_leadership",
-        InsightContext::Growth => "ctx_growth",
+        InsightContext::Decision => crate::i18n::Key::CtxDecision,
+        InsightContext::Team => crate::i18n::Key::CtxTeam,
+        InsightContext::Stress => crate::i18n::Key::CtxStress,
+        InsightContext::Communication => crate::i18n::Key::CtxCommunication,
+        InsightContext::Leadership => crate::i18n::Key::CtxLeadership,
+        InsightContext::Growth => crate::i18n::Key::CtxGrowth,
     }
 }
 
@@ -106,10 +106,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
     let mut rel_type: Signal<Option<RelationType>> = use_signal(|| prefill_type);
     let mut rel_strength: Signal<u8> = use_signal(|| prefill_strength);
     let cl = core_lang(lang());
-    let not_found = crate::tr!("person_not_found", lang());
-    let compare_title = crate::tr!("compare_title", lang());
-    let compare_sub = crate::tr!("compare_sub", lang());
-    let back_btn = crate::tr!("common_back", lang());
+    let not_found = crate::tr!(PersonNotFound, lang());
+    let compare_title = crate::tr!(CompareTitle, lang());
+    let compare_sub = crate::tr!(CompareSub, lang());
+    let back_btn = crate::tr!(CommonBack, lang());
 
     match (p1(), p2()) {
         (Some(a), Some(b)) => {
@@ -130,7 +130,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let Some(brk) = brk else {
                 let missing = if a.has_facet(kind) { &nb } else { &na };
                 let facet_lbl = kind.label(cl);
-                let unavailable = crate::tr!("compare_facet_unavailable", lang());
+                let unavailable = crate::tr!(CompareFacetUnavailable, lang());
                 return rsx! {
                     div { class: "page",
                         button { class: "btn", onclick: move |_| nav.go_back(), "{back_btn}" }
@@ -146,10 +146,10 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
             let (pa, pb) = analysis_pair(&a, &b, kind);
             let (synergies, frictions, (top_strategy, all_strategies)) =
                 compare_analysis(&pa, &pb, lang());
-            let compare_vs = crate::tr!("compare_vs", lang());
-            let compare_asymmetric = crate::tr!("compare_asymmetric", lang());
-            let compare_benefit_more = crate::tr!("compare_benefit_more", lang());
-            let compare_balanced = crate::tr!("compare_balanced", lang());
+            let compare_vs = crate::tr!(CompareVs, lang());
+            let compare_asymmetric = crate::tr!(CompareAsymmetric, lang());
+            let compare_benefit_more = crate::tr!(CompareBenefitMore, lang());
+            let compare_balanced = crate::tr!(CompareBalanced, lang());
             let a_score = brk.a_score;
             let b_score = brk.b_score;
             let (a_benefit_label, b_benefit_label) = benefit_labels(
@@ -160,40 +160,40 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 compare_benefit_more,
                 compare_balanced,
             );
-            let compare_breakdown = crate::tr!("compare_breakdown", lang());
-            let compare_ctx_title = crate::tr!("compare_ctx_title", lang());
+            let compare_breakdown = crate::tr!(CompareBreakdown, lang());
+            let compare_ctx_title = crate::tr!(CompareCtxTitle, lang());
             let ctx_rows: Vec<(String, u8)> = brk
                 .per_context
                 .iter()
                 .map(|(c, s)| (crate::i18n::tr(ctx_key(*c), lang()).to_string(), *s))
                 .collect();
-            let cat_ocean = crate::tr!("compare_cat_ocean", lang());
-            let cat_rep = crate::tr!("compare_cat_reputation", lang());
-            let cat_mot = crate::tr!("compare_cat_motivation", lang());
-            let cat_pat = crate::tr!("compare_cat_patterns", lang());
-            let cat_bias = crate::tr!("compare_cat_bias", lang());
-            let cat_styles = crate::tr!("compare_cat_styles", lang());
-            let cat_values = crate::tr!("compare_cat_values", lang());
-            let top_mot_label = crate::tr!("compare_top_mot", lang());
-            let bias_label = crate::tr!("compare_bias_main", lang());
-            let ocean_label = crate::tr!("compare_ocean", lang());
-            let analysis_title = crate::tr!("compare_analysis_title", lang());
-            let synergies_title = crate::tr!("compare_synergies", lang());
-            let friction_title = crate::tr!("compare_friction", lang());
-            let strategy_title = crate::tr!("compare_strategy", lang());
-            let ethics = crate::tr!("compare_ethics", lang());
+            let cat_ocean = crate::tr!(CompareCatOcean, lang());
+            let cat_rep = crate::tr!(CompareCatReputation, lang());
+            let cat_mot = crate::tr!(CompareCatMotivation, lang());
+            let cat_pat = crate::tr!(CompareCatPatterns, lang());
+            let cat_bias = crate::tr!(CompareCatBias, lang());
+            let cat_styles = crate::tr!(CompareCatStyles, lang());
+            let cat_values = crate::tr!(CompareCatValues, lang());
+            let top_mot_label = crate::tr!(CompareTopMot, lang());
+            let bias_label = crate::tr!(CompareBiasMain, lang());
+            let ocean_label = crate::tr!(CompareOcean, lang());
+            let analysis_title = crate::tr!(CompareAnalysisTitle, lang());
+            let synergies_title = crate::tr!(CompareSynergies, lang());
+            let friction_title = crate::tr!(CompareFriction, lang());
+            let strategy_title = crate::tr!(CompareStrategy, lang());
+            let ethics = crate::tr!(CompareEthics, lang());
             let has_extra_strategies = should_show_extra_strategies(all_strategies.len());
-            let rel_title = crate::tr!("compare_rel_title", lang());
-            let rel_none = crate::tr!("compare_rel_none", lang());
-            let rel_strength_label = crate::tr!("compare_rel_strength", lang());
-            let band_hint = crate::tr!("compare_band_hint", lang());
+            let rel_title = crate::tr!(CompareRelTitle, lang());
+            let rel_none = crate::tr!(CompareRelNone, lang());
+            let rel_strength_label = crate::tr!(CompareRelStrength, lang());
+            let band_hint = crate::tr!(CompareBandHint, lang());
             let band_label = format_band_label(brk.band, band_hint);
             let rel_cl = core_lang(lang());
 
             let trend_label = match brk.trajectory_trend {
-                Trend::Improving => crate::tr!("trend_improving", lang()),
-                Trend::Stable => crate::tr!("trend_stable", lang()),
-                Trend::Deteriorating => crate::tr!("trend_deteriorating", lang()),
+                Trend::Improving => crate::tr!(TrendImproving, lang()),
+                Trend::Stable => crate::tr!(TrendStable, lang()),
+                Trend::Deteriorating => crate::tr!(TrendDeteriorating, lang()),
             };
             let trend_cls = match brk.trajectory_trend {
                 Trend::Improving => "trend-up",
@@ -206,18 +206,18 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 Trend::Deteriorating => "↓",
             };
             let trend_delta = format_signed_delta(brk.trajectory_delta);
-            let trend_hint = crate::tr!("trend_hint", lang());
+            let trend_hint = crate::tr!(TrendHint, lang());
 
             // Scale ruler — thresholds dynamically derived from sim formula
             let band_ranges = synergy_bands();
-            let band_meta: [(&str, &str); 5] = [
-                ("scale_tension", "scale-tension"),
-                ("scale_friction", "scale-friction"),
-                ("scale_moderate", "scale-moderate"),
-                ("scale_good", "scale-good"),
-                ("scale_strong", "scale-strong"),
+            let band_meta: [(crate::i18n::Key, &str); 5] = [
+                (crate::i18n::Key::ScaleTension, "scale-tension"),
+                (crate::i18n::Key::ScaleFriction, "scale-friction"),
+                (crate::i18n::Key::ScaleModerate, "scale-moderate"),
+                (crate::i18n::Key::ScaleGood, "scale-good"),
+                (crate::i18n::Key::ScaleStrong, "scale-strong"),
             ];
-            let scale_bands: [(&str, u8, u8, &str); 5] = std::array::from_fn(|i| {
+            let scale_bands: [(crate::i18n::Key, u8, u8, &str); 5] = std::array::from_fn(|i| {
                 let (lo, hi) = band_ranges[i];
                 (band_meta[i].0, lo, hi, band_meta[i].1)
             });
@@ -272,7 +272,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                 rsx! {
                                     div { class: "flag-chips",
                                         {a_flags.iter().map(|k| {
-                                            let txt = crate::i18n::tr(k, lang());
+                                            let txt = crate::i18n::tr_str(k, lang());
                                             rsx! { div { class: "danger-warning", title: "{txt}", "⚠ {txt}" } }
                                         })}
                                     }
@@ -358,7 +358,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                     div { class: "scale-labels",
                                         {scale_bands.iter().enumerate().map(|(i, (key, lo, hi, _))| {
                                             let pct = (hi - lo + 1) as f64 / 101.0 * 100.0;
-                                            let label = crate::i18n::tr(key, lang());
+                                            let label = crate::i18n::tr(*key, lang());
                                             let cls = if i == active_band { "scale-lbl-wrap active" } else { "scale-lbl-wrap" };
                                             rsx! {
                                                 div { class: "{cls}", width: "{pct:.0}%",
@@ -434,7 +434,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                 rsx! {
                                     div { class: "flag-chips",
                                         {b_flags.iter().map(|k| {
-                                            let txt = crate::i18n::tr(k, lang());
+                                            let txt = crate::i18n::tr_str(k, lang());
                                             rsx! { div { class: "danger-warning", title: "{txt}", "⚠ {txt}" } }
                                         })}
                                     }
@@ -485,7 +485,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                     }
 
                     {if !a_flags.is_empty() || !b_flags.is_empty() {
-                        let risk_title = crate::tr!("compare_risk_mitigation", lang());
+                        let risk_title = crate::tr!(CompareRiskMitigation, lang());
                         let a_rm = peoplemodeler_core::advice::risk_mitigation_pair(&a, core_lang(lang()));
                         let b_rm = peoplemodeler_core::advice::risk_mitigation_pair(&b, core_lang(lang()));
                         rsx! {
@@ -498,7 +498,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                             ul {
                                                 for (risk_key, mitigation) in &a_rm {
                                                     li { class: "risk-mit-row",
-                                                        span { class: "risk-text", "⚠ {crate::i18n::tr(risk_key, lang())}" }
+                                                        span { class: "risk-text", "⚠ {crate::i18n::tr_str(risk_key, lang())}" }
                                                         span { class: "mit-arrow", " → " }
                                                         span { class: "mit-text", "{mitigation}" }
                                                     }
@@ -512,7 +512,7 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                                             ul {
                                                 for (risk_key, mitigation) in &b_rm {
                                                     li { class: "risk-mit-row",
-                                                        span { class: "risk-text", "⚠ {crate::i18n::tr(risk_key, lang())}" }
+                                                        span { class: "risk-text", "⚠ {crate::i18n::tr_str(risk_key, lang())}" }
                                                         span { class: "mit-arrow", " → " }
                                                         span { class: "mit-text", "{mitigation}" }
                                                     }
@@ -551,9 +551,9 @@ fn mask_badge(p: &Person, kind: FacetKind, lang: Lang) -> Option<(String, String
     let gap = mask_gap_for(p, kind);
     gap.map(|m| {
         let (label, cls) = match m.band {
-            MaskBand::Low => (crate::tr!("mask_gap_low", lang), "mask-low"),
-            MaskBand::Moderate => (crate::tr!("mask_gap_moderate", lang), "mask-moderate"),
-            MaskBand::High => (crate::tr!("mask_gap_high", lang), "mask-high"),
+            MaskBand::Low => (crate::tr!(MaskGapLow, lang), "mask-low"),
+            MaskBand::Moderate => (crate::tr!(MaskGapModerate, lang), "mask-moderate"),
+            MaskBand::High => (crate::tr!(MaskGapHigh, lang), "mask-high"),
         };
         (
             label.to_string(),
@@ -1266,12 +1266,21 @@ mod tests {
 
     #[test]
     fn ctx_key_all_variants() {
-        assert_eq!(ctx_key(InsightContext::Decision), "ctx_decision");
-        assert_eq!(ctx_key(InsightContext::Team), "ctx_team");
-        assert_eq!(ctx_key(InsightContext::Stress), "ctx_stress");
-        assert_eq!(ctx_key(InsightContext::Communication), "ctx_communication");
-        assert_eq!(ctx_key(InsightContext::Leadership), "ctx_leadership");
-        assert_eq!(ctx_key(InsightContext::Growth), "ctx_growth");
+        assert_eq!(
+            ctx_key(InsightContext::Decision).to_string(),
+            "ctx_decision"
+        );
+        assert_eq!(ctx_key(InsightContext::Team).to_string(), "ctx_team");
+        assert_eq!(ctx_key(InsightContext::Stress).to_string(), "ctx_stress");
+        assert_eq!(
+            ctx_key(InsightContext::Communication).to_string(),
+            "ctx_communication"
+        );
+        assert_eq!(
+            ctx_key(InsightContext::Leadership).to_string(),
+            "ctx_leadership"
+        );
+        assert_eq!(ctx_key(InsightContext::Growth).to_string(), "ctx_growth");
     }
 
     // ── O-C complementarity ──

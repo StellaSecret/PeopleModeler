@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::Route;
-use crate::i18n::{Lang, tr};
+use crate::i18n::{Key as I18nKey, Lang, tr};
 
 #[derive(Clone, PartialEq)]
 pub enum TutorialStatus {
@@ -11,50 +11,50 @@ pub enum TutorialStatus {
 
 #[derive(Clone)]
 struct StepDef {
-    title_key: &'static str,
-    body_key: &'static str,
+    title_key: I18nKey,
+    body_key: I18nKey,
     nav: Option<Route>,
 }
 
 const STEPS: &[StepDef] = &[
     StepDef {
-        title_key: "tut_welcome_title",
-        body_key: "tut_welcome_body",
+        title_key: I18nKey::TutWelcomeTitle,
+        body_key: I18nKey::TutWelcomeBody,
         nav: None,
     },
     StepDef {
-        title_key: "tut_people_title",
-        body_key: "tut_people_body",
+        title_key: I18nKey::TutPeopleTitle,
+        body_key: I18nKey::TutPeopleBody,
         nav: Some(Route::PeopleList {}),
     },
     StepDef {
-        title_key: "tut_create_title",
-        body_key: "tut_create_body",
+        title_key: I18nKey::TutCreateTitle,
+        body_key: I18nKey::TutCreateBody,
         nav: Some(Route::PersonNew {}),
     },
     StepDef {
-        title_key: "tut_ocean_title",
-        body_key: "tut_ocean_body",
+        title_key: I18nKey::TutOceanTitle,
+        body_key: I18nKey::TutOceanBody,
         nav: None,
     },
     StepDef {
-        title_key: "tut_mot_bias_title",
-        body_key: "tut_mot_bias_body",
+        title_key: I18nKey::TutMotBiasTitle,
+        body_key: I18nKey::TutMotBiasBody,
         nav: None,
     },
     StepDef {
-        title_key: "tut_rep_pattern_title",
-        body_key: "tut_rep_pattern_body",
+        title_key: I18nKey::TutRepPatternTitle,
+        body_key: I18nKey::TutRepPatternBody,
         nav: None,
     },
     StepDef {
-        title_key: "tut_compare_title",
-        body_key: "tut_compare_body",
+        title_key: I18nKey::TutCompareTitle,
+        body_key: I18nKey::TutCompareBody,
         nav: None,
     },
     StepDef {
-        title_key: "tut_done_title",
-        body_key: "tut_done_body",
+        title_key: I18nKey::TutDoneTitle,
+        body_key: I18nKey::TutDoneBody,
         nav: None,
     },
 ];
@@ -141,11 +141,11 @@ pub fn TutorialModal(status: Signal<TutorialStatus>) -> Element {
     let title = tr(step.title_key, lang());
     let body = tr(step.body_key, lang());
     let is_last = is_last_step(step_idx);
-    let back_text = crate::tr!("common_back", lang());
-    let skip_text = crate::tr!("common_skip", lang());
-    let finish_text = crate::tr!("common_finish", lang());
-    let next_text = crate::tr!("common_next", lang());
-    let step_text = crate::tr!("tut_step", lang());
+    let back_text = crate::tr!(CommonBack, lang());
+    let skip_text = crate::tr!(CommonSkip, lang());
+    let finish_text = crate::tr!(CommonFinish, lang());
+    let next_text = crate::tr!(CommonNext, lang());
+    let step_text = crate::tr!(TutStep, lang());
 
     let go_next = move |_| {
         if is_last {

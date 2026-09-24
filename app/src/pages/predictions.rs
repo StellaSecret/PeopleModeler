@@ -18,7 +18,7 @@ pub fn matches_person(pred: &Prediction, pid: &str) -> bool {
 pub fn Predictions() -> Element {
     let lang = use_context::<Signal<Lang>>();
     let mut preds = use_signal(db::all_predictions);
-    let title = crate::tr!("pred_all_title", lang());
+    let title = crate::tr!(PredAllTitle, lang());
     rsx! {
         div { class: "page",
             h2 { "{title}" }
@@ -38,12 +38,12 @@ pub fn PersonPredictions(person_id: String) -> Element {
     let mut context = use_signal(String::new);
     let mut predicted = use_signal(String::new);
     let mut toast_sig = use_context::<Signal<Option<String>>>();
-    let pred_for = crate::tr!("pred_for", lang());
-    let pred_title = crate::tr!("pred_title", lang());
-    let ctx_pl = crate::tr!("pred_context_placeholder", lang());
-    let outcome_pl = crate::tr!("pred_outcome_placeholder", lang());
-    let add_btn = crate::tr!("pred_add_btn", lang());
-    let back_btn = crate::tr!("common_back", lang());
+    let pred_for = crate::tr!(PredFor, lang());
+    let pred_title = crate::tr!(PredTitle, lang());
+    let ctx_pl = crate::tr!(PredContextPlaceholder, lang());
+    let outcome_pl = crate::tr!(PredOutcomePlaceholder, lang());
+    let add_btn = crate::tr!(PredAddBtn, lang());
+    let back_btn = crate::tr!(CommonBack, lang());
 
     let mut add_pred = move || {
         let ctx = context();
@@ -63,7 +63,7 @@ pub fn PersonPredictions(person_id: String) -> Element {
             resolved: false,
         };
         db::save_prediction(&p).unwrap_or_else(|e| {
-            toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))))
+            toast_sig.set(Some(format!("{}: {e}", crate::tr!(ToastError, lang()))))
         });
         context.set(String::new());
         predicted.set(String::new());
@@ -120,7 +120,7 @@ pub fn PredictionList(
     };
 
     if filtered.is_empty() {
-        let no_preds = crate::tr!("pred_none", lang());
+        let no_preds = crate::tr!(PredNone, lang());
         return rsx! { p { "{no_preds}" } };
     }
 
@@ -142,20 +142,20 @@ fn PredictionCard(
     let lang = use_context::<Signal<Lang>>();
     let mut toast_sig = use_context::<Signal<Option<String>>>();
     let resolved = prediction.resolved;
-    let pred_label = crate::tr!("pred_predicted_label", lang());
-    let actual_label = crate::tr!("pred_actual_label", lang());
-    let acc_label = crate::tr!("pred_accuracy_label", lang());
-    let resolve_btn = crate::tr!("pred_resolve_btn", lang());
-    let delete_btn = crate::tr!("pred_delete_btn", lang());
-    let actual_pl = crate::tr!("pred_actual_placeholder", lang());
-    let resolve_submit = crate::tr!("pred_resolve_submit", lang());
-    let cancel_btn = crate::tr!("pred_cancel_btn", lang());
+    let pred_label = crate::tr!(PredPredictedLabel, lang());
+    let actual_label = crate::tr!(PredActualLabel, lang());
+    let acc_label = crate::tr!(PredAccuracyLabel, lang());
+    let resolve_btn = crate::tr!(PredResolveBtn, lang());
+    let delete_btn = crate::tr!(PredDeleteBtn, lang());
+    let actual_pl = crate::tr!(PredActualPlaceholder, lang());
+    let resolve_submit = crate::tr!(PredResolveSubmit, lang());
+    let cancel_btn = crate::tr!(PredCancelBtn, lang());
 
     let mut show_form = use_signal(|| false);
     let mut actual = use_signal(String::new);
     let mut accuracy = use_signal(|| 5u8);
     let mut confirming_delete = use_signal(|| false);
-    let confirm_delete_pred = crate::tr!("confirm_delete_pred", lang());
+    let confirm_delete_pred = crate::tr!(ConfirmDeletePred, lang());
 
     let outcome_str = prediction
         .actual_outcome
@@ -174,7 +174,7 @@ fn PredictionCard(
             }
             Err(e) => e,
         };
-        toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
+        toast_sig.set(Some(format!("{}: {e}", crate::tr!(ToastError, lang()))));
     };
     let resolve_pred = prediction.clone();
     let mut resolve = move || {
@@ -188,7 +188,7 @@ fn PredictionCard(
         p.resolved = true;
         p.resolved_at = Some(chrono::Utc::now().timestamp_millis());
         if let Err(e) = db::save_prediction(&p) {
-            toast_sig.set(Some(format!("{}: {e}", crate::tr!("toast_error", lang()))));
+            toast_sig.set(Some(format!("{}: {e}", crate::tr!(ToastError, lang()))));
             return;
         }
         show_form.set(false);

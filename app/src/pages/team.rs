@@ -17,35 +17,35 @@ enum Tab {
 #[component]
 pub fn TeamDetail(id: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let title = crate::tr!("team_title", lang());
-    let empty = crate::tr!("team_empty", lang());
-    let size_label = crate::tr!("team_size", lang());
-    let avg_label = crate::tr!("team_avg_score", lang());
-    let strongest_label = crate::tr!("team_strongest", lang());
-    let weakest_label = crate::tr!("team_weakest", lang());
-    let max_danger_label = crate::tr!("team_max_danger", lang());
-    let avg_danger_label = crate::tr!("team_avg_danger", lang());
-    let ctx_avg_title = crate::tr!("team_ctx_avg", lang());
-    let pairs_title = crate::tr!("team_pairs", lang());
-    let no_danger = crate::tr!("team_no_danger", lang());
-    let tab_synergy = crate::tr!("team_tab_synergy", lang());
-    let tab_members = crate::tr!("team_tab_members", lang());
-    let facet_toggle_label = crate::tr!("team_facet_toggle", lang());
-    let facet_auto_label = crate::tr!("facet_auto", lang());
-    let facet_base_label = crate::tr!("facet_base", lang());
-    let facet_work_label = crate::tr!("facet_work", lang());
-    let facet_online_label = crate::tr!("facet_online", lang());
-    let all_no_edit = crate::tr!("team_all_no_edit", lang());
-    let members_count_fmt = crate::tr!("team_members_count", lang());
-    let team_rename_label = crate::tr!("team_rename", lang());
-    let team_icon_label = crate::tr!("team_icon", lang());
-    let team_edit_label = crate::tr!("team_edit", lang());
-    let form_save = crate::tr!("common_save", lang());
-    let form_cancel = crate::tr!("common_cancel", lang());
+    let title = crate::tr!(TeamTitle, lang());
+    let empty = crate::tr!(TeamEmpty, lang());
+    let size_label = crate::tr!(TeamSize, lang());
+    let avg_label = crate::tr!(TeamAvgScore, lang());
+    let strongest_label = crate::tr!(TeamStrongest, lang());
+    let weakest_label = crate::tr!(TeamWeakest, lang());
+    let max_danger_label = crate::tr!(TeamMaxDanger, lang());
+    let avg_danger_label = crate::tr!(TeamAvgDanger, lang());
+    let ctx_avg_title = crate::tr!(TeamCtxAvg, lang());
+    let pairs_title = crate::tr!(TeamPairs, lang());
+    let no_danger = crate::tr!(TeamNoDanger, lang());
+    let tab_synergy = crate::tr!(TeamTabSynergy, lang());
+    let tab_members = crate::tr!(TeamTabMembers, lang());
+    let facet_toggle_label = crate::tr!(TeamFacetToggle, lang());
+    let facet_auto_label = crate::tr!(FacetAuto, lang());
+    let facet_base_label = crate::tr!(FacetBase, lang());
+    let facet_work_label = crate::tr!(FacetWork, lang());
+    let facet_online_label = crate::tr!(FacetOnline, lang());
+    let all_no_edit = crate::tr!(TeamAllNoEdit, lang());
+    let members_count_fmt = crate::tr!(TeamMembersCount, lang());
+    let team_rename_label = crate::tr!(TeamRename, lang());
+    let team_icon_label = crate::tr!(TeamIcon, lang());
+    let team_edit_label = crate::tr!(TeamEdit, lang());
+    let form_save = crate::tr!(CommonSave, lang());
+    let form_cancel = crate::tr!(CommonCancel, lang());
 
     let is_all = id == "all";
     let team_name = if is_all {
-        crate::tr!("teams_all", lang()).to_string()
+        crate::tr!(TeamsAll, lang()).to_string()
     } else {
         db::team(&id)
             .map(|t| t.name.clone())
@@ -415,14 +415,16 @@ pub fn TeamDetail(id: String) -> Element {
     }
 }
 
-fn ctx_key(c: peoplemodeler_core::insights::InsightContext) -> &'static str {
+fn ctx_key(c: peoplemodeler_core::insights::InsightContext) -> crate::i18n::Key {
     match c {
-        peoplemodeler_core::insights::InsightContext::Decision => "ctx_decision",
-        peoplemodeler_core::insights::InsightContext::Team => "ctx_team",
-        peoplemodeler_core::insights::InsightContext::Stress => "ctx_stress",
-        peoplemodeler_core::insights::InsightContext::Communication => "ctx_communication",
-        peoplemodeler_core::insights::InsightContext::Leadership => "ctx_leadership",
-        peoplemodeler_core::insights::InsightContext::Growth => "ctx_growth",
+        peoplemodeler_core::insights::InsightContext::Decision => crate::i18n::Key::CtxDecision,
+        peoplemodeler_core::insights::InsightContext::Team => crate::i18n::Key::CtxTeam,
+        peoplemodeler_core::insights::InsightContext::Stress => crate::i18n::Key::CtxStress,
+        peoplemodeler_core::insights::InsightContext::Communication => {
+            crate::i18n::Key::CtxCommunication
+        }
+        peoplemodeler_core::insights::InsightContext::Leadership => crate::i18n::Key::CtxLeadership,
+        peoplemodeler_core::insights::InsightContext::Growth => crate::i18n::Key::CtxGrowth,
     }
 }
 
@@ -433,11 +435,20 @@ mod tests {
 
     #[test]
     fn ctx_key_all_variants() {
-        assert_eq!(ctx_key(InsightContext::Decision), "ctx_decision");
-        assert_eq!(ctx_key(InsightContext::Team), "ctx_team");
-        assert_eq!(ctx_key(InsightContext::Stress), "ctx_stress");
-        assert_eq!(ctx_key(InsightContext::Communication), "ctx_communication");
-        assert_eq!(ctx_key(InsightContext::Leadership), "ctx_leadership");
-        assert_eq!(ctx_key(InsightContext::Growth), "ctx_growth");
+        assert_eq!(
+            ctx_key(InsightContext::Decision).to_string(),
+            "ctx_decision"
+        );
+        assert_eq!(ctx_key(InsightContext::Team).to_string(), "ctx_team");
+        assert_eq!(ctx_key(InsightContext::Stress).to_string(), "ctx_stress");
+        assert_eq!(
+            ctx_key(InsightContext::Communication).to_string(),
+            "ctx_communication"
+        );
+        assert_eq!(
+            ctx_key(InsightContext::Leadership).to_string(),
+            "ctx_leadership"
+        );
+        assert_eq!(ctx_key(InsightContext::Growth).to_string(), "ctx_growth");
     }
 }

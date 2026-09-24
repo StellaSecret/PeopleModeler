@@ -39,21 +39,21 @@ pub fn PeopleList() -> Element {
             .collect::<Vec<_>>()
     });
 
-    let search_placeholder = crate::tr!("search_placeholder", lang());
-    let no_people = crate::tr!("no_people_yet", lang());
-    let no_search_results = crate::tr!("no_search_results", lang());
-    let facet_main = crate::tr!("facet_main", lang());
-    let facet_base = crate::tr!("facet_base", lang());
-    let facet_work = crate::tr!("facet_work", lang());
-    let facet_online = crate::tr!("facet_online", lang());
-    let name_hdr = crate::tr!("pl_name", lang());
-    let ps_hdr = crate::tr!("person_self_score", lang());
-    let ocean_hdr = crate::tr!("compare_cat_ocean", lang());
-    let rep_hdr = crate::tr!("compare_cat_reputation", lang());
-    let mot_hdr = crate::tr!("compare_cat_motivation", lang());
-    let pat_hdr = crate::tr!("compare_cat_patterns", lang());
-    let bias_hdr = crate::tr!("compare_cat_bias", lang());
-    let comp_hdr = crate::tr!("profile_completeness", lang());
+    let search_placeholder = crate::tr!(SearchPlaceholder, lang());
+    let no_people = crate::tr!(NoPeopleYet, lang());
+    let no_search_results = crate::tr!(NoSearchResults, lang());
+    let facet_main = crate::tr!(FacetMain, lang());
+    let facet_base = crate::tr!(FacetBase, lang());
+    let facet_work = crate::tr!(FacetWork, lang());
+    let facet_online = crate::tr!(FacetOnline, lang());
+    let name_hdr = crate::tr!(PlName, lang());
+    let ps_hdr = crate::tr!(PersonSelfScore, lang());
+    let ocean_hdr = crate::tr!(CompareCatOcean, lang());
+    let rep_hdr = crate::tr!(CompareCatReputation, lang());
+    let mot_hdr = crate::tr!(CompareCatMotivation, lang());
+    let pat_hdr = crate::tr!(CompareCatPatterns, lang());
+    let bias_hdr = crate::tr!(CompareCatBias, lang());
+    let comp_hdr = crate::tr!(ProfileCompleteness, lang());
 
     rsx! {
         div { class: "page",

@@ -70,13 +70,6 @@ impl Lang {
     }
 }
 
-pub fn tr(key: &'static str, lang: Lang) -> &'static str {
-    match lang {
-        Lang::Fr => fr(key),
-        Lang::En => en(key),
-    }
-}
-
 /// Bridge from the app's UI language to the core engine's language enum used
 /// by facet/persona label mapping.
 pub fn core_lang(lang: Lang) -> peoplemodeler_core::i18n::Lang {
@@ -86,17 +79,556 @@ pub fn core_lang(lang: Lang) -> peoplemodeler_core::i18n::Lang {
     }
 }
 
+/// Translated string identifier. Variants mirror the snake_case i18n
+/// keys; `tr!` and `tr_str` map to them. `Unknown` is the fallback for
+/// unrecognized runtime keys (see [`tr_str`] and [`tr_danger_details`]).
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Hash, strum::EnumString, strum::EnumIter, strum::Display,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum Key {
+    AddBtn,
+    AriaAddBias,
+    AriaAddMotivation,
+    AriaAddPattern,
+    AriaAddStyle,
+    AriaAddValue,
+    AriaAvatarPrefix,
+    AriaDeleteBias,
+    AriaDeleteMotivation,
+    AriaDeletePattern,
+    AriaDeleteStyle,
+    AriaDeleteValue,
+    AriaDiscardPrefix,
+    AriaEditBias,
+    AriaEditMotivation,
+    AriaEditPattern,
+    AriaEditStyle,
+    AriaEditValue,
+    AriaMoveBiasDown,
+    AriaMoveBiasUp,
+    AriaMoveMotivationDown,
+    AriaMoveMotivationUp,
+    AriaMovePatternDown,
+    AriaMovePatternUp,
+    AriaMoveStyleDown,
+    AriaMoveStyleUp,
+    AriaMoveValueDown,
+    AriaMoveValueUp,
+    AriaUpdateBias,
+    AriaUpdateMotivation,
+    AriaUpdatePattern,
+    AriaUpdateStyle,
+    AriaUpdateValue,
+    BiasScaleHint,
+    BiasUndefinedWarning,
+    BiasesTitle,
+    BucketInheritsBase,
+    BucketOverride,
+    CommonAdd,
+    CommonBack,
+    CommonCancel,
+    CommonDelete,
+    CommonEdit,
+    CommonFinish,
+    CommonNext,
+    CommonSave,
+    CommonSkip,
+    CompareAnalysisTitle,
+    CompareAsymmetric,
+    CompareBalanced,
+    CompareBandHint,
+    CompareBenefitMore,
+    CompareBiasMain,
+    CompareBreakdown,
+    CompareBtn,
+    CompareCatBias,
+    CompareCatMotivation,
+    CompareCatOcean,
+    CompareCatPatterns,
+    CompareCatReputation,
+    CompareCatStyles,
+    CompareCatValues,
+    CompareCtxTitle,
+    CompareEthics,
+    CompareFacetUnavailable,
+    CompareFriction,
+    CompareOcean,
+    CompareRelNone,
+    CompareRelStrength,
+    CompareRelTitle,
+    CompareRiskMitigation,
+    CompareStrategy,
+    CompareSub,
+    CompareSynergies,
+    CompareTitle,
+    CompareTopMot,
+    CompareVs,
+    ConfidenceHint,
+    ConfidenceLabel,
+    ConfirmDelete,
+    ConfirmDeleteLog,
+    ConfirmDeletePred,
+    ConfirmDeleteTeam,
+    CtxChange,
+    CtxCommunication,
+    CtxConflict,
+    CtxDecision,
+    CtxFeedback,
+    CtxGrowth,
+    CtxInjustice,
+    CtxLeadership,
+    CtxRecognition,
+    CtxStress,
+    CtxSuccess,
+    CtxTeam,
+    CtxThreatened,
+    CtxUncertainty,
+    DeleteBtn,
+    EditBiases,
+    EditBtn,
+    EditDiscardSection,
+    EditEvidencePlaceholder,
+    EditMotivations,
+    EditNotesPlaceholder,
+    EditPatterns,
+    EditPriority,
+    EditReputation,
+    EditStyles,
+    EditUpdateBtn,
+    EditValues,
+    FlagAffiliationCold,
+    FlagAffiliationDistrustful,
+    FlagAmbitionLazy,
+    FlagAnchoringOpen,
+    FlagAuthorityDominant,
+    FlagAutonomySubmissive,
+    FlagAvailabilityCalm,
+    FlagBiasConfirmationOpen,
+    FlagBiasFavoritismFairness,
+    FlagCalmNeurotic,
+    FlagClaimsCalmReactive,
+    FlagCreativityClosed,
+    FlagCreativityRigid,
+    FlagDisciplineFlaky,
+    FlagDisciplineLazy,
+    FlagDunningKrugerHumble,
+    FlagFairnessRhetoric,
+    FlagHelpingCold,
+    FlagHelpingSelfish,
+    FlagHighELowA,
+    FlagHighNLowC,
+    FlagHighOLowC,
+    FlagHonestFavoritist,
+    FlagHonestSelfish,
+    FlagImpostorArrogant,
+    FlagLearningArrogant,
+    FlagLearningRigid,
+    FlagLossAversionRisky,
+    FlagOpenRigid,
+    FlagPatternAchievementComplacent,
+    FlagPatternAssertiveQuiet,
+    FlagPatternCalmVolatile,
+    FlagPatternClaimedCalmVolatile,
+    FlagPatternDiplomatEscalator,
+    FlagPatternDisciplineShirker,
+    FlagPatternEmpathDismissive,
+    FlagPatternExtravertQuiet,
+    FlagPatternFairExploiter,
+    FlagPatternFairnessExploiter,
+    FlagPatternFlexibleResister,
+    FlagPatternGenerousExploiter,
+    FlagPatternHardworkerComplacent,
+    FlagPatternHelpingExploiter,
+    FlagPatternHonestExploiter,
+    FlagPatternHumbleDismissive,
+    FlagPatternLearningResister,
+    FlagPatternOpenResister,
+    FlagPatternPassiveBlowup,
+    FlagPatternRecognitionDismissive,
+    FlagPatternReliableShirker,
+    FlagPatternTrustingParanoid,
+    FlagPatternWarmthDismissive,
+    FlagPowerPassive,
+    FlagRecencyReliable,
+    FlagResilientHides,
+    FlagResilientReactive,
+    FlagRiskAppetiteAmbition,
+    FlagSecurityGullible,
+    FlagSecurityRisky,
+    FlagSocialProofOpen,
+    FlagStyleCompetingPassive,
+    FlagStyleConsensusAuthoritative,
+    FlagStyleControlling,
+    FlagStyleDetached,
+    FlagStyleDiplomaticBlunt,
+    FlagStyleDirectDiplomatic,
+    FlagStyleDominantSubmissive,
+    FlagStyleEmpatheticCold,
+    FlagStyleGuardedTrusting,
+    FlagStyleManipulative,
+    FlagStyleManipulativeHonest,
+    FlagStylePassiveAggressive,
+    FlagStyleRepairsTrustDeceitful,
+    FlagStyleRulebasedFavoritist,
+    FlagStyleServantAuthoritative,
+    FlagStyleTrustsFreelySuspicious,
+    FlagStyleVirtuebasedDeceitful,
+    FlagSunkCostFlexible,
+    FlagValueAdventureStability,
+    FlagValueCareerFamily,
+    FlagValueCommunitySelfish,
+    FlagValueFaithDeceitful,
+    FlagValueFamilyFuture,
+    FlagValueHealthRisky,
+    FlagValueKnowledgeArrogant,
+    FlagValueLoyaltyGuarded,
+    FlagValueStabilityRisk,
+    FlagValueWealthGenerous,
+    FlagWarmthBlunt,
+    FlagWarmthCold,
+    FlagWarmthSelfish,
+    FormAvatar,
+    FormCancel,
+    FormConfidence,
+    FormContext,
+    FormEditTitle,
+    FormName,
+    FormNewTitle,
+    FormNotes,
+    FormOceanTitle,
+    FormResilience,
+    FormRiskAppetite,
+    FormRole,
+    FormSave,
+    FormTags,
+    InsightsObserved,
+    InsightsSelectPerson,
+    InsightsTitle,
+    LogAdd,
+    LogEmpty,
+    LogNoTarget,
+    LogNoTrigger,
+    LogPlaceholder,
+    LogTarget,
+    LogTitle,
+    LogTrigger,
+    LogValence,
+    MoreRecs,
+    MotUndefinedWarning,
+    MotivationsTitle,
+    NavPeople,
+    NavRelationships,
+    NavSync,
+    NavTeams,
+    NavTimeline,
+    NoBiases,
+    NoMotivations,
+    NoPatterns,
+    NoPeopleInsights,
+    NoPeopleYet,
+    NoReputation,
+    NoSearchResults,
+    NoValues,
+    OceanA,
+    OceanAHigh,
+    OceanALow,
+    OceanAgreeableness,
+    OceanC,
+    OceanCHigh,
+    OceanCLow,
+    OceanConscientiousness,
+    OceanE,
+    OceanEHigh,
+    OceanELow,
+    OceanExtraversion,
+    OceanN,
+    OceanNHigh,
+    OceanNLow,
+    OceanNeuroticism,
+    OceanO,
+    OceanOHigh,
+    OceanOLow,
+    OceanOpenness,
+    OceanTitle,
+    PatternHelperChange,
+    PatternHelperConflict,
+    PatternHelperFeedback,
+    PatternHelperInjustice,
+    PatternHelperRecognition,
+    PatternHelperStress,
+    PatternHelperSuccess,
+    PatternHelperThreat,
+    PatternHelperUncertainty,
+    PatternsTitle,
+    PersonNotFound,
+    PersonSelfScore,
+    PlName,
+    PredAccuracyLabel,
+    PredActualLabel,
+    PredActualPlaceholder,
+    PredAddBtn,
+    PredAllTitle,
+    PredCancelBtn,
+    PredContextPlaceholder,
+    PredDeleteBtn,
+    PredFor,
+    PredNone,
+    PredOutcomePlaceholder,
+    PredPredictedLabel,
+    PredResolveBtn,
+    PredResolveSubmit,
+    PredTitle,
+    ProfileCompleteness,
+    RelCloseAdd,
+    RelConfirmDelete,
+    RelNone,
+    RelNotes,
+    RelOpenAdd,
+    RelPersonRel,
+    RelSearchPlaceholder,
+    RelStrength,
+    RelTitle,
+    ReliabilityTitle,
+    RepScaleHint,
+    RepUndefinedWarning,
+    ReputationTitle,
+    ResilienceLabel,
+    RiskAppetiteLabel,
+    ScaleFriction,
+    ScaleGood,
+    ScaleModerate,
+    ScaleStrong,
+    ScaleTension,
+    ScoreBand,
+    SearchPlaceholder,
+    StrategyChangeDisciplineRhetoric,
+    StrategyChangeFallback,
+    StrategyChangeHighC,
+    StrategyChangeHighN,
+    StrategyChangeHighO,
+    StrategyChangeLabel,
+    StrategyChangeLowE,
+    StrategyChangeLowN,
+    StrategyConflictAffiliationRhetoric,
+    StrategyConflictAffiliationTrustRhetoric,
+    StrategyConflictFallback,
+    StrategyConflictHighA,
+    StrategyConflictHighC,
+    StrategyConflictHighE,
+    StrategyConflictHighN,
+    StrategyConflictLabel,
+    StrategyConflictLowA,
+    StrategyConflictLowE,
+    StrategyFeedbackFallback,
+    StrategyFeedbackHelpingRhetoric,
+    StrategyFeedbackHighC,
+    StrategyFeedbackHighN,
+    StrategyFeedbackLabel,
+    StrategyFeedbackLowA,
+    StrategyFeedbackLowE,
+    StrategyFeedbackLowN,
+    StrategyFeedbackWarmthRhetoric,
+    StrategyInjusticeAmbitionRhetoric,
+    StrategyInjusticeFairness,
+    StrategyInjusticeFairnessRhetoric,
+    StrategyInjusticeFallback,
+    StrategyInjusticeHighA,
+    StrategyInjusticeHighN,
+    StrategyInjusticeLabel,
+    StrategyInjusticePower,
+    StrategyRecognitionFallback,
+    StrategyRecognitionHigh,
+    StrategyRecognitionHighE,
+    StrategyRecognitionLabel,
+    StrategyRecognitionLow,
+    StrategyRecognitionLowE,
+    StrategyRecognitionMid,
+    StrategyStressAmbitionRhetoric,
+    StrategyStressFallback,
+    StrategyStressHighC,
+    StrategyStressHighE,
+    StrategyStressHighN,
+    StrategyStressHighO,
+    StrategyStressLabel,
+    StrategyStressLowA,
+    StrategyStressLowC,
+    StrategyStressLowE,
+    StrategyStressPower,
+    StrategyStressSecurity,
+    StrategyStressSecurityRhetoric,
+    StrategySuccessAmbitionRhetoric,
+    StrategySuccessFallback,
+    StrategySuccessHighA,
+    StrategySuccessHighC,
+    StrategySuccessHighO,
+    StrategySuccessLabel,
+    StrategySuccessLowE,
+    StrategySuccessPower,
+    StrategySuccessRecognition,
+    StrategyThreatFallback,
+    StrategyThreatHighA,
+    StrategyThreatHighN,
+    StrategyThreatLabel,
+    StrategyThreatLowA,
+    StrategyThreatPower,
+    StrategyUncertaintyFallback,
+    StrategyUncertaintyHighC,
+    StrategyUncertaintyHighE,
+    StrategyUncertaintyHighN,
+    StrategyUncertaintyHighO,
+    StrategyUncertaintyLabel,
+    StrategyUncertaintyLowN,
+    StrategyUncertaintyLowO,
+    StrategyWhen,
+    StyleNoStyles,
+    StylePanelTitle,
+    SyncBackedUp,
+    SyncBackingUp,
+    SyncBackupBtn,
+    SyncClearBtn,
+    SyncExportBtn,
+    SyncExported,
+    SyncGdriveTitle,
+    SyncImportBtn,
+    SyncLocalDesc,
+    SyncLocalTitle,
+    SyncNoDataWarn,
+    SyncNoToken,
+    SyncNotConfigured,
+    SyncPassphraseHide,
+    SyncPassphraseLabel,
+    SyncPassphrasePlaceholder,
+    SyncPassphraseShow,
+    SyncPastePlaceholder,
+    SyncRestoreBtn,
+    SyncRestored,
+    SyncRestoring,
+    SyncSaveTokenBtn,
+    SyncSignIn,
+    SyncTitle,
+    SyncTokenCleared,
+    SyncTokenInstruction1,
+    SyncTokenInstruction2,
+    SyncTokenInstruction3,
+    SyncTokenInstruction4,
+    SyncTokenLoaded,
+    SyncTokenSaved,
+    SyncViewBackup,
+    SyncWrongPassphrase,
+    TeamAllNoEdit,
+    TeamAvgDanger,
+    TeamAvgScore,
+    TeamCtxAvg,
+    TeamEdit,
+    TeamEmpty,
+    TeamIcon,
+    TeamMaxDanger,
+    TeamMembersCount,
+    TeamNoDanger,
+    TeamPairs,
+    TeamRename,
+    TeamSize,
+    TeamStrongest,
+    TeamTabMembers,
+    TeamTabSynergy,
+    TeamTitle,
+    TeamWeakest,
+    TeamsAll,
+    TeamsCreate,
+    TeamsDelete,
+    TeamsMembers,
+    TeamsTitle,
+    TemplateBlank,
+    TemplateTitle,
+    TlEmpty,
+    TlTitle,
+    ToastDeleted,
+    ToastError,
+    ToastSaved,
+    TrendDeteriorating,
+    TrendHint,
+    TrendImproving,
+    TrendStable,
+    TutCompareBody,
+    TutCompareTitle,
+    TutCreateBody,
+    TutCreateTitle,
+    TutDoneBody,
+    TutDoneTitle,
+    TutMotBiasBody,
+    TutMotBiasTitle,
+    TutOceanBody,
+    TutOceanTitle,
+    TutPeopleBody,
+    TutPeopleTitle,
+    TutRepPatternBody,
+    TutRepPatternTitle,
+    TutStep,
+    TutWelcomeBody,
+    TutWelcomeTitle,
+    ValuesTitle,
+    ValueIntensityHelper,
+    ValuePriorityHelper,
+    PersonaSection,
+    PersonaHint,
+    PersonaCopyBase,
+    PersonaClear,
+    PersonaBalanceTitle,
+    PersonaOnlineSection,
+    PersonaBaseSection,
+    FacetBase,
+    FacetWork,
+    FacetOnline,
+    FacetAuto,
+    FacetMain,
+    FacetMainSuffix,
+    MainContextLabel,
+    PersonaContextPrompt,
+    PersonaContextChange,
+    MaskGapLow,
+    MaskGapModerate,
+    MaskGapHigh,
+    TeamFacetToggle,
+    #[strum(serialize = "OCEAN volatility")]
+    OceanVolatility,
+    #[strum(serialize = "Rep power struggle")]
+    RepPowerStruggle,
+    #[strum(serialize = "Only negative patterns")]
+    OnlyNegativePatterns,
+    #[strum(serialize = "Low prediction accuracy")]
+    LowPredictionAccuracy,
+    Unknown,
+}
+
+pub fn tr(key: Key, lang: Lang) -> &'static str {
+    match lang {
+        Lang::Fr => fr(key),
+        Lang::En => en(key),
+    }
+}
+
+/// Runtime-safe variant of [`tr`]: resolves a snake_case key string to a
+/// [`Key`] and translates it, falling back to the raw string when it does
+/// not map to any known key.
+pub fn tr_str(key: &str, lang: Lang) -> String {
+    match key.parse::<Key>() {
+        Ok(Key::Unknown) | Err(_) => String::from(key),
+        Ok(k) => tr(k, lang).to_string(),
+    }
+}
+
 pub fn tr_danger_details(details: &str, lang: Lang) -> String {
     if details.is_empty() {
         return String::new();
     }
-    fn key(s: &str) -> &'static str {
+    fn key(s: &str) -> Key {
         match s {
-            "OCEAN volatility" => "OCEAN volatility",
-            "Rep power struggle" => "Rep power struggle",
-            "Only negative patterns" => "Only negative patterns",
-            "Low prediction accuracy" => "Low prediction accuracy",
-            _ => "Unknown",
+            "OCEAN volatility" => Key::OceanVolatility,
+            "Rep power struggle" => Key::RepPowerStruggle,
+            "Only negative patterns" => Key::OnlyNegativePatterns,
+            "Low prediction accuracy" => Key::LowPredictionAccuracy,
+            _ => Key::Unknown,
         }
     }
     details
@@ -106,2314 +638,1675 @@ pub fn tr_danger_details(details: &str, lang: Lang) -> String {
         .join(", ")
 }
 
-fn en(key: &'static str) -> &'static str {
+fn en(key: Key) -> &'static str {
     match key {
-        // Nav
-        "nav_people" => "People",
-        "nav_relationships" => "Relationships",
-        "nav_timeline" => "Timeline",
-        "nav_sync" => "Sync",
-
-        // People list
-        "search_placeholder" => "Search people...",
-        "no_people_yet" => "No people yet. Tap + to add someone.",
-        "pl_name" => "Name",
-        "no_people_insights" => "No persons yet. Add someone to see insights.",
-        "toast_saved" => "Saved",
-        "toast_deleted" => "Deleted",
-        "toast_error" => "Something went wrong",
-
-        // Person detail
-        "person_not_found" => "Person not found",
-        "edit_btn" => "✏ Edit",
-        "delete_btn" => "🗑 Delete",
-        "motivations_title" => "Motivations",
-        "no_motivations" => "No motivations recorded.",
-        "biases_title" => "Biases",
-        "no_biases" => "No biases recorded.",
-        "reputation_title" => "Reputation",
-        "no_reputation" => "No reputation traits recorded.",
-
-        "patterns_title" => "Behavioral Patterns",
-        "no_patterns" => "No behavioral patterns recorded.",
-        "ocean_title" => "OCEAN Scores",
-        "confidence_label" => "Profile confidence",
-        "confidence_hint" => {
-            "How reliable is this profile? 1 = rough sketch, 10 = built from real observations."
-        }
-        "reliability_title" => "Data quality",
-        "score_band" => "±{}",
-        "resilience_label" => "Resilience",
-        "risk_appetite_label" => "Risk appetite",
-        // Person edit form
-        "form_new_title" => "New Person",
-        "form_edit_title" => "Edit Person",
-        "template_title" => "Quick Template",
-        "template_blank" => "Blank (start from scratch)",
-        "form_name" => "Name",
-        "form_role" => "Role",
-        "form_context" => "Context",
-        "form_avatar" => "Avatar",
-        "form_tags" => "Tags (comma separated)",
-        "form_notes" => "Notes",
-        "form_confidence" => "Profile confidence (1-10)",
-        "form_resilience" => "Resilience (1-10)",
-        "form_risk_appetite" => "Risk appetite (1-10)",
-        "form_ocean_title" => "OCEAN Scores (1-10)",
-        "form_save" => "💾 Save",
-        "form_cancel" => "Cancel",
-
-        // Ocean labels
-        "ocean_openness" => "Openness",
-        "ocean_conscientiousness" => "Conscientiousness",
-        "ocean_extraversion" => "Extraversion",
-        "ocean_agreeableness" => "Agreeableness",
-        "ocean_neuroticism" => "Neuroticism",
-        "ocean_o" => "O — Openness",
-        "ocean_c" => "C — Conscientiousness",
-        "ocean_e" => "E — Extraversion",
-        "ocean_a" => "A — Agreeableness",
-        "ocean_n" => "N — Neuroticism",
-        "ocean_o_high" => "very open to new ideas, creative and curious",
-        "ocean_o_low" => "pragmatic, prefers routines and concrete things",
-        "ocean_c_high" => "organized, reliable, results and detail-oriented",
-        "ocean_c_low" => "flexible and spontaneous, may lack rigor",
-        "ocean_e_high" => "extraverted, energetic, seeks social stimulation",
-        "ocean_e_low" => "introverted, thoughtful, prefers limited interactions",
-        "ocean_a_high" => "cooperative, empathetic, seeks harmony",
-        "ocean_a_low" => "direct or abrasive, puts goals before relationships",
-        "ocean_n_high" => "emotionally reactive, prone to stress, sensitive to criticism",
-        "ocean_n_low" => "emotionally stable, calm under pressure",
-
-        // Consistency flags
-        "flag_high_e_low_a" => {
-            "Very outgoing but low agreeableness — may be assertive to the point of abrasiveness."
-        }
-        "flag_high_n_low_c" => {
-            "High emotional reactivity with low conscientiousness — may struggle with structure under stress."
-        }
-        "flag_high_o_low_c" => {
-            "Highly creative but unstructured — may have many ideas with difficulty following through."
-        }
-        "flag_calm_neurotic" => {
-            "Reported as calm under pressure but OCEAN indicates high reactivity — review for consistency."
-        }
-        "flag_honest_selfish" => {
-            "Principled honesty paired with low generosity — may indicate a rigid moral stance."
-        }
-        "flag_fairness_rhetoric" => {
-            "Talks about fairness and justice but practices favoritism — do as I say, not as I do."
-        }
-        "flag_helping_selfish" => {
-            "Preaches helpfulness but is perceived as selfish — do as I say, not as I do."
-        }
-        "flag_affiliation_cold" => {
-            "Values closeness but is perceived as cold and detached — do as I say, not as I do."
-        }
-        "flag_ambition_lazy" => {
-            "Aspires to power, success, or recognition but is perceived as lazy — do as I say, not as I do."
-        }
-        "flag_security_gullible" => {
-            "Claims to value security yet is perceived as gullibly trusting — do as I say, not as I do."
-        }
-        "flag_discipline_lazy" => {
-            "Self-image of discipline contradicted by a lazy reputation — they don't know themselves."
-        }
-        "flag_warmth_blunt" => {
-            "Self-image of warmth contradicted by a blunt reputation — they don't know themselves."
-        }
-        "flag_open_rigid" => {
-            "Thinks they're open-minded but comes across as rigid — they don't know themselves."
-        }
-        "flag_claims_calm_reactive" => {
-            "Claims to be calm and stable but is perceived as reactive — they don't know themselves."
-        }
-        "flag_honest_favoritist" => {
-            "Principled honesty paired with perceived favoritism — may enforce fairness only for some."
-        }
-        "flag_affiliation_distrustful" => {
-            "Values closeness but is perceived as suspicious — do as I say, not as I do."
-        }
-        "flag_warmth_cold" => {
-            "Thinks they're warm-hearted but comes across cold — they don't know themselves."
-        }
-        "flag_discipline_flaky" => {
-            "Sees themselves as disciplined but comes across as flaky — they don't know themselves."
-        }
-        "flag_pattern_calm_volatile" => {
-            "Perceived as calm under pressure, but recorded patterns show volatility — the calm may be an act."
-        }
-        "flag_pattern_honest_exploiter" => {
-            "Perceived as honest, but recorded patterns show exploitation or blame-shifting — do as I say, not as I do."
-        }
-        "flag_bias_confirmation_open" => {
-            "Claims open-mindedness yet only seeks confirming information — they don't know themselves."
-        }
-        "flag_bias_favoritism_fairness" => {
-            "Preaches fairness yet shows favoritism or in-group bias — do as I say, not as I do."
-        }
-        "flag_security_risky" => {
-            "Preaches caution and security yet self-reports a taste for risk — do as I say, not as I do."
-        }
-        "flag_resilient_reactive" => {
-            "Claims high resilience but is perceived as reactive — they don't know themselves."
-        }
-        "flag_autonomy_submissive" => {
-            "Preaches independence yet is perceived as submissive — do as I say, not as I do."
-        }
-        "flag_learning_rigid" => {
-            "Preaches growth and learning yet is perceived as rigid — do as I say, not as I do."
-        }
-        "flag_creativity_closed" => {
-            "Preaches creativity yet self-reports little openness to novelty."
-        }
-        "flag_creativity_rigid" => {
-            "Preaches creativity yet is perceived as rigid — do as I say, not as I do."
-        }
-        "flag_authority_dominant" => "Perceived as a leader yet blindly defers to authority.",
-        "flag_social_proof_open" => {
-            "Claims independent thinking yet follows the herd — do as I say, not as I do."
-        }
-        "flag_sunk_cost_flexible" => "Perceived as flexible yet clings to sunk costs.",
-        "flag_pattern_diplomat_escalator" => "Perceived as diplomatic yet escalates conflict.",
-        "flag_pattern_fair_exploiter" => {
-            "Perceived as fair yet exploits injustice for personal gain."
-        }
-        "flag_pattern_humble_dismissive" => "Perceived as humble yet puts others down.",
-        "flag_pattern_trusting_paranoid" => {
-            "Perceived as trusting yet turns paranoid under threat."
-        }
-        "flag_pattern_reliable_shirker" => "Perceived as reliable yet dodges accountability.",
-        "flag_pattern_hardworker_complacent" => {
-            "Perceived as hardworking yet rests on past laurels."
-        }
-        "flag_risk_appetite_ambition" => "Aspires to power or achievement yet avoids all risk.",
-        "flag_power_passive" => "Aspires to power yet is perceived as a pushover.",
-        "flag_helping_cold" => "Preaches helpfulness yet reads as emotionally cold.",
-        "flag_pattern_passive_blowup" => "Perceived as passive yet blows up under pressure.",
-        "flag_pattern_assertive_quiet" => "Perceived as assertive yet goes quiet when it counts.",
-        "flag_loss_aversion_risky" => "Claims a taste for risk yet is loss-averse.",
-        "flag_dunning_kruger_humble" => "Overestimates their competence yet is seen as humble.",
-        "flag_impostor_arrogant" => "Underestimates their competence yet is seen as arrogant.",
-        "flag_recency_reliable" => "Perceived as steady yet swings with the latest news.",
-        "flag_resilient_hides" => "Admits fragility yet appears unflappable — they hide it.",
-        "flag_pattern_generous_exploiter" => "Perceived as generous yet exploits others.",
-        "flag_pattern_empath_dismissive" => "Perceived as empathetic yet puts others down.",
-        "flag_pattern_flexible_resister" => {
-            "Perceived as flexible yet resists change and feedback."
-        }
-        "flag_anchoring_open" => "Claims open-mindedness yet clings to first impressions.",
-        "flag_learning_arrogant" => "Preaches growth yet is too arrogant to take advice.",
-        "flag_warmth_selfish" => "Claims warmth yet is perceived as selfish.",
-        "flag_style_direct_diplomatic" => "Claims to be direct yet comes across as diplomatic.",
-        "flag_style_diplomatic_blunt" => "Claims a diplomatic style yet comes across as blunt.",
-        "flag_style_competing_passive" => "Claims a competitive style yet comes across as passive.",
-        "flag_style_dominant_submissive" => {
-            "Claims an autocratic style yet comes across as submissive."
-        }
-        "flag_style_controlling" => {
-            "Controls and micromanages — perceived as domineering, not trusting."
-        }
-        "flag_style_manipulative" => "Admits a manipulative style and is perceived as deceitful.",
-        "flag_style_passive_aggressive" => "Openly passive-aggressive and perceived as reactive.",
-        "flag_style_detached" => "Openly detached and perceived as cold/distant.",
-        "flag_style_manipulative_honest" => "Claims to play dirty yet comes across as honest.",
-        "flag_style_empathetic_cold" => "Claims empathy yet comes across as cold.",
-        "flag_style_guarded_trusting" => "Claims to be guarded yet comes across as trusting.",
-        "flag_pattern_helping_exploiter" => {
-            "Preaches helpfulness yet recorded patterns show exploitation."
-        }
-        "flag_pattern_warmth_dismissive" => {
-            "Self-image of warmth yet recorded patterns put others down."
-        }
-        "flag_pattern_discipline_shirker" => {
-            "Self-image of discipline yet recorded patterns dodge accountability."
-        }
-        "flag_pattern_claimed_calm_volatile" => {
-            "Self-reports calm yet recorded patterns show volatility."
-        }
-        "flag_style_servant_authoritative" => {
-            "Claims servant leadership yet comes across as a commander."
-        }
-        "flag_style_consensus_authoritative" => {
-            "Claims consensus-driven yet comes across as a dictator."
-        }
-        "flag_style_trusts_freely_suspicious" => {
-            "Claims to trust freely yet comes across as suspicious."
-        }
-        "flag_style_repairs_trust_deceitful" => {
-            "Claims to repair trust yet comes across as deceitful."
-        }
-        "flag_style_rulebased_favoritist" => "Claims a rules-based approach yet plays favorites.",
-        "flag_pattern_fairness_exploiter" => {
-            "Preaches fairness yet recorded patterns exploit injustice."
-        }
-        "flag_pattern_achievement_complacent" => {
-            "Aspires to achievement yet recorded patterns rest on laurels."
-        }
-        "flag_pattern_learning_resister" => {
-            "Preaches learning yet recorded patterns reject feedback."
-        }
-        "flag_pattern_extravert_quiet" => {
-            "Self-image of extraversion yet recorded patterns go quiet."
-        }
-        "flag_style_virtuebased_deceitful" => {
-            "Claims a virtue-based approach yet comes across as deceitful."
-        }
-        "flag_availability_calm" => "Perceived as unflappable yet overweights dramatic events.",
-        "flag_pattern_open_resister" => "Claims openness yet recorded patterns resist change.",
-        "flag_pattern_recognition_dismissive" => {
-            "Seeks recognition yet puts others down to win it."
-        }
-        "flag_value_family_future" => {
-            "Values family highly yet decides through a future-oriented lens."
-        }
-        "flag_value_stability_risk" => {
-            "Craves stability yet has a very high risk appetite — contradictory."
-        }
-        "flag_value_career_family" => {
-            "Both career and family rated as top priorities — expect tension."
-        }
-        "flag_value_loyalty_guarded" => {
-            "Values loyalty yet adopts a guarded, distrustful trust style."
-        }
-        "flag_value_health_risky" => {
-            "Values health yet has a very high risk appetite — contradictory."
-        }
-        "flag_value_wealth_generous" => {
-            "Values wealth yet is perceived as generous — contradictory."
-        }
-        "flag_value_faith_deceitful" => {
-            "Values faith yet is perceived as deceitful — contradictory."
-        }
-        "flag_value_adventure_stability" => {
-            "Values both adventure and stability — opposing drivers."
-        }
-        "flag_value_community_selfish" => {
-            "Values community yet is perceived as selfish — contradictory."
-        }
-        "flag_value_knowledge_arrogant" => {
-            "Values knowledge yet comes across as arrogant — contradictory."
-        }
-
-        // Edit form sections
-        "edit_motivations" => "Motivations",
-        "edit_biases" => "Biases",
-        "bias_undefined_warning" => "Undefined biases count as present. Set 0 to mark as absent.",
-        "rep_undefined_warning" => {
-            "Undefined traits penalize reputation. Extreme values (≤2 or ≥8) trigger adjustments."
-        }
-        "rep_scale_hint" => {
-            "0 = the negative pole, 10 = the positive pole — the ✗ toggle leaves the dimension unknown."
-        }
-        "mot_undefined_warning" => {
-            "Fewer than 3 motivations penalizes (−0.03 each). Missing Fairness/Helping also hurts."
-        }
-        "profile_completeness" => "Compl.",
-        "edit_reputation" => "Reputation",
-        "edit_patterns" => "Behavioral Patterns",
-        "edit_styles" => "Personal Styles",
-        "edit_notes_placeholder" => "Notes",
-        "edit_evidence_placeholder" => "Evidence",
-
-        // aria-labels for the shared list-editing row controls (add/edit/
-        // move/delete), one set per item noun — kept as full phrases
-        // rather than templated ("{noun}" + suffix) because the
-        // equivalent French phrases don't inflect uniformly (grammatical
-        // gender differs per noun), so a single template can't produce
-        // correct French for all five.
-        "aria_add_motivation" => "Add motivation",
-        "aria_update_motivation" => "Update motivation",
-        "aria_move_motivation_up" => "Move motivation up",
-        "aria_move_motivation_down" => "Move motivation down",
-        "aria_edit_motivation" => "Edit motivation",
-        "aria_delete_motivation" => "Delete motivation",
-
-        "aria_add_bias" => "Add bias",
-        "aria_update_bias" => "Update bias",
-        "aria_move_bias_up" => "Move bias up",
-        "aria_move_bias_down" => "Move bias down",
-        "aria_edit_bias" => "Edit bias",
-        "aria_delete_bias" => "Delete bias",
-
-        "aria_add_value" => "Add value",
-        "aria_update_value" => "Update value",
-        "aria_move_value_up" => "Move value up",
-        "aria_move_value_down" => "Move value down",
-        "aria_edit_value" => "Edit value",
-        "aria_delete_value" => "Delete value",
-
-        "aria_add_pattern" => "Add pattern",
-        "aria_update_pattern" => "Update pattern",
-        "aria_move_pattern_up" => "Move pattern up",
-        "aria_move_pattern_down" => "Move pattern down",
-        "aria_edit_pattern" => "Edit pattern",
-        "aria_delete_pattern" => "Delete pattern",
-
-        "aria_add_style" => "Add style",
-        "aria_update_style" => "Update style",
-        "aria_move_style_up" => "Move style up",
-        "aria_move_style_down" => "Move style down",
-        "aria_edit_style" => "Edit style",
-        "aria_delete_style" => "Delete style",
-
-        "aria_discard_prefix" => "Discard",
-        "aria_avatar_prefix" => "Avatar",
-        "bucket_override" => "Override",
-        "bucket_inherits_base" => "Inherits base",
-        "add_btn" => "＋",
-        "edit_update_btn" => "💾",
-
-        "bias_scale_hint" => "0 = this bias is absent, 10 = it shapes most decisions.",
-
-        "pattern_helper_stress" => {
-            "How they react under pressure or tight deadlines — at work: a looming deadline; in everyday life: a jam-packed day"
-        }
-        "pattern_helper_conflict" => {
-            "How they handle disagreements and confrontation — at work: a clash in a meeting; in everyday life: a heavy argument at home"
-        }
-        "pattern_helper_success" => {
-            "How they respond to achievements and wins — at work: closing a big deal; in everyday life: finishing a personal milestone"
-        }
-        "pattern_helper_uncertainty" => {
-            "How they navigate ambiguity and unknown outcomes — at work: an unclear project scope; in everyday life: waiting on an uncertain outcome"
-        }
-        "pattern_helper_recognition" => {
-            "How they seek and respond to acknowledgment — at work: being praised by a manager; in everyday life: being appreciated by friends"
-        }
-        "pattern_helper_threat" => {
-            "How they defend themselves when feeling attacked — at work: criticized during a review; in everyday life: cornered in a heated talk"
-        }
-        "pattern_helper_change" => {
-            "How they adapt to transitions and new situations — at work: a reorg or a new role; in everyday life: a move or a new routine"
-        }
-        "pattern_helper_feedback" => {
-            "How they receive and process input from others — at work: a post-project review; in everyday life: a friend pointing out a blind spot"
-        }
-        "pattern_helper_injustice" => {
-            "How they react when treated unfairly or witnessing unfairness — at work: an unfairly skipped promotion; in everyday life: seeing someone treated unfairly"
-        }
-
-        // Context labels
-        "ctx_stress" => "Stress",
-        "ctx_decision" => "Decision",
-        "ctx_team" => "Team",
-        "ctx_communication" => "Communication",
-        "ctx_leadership" => "Leadership",
-        "ctx_growth" => "Growth",
-        "ctx_conflict" => "Conflict",
-        "ctx_success" => "Success",
-        "ctx_uncertainty" => "Uncertainty",
-        "ctx_recognition" => "Recognition",
-        "ctx_threatened" => "Threatened",
-        "ctx_change" => "Change",
-        "ctx_feedback" => "Feedback",
-        "ctx_injustice" => "Injustice",
-
-        // Predictions
-        "pred_all_title" => "All Predictions",
-        "pred_for" => "🔮 Predictions for",
-        "pred_title" => "Predictions",
-        "pred_context_placeholder" => "Context...",
-        "pred_outcome_placeholder" => "Predicted outcome...",
-        "pred_add_btn" => "Add",
-        "pred_none" => "No predictions yet.",
-        "pred_predicted_label" => "Predicted",
-        "pred_actual_label" => "Actual",
-        "pred_resolve_btn" => "Resolve",
-        "pred_delete_btn" => "Delete",
-        "pred_actual_placeholder" => "Actual outcome...",
-        "pred_accuracy_label" => "Accuracy",
-        "pred_resolve_submit" => "✓ Resolve",
-        "pred_cancel_btn" => "Cancel",
-
-        // Insights
-        "insights_title" => "📊 Insights",
-        "insights_select_person" => "Select a person to view behavioral insights.",
-        "insights_observed" => "Observed Patterns",
-        "log_title" => "📋 Log",
-        "log_placeholder" => "What happened?",
-        "log_add" => "Add entry",
-        "log_empty" => "No entries yet.",
-        "log_valence" => "Valence",
-        "log_trigger" => "Trigger",
-        "log_target" => "With",
-        "log_no_trigger" => "No trigger",
-        "log_no_target" => "Self note (no target)",
-        "trend_improving" => "Improving",
-        "trend_stable" => "Stable",
-        "trend_deteriorating" => "Deteriorating",
-        "trend_hint" => "From recent logged interactions",
-
-        // Insight strategies
-        "strategy_stress_label" => "Under stress",
-        "strategy_conflict_label" => "In conflict",
-        "strategy_success_label" => "In success",
-        "strategy_uncertainty_label" => "In uncertainty",
-        "strategy_recognition_label" => "Seeking recognition",
-        "strategy_threat_label" => "Feeling threatened",
-        "strategy_change_label" => "Facing change",
-        "strategy_feedback_label" => "Receiving feedback",
-        "strategy_when" => "When {name} is {trigger}:\n\n{advice}",
-        "more_recs" => "More recommendations",
-
-        "strategy_stress_high_n" => "High neuroticism — provide reassurance and clear structure.",
-        "strategy_stress_high_e" => "High extraversion — allow verbal processing of stress.",
-        "strategy_stress_low_e" => "Low extraversion — give quiet space to decompress.",
-        "strategy_stress_high_c" => {
-            "High conscientiousness — break problems into actionable steps."
-        }
-        "strategy_stress_low_a" => {
-            "Low agreeableness — may become short or irritable under pressure."
-        }
-        "strategy_stress_low_c" => "Low conscientiousness — may become disorganized or avoidant.",
-        "strategy_stress_high_o" => {
-            "High openness — may overthink and spiral into worst-case scenarios."
-        }
-        "strategy_stress_power" => "Power-driven — let them regain control in one domain.",
-        "strategy_stress_security" => "Security-driven — reinforce stability and routine.",
-        "strategy_stress_ambition_rhetoric" => {
-            "They talk ambition but are perceived as lazy — don't reward the rhetoric; focus on effort and follow-through."
-        }
-        "strategy_stress_security_rhetoric" => {
-            "They claim to value security yet are gullibly trusting — don't rely on their stated caution; verify safeguards yourself."
-        }
-        "strategy_stress_fallback" => "Monitor stress signals and adjust environment.",
-
-        "strategy_conflict_low_a" => "Low agreeableness — address conflict directly with facts.",
-        "strategy_conflict_high_a" => {
-            "High agreeableness — soften confrontation, focus on harmony."
-        }
-        "strategy_conflict_high_n" => {
-            "High neuroticism — de-escalate and provide emotional safety."
-        }
-        "strategy_conflict_high_e" => "High extraversion — let them talk it through.",
-        "strategy_conflict_high_c" => {
-            "High conscientiousness — may rigidly insist on rules and procedures."
-        }
-        "strategy_conflict_low_e" => {
-            "Low extraversion — may withdraw or stonewall instead of engaging."
-        }
-        "strategy_conflict_fallback" => "Mediate with balanced communication.",
-        "strategy_conflict_affiliation_rhetoric" => {
-            "They value closeness yet come across cold — don't appeal to their stated need for connection; address the detachment directly."
-        }
-        "strategy_conflict_affiliation_trust_rhetoric" => {
-            "They value closeness yet come across distrustful — don't appeal to their stated need for connection; earn credibility before seeking rapport."
-        }
-
-        "strategy_success_high_o" => {
-            "High openness — channel success into new creative challenges."
-        }
-        "strategy_success_high_c" => {
-            "High conscientiousness — leverage success as validation of process."
-        }
-        "strategy_success_low_e" => "Low extraversion — may feel overwhelmed by public attention.",
-        "strategy_success_high_a" => {
-            "High agreeableness — may deflect credit to avoid standing out."
-        }
-        "strategy_success_recognition" => {
-            "Recognition-driven — publicly acknowledge their achievement."
-        }
-        "strategy_success_power" => "Power-driven — give them ownership of the next initiative.",
-        "strategy_success_ambition_rhetoric" => {
-            "They talk ambition but are perceived as lazy — don't celebrate their plans; require delivery."
-        }
-        "strategy_success_fallback" => "Celebrate success and identify growth areas.",
-
-        "strategy_uncertainty_high_n" => {
-            "High neuroticism — provide clear timelines and frequent updates."
-        }
-        "strategy_uncertainty_low_n" => {
-            "Low neuroticism — they handle ambiguity well; trust their resilience."
-        }
-        "strategy_uncertainty_high_o" => "High openness — frame uncertainty as opportunity.",
-        "strategy_uncertainty_low_o" => {
-            "Low openness — provide concrete examples and familiar frameworks."
-        }
-        "strategy_uncertainty_high_c" => {
-            "High conscientiousness — needs a concrete plan immediately."
-        }
-        "strategy_uncertainty_high_e" => {
-            "High extraversion — may over-socialize to cope with ambiguity."
-        }
-        "strategy_uncertainty_fallback" => {
-            "Acknowledge uncertainty and provide available information."
-        }
-
-        "strategy_recognition_high" => "Strong recognition drive — give frequent, specific praise.",
-        "strategy_recognition_mid" => {
-            "Moderate recognition drive — acknowledge contributions regularly."
-        }
-        "strategy_recognition_low" => "Low recognition need — avoid over-praising.",
-        "strategy_recognition_high_e" => "High extraversion — public recognition is effective.",
-        "strategy_recognition_low_e" => {
-            "Low extraversion — prefer private, written acknowledgment."
-        }
-        "strategy_recognition_fallback" => "Match recognition style to their comfort level.",
-
-        "strategy_threat_low_a" => {
-            "Low agreeableness — they may push back; address concerns calmly."
-        }
-        "strategy_threat_high_a" => {
-            "High agreeableness — they may concede too easily; check true feelings."
-        }
-        "strategy_threat_high_n" => {
-            "High neuroticism — perceived threats are amplified; offer reassurance."
-        }
-        "strategy_threat_power" => {
-            "Power-driven — threat to status is serious; involve them in decisions."
-        }
-        "strategy_threat_fallback" => "Listen actively and validate their concerns.",
-
-        "strategy_change_high_n" => {
-            "High neuroticism — may resist change; provide stability anchors."
-        }
-        "strategy_change_low_n" => "Low neuroticism — adapts well; leverage as change champion.",
-        "strategy_change_high_c" => "High conscientiousness — needs a clear transition roadmap.",
-        "strategy_change_low_e" => "Low extraversion — needs time to process change privately.",
-        "strategy_change_high_o" => {
-            "High openness — embrace change; give them a role in shaping it."
-        }
-        "strategy_change_fallback" => "Communicate the why and involve them in the transition.",
-        "strategy_change_discipline_rhetoric" => {
-            "They see themselves as disciplined yet are perceived as lazy — don't appeal to their organized self-image; check actual output."
-        }
-
-        "strategy_feedback_high_n" => {
-            "High neuroticism — may take feedback personally; use gentle framing."
-        }
-        "strategy_feedback_low_n" => "Low neuroticism — handles critical feedback well; be direct.",
-        "strategy_feedback_low_a" => "Low agreeableness — may reject feedback; focus on data.",
-        "strategy_feedback_low_e" => "Low extraversion — prefers private, written feedback.",
-        "strategy_feedback_high_c" => {
-            "High conscientiousness — values detailed, actionable feedback."
-        }
-        "strategy_feedback_fallback" => {
-            "Balance praise and constructive input with specific examples."
-        }
-        "strategy_feedback_helping_rhetoric" => {
-            "They preach helpfulness yet are perceived as selfish — don't frame feedback around helping others; name the self-interest behind the advice."
-        }
-        "strategy_feedback_warmth_rhetoric" => {
-            "They see themselves as warm yet are perceived as blunt — don't rely on soft delivery; be clear and specific about the behavior."
-        }
-
-        "strategy_injustice_label" => "Facing injustice",
-        "strategy_injustice_high_a" => {
-            "High agreeableness — may feel personally wounded by unfairness."
-        }
-        "strategy_injustice_high_n" => {
-            "High neuroticism — may ruminate and escalate perceived slights."
-        }
-        "strategy_injustice_fairness" => {
-            "Fairness-driven — will fight for what they believe is right, even at personal cost."
-        }
-        "strategy_injustice_fairness_rhetoric" => {
-            "Speaks of fairness but acts with favoritism — don't appeal to their justice rhetoric; address the real driver instead."
-        }
-        "strategy_injustice_power" => {
-            "Power-driven — may leverage authority to correct the perceived wrong."
-        }
-        "strategy_injustice_ambition_rhetoric" => {
-            "They talk ambition but are perceived as lazy — don't expect them to fight for the cause; frame the outcome as serving their status instead."
-        }
-        "strategy_injustice_fallback" => {
-            "Acknowledge their concern and clarify the path to resolution."
-        }
-
-        // Sync / Drive
-        "sync_title" => "☁ Sync & Backup",
-        "sync_gdrive_title" => "Google Drive Sync",
-        "sync_token_loaded" => "✓ Token loaded",
-        "sync_token_cleared" => "Token cleared",
-        "sync_clear_btn" => "Clear",
-        "sync_sign_in" => "🔐 Sign in with Google",
-        "sync_no_token" => "No token. Sign in first.",
-        "sync_backing_up" => "Backing up...",
-        "sync_backed_up" => "✅ Backed up",
-        "sync_backup_btn" => "☁ Backup to Drive",
-        "sync_restoring" => "Restoring...",
-        "sync_restored" => "✅ Restored",
-        "sync_restore_btn" => "☁ Restore from Drive",
-        "sync_not_configured" => {
-            "Google Drive backup not configured at build time. Set GOOGLE_CLIENT_ID env var before building."
-        }
-        "sync_local_title" => "Local Backup",
-        "sync_local_desc" => "Export all data as JSON or import from a previous backup.",
-        "sync_exported" => "✅ Exported",
-        "sync_export_btn" => "📥 Export JSON",
-        "sync_import_btn" => "📤 Import JSON",
-        "sync_passphrase_label" => "Encrypt backup with passphrase (optional)",
-        "sync_passphrase_placeholder" => "Enter passphrase...",
-        "sync_passphrase_show" => "Show",
-        "sync_passphrase_hide" => "Hide",
-        "sync_wrong_passphrase" => "❌ Wrong passphrase or corrupted data",
-        "sync_token_instruction_1" => "1. Tap 'Sign in with Google' — opens your browser",
-        "sync_token_instruction_2" => "2. Sign in and grant access",
-        "sync_token_instruction_3" => {
-            "3. Browser redirects to the web app — copy the token from the address bar before the page loads"
-        }
-        "sync_token_instruction_4" => "4. Paste the URL below and tap Save",
-        "sync_paste_placeholder" => "Paste the full redirect URL here",
-        "sync_token_saved" => "✅ Token saved",
-        "sync_save_token_btn" => "Save Token",
-        "sync_no_data_warn" => "No people data to back up. Add people first!",
-        "sync_view_backup" => "🔎 View backups in your browser (appDataFolder Browser)",
-
-        // Common
-        "common_save" => "Save",
-        "common_cancel" => "Cancel",
-        "common_delete" => "Delete",
-        "common_add" => "Add",
-        "common_edit" => "Edit",
-        "common_back" => "← Back",
-        "compare_title" => "Compare Persons",
-        "compare_btn" => "Compare",
-        "compare_sub" => "Identify synergies and friction points between two people",
-        "compare_vs" => "VS",
-        "compare_top_mot" => "Top Motivation",
-        "compare_bias_main" => "Main Bias",
-        "compare_ocean" => "OCEAN Profile",
-        "compare_analysis_title" => "Dynamic Analysis",
-        "compare_synergies" => "Synergies",
-        "compare_friction" => "Friction Points",
-        "compare_strategy" => "Interaction Strategy",
-        "compare_breakdown" => "Breakdown",
-        "compare_ctx_title" => "By situation",
-        "compare_cat_ocean" => "OCEAN",
-        "compare_cat_reputation" => "Reputation",
-        "compare_cat_motivation" => "Motivation",
-        "compare_cat_patterns" => "Patterns",
-        "compare_cat_bias" => "Bias",
-        "compare_cat_styles" => "Styles",
-        "compare_cat_values" => "Values",
-        "compare_risk_mitigation" => "Risks & Mitigations",
-        "values_title" => "Values",
-        "no_values" => "No values defined",
-        "edit_values" => "Values",
-        "edit_priority" => "P",
-        "value_intensity_helper" => "Intensity (I): how strongly they hold this value.",
-        "value_priority_helper" => "Priority (P): importance relative to their other values.",
-        "compare_rel_title" => "Relationship Context",
-        "compare_rel_none" => "General (no context)",
-        "compare_rel_strength" => "Strength",
-        "compare_band_hint" => "±{}% (relationship + profile confidence)",
-        "compare_facet_unavailable" => "Not scoreable in this context — a persona is missing",
-        "person_self_score" => "Profile Score",
-        "Rep power struggle" => "Power struggle (Reputation)",
-        "compare_asymmetric" => "Mutual benefit",
-        "compare_benefit_more" => "benefits more",
-        "compare_balanced" => "Balanced",
-        "compare_ethics" => {
+        Key::AddBtn => "＋",
+        Key::AriaAddBias => "Add bias",
+        Key::AriaAddMotivation => "Add motivation",
+        Key::AriaAddPattern => "Add pattern",
+        Key::AriaAddStyle => "Add style",
+        Key::AriaAddValue => "Add value",
+        Key::AriaAvatarPrefix => "Avatar",
+        Key::AriaDeleteBias => "Delete bias",
+        Key::AriaDeleteMotivation => "Delete motivation",
+        Key::AriaDeletePattern => "Delete pattern",
+        Key::AriaDeleteStyle => "Delete style",
+        Key::AriaDeleteValue => "Delete value",
+        Key::AriaDiscardPrefix => "Discard",
+        Key::AriaEditBias => "Edit bias",
+        Key::AriaEditMotivation => "Edit motivation",
+        Key::AriaEditPattern => "Edit pattern",
+        Key::AriaEditStyle => "Edit style",
+        Key::AriaEditValue => "Edit value",
+        Key::AriaMoveBiasDown => "Move bias down",
+        Key::AriaMoveBiasUp => "Move bias up",
+        Key::AriaMoveMotivationDown => "Move motivation down",
+        Key::AriaMoveMotivationUp => "Move motivation up",
+        Key::AriaMovePatternDown => "Move pattern down",
+        Key::AriaMovePatternUp => "Move pattern up",
+        Key::AriaMoveStyleDown => "Move style down",
+        Key::AriaMoveStyleUp => "Move style up",
+        Key::AriaMoveValueDown => "Move value down",
+        Key::AriaMoveValueUp => "Move value up",
+        Key::AriaUpdateBias => "Update bias",
+        Key::AriaUpdateMotivation => "Update motivation",
+        Key::AriaUpdatePattern => "Update pattern",
+        Key::AriaUpdateStyle => "Update style",
+        Key::AriaUpdateValue => "Update value",
+        Key::BiasScaleHint => "0 = this bias is absent, 10 = it shapes most decisions.",
+        Key::BiasUndefinedWarning => "Undefined biases count as present. Set 0 to mark as absent.",
+        Key::BiasesTitle => "Biases",
+        Key::BucketInheritsBase => "Inherits base",
+        Key::BucketOverride => "Override",
+        Key::CommonAdd => "Add",
+        Key::CommonBack => "← Back",
+        Key::CommonCancel => "Cancel",
+        Key::CommonDelete => "Delete",
+        Key::CommonEdit => "Edit",
+        Key::CommonFinish => "Finish",
+        Key::CommonNext => "Next →",
+        Key::CommonSave => "Save",
+        Key::CommonSkip => "Skip",
+        Key::CompareAnalysisTitle => "Dynamic Analysis",
+        Key::CompareAsymmetric => "Mutual benefit",
+        Key::CompareBalanced => "Balanced",
+        Key::CompareBandHint => "±{}% (relationship + profile confidence)",
+        Key::CompareBenefitMore => "benefits more",
+        Key::CompareBiasMain => "Main Bias",
+        Key::CompareBreakdown => "Breakdown",
+        Key::CompareBtn => "Compare",
+        Key::CompareCatBias => "Bias",
+        Key::CompareCatMotivation => "Motivation",
+        Key::CompareCatOcean => "OCEAN",
+        Key::CompareCatPatterns => "Patterns",
+        Key::CompareCatReputation => "Reputation",
+        Key::CompareCatStyles => "Styles",
+        Key::CompareCatValues => "Values",
+        Key::CompareCtxTitle => "By situation",
+        Key::CompareEthics => {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
         }
-
-        // Scale bands
-        "scale_strong" => "Strong",
-        "scale_good" => "Good",
-        "scale_moderate" => "Moderate",
-        "scale_friction" => "Friction",
-        "scale_tension" => "Tension",
-
-        // Relationships
-        "rel_title" => "Relationships",
-        "rel_notes" => "Notes",
-        "rel_strength" => "Strength",
-        "rel_none" => "No relationships yet.",
-        "rel_open_add" => "＋ Add",
-        "rel_close_add" => "− Cancel",
-        "rel_search_placeholder" => "Search person…",
-        "rel_confirm_delete" => "Delete this relationship?",
-        "confirm_delete" => "Delete this person?",
-        "confirm_delete_log" => "Delete this entry?",
-        "confirm_delete_pred" => "Delete this prediction?",
-        "no_search_results" => "No results for \"{0}\".",
-        "rel_person_rel" => "Relationships",
-
-        // Timeline
-        "tl_title" => "Timeline",
-        "tl_empty" => "No interaction entries yet.",
-
-        // Style helpers
-        "style_no_styles" => "No personal styles recorded.",
-        "style_panel_title" => "Personal Styles",
-
-        // Tags
-
-        // Tutorial
-        "tut_step" => "Step",
-        "tut_welcome_title" => "Welcome to PeopleModeler!",
-        "tut_welcome_body" => {
-            "This app helps you model and understand the people in your life using personality frameworks like OCEAN (Big Five), motivations, cognitive biases, and behavioral patterns.\n\nYou can compare people side by side, track predictions over time, map relationships, and explore synergy scores."
+        Key::CompareFacetUnavailable => "Not scoreable in this context — a persona is missing",
+        Key::CompareFriction => "Friction Points",
+        Key::CompareOcean => "OCEAN Profile",
+        Key::CompareRelNone => "General (no context)",
+        Key::CompareRelStrength => "Strength",
+        Key::CompareRelTitle => "Relationship Context",
+        Key::CompareRiskMitigation => "Risks & Mitigations",
+        Key::CompareStrategy => "Interaction Strategy",
+        Key::CompareSub => "Identify synergies and friction points between two people",
+        Key::CompareSynergies => "Synergies",
+        Key::CompareTitle => "Compare Persons",
+        Key::CompareTopMot => "Top Motivation",
+        Key::CompareVs => "VS",
+        Key::ConfidenceHint => {
+            "How reliable is this profile? 1 = rough sketch, 10 = built from real observations."
         }
-        "tut_people_title" => "Your People",
-        "tut_people_body" => {
-            "The main page shows everyone you've created. Use the search bar to find someone, sort by name / recent / OCEAN score, and click the + button to add someone new."
+        Key::ConfidenceLabel => "Profile confidence",
+        Key::ConfirmDelete => "Delete this person?",
+        Key::ConfirmDeleteLog => "Delete this entry?",
+        Key::ConfirmDeletePred => "Delete this prediction?",
+        Key::ConfirmDeleteTeam => "Delete this team?",
+        Key::CtxChange => "Change",
+        Key::CtxCommunication => "Communication",
+        Key::CtxConflict => "Conflict",
+        Key::CtxDecision => "Decision",
+        Key::CtxFeedback => "Feedback",
+        Key::CtxGrowth => "Growth",
+        Key::CtxInjustice => "Injustice",
+        Key::CtxLeadership => "Leadership",
+        Key::CtxRecognition => "Recognition",
+        Key::CtxStress => "Stress",
+        Key::CtxSuccess => "Success",
+        Key::CtxTeam => "Team",
+        Key::CtxThreatened => "Threatened",
+        Key::CtxUncertainty => "Uncertainty",
+        Key::DeleteBtn => "🗑 Delete",
+        Key::EditBiases => "Biases",
+        Key::EditBtn => "✏ Edit",
+        Key::EditDiscardSection => "Discard",
+        Key::EditEvidencePlaceholder => "Evidence",
+        Key::EditMotivations => "Motivations",
+        Key::EditNotesPlaceholder => "Notes",
+        Key::EditPatterns => "Behavioral Patterns",
+        Key::EditPriority => "P",
+        Key::EditReputation => "Reputation",
+        Key::EditStyles => "Personal Styles",
+        Key::EditUpdateBtn => "💾",
+        Key::EditValues => "Values",
+        Key::FlagAffiliationCold => {
+            "Values closeness but is perceived as cold and detached — do as I say, not as I do."
         }
-        "tut_create_title" => "Creating a Person",
-        "tut_create_body" => {
-            "The person form is divided into sections: basic info (name, role, context), OCEAN personality scores, motivations, cognitive biases, reputation dimensions, and behavioral patterns.\n\nEach section captures a different facet of someone's personality — fill in what you know, leave the rest blank."
+        Key::FlagAffiliationDistrustful => {
+            "Values closeness but is perceived as suspicious — do as I say, not as I do."
         }
-        "tut_ocean_title" => "OCEAN Model (Big Five)",
-        "tut_ocean_body" => {
-            "OCEAN measures personality across five dimensions from 1 to 10:\n• Openness — curiosity vs. caution\n• Conscientiousness — organization vs. flexibility\n• Extraversion — sociability vs. solitude\n• Agreeableness — cooperation vs. competition\n• Neuroticism — sensitivity vs. emotional stability\n\nThese scores power the comparison engine and help predict behaviour."
+        Key::FlagAmbitionLazy => {
+            "Aspires to power, success, or recognition but is perceived as lazy — do as I say, not as I do."
         }
-        "tut_mot_bias_title" => "Motivations & Biases",
-        "tut_mot_bias_body" => {
-            "Motivations capture what drives a person — their goals, fears, and values (Achievement, Power, Affiliation, Security, Autonomy, etc.).\n\nBiases represent mental shortcuts that shape their decisions (Confirmation bias, Anchoring, Overconfidence, etc.). Together they give you a deeper understanding of why people act the way they do."
+        Key::FlagAnchoringOpen => "Claims open-mindedness yet clings to first impressions.",
+        Key::FlagAuthorityDominant => "Perceived as a leader yet blindly defers to authority.",
+        Key::FlagAutonomySubmissive => {
+            "Preaches independence yet is perceived as submissive — do as I say, not as I do."
         }
-        "tut_rep_pattern_title" => "Reputation & Patterns",
-        "tut_rep_pattern_body" => {
-            "Reputation scores capture how others perceive this person across bipolar scales (hardworking vs. lazy, honest vs. deceitful, etc.).\n\nBehavioral patterns let you record how they typically react to specific triggers (stress, criticism, success, conflict, etc.). This helps anticipate their responses in future situations."
+        Key::FlagAvailabilityCalm => "Perceived as unflappable yet overweights dramatic events.",
+        Key::FlagBiasConfirmationOpen => {
+            "Claims open-mindedness yet only seeks confirming information — they don't know themselves."
         }
-        "tut_compare_title" => "Comparisons & More",
-        "tut_compare_body" => {
+        Key::FlagBiasFavoritismFairness => {
+            "Preaches fairness yet shows favoritism or in-group bias — do as I say, not as I do."
+        }
+        Key::FlagCalmNeurotic => {
+            "Reported as calm under pressure but OCEAN indicates high reactivity — review for consistency."
+        }
+        Key::FlagClaimsCalmReactive => {
+            "Claims to be calm and stable but is perceived as reactive — they don't know themselves."
+        }
+        Key::FlagCreativityClosed => {
+            "Preaches creativity yet self-reports little openness to novelty."
+        }
+        Key::FlagCreativityRigid => {
+            "Preaches creativity yet is perceived as rigid — do as I say, not as I do."
+        }
+        Key::FlagDisciplineFlaky => {
+            "Sees themselves as disciplined but comes across as flaky — they don't know themselves."
+        }
+        Key::FlagDisciplineLazy => {
+            "Self-image of discipline contradicted by a lazy reputation — they don't know themselves."
+        }
+        Key::FlagDunningKrugerHumble => "Overestimates their competence yet is seen as humble.",
+        Key::FlagFairnessRhetoric => {
+            "Talks about fairness and justice but practices favoritism — do as I say, not as I do."
+        }
+        Key::FlagHelpingCold => "Preaches helpfulness yet reads as emotionally cold.",
+        Key::FlagHelpingSelfish => {
+            "Preaches helpfulness but is perceived as selfish — do as I say, not as I do."
+        }
+        Key::FlagHighELowA => {
+            "Very outgoing but low agreeableness — may be assertive to the point of abrasiveness."
+        }
+        Key::FlagHighNLowC => {
+            "High emotional reactivity with low conscientiousness — may struggle with structure under stress."
+        }
+        Key::FlagHighOLowC => {
+            "Highly creative but unstructured — may have many ideas with difficulty following through."
+        }
+        Key::FlagHonestFavoritist => {
+            "Principled honesty paired with perceived favoritism — may enforce fairness only for some."
+        }
+        Key::FlagHonestSelfish => {
+            "Principled honesty paired with low generosity — may indicate a rigid moral stance."
+        }
+        Key::FlagImpostorArrogant => "Underestimates their competence yet is seen as arrogant.",
+        Key::FlagLearningArrogant => "Preaches growth yet is too arrogant to take advice.",
+        Key::FlagLearningRigid => {
+            "Preaches growth and learning yet is perceived as rigid — do as I say, not as I do."
+        }
+        Key::FlagLossAversionRisky => "Claims a taste for risk yet is loss-averse.",
+        Key::FlagOpenRigid => {
+            "Thinks they're open-minded but comes across as rigid — they don't know themselves."
+        }
+        Key::FlagPatternAchievementComplacent => {
+            "Aspires to achievement yet recorded patterns rest on laurels."
+        }
+        Key::FlagPatternAssertiveQuiet => "Perceived as assertive yet goes quiet when it counts.",
+        Key::FlagPatternCalmVolatile => {
+            "Perceived as calm under pressure, but recorded patterns show volatility — the calm may be an act."
+        }
+        Key::FlagPatternClaimedCalmVolatile => {
+            "Self-reports calm yet recorded patterns show volatility."
+        }
+        Key::FlagPatternDiplomatEscalator => "Perceived as diplomatic yet escalates conflict.",
+        Key::FlagPatternDisciplineShirker => {
+            "Self-image of discipline yet recorded patterns dodge accountability."
+        }
+        Key::FlagPatternEmpathDismissive => "Perceived as empathetic yet puts others down.",
+        Key::FlagPatternExtravertQuiet => {
+            "Self-image of extraversion yet recorded patterns go quiet."
+        }
+        Key::FlagPatternFairExploiter => {
+            "Perceived as fair yet exploits injustice for personal gain."
+        }
+        Key::FlagPatternFairnessExploiter => {
+            "Preaches fairness yet recorded patterns exploit injustice."
+        }
+        Key::FlagPatternFlexibleResister => {
+            "Perceived as flexible yet resists change and feedback."
+        }
+        Key::FlagPatternGenerousExploiter => "Perceived as generous yet exploits others.",
+        Key::FlagPatternHardworkerComplacent => {
+            "Perceived as hardworking yet rests on past laurels."
+        }
+        Key::FlagPatternHelpingExploiter => {
+            "Preaches helpfulness yet recorded patterns show exploitation."
+        }
+        Key::FlagPatternHonestExploiter => {
+            "Perceived as honest, but recorded patterns show exploitation or blame-shifting — do as I say, not as I do."
+        }
+        Key::FlagPatternHumbleDismissive => "Perceived as humble yet puts others down.",
+        Key::FlagPatternLearningResister => {
+            "Preaches learning yet recorded patterns reject feedback."
+        }
+        Key::FlagPatternOpenResister => "Claims openness yet recorded patterns resist change.",
+        Key::FlagPatternPassiveBlowup => "Perceived as passive yet blows up under pressure.",
+        Key::FlagPatternRecognitionDismissive => {
+            "Seeks recognition yet puts others down to win it."
+        }
+        Key::FlagPatternReliableShirker => "Perceived as reliable yet dodges accountability.",
+        Key::FlagPatternTrustingParanoid => {
+            "Perceived as trusting yet turns paranoid under threat."
+        }
+        Key::FlagPatternWarmthDismissive => {
+            "Self-image of warmth yet recorded patterns put others down."
+        }
+        Key::FlagPowerPassive => "Aspires to power yet is perceived as a pushover.",
+        Key::FlagRecencyReliable => "Perceived as steady yet swings with the latest news.",
+        Key::FlagResilientHides => "Admits fragility yet appears unflappable — they hide it.",
+        Key::FlagResilientReactive => {
+            "Claims high resilience but is perceived as reactive — they don't know themselves."
+        }
+        Key::FlagRiskAppetiteAmbition => "Aspires to power or achievement yet avoids all risk.",
+        Key::FlagSecurityGullible => {
+            "Claims to value security yet is perceived as gullibly trusting — do as I say, not as I do."
+        }
+        Key::FlagSecurityRisky => {
+            "Preaches caution and security yet self-reports a taste for risk — do as I say, not as I do."
+        }
+        Key::FlagSocialProofOpen => {
+            "Claims independent thinking yet follows the herd — do as I say, not as I do."
+        }
+        Key::FlagStyleCompetingPassive => "Claims a competitive style yet comes across as passive.",
+        Key::FlagStyleConsensusAuthoritative => {
+            "Claims consensus-driven yet comes across as a dictator."
+        }
+        Key::FlagStyleControlling => {
+            "Controls and micromanages — perceived as domineering, not trusting."
+        }
+        Key::FlagStyleDetached => "Openly detached and perceived as cold/distant.",
+        Key::FlagStyleDiplomaticBlunt => "Claims a diplomatic style yet comes across as blunt.",
+        Key::FlagStyleDirectDiplomatic => "Claims to be direct yet comes across as diplomatic.",
+        Key::FlagStyleDominantSubmissive => {
+            "Claims an autocratic style yet comes across as submissive."
+        }
+        Key::FlagStyleEmpatheticCold => "Claims empathy yet comes across as cold.",
+        Key::FlagStyleGuardedTrusting => "Claims to be guarded yet comes across as trusting.",
+        Key::FlagStyleManipulative => "Admits a manipulative style and is perceived as deceitful.",
+        Key::FlagStyleManipulativeHonest => "Claims to play dirty yet comes across as honest.",
+        Key::FlagStylePassiveAggressive => "Openly passive-aggressive and perceived as reactive.",
+        Key::FlagStyleRepairsTrustDeceitful => {
+            "Claims to repair trust yet comes across as deceitful."
+        }
+        Key::FlagStyleRulebasedFavoritist => "Claims a rules-based approach yet plays favorites.",
+        Key::FlagStyleServantAuthoritative => {
+            "Claims servant leadership yet comes across as a commander."
+        }
+        Key::FlagStyleTrustsFreelySuspicious => {
+            "Claims to trust freely yet comes across as suspicious."
+        }
+        Key::FlagStyleVirtuebasedDeceitful => {
+            "Claims a virtue-based approach yet comes across as deceitful."
+        }
+        Key::FlagSunkCostFlexible => "Perceived as flexible yet clings to sunk costs.",
+        Key::FlagValueAdventureStability => {
+            "Values both adventure and stability — opposing drivers."
+        }
+        Key::FlagValueCareerFamily => {
+            "Both career and family rated as top priorities — expect tension."
+        }
+        Key::FlagValueCommunitySelfish => {
+            "Values community yet is perceived as selfish — contradictory."
+        }
+        Key::FlagValueFaithDeceitful => {
+            "Values faith yet is perceived as deceitful — contradictory."
+        }
+        Key::FlagValueFamilyFuture => {
+            "Values family highly yet decides through a future-oriented lens."
+        }
+        Key::FlagValueHealthRisky => {
+            "Values health yet has a very high risk appetite — contradictory."
+        }
+        Key::FlagValueKnowledgeArrogant => {
+            "Values knowledge yet comes across as arrogant — contradictory."
+        }
+        Key::FlagValueLoyaltyGuarded => {
+            "Values loyalty yet adopts a guarded, distrustful trust style."
+        }
+        Key::FlagValueStabilityRisk => {
+            "Craves stability yet has a very high risk appetite — contradictory."
+        }
+        Key::FlagValueWealthGenerous => {
+            "Values wealth yet is perceived as generous — contradictory."
+        }
+        Key::FlagWarmthBlunt => {
+            "Self-image of warmth contradicted by a blunt reputation — they don't know themselves."
+        }
+        Key::FlagWarmthCold => {
+            "Thinks they're warm-hearted but comes across cold — they don't know themselves."
+        }
+        Key::FlagWarmthSelfish => "Claims warmth yet is perceived as selfish.",
+        Key::FormAvatar => "Avatar",
+        Key::FormCancel => "Cancel",
+        Key::FormConfidence => "Profile confidence (1-10)",
+        Key::FormContext => "Context",
+        Key::FormEditTitle => "Edit Person",
+        Key::FormName => "Name",
+        Key::FormNewTitle => "New Person",
+        Key::FormNotes => "Notes",
+        Key::FormOceanTitle => "OCEAN Scores (1-10)",
+        Key::FormResilience => "Resilience (1-10)",
+        Key::FormRiskAppetite => "Risk appetite (1-10)",
+        Key::FormRole => "Role",
+        Key::FormSave => "💾 Save",
+        Key::FormTags => "Tags (comma separated)",
+        Key::InsightsObserved => "Observed Patterns",
+        Key::InsightsSelectPerson => "Select a person to view behavioral insights.",
+        Key::InsightsTitle => "📊 Insights",
+        Key::LogAdd => "Add entry",
+        Key::LogEmpty => "No entries yet.",
+        Key::LogNoTarget => "Self note (no target)",
+        Key::LogNoTrigger => "No trigger",
+        Key::LogPlaceholder => "What happened?",
+        Key::LogTarget => "With",
+        Key::LogTitle => "📋 Log",
+        Key::LogTrigger => "Trigger",
+        Key::LogValence => "Valence",
+        Key::MoreRecs => "More recommendations",
+        Key::MotUndefinedWarning => {
+            "Fewer than 3 motivations penalizes (−0.03 each). Missing Fairness/Helping also hurts."
+        }
+        Key::MotivationsTitle => "Motivations",
+        Key::NavPeople => "People",
+        Key::NavRelationships => "Relationships",
+        Key::NavSync => "Sync",
+        Key::NavTeams => "Teams",
+        Key::NavTimeline => "Timeline",
+        Key::NoBiases => "No biases recorded.",
+        Key::NoMotivations => "No motivations recorded.",
+        Key::NoPatterns => "No behavioral patterns recorded.",
+        Key::NoPeopleInsights => "No persons yet. Add someone to see insights.",
+        Key::NoPeopleYet => "No people yet. Tap + to add someone.",
+        Key::NoReputation => "No reputation traits recorded.",
+        Key::NoSearchResults => "No results for \"{0}\".",
+        Key::NoValues => "No values defined",
+        Key::OceanA => "A — Agreeableness",
+        Key::OceanAHigh => "cooperative, empathetic, seeks harmony",
+        Key::OceanALow => "direct or abrasive, puts goals before relationships",
+        Key::OceanAgreeableness => "Agreeableness",
+        Key::OceanC => "C — Conscientiousness",
+        Key::OceanCHigh => "organized, reliable, results and detail-oriented",
+        Key::OceanCLow => "flexible and spontaneous, may lack rigor",
+        Key::OceanConscientiousness => "Conscientiousness",
+        Key::OceanE => "E — Extraversion",
+        Key::OceanEHigh => "extraverted, energetic, seeks social stimulation",
+        Key::OceanELow => "introverted, thoughtful, prefers limited interactions",
+        Key::OceanExtraversion => "Extraversion",
+        Key::OceanN => "N — Neuroticism",
+        Key::OceanNHigh => "emotionally reactive, prone to stress, sensitive to criticism",
+        Key::OceanNLow => "emotionally stable, calm under pressure",
+        Key::OceanNeuroticism => "Neuroticism",
+        Key::OceanO => "O — Openness",
+        Key::OceanOHigh => "very open to new ideas, creative and curious",
+        Key::OceanOLow => "pragmatic, prefers routines and concrete things",
+        Key::OceanOpenness => "Openness",
+        Key::OceanTitle => "OCEAN Scores",
+        Key::PatternHelperChange => {
+            "How they adapt to transitions and new situations — at work: a reorg or a new role; in everyday life: a move or a new routine"
+        }
+        Key::PatternHelperConflict => {
+            "How they handle disagreements and confrontation — at work: a clash in a meeting; in everyday life: a heavy argument at home"
+        }
+        Key::PatternHelperFeedback => {
+            "How they receive and process input from others — at work: a post-project review; in everyday life: a friend pointing out a blind spot"
+        }
+        Key::PatternHelperInjustice => {
+            "How they react when treated unfairly or witnessing unfairness — at work: an unfairly skipped promotion; in everyday life: seeing someone treated unfairly"
+        }
+        Key::PatternHelperRecognition => {
+            "How they seek and respond to acknowledgment — at work: being praised by a manager; in everyday life: being appreciated by friends"
+        }
+        Key::PatternHelperStress => {
+            "How they react under pressure or tight deadlines — at work: a looming deadline; in everyday life: a jam-packed day"
+        }
+        Key::PatternHelperSuccess => {
+            "How they respond to achievements and wins — at work: closing a big deal; in everyday life: finishing a personal milestone"
+        }
+        Key::PatternHelperThreat => {
+            "How they defend themselves when feeling attacked — at work: criticized during a review; in everyday life: cornered in a heated talk"
+        }
+        Key::PatternHelperUncertainty => {
+            "How they navigate ambiguity and unknown outcomes — at work: an unclear project scope; in everyday life: waiting on an uncertain outcome"
+        }
+        Key::PatternsTitle => "Behavioral Patterns",
+        Key::PersonNotFound => "Person not found",
+        Key::PersonSelfScore => "Profile Score",
+        Key::PlName => "Name",
+        Key::PredAccuracyLabel => "Accuracy",
+        Key::PredActualLabel => "Actual",
+        Key::PredActualPlaceholder => "Actual outcome...",
+        Key::PredAddBtn => "Add",
+        Key::PredAllTitle => "All Predictions",
+        Key::PredCancelBtn => "Cancel",
+        Key::PredContextPlaceholder => "Context...",
+        Key::PredDeleteBtn => "Delete",
+        Key::PredFor => "🔮 Predictions for",
+        Key::PredNone => "No predictions yet.",
+        Key::PredOutcomePlaceholder => "Predicted outcome...",
+        Key::PredPredictedLabel => "Predicted",
+        Key::PredResolveBtn => "Resolve",
+        Key::PredResolveSubmit => "✓ Resolve",
+        Key::PredTitle => "Predictions",
+        Key::ProfileCompleteness => "Compl.",
+        Key::RelCloseAdd => "− Cancel",
+        Key::RelConfirmDelete => "Delete this relationship?",
+        Key::RelNone => "No relationships yet.",
+        Key::RelNotes => "Notes",
+        Key::RelOpenAdd => "＋ Add",
+        Key::RelPersonRel => "Relationships",
+        Key::RelSearchPlaceholder => "Search person…",
+        Key::RelStrength => "Strength",
+        Key::RelTitle => "Relationships",
+        Key::ReliabilityTitle => "Data quality",
+        Key::RepScaleHint => {
+            "0 = the negative pole, 10 = the positive pole — the ✗ toggle leaves the dimension unknown."
+        }
+        Key::RepUndefinedWarning => {
+            "Undefined traits penalize reputation. Extreme values (≤2 or ≥8) trigger adjustments."
+        }
+        Key::ReputationTitle => "Reputation",
+        Key::ResilienceLabel => "Resilience",
+        Key::RiskAppetiteLabel => "Risk appetite",
+        Key::ScaleFriction => "Friction",
+        Key::ScaleGood => "Good",
+        Key::ScaleModerate => "Moderate",
+        Key::ScaleStrong => "Strong",
+        Key::ScaleTension => "Tension",
+        Key::ScoreBand => "±{}",
+        Key::SearchPlaceholder => "Search people...",
+        Key::StrategyChangeDisciplineRhetoric => {
+            "They see themselves as disciplined yet are perceived as lazy — don't appeal to their organized self-image; check actual output."
+        }
+        Key::StrategyChangeFallback => "Communicate the why and involve them in the transition.",
+        Key::StrategyChangeHighC => "High conscientiousness — needs a clear transition roadmap.",
+        Key::StrategyChangeHighN => {
+            "High neuroticism — may resist change; provide stability anchors."
+        }
+        Key::StrategyChangeHighO => {
+            "High openness — embrace change; give them a role in shaping it."
+        }
+        Key::StrategyChangeLabel => "Facing change",
+        Key::StrategyChangeLowE => "Low extraversion — needs time to process change privately.",
+        Key::StrategyChangeLowN => "Low neuroticism — adapts well; leverage as change champion.",
+        Key::StrategyConflictAffiliationRhetoric => {
+            "They value closeness yet come across cold — don't appeal to their stated need for connection; address the detachment directly."
+        }
+        Key::StrategyConflictAffiliationTrustRhetoric => {
+            "They value closeness yet come across distrustful — don't appeal to their stated need for connection; earn credibility before seeking rapport."
+        }
+        Key::StrategyConflictFallback => "Mediate with balanced communication.",
+        Key::StrategyConflictHighA => {
+            "High agreeableness — soften confrontation, focus on harmony."
+        }
+        Key::StrategyConflictHighC => {
+            "High conscientiousness — may rigidly insist on rules and procedures."
+        }
+        Key::StrategyConflictHighE => "High extraversion — let them talk it through.",
+        Key::StrategyConflictHighN => {
+            "High neuroticism — de-escalate and provide emotional safety."
+        }
+        Key::StrategyConflictLabel => "In conflict",
+        Key::StrategyConflictLowA => "Low agreeableness — address conflict directly with facts.",
+        Key::StrategyConflictLowE => {
+            "Low extraversion — may withdraw or stonewall instead of engaging."
+        }
+        Key::StrategyFeedbackFallback => {
+            "Balance praise and constructive input with specific examples."
+        }
+        Key::StrategyFeedbackHelpingRhetoric => {
+            "They preach helpfulness yet are perceived as selfish — don't frame feedback around helping others; name the self-interest behind the advice."
+        }
+        Key::StrategyFeedbackHighC => {
+            "High conscientiousness — values detailed, actionable feedback."
+        }
+        Key::StrategyFeedbackHighN => {
+            "High neuroticism — may take feedback personally; use gentle framing."
+        }
+        Key::StrategyFeedbackLabel => "Receiving feedback",
+        Key::StrategyFeedbackLowA => "Low agreeableness — may reject feedback; focus on data.",
+        Key::StrategyFeedbackLowE => "Low extraversion — prefers private, written feedback.",
+        Key::StrategyFeedbackLowN => "Low neuroticism — handles critical feedback well; be direct.",
+        Key::StrategyFeedbackWarmthRhetoric => {
+            "They see themselves as warm yet are perceived as blunt — don't rely on soft delivery; be clear and specific about the behavior."
+        }
+        Key::StrategyInjusticeAmbitionRhetoric => {
+            "They talk ambition but are perceived as lazy — don't expect them to fight for the cause; frame the outcome as serving their status instead."
+        }
+        Key::StrategyInjusticeFairness => {
+            "Fairness-driven — will fight for what they believe is right, even at personal cost."
+        }
+        Key::StrategyInjusticeFairnessRhetoric => {
+            "Speaks of fairness but acts with favoritism — don't appeal to their justice rhetoric; address the real driver instead."
+        }
+        Key::StrategyInjusticeFallback => {
+            "Acknowledge their concern and clarify the path to resolution."
+        }
+        Key::StrategyInjusticeHighA => {
+            "High agreeableness — may feel personally wounded by unfairness."
+        }
+        Key::StrategyInjusticeHighN => {
+            "High neuroticism — may ruminate and escalate perceived slights."
+        }
+        Key::StrategyInjusticeLabel => "Facing injustice",
+        Key::StrategyInjusticePower => {
+            "Power-driven — may leverage authority to correct the perceived wrong."
+        }
+        Key::StrategyRecognitionFallback => "Match recognition style to their comfort level.",
+        Key::StrategyRecognitionHigh => {
+            "Strong recognition drive — give frequent, specific praise."
+        }
+        Key::StrategyRecognitionHighE => "High extraversion — public recognition is effective.",
+        Key::StrategyRecognitionLabel => "Seeking recognition",
+        Key::StrategyRecognitionLow => "Low recognition need — avoid over-praising.",
+        Key::StrategyRecognitionLowE => {
+            "Low extraversion — prefer private, written acknowledgment."
+        }
+        Key::StrategyRecognitionMid => {
+            "Moderate recognition drive — acknowledge contributions regularly."
+        }
+        Key::StrategyStressAmbitionRhetoric => {
+            "They talk ambition but are perceived as lazy — don't reward the rhetoric; focus on effort and follow-through."
+        }
+        Key::StrategyStressFallback => "Monitor stress signals and adjust environment.",
+        Key::StrategyStressHighC => {
+            "High conscientiousness — break problems into actionable steps."
+        }
+        Key::StrategyStressHighE => "High extraversion — allow verbal processing of stress.",
+        Key::StrategyStressHighN => "High neuroticism — provide reassurance and clear structure.",
+        Key::StrategyStressHighO => {
+            "High openness — may overthink and spiral into worst-case scenarios."
+        }
+        Key::StrategyStressLabel => "Under stress",
+        Key::StrategyStressLowA => {
+            "Low agreeableness — may become short or irritable under pressure."
+        }
+        Key::StrategyStressLowC => "Low conscientiousness — may become disorganized or avoidant.",
+        Key::StrategyStressLowE => "Low extraversion — give quiet space to decompress.",
+        Key::StrategyStressPower => "Power-driven — let them regain control in one domain.",
+        Key::StrategyStressSecurity => "Security-driven — reinforce stability and routine.",
+        Key::StrategyStressSecurityRhetoric => {
+            "They claim to value security yet are gullibly trusting — don't rely on their stated caution; verify safeguards yourself."
+        }
+        Key::StrategySuccessAmbitionRhetoric => {
+            "They talk ambition but are perceived as lazy — don't celebrate their plans; require delivery."
+        }
+        Key::StrategySuccessFallback => "Celebrate success and identify growth areas.",
+        Key::StrategySuccessHighA => {
+            "High agreeableness — may deflect credit to avoid standing out."
+        }
+        Key::StrategySuccessHighC => {
+            "High conscientiousness — leverage success as validation of process."
+        }
+        Key::StrategySuccessHighO => {
+            "High openness — channel success into new creative challenges."
+        }
+        Key::StrategySuccessLabel => "In success",
+        Key::StrategySuccessLowE => "Low extraversion — may feel overwhelmed by public attention.",
+        Key::StrategySuccessPower => "Power-driven — give them ownership of the next initiative.",
+        Key::StrategySuccessRecognition => {
+            "Recognition-driven — publicly acknowledge their achievement."
+        }
+        Key::StrategyThreatFallback => "Listen actively and validate their concerns.",
+        Key::StrategyThreatHighA => {
+            "High agreeableness — they may concede too easily; check true feelings."
+        }
+        Key::StrategyThreatHighN => {
+            "High neuroticism — perceived threats are amplified; offer reassurance."
+        }
+        Key::StrategyThreatLabel => "Feeling threatened",
+        Key::StrategyThreatLowA => {
+            "Low agreeableness — they may push back; address concerns calmly."
+        }
+        Key::StrategyThreatPower => {
+            "Power-driven — threat to status is serious; involve them in decisions."
+        }
+        Key::StrategyUncertaintyFallback => {
+            "Acknowledge uncertainty and provide available information."
+        }
+        Key::StrategyUncertaintyHighC => {
+            "High conscientiousness — needs a concrete plan immediately."
+        }
+        Key::StrategyUncertaintyHighE => {
+            "High extraversion — may over-socialize to cope with ambiguity."
+        }
+        Key::StrategyUncertaintyHighN => {
+            "High neuroticism — provide clear timelines and frequent updates."
+        }
+        Key::StrategyUncertaintyHighO => "High openness — frame uncertainty as opportunity.",
+        Key::StrategyUncertaintyLabel => "In uncertainty",
+        Key::StrategyUncertaintyLowN => {
+            "Low neuroticism — they handle ambiguity well; trust their resilience."
+        }
+        Key::StrategyUncertaintyLowO => {
+            "Low openness — provide concrete examples and familiar frameworks."
+        }
+        Key::StrategyWhen => "When {name} is {trigger}:\n\n{advice}",
+        Key::StyleNoStyles => "No personal styles recorded.",
+        Key::StylePanelTitle => "Personal Styles",
+        Key::SyncBackedUp => "✅ Backed up",
+        Key::SyncBackingUp => "Backing up...",
+        Key::SyncBackupBtn => "☁ Backup to Drive",
+        Key::SyncClearBtn => "Clear",
+        Key::SyncExportBtn => "📥 Export JSON",
+        Key::SyncExported => "✅ Exported",
+        Key::SyncGdriveTitle => "Google Drive Sync",
+        Key::SyncImportBtn => "📤 Import JSON",
+        Key::SyncLocalDesc => "Export all data as JSON or import from a previous backup.",
+        Key::SyncLocalTitle => "Local Backup",
+        Key::SyncNoDataWarn => "No people data to back up. Add people first!",
+        Key::SyncNoToken => "No token. Sign in first.",
+        Key::SyncNotConfigured => {
+            "Google Drive backup not configured at build time. Set GOOGLE_CLIENT_ID env var before building."
+        }
+        Key::SyncPassphraseHide => "Hide",
+        Key::SyncPassphraseLabel => "Encrypt backup with passphrase (optional)",
+        Key::SyncPassphrasePlaceholder => "Enter passphrase...",
+        Key::SyncPassphraseShow => "Show",
+        Key::SyncPastePlaceholder => "Paste the full redirect URL here",
+        Key::SyncRestoreBtn => "☁ Restore from Drive",
+        Key::SyncRestored => "✅ Restored",
+        Key::SyncRestoring => "Restoring...",
+        Key::SyncSaveTokenBtn => "Save Token",
+        Key::SyncSignIn => "🔐 Sign in with Google",
+        Key::SyncTitle => "☁ Sync & Backup",
+        Key::SyncTokenCleared => "Token cleared",
+        Key::SyncTokenInstruction1 => "1. Tap 'Sign in with Google' — opens your browser",
+        Key::SyncTokenInstruction2 => "2. Sign in and grant access",
+        Key::SyncTokenInstruction3 => {
+            "3. Browser redirects to the web app — copy the token from the address bar before the page loads"
+        }
+        Key::SyncTokenInstruction4 => "4. Paste the URL below and tap Save",
+        Key::SyncTokenLoaded => "✓ Token loaded",
+        Key::SyncTokenSaved => "✅ Token saved",
+        Key::SyncViewBackup => "🔎 View backups in your browser (appDataFolder Browser)",
+        Key::SyncWrongPassphrase => "❌ Wrong passphrase or corrupted data",
+        Key::TeamAllNoEdit => "All People includes everyone automatically",
+        Key::TeamAvgDanger => "Avg danger",
+        Key::TeamAvgScore => "Avg score",
+        Key::TeamCtxAvg => "Average by situation",
+        Key::TeamEdit => "Edit",
+        Key::TeamEmpty => "Add at least 2 people to see team synergy.",
+        Key::TeamIcon => "Icon",
+        Key::TeamMaxDanger => "Max danger",
+        Key::TeamMembersCount => "{0} members",
+        Key::TeamNoDanger => "None",
+        Key::TeamPairs => "All pairs",
+        Key::TeamRename => "Rename",
+        Key::TeamSize => "Team size",
+        Key::TeamStrongest => "Strongest link",
+        Key::TeamTabMembers => "Members",
+        Key::TeamTabSynergy => "Synergy",
+        Key::TeamTitle => "Team Synergy",
+        Key::TeamWeakest => "Weakest link",
+        Key::TeamsAll => "All People",
+        Key::TeamsCreate => "New Team",
+        Key::TeamsDelete => "Delete team?",
+        Key::TeamsMembers => "{0} members",
+        Key::TeamsTitle => "Teams",
+        Key::TemplateBlank => "Blank (start from scratch)",
+        Key::TemplateTitle => "Quick Template",
+        Key::TlEmpty => "No interaction entries yet.",
+        Key::TlTitle => "Timeline",
+        Key::ToastDeleted => "Deleted",
+        Key::ToastError => "Something went wrong",
+        Key::ToastSaved => "Saved",
+        Key::TrendDeteriorating => "Deteriorating",
+        Key::TrendHint => "From recent logged interactions",
+        Key::TrendImproving => "Improving",
+        Key::TrendStable => "Stable",
+        Key::TutCompareBody => {
             "Once you have at least two people, you can compare them side by side to see their synergy score, friction points, and interaction strategies.\n\nYou can also track predictions (guess an outcome, then check if you were right), build a relationship map, and log interactions on a timeline."
         }
-        "tut_done_title" => "You're Ready!",
-        "tut_done_body" => {
+        Key::TutCompareTitle => "Comparisons & More",
+        Key::TutCreateBody => {
+            "The person form is divided into sections: basic info (name, role, context), OCEAN personality scores, motivations, cognitive biases, reputation dimensions, and behavioral patterns.\n\nEach section captures a different facet of someone's personality — fill in what you know, leave the rest blank."
+        }
+        Key::TutCreateTitle => "Creating a Person",
+        Key::TutDoneBody => {
             "You can replay this tutorial anytime from the navigation bar.\n\nQuick tips:\n• Create at least two people to unlock comparisons\n• Use the Sync page to back up your data\n• Tag people to organise them by group\n\nGo ahead and start modeling the people in your world!"
         }
-
-        // Team page
-        "nav_teams" => "Teams",
-        "teams_title" => "Teams",
-        "teams_all" => "All People",
-        "teams_create" => "New Team",
-        "teams_delete" => "Delete team?",
-        "teams_members" => "{0} members",
-        "team_title" => "Team Synergy",
-        "team_empty" => "Add at least 2 people to see team synergy.",
-        "team_size" => "Team size",
-        "team_avg_score" => "Avg score",
-        "team_strongest" => "Strongest link",
-        "team_weakest" => "Weakest link",
-        "team_max_danger" => "Max danger",
-        "team_avg_danger" => "Avg danger",
-        "team_ctx_avg" => "Average by situation",
-        "team_pairs" => "All pairs",
-        "team_no_danger" => "None",
-        "team_tab_synergy" => "Synergy",
-        "team_tab_members" => "Members",
-        "team_all_no_edit" => "All People includes everyone automatically",
-        "team_members_count" => "{0} members",
-        "confirm_delete_team" => "Delete this team?",
-        "team_rename" => "Rename",
-        "team_icon" => "Icon",
-        "team_edit" => "Edit",
-
-        // Common (tutorial)
-        "common_next" => "Next →",
-        "common_skip" => "Skip",
-        "common_finish" => "Finish",
-
-        // Work persona (mask)
-        "persona_section" => "Work Persona",
-        "persona_hint" => {
+        Key::TutDoneTitle => "You're Ready!",
+        Key::TutMotBiasBody => {
+            "Motivations capture what drives a person — their goals, fears, and values (Achievement, Power, Affiliation, Security, Autonomy, etc.).\n\nBiases represent mental shortcuts that shape their decisions (Confirmation bias, Anchoring, Overconfidence, etc.). Together they give you a deeper understanding of why people act the way they do."
+        }
+        Key::TutMotBiasTitle => "Motivations & Biases",
+        Key::TutOceanBody => {
+            "OCEAN measures personality across five dimensions from 1 to 10:\n• Openness — curiosity vs. caution\n• Conscientiousness — organization vs. flexibility\n• Extraversion — sociability vs. solitude\n• Agreeableness — cooperation vs. competition\n• Neuroticism — sensitivity vs. emotional stability\n\nThese scores power the comparison engine and help predict behaviour."
+        }
+        Key::TutOceanTitle => "OCEAN Model (Big Five)",
+        Key::TutPeopleBody => {
+            "The main page shows everyone you've created. Use the search bar to find someone, sort by name / recent / OCEAN score, and click the + button to add someone new."
+        }
+        Key::TutPeopleTitle => "Your People",
+        Key::TutRepPatternBody => {
+            "Reputation scores capture how others perceive this person across bipolar scales (hardworking vs. lazy, honest vs. deceitful, etc.).\n\nBehavioral patterns let you record how they typically react to specific triggers (stress, criticism, success, conflict, etc.). This helps anticipate their responses in future situations."
+        }
+        Key::TutRepPatternTitle => "Reputation & Patterns",
+        Key::TutStep => "Step",
+        Key::TutWelcomeBody => {
+            "This app helps you model and understand the people in your life using personality frameworks like OCEAN (Big Five), motivations, cognitive biases, and behavioral patterns.\n\nYou can compare people side by side, track predictions over time, map relationships, and explore synergy scores."
+        }
+        Key::TutWelcomeTitle => "Welcome to PeopleModeler!",
+        Key::ValuesTitle => "Values",
+        Key::ValueIntensityHelper => "Intensity (I): how strongly they hold this value.",
+        Key::ValuePriorityHelper => "Priority (P): importance relative to their other values.",
+        Key::PersonaSection => "Work Persona",
+        Key::PersonaHint => {
             "Define a different work persona. OCEAN and reputation scores can diverge from the base profile."
         }
-        "persona_copy_base" => "Copy from base profile",
-        "persona_clear" => "Clear mask",
-        "persona_balance_title" => "Resilience & Risk Appetite",
-        "edit_discard_section" => "Discard",
-
-        // Online persona (mask)
-        "persona_online_section" => "Online Persona",
-
-        // Personal-life persona (mask, when the anchor context is not Base)
-        "persona_base_section" => "Personal life Persona",
-
-        // Facet toggle
-        "facet_auto" => "Automatic",
-        "facet_base" => "Personal life",
-        "facet_work" => "At work",
-        "facet_online" => "Online",
-        "facet_main" => "Main",
-        "facet_main_suffix" => " (main)",
-        "main_context_label" => "Main context:",
-
-        // Personal-context picker (new-person flow)
-        "persona_context_prompt" => "Where do you know this person from?",
-        "persona_context_change" => "Change context",
-
-        // Mask badge (person detail / compare / team)
-        "mask_gap_low" => "No mask",
-        "mask_gap_moderate" => "Moderate mask",
-        "mask_gap_high" => "Strong mask",
-
-        // Team facet override
-        "team_facet_toggle" => "Filter by facet",
-
-        _ => key,
+        Key::PersonaCopyBase => "Copy from base profile",
+        Key::PersonaClear => "Clear mask",
+        Key::PersonaBalanceTitle => "Resilience & Risk Appetite",
+        Key::PersonaOnlineSection => "Online Persona",
+        Key::PersonaBaseSection => "Personal life Persona",
+        Key::FacetBase => "Personal life",
+        Key::FacetWork => "At work",
+        Key::FacetOnline => "Online",
+        Key::FacetAuto => "Automatic",
+        Key::FacetMain => "Main",
+        Key::FacetMainSuffix => " (main)",
+        Key::MainContextLabel => "Main context:",
+        Key::PersonaContextPrompt => "Where do you know this person from?",
+        Key::PersonaContextChange => "Change context",
+        Key::MaskGapLow => "No mask",
+        Key::MaskGapModerate => "Moderate mask",
+        Key::MaskGapHigh => "Strong mask",
+        Key::TeamFacetToggle => "Filter by facet",
+        Key::OceanVolatility => "OCEAN volatility",
+        Key::RepPowerStruggle => "Power struggle (Reputation)",
+        Key::OnlyNegativePatterns => "Only negative patterns",
+        Key::LowPredictionAccuracy => "Low prediction accuracy",
+        Key::Unknown => "Unknown",
     }
 }
 
-fn fr(key: &'static str) -> &'static str {
+fn fr(key: Key) -> &'static str {
     match key {
-        "nav_people" => "Personnes",
-        "nav_relationships" => "Relations",
-        "nav_timeline" => "Chrono",
-        "nav_sync" => "Sync",
-
-        "search_placeholder" => "Rechercher...",
-        "no_people_yet" => "Aucune personne. Appuyez sur + pour ajouter.",
-        "pl_name" => "Nom",
-        "no_people_insights" => "Aucune personne encore. Ajoutez quelqu'un pour voir les analyses.",
-        "toast_saved" => "Enregistré",
-        "toast_deleted" => "Supprimé",
-        "toast_error" => "Une erreur est survenue",
-        "person_not_found" => "Personne introuvable",
-        "edit_btn" => "✏ Modifier",
-        "delete_btn" => "🗑 Supprimer",
-        "motivations_title" => "Motivations",
-        "no_motivations" => "Aucune motivation enregistrée.",
-        "biases_title" => "Biais",
-        "no_biases" => "Aucun biais enregistré.",
-        "reputation_title" => "Réputation",
-        "no_reputation" => "Aucun trait de réputation enregistré.",
-
-        "patterns_title" => "Patterns comportementaux",
-        "no_patterns" => "Aucun pattern comportemental enregistré.",
-        "ocean_title" => "Scores OCEAN",
-        "confidence_label" => "Fiabilité du profil",
-        "confidence_hint" => {
-            "À quel point ce profil est fiable ? 1 = ébauche, 10 = fondé sur des observations réelles."
+        Key::AddBtn => "＋",
+        Key::AriaAddBias => "Ajouter un biais",
+        Key::AriaAddMotivation => "Ajouter une motivation",
+        Key::AriaAddPattern => "Ajouter un pattern",
+        Key::AriaAddStyle => "Ajouter un style",
+        Key::AriaAddValue => "Ajouter une valeur",
+        Key::AriaAvatarPrefix => "Avatar",
+        Key::AriaDeleteBias => "Supprimer le biais",
+        Key::AriaDeleteMotivation => "Supprimer la motivation",
+        Key::AriaDeletePattern => "Supprimer le pattern",
+        Key::AriaDeleteStyle => "Supprimer le style",
+        Key::AriaDeleteValue => "Supprimer la valeur",
+        Key::AriaDiscardPrefix => "Annuler",
+        Key::AriaEditBias => "Modifier le biais",
+        Key::AriaEditMotivation => "Modifier la motivation",
+        Key::AriaEditPattern => "Modifier le pattern",
+        Key::AriaEditStyle => "Modifier le style",
+        Key::AriaEditValue => "Modifier la valeur",
+        Key::AriaMoveBiasDown => "Descendre le biais",
+        Key::AriaMoveBiasUp => "Monter le biais",
+        Key::AriaMoveMotivationDown => "Descendre la motivation",
+        Key::AriaMoveMotivationUp => "Monter la motivation",
+        Key::AriaMovePatternDown => "Descendre le pattern",
+        Key::AriaMovePatternUp => "Monter le pattern",
+        Key::AriaMoveStyleDown => "Descendre le style",
+        Key::AriaMoveStyleUp => "Monter le style",
+        Key::AriaMoveValueDown => "Descendre la valeur",
+        Key::AriaMoveValueUp => "Monter la valeur",
+        Key::AriaUpdateBias => "Modifier le biais",
+        Key::AriaUpdateMotivation => "Modifier la motivation",
+        Key::AriaUpdatePattern => "Modifier le pattern",
+        Key::AriaUpdateStyle => "Modifier le style",
+        Key::AriaUpdateValue => "Modifier la valeur",
+        Key::BiasScaleHint => {
+            "0 = ce biais est absent, 10 = il influence la plupart des décisions."
         }
-        "reliability_title" => "Qualité des données",
-        "score_band" => "±{}",
-        "resilience_label" => "Résilience",
-        "risk_appetite_label" => "Appétence risque",
-        "form_new_title" => "Nouvelle personne",
-        "form_edit_title" => "Modifier la personne",
-        "template_title" => "Modèle rapide",
-        "template_blank" => "Vierge (commencer de zéro)",
-        "form_name" => "Nom",
-        "form_role" => "Rôle",
-        "form_context" => "Contexte",
-        "form_avatar" => "Avatar",
-        "form_tags" => "Tags (séparés par des virgules)",
-        "form_notes" => "Notes",
-        "form_confidence" => "Fiabilité du profil (1-10)",
-        "form_resilience" => "Résilience (1-10)",
-        "form_risk_appetite" => "Appétence pour le risque (1-10)",
-        "form_ocean_title" => "Scores OCEAN (1-10)",
-        "form_save" => "💾 Enregistrer",
-        "form_cancel" => "Annuler",
-
-        "ocean_openness" => "Ouverture",
-        "ocean_conscientiousness" => "Conscienciosité",
-        "ocean_extraversion" => "Extraversion",
-        "ocean_agreeableness" => "Agréabilité",
-        "ocean_neuroticism" => "Névrosisme",
-        "ocean_o" => "O — Ouverture",
-        "ocean_c" => "C — Conscienciosité",
-        "ocean_e" => "E — Extraversion",
-        "ocean_a" => "A — Agréabilité",
-        "ocean_n" => "N — Névrosisme",
-        "ocean_o_high" => "très ouvert aux nouvelles idées, créatif et curieux",
-        "ocean_o_low" => "pragmatique, préfère les routines et le concret",
-        "ocean_c_high" => "organisé, fiable, orienté résultats et détails",
-        "ocean_c_low" => "flexible et spontané, peut manquer de rigueur",
-        "ocean_e_high" => "extraverti, énergique, cherche la stimulation sociale",
-        "ocean_e_low" => "introverti, réfléchi, préfère les interactions limitées",
-        "ocean_a_high" => "coopératif, empathique, cherche l'harmonie",
-        "ocean_a_low" => "direct voire abrasif, met ses objectifs avant les relations",
-        "ocean_n_high" => "émotionnellement réactif, stressable, sensible aux critiques",
-        "ocean_n_low" => "stable émotionnellement, calme sous pression",
-
-        // Consistency flags
-        "flag_high_e_low_a" => {
-            "Très extraverti mais faible agréabilité — peut être assertif jusqu'à l'abrasivité."
-        }
-        "flag_high_n_low_c" => {
-            "Réactivité émotionnelle élevée avec faible conscience — peut avoir du mal sous stress."
-        }
-        "flag_high_o_low_c" => {
-            "Très créatif mais désorganisé — beaucoup d'idées mais difficulté à les concrétiser."
-        }
-        "flag_calm_neurotic" => {
-            "Décrit comme calme sous pression mais l'OCEAN indique une forte réactivité — à vérifier."
-        }
-        "flag_honest_selfish" => {
-            "Honnêteté de principe associée à une faible générosité — peut indiquer une position morale rigide."
-        }
-        "flag_fairness_rhetoric" => {
-            "Parle d'équité et de justice mais pratique le favoritisme — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_helping_selfish" => {
-            "Prêche l'entraide mais est perçu comme égoïste — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_affiliation_cold" => {
-            "Revendique la proximité mais est perçu comme froid et distant — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_ambition_lazy" => {
-            "Aspire au pouvoir, au succès ou à la reconnaissance mais est perçu comme paresseux — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_security_gullible" => {
-            "Revendique un besoin de sécurité mais est perçu comme naïvement confiant — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_discipline_lazy" => {
-            "Image de soi disciplinée contredite par une réputation de paresse — ne se connaît pas."
-        }
-        "flag_warmth_blunt" => {
-            "Image de soi chaleureuse contredite par une réputation de franchise brutale — ne se connaît pas."
-        }
-        "flag_open_rigid" => "Se croit ouvert d'esprit mais paraît rigide — ne se connaît pas.",
-        "flag_claims_calm_reactive" => {
-            "Se prétend calme et stable mais est perçu comme réactif — ne se connaît pas."
-        }
-        "flag_honest_favoritist" => {
-            "Honnêteté de principe associée à un favoritisme perçu — l'équité ne vaut peut-être que pour certains."
-        }
-        "flag_affiliation_distrustful" => {
-            "Revendique la proximité mais est perçu comme méfiant — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_warmth_cold" => "Se croit chaleureux mais paraît froid — ne se connaît pas.",
-        "flag_discipline_flaky" => "Se voit discipliné mais paraît inconstant — ne se connaît pas.",
-        "flag_pattern_calm_volatile" => {
-            "Perçu comme calme sous pression, mais les schémas enregistrés montrent de la volatilité — ce calme n'est peut-être qu'un masque."
-        }
-        "flag_pattern_honest_exploiter" => {
-            "Perçu comme honnête, mais les schémas montrent de l'exploitation ou des rejets de responsabilité — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_bias_confirmation_open" => {
-            "Se dit ouvert d'esprit mais ne cherche que des informations qui confirment ses vues — ne se connaît pas."
-        }
-        "flag_bias_favoritism_fairness" => {
-            "Prêche l'équité mais montre un biais de favoritisme ou de groupe — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_security_risky" => {
-            "Prêche la prudence et la sécurité mais déclare aimer le risque — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_resilient_reactive" => {
-            "Se dit très résilient mais est perçu comme réactif — ne se connaît pas."
-        }
-        "flag_autonomy_submissive" => {
-            "Prêche l'indépendance mais est perçu comme soumis — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_learning_rigid" => {
-            "Prêche l'apprentissage et la croissance mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_creativity_closed" => {
-            "Prêche la créativité mais se dit peu ouvert à la nouveauté — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_creativity_rigid" => {
-            "Prêche la créativité mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_authority_dominant" => {
-            "Perçu comme un leader mais se soumet aveuglément à l'autorité."
-        }
-        "flag_social_proof_open" => {
-            "Se dit indépendant d'esprit mais suit le troupeau — fait ce que je dis, pas ce que je fais."
-        }
-        "flag_sunk_cost_flexible" => {
-            "Perçu comme flexible mais s'accroche aux coûts irrécupérables."
-        }
-        "flag_pattern_diplomat_escalator" => "Perçu comme diplomate mais escalade les conflits.",
-        "flag_pattern_fair_exploiter" => {
-            "Perçu comme équitable mais exploite l'injustice à son profit."
-        }
-        "flag_pattern_humble_dismissive" => "Perçu comme humble mais rabaisse les autres.",
-        "flag_pattern_trusting_paranoid" => {
-            "Perçu comme confiant mais devient paranoïaque sous la menace."
-        }
-        "flag_pattern_reliable_shirker" => "Perçu comme fiable mais esquive ses responsabilités.",
-        "flag_pattern_hardworker_complacent" => {
-            "Perçu comme travailleur mais se repose sur ses lauriers."
-        }
-        "flag_risk_appetite_ambition" => {
-            "Aspire au pouvoir ou à la réussite mais évite tout risque."
-        }
-        "flag_power_passive" => "Aspire au pouvoir mais est perçu comme une carpette.",
-        "flag_helping_cold" => "Prêche l'aide aux autres mais paraît émotionnellement froid.",
-        "flag_pattern_passive_blowup" => "Perçu comme passif mais explose sous la pression.",
-        "flag_pattern_assertive_quiet" => "Perçu comme affirmé mais se tait quand il le faut.",
-        "flag_loss_aversion_risky" => "Se dit amateur de risque mais est averse à la perte.",
-        "flag_dunning_kruger_humble" => "Surestime ses compétences mais paraît humble.",
-        "flag_impostor_arrogant" => "Sous-estime ses compétences mais paraît arrogant.",
-        "flag_recency_reliable" => "Perçu comme stable mais ballotté par l'actualité.",
-        "flag_resilient_hides" => "Admet sa fragilité mais paraît imperturbable — il la cache.",
-        "flag_pattern_generous_exploiter" => "Perçu comme généreux mais exploite les autres.",
-        "flag_pattern_empath_dismissive" => "Perçu comme empathique mais rabaisse les autres.",
-        "flag_pattern_flexible_resister" => {
-            "Perçu comme flexible mais résiste au changement et au feedback."
-        }
-        "flag_anchoring_open" => {
-            "Se dit ouvert d'esprit mais s'accroche aux premières impressions."
-        }
-        "flag_learning_arrogant" => {
-            "Prêche la croissance mais est trop arrogant pour écouter les conseils."
-        }
-        "flag_warmth_selfish" => "Se dit chaleureux mais est perçu comme égoïste.",
-        "flag_style_direct_diplomatic" => "Se dit direct mais passe pour un diplomate.",
-        "flag_style_diplomatic_blunt" => "Se dit diplomate mais passe pour brutal.",
-        "flag_style_competing_passive" => "Se dit compétitif mais passe pour passif.",
-        "flag_style_dominant_submissive" => "Se dit autocratique mais passe pour soumis.",
-        "flag_style_controlling" => {
-            "Contrôle et micro-gère — perçu comme dominateur, pas confiant."
-        }
-        "flag_style_manipulative" => "Adopte un style manipulateur et passe pour malhonnête.",
-        "flag_style_passive_aggressive" => "S'avoue passif-agressif et passe pour réactif.",
-        "flag_style_detached" => "S'avoue détaché et passe pour froid/distant.",
-        "flag_style_manipulative_honest" => "Se dit roublard mais passe pour honnête.",
-        "flag_style_empathetic_cold" => "Se dit empathique mais paraît froid.",
-        "flag_style_guarded_trusting" => "Se dit méfiant mais paraît confiant.",
-        "flag_pattern_helping_exploiter" => {
-            "Prêche l'aide aux autres mais les patterns montrent l'exploitation."
-        }
-        "flag_pattern_warmth_dismissive" => {
-            "Image de chaleur mais les patterns rabaissent les autres."
-        }
-        "flag_pattern_discipline_shirker" => {
-            "Image de discipline mais les patterns esquivent les responsabilités."
-        }
-        "flag_pattern_claimed_calm_volatile" => {
-            "Se dit calme mais les patterns montrent de la volatilité."
-        }
-        "flag_style_servant_authoritative" => {
-            "Se dit leader serviteur mais passe pour un commandant."
-        }
-        "flag_style_consensus_authoritative" => {
-            "Se dit axé consensus mais passe pour un dictateur."
-        }
-        "flag_style_trusts_freely_suspicious" => "Se dit confiant mais passe pour méfiant.",
-        "flag_style_repairs_trust_deceitful" => {
-            "Se dit réparateur de confiance mais passe pour trompeur."
-        }
-        "flag_style_rulebased_favoritist" => "Se dit basé sur des règles mais joue les favoris.",
-        "flag_pattern_fairness_exploiter" => {
-            "Prêche l'équité mais les patterns exploitent l'injustice."
-        }
-        "flag_pattern_achievement_complacent" => {
-            "Aspire à la réussite mais les patterns se reposent sur les lauriers."
-        }
-        "flag_pattern_learning_resister" => {
-            "Prêche l'apprentissage mais les patterns rejettent le feedback."
-        }
-        "flag_pattern_extravert_quiet" => "Image d'extraversion mais les patterns se taisent.",
-        "flag_style_virtuebased_deceitful" => "Se dit basé sur la vertu mais passe pour trompeur.",
-        "flag_availability_calm" => {
-            "Perçu comme imperturbable mais surpondère les événements dramatiques."
-        }
-        "flag_pattern_open_resister" => "Se dit ouvert mais les patterns résistent au changement.",
-        "flag_pattern_recognition_dismissive" => {
-            "Cherche la reconnaissance mais rabaisse les autres pour la gagner."
-        }
-        "flag_value_family_future" => {
-            "Valorise la famille mais décide avec une orientation tournée vers l'avenir."
-        }
-        "flag_value_stability_risk" => {
-            "Aspire à la stabilité mais a un très fort appétit pour le risque — contradictoire."
-        }
-        "flag_value_career_family" => {
-            "Carrière et famille tous deux en priorité — attendez-vous à des tensions."
-        }
-        "flag_value_loyalty_guarded" => {
-            "Valorise la loyauté mais adopte un style de confiance défiant."
-        }
-        "flag_value_health_risky" => {
-            "Valorise la santé mais a un appétit de risque très élevé — contradictoire."
-        }
-        "flag_value_wealth_generous" => {
-            "Valorise la richesse mais passe pour généreux — contradictoire."
-        }
-        "flag_value_faith_deceitful" => {
-            "Valorise la foi mais passe pour malhonnête — contradictoire."
-        }
-        "flag_value_adventure_stability" => {
-            "Valorise l'aventure et la stabilité à la fois — forces opposées."
-        }
-        "flag_value_community_selfish" => {
-            "Valorise la communauté mais passe pour égoïste — contradictoire."
-        }
-        "flag_value_knowledge_arrogant" => {
-            "Valorise le savoir mais passe pour arrogant — contradictoire."
-        }
-
-        "edit_motivations" => "Motivations",
-        "edit_biases" => "Biais",
-        "bias_undefined_warning" => {
+        Key::BiasUndefinedWarning => {
             "Les biais non définis comptent comme présents. Mettez 0 pour les marquer absents."
         }
-        "rep_undefined_warning" => {
-            "Les traits non définis pénalisent la réputation. Les valeurs extrêmes (≤2 ou ≥8) déclenchent des ajustements."
-        }
-        "rep_scale_hint" => {
-            "0 = pôle négatif, 10 = pôle positif — la case ✗ laisse la dimension inconnue."
-        }
-        "mot_undefined_warning" => {
-            "Moins de 3 motivations pénalise (−0.03 chaque). L'absence de Justice/Aide aussi."
-        }
-        "profile_completeness" => "Compl.",
-        "edit_reputation" => "Réputation",
-        "edit_patterns" => "Patterns comportementaux",
-        "edit_styles" => "Styles personnels",
-        "edit_notes_placeholder" => "Notes",
-        "edit_evidence_placeholder" => "Preuve",
-
-        "aria_add_motivation" => "Ajouter une motivation",
-        "aria_update_motivation" => "Modifier la motivation",
-        "aria_move_motivation_up" => "Monter la motivation",
-        "aria_move_motivation_down" => "Descendre la motivation",
-        "aria_edit_motivation" => "Modifier la motivation",
-        "aria_delete_motivation" => "Supprimer la motivation",
-
-        "aria_add_bias" => "Ajouter un biais",
-        "aria_update_bias" => "Modifier le biais",
-        "aria_move_bias_up" => "Monter le biais",
-        "aria_move_bias_down" => "Descendre le biais",
-        "aria_edit_bias" => "Modifier le biais",
-        "aria_delete_bias" => "Supprimer le biais",
-
-        "aria_add_value" => "Ajouter une valeur",
-        "aria_update_value" => "Modifier la valeur",
-        "aria_move_value_up" => "Monter la valeur",
-        "aria_move_value_down" => "Descendre la valeur",
-        "aria_edit_value" => "Modifier la valeur",
-        "aria_delete_value" => "Supprimer la valeur",
-
-        "aria_add_pattern" => "Ajouter un pattern",
-        "aria_update_pattern" => "Modifier le pattern",
-        "aria_move_pattern_up" => "Monter le pattern",
-        "aria_move_pattern_down" => "Descendre le pattern",
-        "aria_edit_pattern" => "Modifier le pattern",
-        "aria_delete_pattern" => "Supprimer le pattern",
-
-        "aria_add_style" => "Ajouter un style",
-        "aria_update_style" => "Modifier le style",
-        "aria_move_style_up" => "Monter le style",
-        "aria_move_style_down" => "Descendre le style",
-        "aria_edit_style" => "Modifier le style",
-        "aria_delete_style" => "Supprimer le style",
-
-        "aria_discard_prefix" => "Annuler",
-        "aria_avatar_prefix" => "Avatar",
-        "bucket_override" => "Remplacer",
-        "bucket_inherits_base" => "Hérite de la base",
-        "add_btn" => "＋",
-        "edit_update_btn" => "💾",
-
-        "bias_scale_hint" => "0 = ce biais est absent, 10 = il influence la plupart des décisions.",
-
-        "pattern_helper_stress" => {
-            "Comment il réagit sous pression ou délais serrés — au travail : une échéance imminente ; dans la vie : une journée surchargée"
-        }
-        "pattern_helper_conflict" => {
-            "Comment il gère les désaccords et confrontations — au travail : un clash en réunion ; dans la vie : une dispute familiale"
-        }
-        "pattern_helper_success" => {
-            "Comment il répond aux réussites et victoires — au travail : la conclusion d'un gros contrat ; dans la vie : l'aboutissement d'un projet personnel"
-        }
-        "pattern_helper_uncertainty" => {
-            "Comment il navigue l'ambiguïté et l'incertain — au travail : un projet au périmètre flou ; dans la vie : l'attente d'un résultat incertain"
-        }
-        "pattern_helper_recognition" => {
-            "Comment il cherche et réagit à la reconnaissance — au travail : les éloges d'un supérieur ; dans la vie : l'appréciation de ses amis"
-        }
-        "pattern_helper_threat" => {
-            "Comment il se défend quand il se sent attaqué — au travail : critiqué lors d'un entretien ; dans la vie : pris à partie dans une discussion vive"
-        }
-        "pattern_helper_change" => {
-            "Comment il s'adapte aux transitions et nouveautés — au travail : une réorganisation ou un nouveau poste ; dans la vie : un déménagement ou une nouvelle routine"
-        }
-        "pattern_helper_feedback" => {
-            "Comment il reçoit et traite les retours des autres — au travail : le bilan d'un projet ; dans la vie : un ami qui signale un angle mort"
-        }
-        "pattern_helper_injustice" => {
-            "Comment il réagit face à l'injustice ou au traitement inéquitable — au travail : une promotion injustement ignorée ; dans la vie : voir quelqu'un être maltraité"
-        }
-
-        "ctx_stress" => "Stress",
-        "ctx_decision" => "Décision",
-        "ctx_team" => "Équipe",
-        "ctx_communication" => "Communication",
-        "ctx_leadership" => "Leadership",
-        "ctx_growth" => "Croissance",
-        "ctx_conflict" => "Conflit",
-        "ctx_success" => "Réussite",
-        "ctx_uncertainty" => "Incertitude",
-        "ctx_recognition" => "Reconnaissance",
-        "ctx_threatened" => "Menacé",
-        "ctx_change" => "Changement",
-        "ctx_feedback" => "Feedback",
-        "ctx_injustice" => "Injustice",
-
-        "pred_all_title" => "Toutes les prédictions",
-        "pred_for" => "🔮 Prédictions pour",
-        "pred_title" => "Prédictions",
-        "pred_context_placeholder" => "Contexte...",
-        "pred_outcome_placeholder" => "Comportement prédit...",
-        "pred_add_btn" => "Ajouter",
-        "pred_none" => "Aucune prédiction.",
-        "pred_predicted_label" => "Prédit",
-        "pred_actual_label" => "Réel",
-        "pred_resolve_btn" => "Résoudre",
-        "pred_delete_btn" => "Supprimer",
-        "pred_actual_placeholder" => "Résultat réel...",
-        "pred_accuracy_label" => "Précision",
-        "pred_resolve_submit" => "✓ Résoudre",
-        "pred_cancel_btn" => "Annuler",
-
-        "insights_title" => "📊 Analyses",
-        "insights_select_person" => {
-            "Sélectionnez une personne pour voir les analyses comportementales."
-        }
-        "insights_observed" => "Patterns observés",
-        "log_title" => "📋 Journal",
-        "log_placeholder" => "Que s'est-il passé ?",
-        "log_add" => "Ajouter",
-        "log_empty" => "Aucune entrée.",
-        "log_valence" => "Valence",
-        "log_trigger" => "Déclencheur",
-        "log_target" => "Avec",
-        "log_no_trigger" => "Aucun déclencheur",
-        "log_no_target" => "Note perso (sans cible)",
-        "trend_improving" => "Amélioration",
-        "trend_stable" => "Stable",
-        "trend_deteriorating" => "Détérioration",
-        "trend_hint" => "Basé sur les interactions journalisées récentes",
-
-        "strategy_stress_label" => "Sous stress",
-        "strategy_conflict_label" => "En conflit",
-        "strategy_success_label" => "En réussite",
-        "strategy_uncertainty_label" => "Dans l'incertitude",
-        "strategy_recognition_label" => "Cherchant la reconnaissance",
-        "strategy_threat_label" => "Se sentant menacé",
-        "strategy_change_label" => "Face au changement",
-        "strategy_feedback_label" => "Recevoir du feedback",
-        "strategy_when" => "Quand {name} est {trigger} :\n\n{advice}",
-        "more_recs" => "Plus de recommandations",
-
-        "strategy_stress_high_n" => {
-            "Névrosisme élevé — offrez du soutien émotionnel avant les solutions."
-        }
-        "strategy_stress_high_e" => {
-            "Extraversion élevée — permettez l'expression verbale du stress."
-        }
-        "strategy_stress_low_e" => "Faible extraversion — laissez de l'espace pour décompresser.",
-        "strategy_stress_high_c" => {
-            "Conscienciosité élevée — décomposez les problèmes en étapes actionnables."
-        }
-        "strategy_stress_low_a" => "Faible agréabilité — peut devenir irritable sous pression.",
-        "strategy_stress_low_c" => "Faible conscienciosité — peut devenir désorganisé ou éviter.",
-        "strategy_stress_high_o" => "Haute ouverture — peut trop réfléchir et imaginer le pire.",
-        "strategy_stress_power" => {
-            "Motivé par le pouvoir — laissez-lui reprendre le contrôle sur un domaine."
-        }
-        "strategy_stress_security" => {
-            "Motivé par la sécurité — renforcez la stabilité et la routine."
-        }
-        "strategy_stress_ambition_rhetoric" => {
-            "Il parle d'ambition mais est perçu comme paresseux — ne récompensez pas le discours ; concentrez-vous sur l'effort et la concrétisation."
-        }
-        "strategy_stress_security_rhetoric" => {
-            "Il revendique la sécurité mais est naïvement confiant — ne vous fiez pas à sa prudence affichée ; vérifiez vous-même les garde-fous."
-        }
-        "strategy_stress_fallback" => {
-            "Surveillez les signaux de stress et ajustez l'environnement."
-        }
-
-        "strategy_conflict_low_a" => {
-            "Faible agréabilité — abordez le conflit directement avec des faits."
-        }
-        "strategy_conflict_high_a" => {
-            "Haute agréabilité — adoucissez la confrontation, concentrez-vous sur l'harmonie."
-        }
-        "strategy_conflict_high_n" => {
-            "Névrosisme élevé — désamorcez et offrez un espace de sécurité émotionnelle."
-        }
-        "strategy_conflict_high_e" => "Extraversion élevée — laissez-les parler pour évacuer.",
-        "strategy_conflict_high_c" => {
-            "Haute conscienciosité — peut insister rigidement sur les règles."
-        }
-        "strategy_conflict_low_e" => "Faible extraversion — peut se retirer au lieu de s'engager.",
-        "strategy_conflict_fallback" => "Médiateur avec une communication équilibrée.",
-        "strategy_conflict_affiliation_rhetoric" => {
-            "Il revendique la proximité mais paraît froid — ne faites pas appel à son besoin déclaré de connexion ; traitez directement la distance."
-        }
-        "strategy_conflict_affiliation_trust_rhetoric" => {
-            "Il revendique la proximité mais se montre méfiant — ne faites pas appel à son besoin déclaré de connexion ; gagnez sa confiance avant de chercher la complicité."
-        }
-
-        "strategy_success_high_o" => {
-            "Haute ouverture — canalisez le succès vers de nouveaux défis créatifs."
-        }
-        "strategy_success_high_c" => {
-            "Haute conscienciosité — utilisez le succès comme validation du processus."
-        }
-        "strategy_success_low_e" => {
-            "Faible extraversion — peut se sentir submergé par l'attention publique."
-        }
-        "strategy_success_high_a" => {
-            "Haute agréabilité — peut détourner le crédit pour éviter de se démarquer."
-        }
-        "strategy_success_recognition" => {
-            "Motivé par la reconnaissance — reconnaissez publiquement leur accomplissement."
-        }
-        "strategy_success_power" => {
-            "Motivé par le pouvoir — donnez-leur la propriété de la prochaine initiative."
-        }
-        "strategy_success_ambition_rhetoric" => {
-            "Il parle d'ambition mais est perçu comme paresseux — ne célébrez pas ses plans ; exigez des résultats."
-        }
-        "strategy_success_fallback" => "Célébrez le succès et identifiez les axes de croissance.",
-
-        "strategy_uncertainty_high_n" => {
-            "Névrosisme élevé — fournissez des échéances claires et des mises à jour fréquentes."
-        }
-        "strategy_uncertainty_low_n" => {
-            "Faible névrosisme — gère bien l'ambiguïté ; faites confiance à sa résilience."
-        }
-        "strategy_uncertainty_high_o" => {
-            "Haute ouverture — cadrez l'incertitude comme une opportunité."
-        }
-        "strategy_uncertainty_low_o" => {
-            "Faible ouverture — fournissez des exemples concrets et des cadres familiers."
-        }
-        "strategy_uncertainty_high_c" => {
-            "Haute conscienciosité — a besoin d'un plan concret immédiatement."
-        }
-        "strategy_uncertainty_high_e" => {
-            "Haute extraversion — peut trop socialiser pour gérer l'ambiguïté."
-        }
-        "strategy_uncertainty_fallback" => {
-            "Reconnaissez l'incertitude et fournissez les informations disponibles."
-        }
-
-        "strategy_recognition_high" => {
-            "Fort besoin de reconnaissance — donnez des éloges fréquents et spécifiques."
-        }
-        "strategy_recognition_mid" => {
-            "Besoin modéré de reconnaissance — reconnaissez les contributions régulièrement."
-        }
-        "strategy_recognition_low" => {
-            "Faible besoin de reconnaissance — évitez les éloges excessifs."
-        }
-        "strategy_recognition_high_e" => {
-            "Extraversion élevée — la reconnaissance publique est efficace."
-        }
-        "strategy_recognition_low_e" => {
-            "Faible extraversion — préférez une reconnaissance privée et écrite."
-        }
-        "strategy_recognition_fallback" => {
-            "Adaptez le style de reconnaissance à leur niveau de confort."
-        }
-
-        "strategy_threat_low_a" => {
-            "Faible agréabilité — peut réagir ; abordez les préoccupations calmement."
-        }
-        "strategy_threat_high_a" => {
-            "Haute agréabilité — peut céder trop facilement ; vérifiez les vrais sentiments."
-        }
-        "strategy_threat_high_n" => {
-            "Névrosisme élevé — les menaces perçues sont amplifiées ; offrez du réconfort."
-        }
-        "strategy_threat_power" => {
-            "Motivé par le pouvoir — la menace au statut est sérieuse ; impliquez-le dans les décisions."
-        }
-        "strategy_threat_fallback" => "Écoutez activement et validez ses préoccupations.",
-
-        "strategy_change_high_n" => {
-            "Névrosisme élevé — peut résister au changement ; offrez des points d'ancrage."
-        }
-        "strategy_change_low_n" => {
-            "Faible névrosisme — s'adapte bien ; exploitez comme champion du changement."
-        }
-        "strategy_change_high_c" => {
-            "Haute conscienciosité — a besoin d'une feuille de route claire."
-        }
-        "strategy_change_low_e" => {
-            "Faible extraversion — a besoin de temps pour digérer le changement en privé."
-        }
-        "strategy_change_high_o" => {
-            "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif."
-        }
-        "strategy_change_fallback" => "Expliquez le pourquoi et impliquez-les dans la transition.",
-        "strategy_change_discipline_rhetoric" => {
-            "Il se voit discipliné mais est perçu comme paresseux — ne faites pas appel à son image organisée ; vérifiez la production réelle."
-        }
-
-        "strategy_feedback_high_n" => {
-            "Névrosisme élevé — peut prendre le feedback personnellement ; utilisez un ton doux."
-        }
-        "strategy_feedback_low_n" => "Faible névrosisme — gère bien les critiques ; soyez direct.",
-        "strategy_feedback_low_a" => {
-            "Faible agréabilité — peut rejeter le feedback ; basez-vous sur des faits."
-        }
-        "strategy_feedback_low_e" => "Faible extraversion — préfère un feedback écrit et privé.",
-        "strategy_feedback_high_c" => {
-            "Haute conscienciosité — apprécie un feedback détaillé et actionnable."
-        }
-        "strategy_feedback_fallback" => {
-            "Équilibrez éloges et critiques constructives avec des exemples précis."
-        }
-        "strategy_feedback_helping_rhetoric" => {
-            "Il prêche l'entraide mais est perçu comme égoïste — ne formulez pas le retour autour de l'aide aux autres ; nommez l'intérêt personnel derrière le conseil."
-        }
-        "strategy_feedback_warmth_rhetoric" => {
-            "Il se voit chaleureux mais est perçu comme brutal — ne comptez pas sur un ton doux ; soyez clair et précis sur le comportement."
-        }
-
-        "strategy_injustice_label" => "Face à l'injustice",
-        "strategy_injustice_high_a" => {
-            "Haute agréabilité — peut se sentir personnellement blessé par l'injustice."
-        }
-        "strategy_injustice_high_n" => {
-            "Névrosisme élevé — peut ruminer et amplifier les affronts perçus."
-        }
-        "strategy_injustice_fairness" => {
-            "Motivé par l'équité — se battra pour ce qu'il croit juste, même à titre personnel."
-        }
-        "strategy_injustice_fairness_rhetoric" => {
-            "Parle d'équité mais agit avec favoritisme — ne faites pas appel à son discours sur la justice ; adressez-vous au vrai moteur."
-        }
-        "strategy_injustice_power" => {
-            "Motivé par le pouvoir — peut utiliser son autorité pour corriger le tort perçu."
-        }
-        "strategy_injustice_ambition_rhetoric" => {
-            "Il parle d'ambition mais est perçu comme paresseux — n'attendez pas qu'il se batte pour la cause ; présentez l'issue comme servant son statut."
-        }
-        "strategy_injustice_fallback" => {
-            "Reconnaissez leur préoccupation et clarifiez la voie vers la résolution."
-        }
-
-        "sync_title" => "☁ Sync & Sauvegarde",
-        "sync_gdrive_title" => "Synchronisation Google Drive",
-        "sync_token_loaded" => "✓ Jeton chargé",
-        "sync_token_cleared" => "Jeton effacé",
-        "sync_clear_btn" => "Effacer",
-        "sync_sign_in" => "🔐 Connexion Google",
-        "sync_no_token" => "Aucun jeton. Connectez-vous d'abord.",
-        "sync_backing_up" => "Sauvegarde en cours...",
-        "sync_backed_up" => "✅ Sauvegardé",
-        "sync_backup_btn" => "☁ Sauvegarder sur Drive",
-        "sync_restoring" => "Restauration en cours...",
-        "sync_restored" => "✅ Restauré",
-        "sync_restore_btn" => "☁ Restaurer depuis Drive",
-        "sync_not_configured" => {
-            "Sauvegarde Google Drive non configurée. Définissez GOOGLE_CLIENT_ID avant de compiler."
-        }
-        "sync_local_title" => "Sauvegarde locale",
-        "sync_local_desc" => {
-            "Exportez toutes les données en JSON ou importez depuis une sauvegarde."
-        }
-        "sync_exported" => "✅ Exporté",
-        "sync_export_btn" => "📥 Exporter JSON",
-        "sync_import_btn" => "📤 Importer JSON",
-        "sync_passphrase_label" => "Chiffrer la sauvegarde avec une phrase de passe (optionnel)",
-        "sync_passphrase_placeholder" => "Entrez la phrase de passe...",
-        "sync_passphrase_show" => "Afficher",
-        "sync_passphrase_hide" => "Masquer",
-        "sync_wrong_passphrase" => "❌ Mauvaise phrase de passe ou données corrompues",
-        "sync_token_instruction_1" => "1. Appuyez sur « Connexion Google » — le navigateur s'ouvre",
-        "sync_token_instruction_2" => "2. Connectez-vous et autorisez l'accès",
-        "sync_token_instruction_3" => {
-            "3. Le navigateur redirige vers l'app web — copiez le jeton depuis la barre d'adresse avant que la page ne charge"
-        }
-        "sync_token_instruction_4" => "4. Collez l'URL ci-dessous et appuyez sur Enregistrer",
-        "sync_paste_placeholder" => "Collez l'URL de redirection complète ici",
-        "sync_token_saved" => "✅ Jeton enregistré",
-        "sync_save_token_btn" => "Enregistrer",
-        "sync_no_data_warn" => "Aucune personne à sauvegarder. Ajoutez des personnes d'abord !",
-        "sync_view_backup" => "🔎 Voir les sauvegardes dans le navigateur (appDataFolder Browser)",
-
-        "common_save" => "Enregistrer",
-        "common_cancel" => "Annuler",
-        "common_delete" => "Supprimer",
-        "common_add" => "Ajouter",
-        "common_edit" => "Modifier",
-        "common_back" => "← Retour",
-        "compare_title" => "Comparer des personnes",
-        "compare_btn" => "Comparer",
-        "compare_sub" => "Identifiez synergies et points de friction entre deux personnes",
-        "compare_vs" => "VS",
-        "compare_top_mot" => "Motivation principale",
-        "compare_bias_main" => "Biais principal",
-        "compare_ocean" => "Profil OCEAN",
-        "compare_analysis_title" => "Analyse dynamique",
-        "compare_synergies" => "Synergies",
-        "compare_friction" => "Points de friction",
-        "compare_strategy" => "Stratégie d'interaction",
-        "compare_breakdown" => "Détail",
-        "compare_ctx_title" => "Par situation",
-        "compare_cat_ocean" => "OCÉAN",
-        "compare_cat_reputation" => "Réputation",
-        "compare_cat_motivation" => "Motivation",
-        "compare_cat_patterns" => "Patterns",
-        "compare_cat_bias" => "Biais",
-        "compare_cat_styles" => "Styles",
-        "compare_cat_values" => "Valeurs",
-        "compare_risk_mitigation" => "Risques & Mitigations",
-        "values_title" => "Valeurs",
-        "no_values" => "Aucune valeur définie",
-        "edit_values" => "Valeurs",
-        "edit_priority" => "P",
-        "value_intensity_helper" => "Intensité (I) : à quel point cette valeur est ancrée.",
-        "value_priority_helper" => "Priorité (P) : importance par rapport aux autres valeurs.",
-        "compare_rel_title" => "Contexte de relation",
-        "compare_rel_none" => "Général (sans contexte)",
-        "compare_rel_strength" => "Intensité",
-        "compare_band_hint" => "±{}% (relation + fiabilité du profil)",
-        "compare_facet_unavailable" => "Non calculable dans ce contexte — un persona manque",
-        "person_self_score" => "Score de profil",
-        "Rep power struggle" => "Lutte de pouvoir (réputation)",
-        "OCEAN volatility" => "Volatilité OCEAN",
-        "Only negative patterns" => "Patterns négatifs uniquement",
-        "Low prediction accuracy" => "Faible précision prédictive",
-        "compare_asymmetric" => "Bénéfice mutuel",
-        "compare_benefit_more" => "bénéficie plus",
-        "compare_balanced" => "Équilibré",
-        "compare_ethics" => {
+        Key::BiasesTitle => "Biais",
+        Key::BucketInheritsBase => "Hérite de la base",
+        Key::BucketOverride => "Remplacer",
+        Key::CommonAdd => "Ajouter",
+        Key::CommonBack => "← Retour",
+        Key::CommonCancel => "Annuler",
+        Key::CommonDelete => "Supprimer",
+        Key::CommonEdit => "Modifier",
+        Key::CommonFinish => "Terminer",
+        Key::CommonNext => "Suivant →",
+        Key::CommonSave => "Enregistrer",
+        Key::CommonSkip => "Passer",
+        Key::CompareAnalysisTitle => "Analyse dynamique",
+        Key::CompareAsymmetric => "Bénéfice mutuel",
+        Key::CompareBalanced => "Équilibré",
+        Key::CompareBandHint => "±{}% (relation + fiabilité du profil)",
+        Key::CompareBenefitMore => "bénéficie plus",
+        Key::CompareBiasMain => "Biais principal",
+        Key::CompareBreakdown => "Détail",
+        Key::CompareBtn => "Comparer",
+        Key::CompareCatBias => "Biais",
+        Key::CompareCatMotivation => "Motivation",
+        Key::CompareCatOcean => "OCÉAN",
+        Key::CompareCatPatterns => "Patterns",
+        Key::CompareCatReputation => "Réputation",
+        Key::CompareCatStyles => "Styles",
+        Key::CompareCatValues => "Valeurs",
+        Key::CompareCtxTitle => "Par situation",
+        Key::CompareEthics => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
         }
-
-        // Scale bands
-        "scale_strong" => "Fort",
-        "scale_good" => "Bon",
-        "scale_moderate" => "Moyen",
-        "scale_friction" => "Friction",
-        "scale_tension" => "Tension",
-
-        // Relationships
-        "rel_title" => "Relations",
-        "rel_notes" => "Notes",
-        "rel_strength" => "Intensité",
-        "rel_none" => "Aucune relation.",
-        "rel_open_add" => "＋ Ajouter",
-        "rel_close_add" => "− Annuler",
-        "rel_search_placeholder" => "Rechercher une personne…",
-        "rel_confirm_delete" => "Supprimer cette relation ?",
-        "confirm_delete" => "Supprimer cette personne ?",
-        "confirm_delete_log" => "Supprimer cette entrée ?",
-        "confirm_delete_pred" => "Supprimer cette prédiction ?",
-        "no_search_results" => "Aucun résultat pour «{0}».",
-        "rel_person_rel" => "Relations",
-
-        // Timeline
-        "tl_title" => "Chronologie",
-        "tl_empty" => "Aucune entrée d'interaction.",
-
-        // Style helpers
-        "style_no_styles" => "Aucun style personnel enregistré.",
-        "style_panel_title" => "Styles personnels",
-
-        // Tags
-
-        // Tutorial
-        "tut_step" => "Étape",
-        "tut_welcome_title" => "Bienvenue sur PeopleModeler !",
-        "tut_welcome_body" => {
-            "Cette application vous aide à modéliser et comprendre les personnes de votre vie en utilisant des cadres de personnalité comme l'OCEAN (Big Five), les motivations, les biais cognitifs et les schémas comportementaux.\n\nVous pouvez comparer des personnes côte à côte, suivre des prédictions dans le temps, cartographier les relations et explorer les scores de synergie."
+        Key::CompareFacetUnavailable => "Non calculable dans ce contexte — un persona manque",
+        Key::CompareFriction => "Points de friction",
+        Key::CompareOcean => "Profil OCEAN",
+        Key::CompareRelNone => "Général (sans contexte)",
+        Key::CompareRelStrength => "Intensité",
+        Key::CompareRelTitle => "Contexte de relation",
+        Key::CompareRiskMitigation => "Risques & Mitigations",
+        Key::CompareStrategy => "Stratégie d'interaction",
+        Key::CompareSub => "Identifiez synergies et points de friction entre deux personnes",
+        Key::CompareSynergies => "Synergies",
+        Key::CompareTitle => "Comparer des personnes",
+        Key::CompareTopMot => "Motivation principale",
+        Key::CompareVs => "VS",
+        Key::ConfidenceHint => {
+            "À quel point ce profil est fiable ? 1 = ébauche, 10 = fondé sur des observations réelles."
         }
-        "tut_people_title" => "Vos Personnes",
-        "tut_people_body" => {
-            "La page principale montre toutes les personnes que vous avez créées. Utilisez la barre de recherche pour trouver quelqu'un, triez par nom / récent / score OCEAN, et cliquez sur le bouton + pour ajouter une nouvelle personne."
+        Key::ConfidenceLabel => "Fiabilité du profil",
+        Key::ConfirmDelete => "Supprimer cette personne ?",
+        Key::ConfirmDeleteLog => "Supprimer cette entrée ?",
+        Key::ConfirmDeletePred => "Supprimer cette prédiction ?",
+        Key::ConfirmDeleteTeam => "Supprimer cette équipe ?",
+        Key::CtxChange => "Changement",
+        Key::CtxCommunication => "Communication",
+        Key::CtxConflict => "Conflit",
+        Key::CtxDecision => "Décision",
+        Key::CtxFeedback => "Feedback",
+        Key::CtxGrowth => "Croissance",
+        Key::CtxInjustice => "Injustice",
+        Key::CtxLeadership => "Leadership",
+        Key::CtxRecognition => "Reconnaissance",
+        Key::CtxStress => "Stress",
+        Key::CtxSuccess => "Réussite",
+        Key::CtxTeam => "Équipe",
+        Key::CtxThreatened => "Menacé",
+        Key::CtxUncertainty => "Incertitude",
+        Key::DeleteBtn => "🗑 Supprimer",
+        Key::EditBiases => "Biais",
+        Key::EditBtn => "✏ Modifier",
+        Key::EditDiscardSection => "Rétablir",
+        Key::EditEvidencePlaceholder => "Preuve",
+        Key::EditMotivations => "Motivations",
+        Key::EditNotesPlaceholder => "Notes",
+        Key::EditPatterns => "Patterns comportementaux",
+        Key::EditPriority => "P",
+        Key::EditReputation => "Réputation",
+        Key::EditStyles => "Styles personnels",
+        Key::EditUpdateBtn => "💾",
+        Key::EditValues => "Valeurs",
+        Key::FlagAffiliationCold => {
+            "Revendique la proximité mais est perçu comme froid et distant — fait ce que je dis, pas ce que je fais."
         }
-        "tut_create_title" => "Créer une Personne",
-        "tut_create_body" => {
-            "Le formulaire personne est divisé en sections : infos de base (nom, rôle, contexte), scores de personnalité OCEAN, motivations, biais cognitifs, dimensions de réputation et schémas comportementaux.\n\nChaque section capture une facette différente de la personnalité — remplissez ce que vous savez, laissez le reste vide."
+        Key::FlagAffiliationDistrustful => {
+            "Revendique la proximité mais est perçu comme méfiant — fait ce que je dis, pas ce que je fais."
         }
-        "tut_ocean_title" => "Modèle OCEAN (Big Five)",
-        "tut_ocean_body" => {
-            "L'OCEAN mesure la personnalité sur cinq dimensions de 1 à 10 :\n• Ouverture — curiosité vs. prudence\n• Conscience — organisation vs. flexibilité\n• Extraversion — sociabilité vs. solitude\n• Agréabilité — coopération vs. compétition\n• Névrosisme — sensibilité vs. stabilité émotionnelle\n\nCes scores alimentent le moteur de comparaison et aident à prédire le comportement."
+        Key::FlagAmbitionLazy => {
+            "Aspire au pouvoir, au succès ou à la reconnaissance mais est perçu comme paresseux — fait ce que je dis, pas ce que je fais."
         }
-        "tut_mot_bias_title" => "Motivations & Biais",
-        "tut_mot_bias_body" => {
-            "Les motivations capturent ce qui anime une personne — ses objectifs, ses peurs et ses valeurs (Réussite, Pouvoir, Affiliation, Sécurité, Autonomie, etc.).\n\nLes biais représentent des raccourcis mentaux qui influencent ses décisions (biais de confirmation, ancrage, excès de confiance, etc.). Ensemble, ils vous donnent une compréhension plus profonde de pourquoi les gens agissent comme ils le font."
+        Key::FlagAnchoringOpen => {
+            "Se dit ouvert d'esprit mais s'accroche aux premières impressions."
         }
-        "tut_rep_pattern_title" => "Réputation & Schémas",
-        "tut_rep_pattern_body" => {
-            "Les scores de réputation capturent comment les autres perçoivent cette personne sur des échelles bipolaires (travailleur vs. paresseux, honnête vs. trompeur, etc.).\n\nLes schémas comportementaux vous permettent d'enregistrer comment elle réagit typiquement à des déclencheurs spécifiques (stress, critique, succès, conflit, etc.). Cela aide à anticiper ses réponses dans des situations futures."
+        Key::FlagAuthorityDominant => {
+            "Perçu comme un leader mais se soumet aveuglément à l'autorité."
         }
-        "tut_compare_title" => "Comparaisons & Plus",
-        "tut_compare_body" => {
+        Key::FlagAutonomySubmissive => {
+            "Prêche l'indépendance mais est perçu comme soumis — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagAvailabilityCalm => {
+            "Perçu comme imperturbable mais surpondère les événements dramatiques."
+        }
+        Key::FlagBiasConfirmationOpen => {
+            "Se dit ouvert d'esprit mais ne cherche que des informations qui confirment ses vues — ne se connaît pas."
+        }
+        Key::FlagBiasFavoritismFairness => {
+            "Prêche l'équité mais montre un biais de favoritisme ou de groupe — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagCalmNeurotic => {
+            "Décrit comme calme sous pression mais l'OCEAN indique une forte réactivité — à vérifier."
+        }
+        Key::FlagClaimsCalmReactive => {
+            "Se prétend calme et stable mais est perçu comme réactif — ne se connaît pas."
+        }
+        Key::FlagCreativityClosed => {
+            "Prêche la créativité mais se dit peu ouvert à la nouveauté — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagCreativityRigid => {
+            "Prêche la créativité mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagDisciplineFlaky => {
+            "Se voit discipliné mais paraît inconstant — ne se connaît pas."
+        }
+        Key::FlagDisciplineLazy => {
+            "Image de soi disciplinée contredite par une réputation de paresse — ne se connaît pas."
+        }
+        Key::FlagDunningKrugerHumble => "Surestime ses compétences mais paraît humble.",
+        Key::FlagFairnessRhetoric => {
+            "Parle d'équité et de justice mais pratique le favoritisme — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagHelpingCold => "Prêche l'aide aux autres mais paraît émotionnellement froid.",
+        Key::FlagHelpingSelfish => {
+            "Prêche l'entraide mais est perçu comme égoïste — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagHighELowA => {
+            "Très extraverti mais faible agréabilité — peut être assertif jusqu'à l'abrasivité."
+        }
+        Key::FlagHighNLowC => {
+            "Réactivité émotionnelle élevée avec faible conscience — peut avoir du mal sous stress."
+        }
+        Key::FlagHighOLowC => {
+            "Très créatif mais désorganisé — beaucoup d'idées mais difficulté à les concrétiser."
+        }
+        Key::FlagHonestFavoritist => {
+            "Honnêteté de principe associée à un favoritisme perçu — l'équité ne vaut peut-être que pour certains."
+        }
+        Key::FlagHonestSelfish => {
+            "Honnêteté de principe associée à une faible générosité — peut indiquer une position morale rigide."
+        }
+        Key::FlagImpostorArrogant => "Sous-estime ses compétences mais paraît arrogant.",
+        Key::FlagLearningArrogant => {
+            "Prêche la croissance mais est trop arrogant pour écouter les conseils."
+        }
+        Key::FlagLearningRigid => {
+            "Prêche l'apprentissage et la croissance mais est perçu comme rigide — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagLossAversionRisky => "Se dit amateur de risque mais est averse à la perte.",
+        Key::FlagOpenRigid => "Se croit ouvert d'esprit mais paraît rigide — ne se connaît pas.",
+        Key::FlagPatternAchievementComplacent => {
+            "Aspire à la réussite mais les patterns se reposent sur les lauriers."
+        }
+        Key::FlagPatternAssertiveQuiet => "Perçu comme affirmé mais se tait quand il le faut.",
+        Key::FlagPatternCalmVolatile => {
+            "Perçu comme calme sous pression, mais les schémas enregistrés montrent de la volatilité — ce calme n'est peut-être qu'un masque."
+        }
+        Key::FlagPatternClaimedCalmVolatile => {
+            "Se dit calme mais les patterns montrent de la volatilité."
+        }
+        Key::FlagPatternDiplomatEscalator => "Perçu comme diplomate mais escalade les conflits.",
+        Key::FlagPatternDisciplineShirker => {
+            "Image de discipline mais les patterns esquivent les responsabilités."
+        }
+        Key::FlagPatternEmpathDismissive => "Perçu comme empathique mais rabaisse les autres.",
+        Key::FlagPatternExtravertQuiet => "Image d'extraversion mais les patterns se taisent.",
+        Key::FlagPatternFairExploiter => {
+            "Perçu comme équitable mais exploite l'injustice à son profit."
+        }
+        Key::FlagPatternFairnessExploiter => {
+            "Prêche l'équité mais les patterns exploitent l'injustice."
+        }
+        Key::FlagPatternFlexibleResister => {
+            "Perçu comme flexible mais résiste au changement et au feedback."
+        }
+        Key::FlagPatternGenerousExploiter => "Perçu comme généreux mais exploite les autres.",
+        Key::FlagPatternHardworkerComplacent => {
+            "Perçu comme travailleur mais se repose sur ses lauriers."
+        }
+        Key::FlagPatternHelpingExploiter => {
+            "Prêche l'aide aux autres mais les patterns montrent l'exploitation."
+        }
+        Key::FlagPatternHonestExploiter => {
+            "Perçu comme honnête, mais les schémas montrent de l'exploitation ou des rejets de responsabilité — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagPatternHumbleDismissive => "Perçu comme humble mais rabaisse les autres.",
+        Key::FlagPatternLearningResister => {
+            "Prêche l'apprentissage mais les patterns rejettent le feedback."
+        }
+        Key::FlagPatternOpenResister => "Se dit ouvert mais les patterns résistent au changement.",
+        Key::FlagPatternPassiveBlowup => "Perçu comme passif mais explose sous la pression.",
+        Key::FlagPatternRecognitionDismissive => {
+            "Cherche la reconnaissance mais rabaisse les autres pour la gagner."
+        }
+        Key::FlagPatternReliableShirker => "Perçu comme fiable mais esquive ses responsabilités.",
+        Key::FlagPatternTrustingParanoid => {
+            "Perçu comme confiant mais devient paranoïaque sous la menace."
+        }
+        Key::FlagPatternWarmthDismissive => {
+            "Image de chaleur mais les patterns rabaissent les autres."
+        }
+        Key::FlagPowerPassive => "Aspire au pouvoir mais est perçu comme une carpette.",
+        Key::FlagRecencyReliable => "Perçu comme stable mais ballotté par l'actualité.",
+        Key::FlagResilientHides => "Admet sa fragilité mais paraît imperturbable — il la cache.",
+        Key::FlagResilientReactive => {
+            "Se dit très résilient mais est perçu comme réactif — ne se connaît pas."
+        }
+        Key::FlagRiskAppetiteAmbition => {
+            "Aspire au pouvoir ou à la réussite mais évite tout risque."
+        }
+        Key::FlagSecurityGullible => {
+            "Revendique un besoin de sécurité mais est perçu comme naïvement confiant — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagSecurityRisky => {
+            "Prêche la prudence et la sécurité mais déclare aimer le risque — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagSocialProofOpen => {
+            "Se dit indépendant d'esprit mais suit le troupeau — fait ce que je dis, pas ce que je fais."
+        }
+        Key::FlagStyleCompetingPassive => "Se dit compétitif mais passe pour passif.",
+        Key::FlagStyleConsensusAuthoritative => {
+            "Se dit axé consensus mais passe pour un dictateur."
+        }
+        Key::FlagStyleControlling => {
+            "Contrôle et micro-gère — perçu comme dominateur, pas confiant."
+        }
+        Key::FlagStyleDetached => "S'avoue détaché et passe pour froid/distant.",
+        Key::FlagStyleDiplomaticBlunt => "Se dit diplomate mais passe pour brutal.",
+        Key::FlagStyleDirectDiplomatic => "Se dit direct mais passe pour un diplomate.",
+        Key::FlagStyleDominantSubmissive => "Se dit autocratique mais passe pour soumis.",
+        Key::FlagStyleEmpatheticCold => "Se dit empathique mais paraît froid.",
+        Key::FlagStyleGuardedTrusting => "Se dit méfiant mais paraît confiant.",
+        Key::FlagStyleManipulative => "Adopte un style manipulateur et passe pour malhonnête.",
+        Key::FlagStyleManipulativeHonest => "Se dit roublard mais passe pour honnête.",
+        Key::FlagStylePassiveAggressive => "S'avoue passif-agressif et passe pour réactif.",
+        Key::FlagStyleRepairsTrustDeceitful => {
+            "Se dit réparateur de confiance mais passe pour trompeur."
+        }
+        Key::FlagStyleRulebasedFavoritist => "Se dit basé sur des règles mais joue les favoris.",
+        Key::FlagStyleServantAuthoritative => {
+            "Se dit leader serviteur mais passe pour un commandant."
+        }
+        Key::FlagStyleTrustsFreelySuspicious => "Se dit confiant mais passe pour méfiant.",
+        Key::FlagStyleVirtuebasedDeceitful => "Se dit basé sur la vertu mais passe pour trompeur.",
+        Key::FlagSunkCostFlexible => {
+            "Perçu comme flexible mais s'accroche aux coûts irrécupérables."
+        }
+        Key::FlagValueAdventureStability => {
+            "Valorise l'aventure et la stabilité à la fois — forces opposées."
+        }
+        Key::FlagValueCareerFamily => {
+            "Carrière et famille tous deux en priorité — attendez-vous à des tensions."
+        }
+        Key::FlagValueCommunitySelfish => {
+            "Valorise la communauté mais passe pour égoïste — contradictoire."
+        }
+        Key::FlagValueFaithDeceitful => {
+            "Valorise la foi mais passe pour malhonnête — contradictoire."
+        }
+        Key::FlagValueFamilyFuture => {
+            "Valorise la famille mais décide avec une orientation tournée vers l'avenir."
+        }
+        Key::FlagValueHealthRisky => {
+            "Valorise la santé mais a un appétit de risque très élevé — contradictoire."
+        }
+        Key::FlagValueKnowledgeArrogant => {
+            "Valorise le savoir mais passe pour arrogant — contradictoire."
+        }
+        Key::FlagValueLoyaltyGuarded => {
+            "Valorise la loyauté mais adopte un style de confiance défiant."
+        }
+        Key::FlagValueStabilityRisk => {
+            "Aspire à la stabilité mais a un très fort appétit pour le risque — contradictoire."
+        }
+        Key::FlagValueWealthGenerous => {
+            "Valorise la richesse mais passe pour généreux — contradictoire."
+        }
+        Key::FlagWarmthBlunt => {
+            "Image de soi chaleureuse contredite par une réputation de franchise brutale — ne se connaît pas."
+        }
+        Key::FlagWarmthCold => "Se croit chaleureux mais paraît froid — ne se connaît pas.",
+        Key::FlagWarmthSelfish => "Se dit chaleureux mais est perçu comme égoïste.",
+        Key::FormAvatar => "Avatar",
+        Key::FormCancel => "Annuler",
+        Key::FormConfidence => "Fiabilité du profil (1-10)",
+        Key::FormContext => "Contexte",
+        Key::FormEditTitle => "Modifier la personne",
+        Key::FormName => "Nom",
+        Key::FormNewTitle => "Nouvelle personne",
+        Key::FormNotes => "Notes",
+        Key::FormOceanTitle => "Scores OCEAN (1-10)",
+        Key::FormResilience => "Résilience (1-10)",
+        Key::FormRiskAppetite => "Appétence pour le risque (1-10)",
+        Key::FormRole => "Rôle",
+        Key::FormSave => "💾 Enregistrer",
+        Key::FormTags => "Tags (séparés par des virgules)",
+        Key::InsightsObserved => "Patterns observés",
+        Key::InsightsSelectPerson => {
+            "Sélectionnez une personne pour voir les analyses comportementales."
+        }
+        Key::InsightsTitle => "📊 Analyses",
+        Key::LogAdd => "Ajouter",
+        Key::LogEmpty => "Aucune entrée.",
+        Key::LogNoTarget => "Note perso (sans cible)",
+        Key::LogNoTrigger => "Aucun déclencheur",
+        Key::LogPlaceholder => "Que s'est-il passé ?",
+        Key::LogTarget => "Avec",
+        Key::LogTitle => "📋 Journal",
+        Key::LogTrigger => "Déclencheur",
+        Key::LogValence => "Valence",
+        Key::MoreRecs => "Plus de recommandations",
+        Key::MotUndefinedWarning => {
+            "Moins de 3 motivations pénalise (−0.03 chaque). L'absence de Justice/Aide aussi."
+        }
+        Key::MotivationsTitle => "Motivations",
+        Key::NavPeople => "Personnes",
+        Key::NavRelationships => "Relations",
+        Key::NavSync => "Sync",
+        Key::NavTeams => "Équipes",
+        Key::NavTimeline => "Chrono",
+        Key::NoBiases => "Aucun biais enregistré.",
+        Key::NoMotivations => "Aucune motivation enregistrée.",
+        Key::NoPatterns => "Aucun pattern comportemental enregistré.",
+        Key::NoPeopleInsights => {
+            "Aucune personne encore. Ajoutez quelqu'un pour voir les analyses."
+        }
+        Key::NoPeopleYet => "Aucune personne. Appuyez sur + pour ajouter.",
+        Key::NoReputation => "Aucun trait de réputation enregistré.",
+        Key::NoSearchResults => "Aucun résultat pour «{0}».",
+        Key::NoValues => "Aucune valeur définie",
+        Key::OceanA => "A — Agréabilité",
+        Key::OceanAHigh => "coopératif, empathique, cherche l'harmonie",
+        Key::OceanALow => "direct voire abrasif, met ses objectifs avant les relations",
+        Key::OceanAgreeableness => "Agréabilité",
+        Key::OceanC => "C — Conscienciosité",
+        Key::OceanCHigh => "organisé, fiable, orienté résultats et détails",
+        Key::OceanCLow => "flexible et spontané, peut manquer de rigueur",
+        Key::OceanConscientiousness => "Conscienciosité",
+        Key::OceanE => "E — Extraversion",
+        Key::OceanEHigh => "extraverti, énergique, cherche la stimulation sociale",
+        Key::OceanELow => "introverti, réfléchi, préfère les interactions limitées",
+        Key::OceanExtraversion => "Extraversion",
+        Key::OceanN => "N — Névrosisme",
+        Key::OceanNHigh => "émotionnellement réactif, stressable, sensible aux critiques",
+        Key::OceanNLow => "stable émotionnellement, calme sous pression",
+        Key::OceanNeuroticism => "Névrosisme",
+        Key::OceanO => "O — Ouverture",
+        Key::OceanOHigh => "très ouvert aux nouvelles idées, créatif et curieux",
+        Key::OceanOLow => "pragmatique, préfère les routines et le concret",
+        Key::OceanOpenness => "Ouverture",
+        Key::OceanTitle => "Scores OCEAN",
+        Key::PatternHelperChange => {
+            "Comment il s'adapte aux transitions et nouveautés — au travail : une réorganisation ou un nouveau poste ; dans la vie : un déménagement ou une nouvelle routine"
+        }
+        Key::PatternHelperConflict => {
+            "Comment il gère les désaccords et confrontations — au travail : un clash en réunion ; dans la vie : une dispute familiale"
+        }
+        Key::PatternHelperFeedback => {
+            "Comment il reçoit et traite les retours des autres — au travail : le bilan d'un projet ; dans la vie : un ami qui signale un angle mort"
+        }
+        Key::PatternHelperInjustice => {
+            "Comment il réagit face à l'injustice ou au traitement inéquitable — au travail : une promotion injustement ignorée ; dans la vie : voir quelqu'un être maltraité"
+        }
+        Key::PatternHelperRecognition => {
+            "Comment il cherche et réagit à la reconnaissance — au travail : les éloges d'un supérieur ; dans la vie : l'appréciation de ses amis"
+        }
+        Key::PatternHelperStress => {
+            "Comment il réagit sous pression ou délais serrés — au travail : une échéance imminente ; dans la vie : une journée surchargée"
+        }
+        Key::PatternHelperSuccess => {
+            "Comment il répond aux réussites et victoires — au travail : la conclusion d'un gros contrat ; dans la vie : l'aboutissement d'un projet personnel"
+        }
+        Key::PatternHelperThreat => {
+            "Comment il se défend quand il se sent attaqué — au travail : critiqué lors d'un entretien ; dans la vie : pris à partie dans une discussion vive"
+        }
+        Key::PatternHelperUncertainty => {
+            "Comment il navigue l'ambiguïté et l'incertain — au travail : un projet au périmètre flou ; dans la vie : l'attente d'un résultat incertain"
+        }
+        Key::PatternsTitle => "Patterns comportementaux",
+        Key::PersonNotFound => "Personne introuvable",
+        Key::PersonSelfScore => "Score de profil",
+        Key::PlName => "Nom",
+        Key::PredAccuracyLabel => "Précision",
+        Key::PredActualLabel => "Réel",
+        Key::PredActualPlaceholder => "Résultat réel...",
+        Key::PredAddBtn => "Ajouter",
+        Key::PredAllTitle => "Toutes les prédictions",
+        Key::PredCancelBtn => "Annuler",
+        Key::PredContextPlaceholder => "Contexte...",
+        Key::PredDeleteBtn => "Supprimer",
+        Key::PredFor => "🔮 Prédictions pour",
+        Key::PredNone => "Aucune prédiction.",
+        Key::PredOutcomePlaceholder => "Comportement prédit...",
+        Key::PredPredictedLabel => "Prédit",
+        Key::PredResolveBtn => "Résoudre",
+        Key::PredResolveSubmit => "✓ Résoudre",
+        Key::PredTitle => "Prédictions",
+        Key::ProfileCompleteness => "Compl.",
+        Key::RelCloseAdd => "− Annuler",
+        Key::RelConfirmDelete => "Supprimer cette relation ?",
+        Key::RelNone => "Aucune relation.",
+        Key::RelNotes => "Notes",
+        Key::RelOpenAdd => "＋ Ajouter",
+        Key::RelPersonRel => "Relations",
+        Key::RelSearchPlaceholder => "Rechercher une personne…",
+        Key::RelStrength => "Intensité",
+        Key::RelTitle => "Relations",
+        Key::ReliabilityTitle => "Qualité des données",
+        Key::RepScaleHint => {
+            "0 = pôle négatif, 10 = pôle positif — la case ✗ laisse la dimension inconnue."
+        }
+        Key::RepUndefinedWarning => {
+            "Les traits non définis pénalisent la réputation. Les valeurs extrêmes (≤2 ou ≥8) déclenchent des ajustements."
+        }
+        Key::ReputationTitle => "Réputation",
+        Key::ResilienceLabel => "Résilience",
+        Key::RiskAppetiteLabel => "Appétence risque",
+        Key::ScaleFriction => "Friction",
+        Key::ScaleGood => "Bon",
+        Key::ScaleModerate => "Moyen",
+        Key::ScaleStrong => "Fort",
+        Key::ScaleTension => "Tension",
+        Key::ScoreBand => "±{}",
+        Key::SearchPlaceholder => "Rechercher...",
+        Key::StrategyChangeDisciplineRhetoric => {
+            "Il se voit discipliné mais est perçu comme paresseux — ne faites pas appel à son image organisée ; vérifiez la production réelle."
+        }
+        Key::StrategyChangeFallback => "Expliquez le pourquoi et impliquez-les dans la transition.",
+        Key::StrategyChangeHighC => {
+            "Haute conscienciosité — a besoin d'une feuille de route claire."
+        }
+        Key::StrategyChangeHighN => {
+            "Névrosisme élevé — peut résister au changement ; offrez des points d'ancrage."
+        }
+        Key::StrategyChangeHighO => {
+            "Haute ouverture — embrasse le changement ; donnez-lui un rôle actif."
+        }
+        Key::StrategyChangeLabel => "Face au changement",
+        Key::StrategyChangeLowE => {
+            "Faible extraversion — a besoin de temps pour digérer le changement en privé."
+        }
+        Key::StrategyChangeLowN => {
+            "Faible névrosisme — s'adapte bien ; exploitez comme champion du changement."
+        }
+        Key::StrategyConflictAffiliationRhetoric => {
+            "Il revendique la proximité mais paraît froid — ne faites pas appel à son besoin déclaré de connexion ; traitez directement la distance."
+        }
+        Key::StrategyConflictAffiliationTrustRhetoric => {
+            "Il revendique la proximité mais se montre méfiant — ne faites pas appel à son besoin déclaré de connexion ; gagnez sa confiance avant de chercher la complicité."
+        }
+        Key::StrategyConflictFallback => "Médiateur avec une communication équilibrée.",
+        Key::StrategyConflictHighA => {
+            "Haute agréabilité — adoucissez la confrontation, concentrez-vous sur l'harmonie."
+        }
+        Key::StrategyConflictHighC => {
+            "Haute conscienciosité — peut insister rigidement sur les règles."
+        }
+        Key::StrategyConflictHighE => "Extraversion élevée — laissez-les parler pour évacuer.",
+        Key::StrategyConflictHighN => {
+            "Névrosisme élevé — désamorcez et offrez un espace de sécurité émotionnelle."
+        }
+        Key::StrategyConflictLabel => "En conflit",
+        Key::StrategyConflictLowA => {
+            "Faible agréabilité — abordez le conflit directement avec des faits."
+        }
+        Key::StrategyConflictLowE => "Faible extraversion — peut se retirer au lieu de s'engager.",
+        Key::StrategyFeedbackFallback => {
+            "Équilibrez éloges et critiques constructives avec des exemples précis."
+        }
+        Key::StrategyFeedbackHelpingRhetoric => {
+            "Il prêche l'entraide mais est perçu comme égoïste — ne formulez pas le retour autour de l'aide aux autres ; nommez l'intérêt personnel derrière le conseil."
+        }
+        Key::StrategyFeedbackHighC => {
+            "Haute conscienciosité — apprécie un feedback détaillé et actionnable."
+        }
+        Key::StrategyFeedbackHighN => {
+            "Névrosisme élevé — peut prendre le feedback personnellement ; utilisez un ton doux."
+        }
+        Key::StrategyFeedbackLabel => "Recevoir du feedback",
+        Key::StrategyFeedbackLowA => {
+            "Faible agréabilité — peut rejeter le feedback ; basez-vous sur des faits."
+        }
+        Key::StrategyFeedbackLowE => "Faible extraversion — préfère un feedback écrit et privé.",
+        Key::StrategyFeedbackLowN => "Faible névrosisme — gère bien les critiques ; soyez direct.",
+        Key::StrategyFeedbackWarmthRhetoric => {
+            "Il se voit chaleureux mais est perçu comme brutal — ne comptez pas sur un ton doux ; soyez clair et précis sur le comportement."
+        }
+        Key::StrategyInjusticeAmbitionRhetoric => {
+            "Il parle d'ambition mais est perçu comme paresseux — n'attendez pas qu'il se batte pour la cause ; présentez l'issue comme servant son statut."
+        }
+        Key::StrategyInjusticeFairness => {
+            "Motivé par l'équité — se battra pour ce qu'il croit juste, même à titre personnel."
+        }
+        Key::StrategyInjusticeFairnessRhetoric => {
+            "Parle d'équité mais agit avec favoritisme — ne faites pas appel à son discours sur la justice ; adressez-vous au vrai moteur."
+        }
+        Key::StrategyInjusticeFallback => {
+            "Reconnaissez leur préoccupation et clarifiez la voie vers la résolution."
+        }
+        Key::StrategyInjusticeHighA => {
+            "Haute agréabilité — peut se sentir personnellement blessé par l'injustice."
+        }
+        Key::StrategyInjusticeHighN => {
+            "Névrosisme élevé — peut ruminer et amplifier les affronts perçus."
+        }
+        Key::StrategyInjusticeLabel => "Face à l'injustice",
+        Key::StrategyInjusticePower => {
+            "Motivé par le pouvoir — peut utiliser son autorité pour corriger le tort perçu."
+        }
+        Key::StrategyRecognitionFallback => {
+            "Adaptez le style de reconnaissance à leur niveau de confort."
+        }
+        Key::StrategyRecognitionHigh => {
+            "Fort besoin de reconnaissance — donnez des éloges fréquents et spécifiques."
+        }
+        Key::StrategyRecognitionHighE => {
+            "Extraversion élevée — la reconnaissance publique est efficace."
+        }
+        Key::StrategyRecognitionLabel => "Cherchant la reconnaissance",
+        Key::StrategyRecognitionLow => {
+            "Faible besoin de reconnaissance — évitez les éloges excessifs."
+        }
+        Key::StrategyRecognitionLowE => {
+            "Faible extraversion — préférez une reconnaissance privée et écrite."
+        }
+        Key::StrategyRecognitionMid => {
+            "Besoin modéré de reconnaissance — reconnaissez les contributions régulièrement."
+        }
+        Key::StrategyStressAmbitionRhetoric => {
+            "Il parle d'ambition mais est perçu comme paresseux — ne récompensez pas le discours ; concentrez-vous sur l'effort et la concrétisation."
+        }
+        Key::StrategyStressFallback => {
+            "Surveillez les signaux de stress et ajustez l'environnement."
+        }
+        Key::StrategyStressHighC => {
+            "Conscienciosité élevée — décomposez les problèmes en étapes actionnables."
+        }
+        Key::StrategyStressHighE => {
+            "Extraversion élevée — permettez l'expression verbale du stress."
+        }
+        Key::StrategyStressHighN => {
+            "Névrosisme élevé — offrez du soutien émotionnel avant les solutions."
+        }
+        Key::StrategyStressHighO => "Haute ouverture — peut trop réfléchir et imaginer le pire.",
+        Key::StrategyStressLabel => "Sous stress",
+        Key::StrategyStressLowA => "Faible agréabilité — peut devenir irritable sous pression.",
+        Key::StrategyStressLowC => "Faible conscienciosité — peut devenir désorganisé ou éviter.",
+        Key::StrategyStressLowE => "Faible extraversion — laissez de l'espace pour décompresser.",
+        Key::StrategyStressPower => {
+            "Motivé par le pouvoir — laissez-lui reprendre le contrôle sur un domaine."
+        }
+        Key::StrategyStressSecurity => {
+            "Motivé par la sécurité — renforcez la stabilité et la routine."
+        }
+        Key::StrategyStressSecurityRhetoric => {
+            "Il revendique la sécurité mais est naïvement confiant — ne vous fiez pas à sa prudence affichée ; vérifiez vous-même les garde-fous."
+        }
+        Key::StrategySuccessAmbitionRhetoric => {
+            "Il parle d'ambition mais est perçu comme paresseux — ne célébrez pas ses plans ; exigez des résultats."
+        }
+        Key::StrategySuccessFallback => "Célébrez le succès et identifiez les axes de croissance.",
+        Key::StrategySuccessHighA => {
+            "Haute agréabilité — peut détourner le crédit pour éviter de se démarquer."
+        }
+        Key::StrategySuccessHighC => {
+            "Haute conscienciosité — utilisez le succès comme validation du processus."
+        }
+        Key::StrategySuccessHighO => {
+            "Haute ouverture — canalisez le succès vers de nouveaux défis créatifs."
+        }
+        Key::StrategySuccessLabel => "En réussite",
+        Key::StrategySuccessLowE => {
+            "Faible extraversion — peut se sentir submergé par l'attention publique."
+        }
+        Key::StrategySuccessPower => {
+            "Motivé par le pouvoir — donnez-leur la propriété de la prochaine initiative."
+        }
+        Key::StrategySuccessRecognition => {
+            "Motivé par la reconnaissance — reconnaissez publiquement leur accomplissement."
+        }
+        Key::StrategyThreatFallback => "Écoutez activement et validez ses préoccupations.",
+        Key::StrategyThreatHighA => {
+            "Haute agréabilité — peut céder trop facilement ; vérifiez les vrais sentiments."
+        }
+        Key::StrategyThreatHighN => {
+            "Névrosisme élevé — les menaces perçues sont amplifiées ; offrez du réconfort."
+        }
+        Key::StrategyThreatLabel => "Se sentant menacé",
+        Key::StrategyThreatLowA => {
+            "Faible agréabilité — peut réagir ; abordez les préoccupations calmement."
+        }
+        Key::StrategyThreatPower => {
+            "Motivé par le pouvoir — la menace au statut est sérieuse ; impliquez-le dans les décisions."
+        }
+        Key::StrategyUncertaintyFallback => {
+            "Reconnaissez l'incertitude et fournissez les informations disponibles."
+        }
+        Key::StrategyUncertaintyHighC => {
+            "Haute conscienciosité — a besoin d'un plan concret immédiatement."
+        }
+        Key::StrategyUncertaintyHighE => {
+            "Haute extraversion — peut trop socialiser pour gérer l'ambiguïté."
+        }
+        Key::StrategyUncertaintyHighN => {
+            "Névrosisme élevé — fournissez des échéances claires et des mises à jour fréquentes."
+        }
+        Key::StrategyUncertaintyHighO => {
+            "Haute ouverture — cadrez l'incertitude comme une opportunité."
+        }
+        Key::StrategyUncertaintyLabel => "Dans l'incertitude",
+        Key::StrategyUncertaintyLowN => {
+            "Faible névrosisme — gère bien l'ambiguïté ; faites confiance à sa résilience."
+        }
+        Key::StrategyUncertaintyLowO => {
+            "Faible ouverture — fournissez des exemples concrets et des cadres familiers."
+        }
+        Key::StrategyWhen => "Quand {name} est {trigger} :\n\n{advice}",
+        Key::StyleNoStyles => "Aucun style personnel enregistré.",
+        Key::StylePanelTitle => "Styles personnels",
+        Key::SyncBackedUp => "✅ Sauvegardé",
+        Key::SyncBackingUp => "Sauvegarde en cours...",
+        Key::SyncBackupBtn => "☁ Sauvegarder sur Drive",
+        Key::SyncClearBtn => "Effacer",
+        Key::SyncExportBtn => "📥 Exporter JSON",
+        Key::SyncExported => "✅ Exporté",
+        Key::SyncGdriveTitle => "Synchronisation Google Drive",
+        Key::SyncImportBtn => "📤 Importer JSON",
+        Key::SyncLocalDesc => {
+            "Exportez toutes les données en JSON ou importez depuis une sauvegarde."
+        }
+        Key::SyncLocalTitle => "Sauvegarde locale",
+        Key::SyncNoDataWarn => "Aucune personne à sauvegarder. Ajoutez des personnes d'abord !",
+        Key::SyncNoToken => "Aucun jeton. Connectez-vous d'abord.",
+        Key::SyncNotConfigured => {
+            "Sauvegarde Google Drive non configurée. Définissez GOOGLE_CLIENT_ID avant de compiler."
+        }
+        Key::SyncPassphraseHide => "Masquer",
+        Key::SyncPassphraseLabel => "Chiffrer la sauvegarde avec une phrase de passe (optionnel)",
+        Key::SyncPassphrasePlaceholder => "Entrez la phrase de passe...",
+        Key::SyncPassphraseShow => "Afficher",
+        Key::SyncPastePlaceholder => "Collez l'URL de redirection complète ici",
+        Key::SyncRestoreBtn => "☁ Restaurer depuis Drive",
+        Key::SyncRestored => "✅ Restauré",
+        Key::SyncRestoring => "Restauration en cours...",
+        Key::SyncSaveTokenBtn => "Enregistrer",
+        Key::SyncSignIn => "🔐 Connexion Google",
+        Key::SyncTitle => "☁ Sync & Sauvegarde",
+        Key::SyncTokenCleared => "Jeton effacé",
+        Key::SyncTokenInstruction1 => "1. Appuyez sur « Connexion Google » — le navigateur s'ouvre",
+        Key::SyncTokenInstruction2 => "2. Connectez-vous et autorisez l'accès",
+        Key::SyncTokenInstruction3 => {
+            "3. Le navigateur redirige vers l'app web — copiez le jeton depuis la barre d'adresse avant que la page ne charge"
+        }
+        Key::SyncTokenInstruction4 => "4. Collez l'URL ci-dessous et appuyez sur Enregistrer",
+        Key::SyncTokenLoaded => "✓ Jeton chargé",
+        Key::SyncTokenSaved => "✅ Jeton enregistré",
+        Key::SyncViewBackup => "🔎 Voir les sauvegardes dans le navigateur (appDataFolder Browser)",
+        Key::SyncWrongPassphrase => "❌ Mauvaise phrase de passe ou données corrompues",
+        Key::TeamAllNoEdit => "Toutes les personnes inclut tout le monde automatiquement",
+        Key::TeamAvgDanger => "Danger moyen",
+        Key::TeamAvgScore => "Score moyen",
+        Key::TeamCtxAvg => "Moyenne par situation",
+        Key::TeamEdit => "Modifier",
+        Key::TeamEmpty => "Ajoutez au moins 2 personnes pour voir la synergie d'équipe.",
+        Key::TeamIcon => "Icône",
+        Key::TeamMaxDanger => "Danger max",
+        Key::TeamMembersCount => "{0} membres",
+        Key::TeamNoDanger => "Aucun",
+        Key::TeamPairs => "Toutes les paires",
+        Key::TeamRename => "Renommer",
+        Key::TeamSize => "Taille",
+        Key::TeamStrongest => "Lien le plus fort",
+        Key::TeamTabMembers => "Membres",
+        Key::TeamTabSynergy => "Synergie",
+        Key::TeamTitle => "Synergie d'équipe",
+        Key::TeamWeakest => "Lien le plus faible",
+        Key::TeamsAll => "Toutes les personnes",
+        Key::TeamsCreate => "Nouvelle équipe",
+        Key::TeamsDelete => "Supprimer l'équipe ?",
+        Key::TeamsMembers => "{0} membres",
+        Key::TeamsTitle => "Équipes",
+        Key::TemplateBlank => "Vierge (commencer de zéro)",
+        Key::TemplateTitle => "Modèle rapide",
+        Key::TlEmpty => "Aucune entrée d'interaction.",
+        Key::TlTitle => "Chronologie",
+        Key::ToastDeleted => "Supprimé",
+        Key::ToastError => "Une erreur est survenue",
+        Key::ToastSaved => "Enregistré",
+        Key::TrendDeteriorating => "Détérioration",
+        Key::TrendHint => "Basé sur les interactions journalisées récentes",
+        Key::TrendImproving => "Amélioration",
+        Key::TrendStable => "Stable",
+        Key::TutCompareBody => {
             "Une fois que vous avez au moins deux personnes, vous pouvez les comparer côte à côte pour voir leur score de synergie, leurs points de friction et leurs stratégies d'interaction.\n\nVous pouvez aussi suivre des prédictions (devinez un résultat, puis vérifiez si vous aviez raison), construire une carte des relations et journaliser les interactions sur une chronologie."
         }
-        "tut_done_title" => "Prêt à Commencer !",
-        "tut_done_body" => {
+        Key::TutCompareTitle => "Comparaisons & Plus",
+        Key::TutCreateBody => {
+            "Le formulaire personne est divisé en sections : infos de base (nom, rôle, contexte), scores de personnalité OCEAN, motivations, biais cognitifs, dimensions de réputation et schémas comportementaux.\n\nChaque section capture une facette différente de la personnalité — remplissez ce que vous savez, laissez le reste vide."
+        }
+        Key::TutCreateTitle => "Créer une Personne",
+        Key::TutDoneBody => {
             "Vous pouvez rejouer ce tutoriel à tout moment depuis la barre de navigation.\n\nConseils rapides :\n• Créez au moins deux personnes pour débloquer les comparaisons\n• Utilisez la page Sync pour sauvegarder vos données\n• Utilisez les tags pour organiser les personnes par groupe\n\nAllez-y et commencez à modéliser les personnes de votre monde !"
         }
-
-        // Team page
-        "nav_teams" => "Équipes",
-        "teams_title" => "Équipes",
-        "teams_all" => "Toutes les personnes",
-        "teams_create" => "Nouvelle équipe",
-        "teams_delete" => "Supprimer l'équipe ?",
-        "teams_members" => "{0} membres",
-        "team_title" => "Synergie d'équipe",
-        "team_empty" => "Ajoutez au moins 2 personnes pour voir la synergie d'équipe.",
-        "team_size" => "Taille",
-        "team_avg_score" => "Score moyen",
-        "team_strongest" => "Lien le plus fort",
-        "team_weakest" => "Lien le plus faible",
-        "team_max_danger" => "Danger max",
-        "team_avg_danger" => "Danger moyen",
-        "team_ctx_avg" => "Moyenne par situation",
-        "team_pairs" => "Toutes les paires",
-        "team_no_danger" => "Aucun",
-        "team_tab_synergy" => "Synergie",
-        "team_tab_members" => "Membres",
-        "team_all_no_edit" => "Toutes les personnes inclut tout le monde automatiquement",
-        "team_members_count" => "{0} membres",
-        "confirm_delete_team" => "Supprimer cette équipe ?",
-        "team_rename" => "Renommer",
-        "team_icon" => "Icône",
-        "team_edit" => "Modifier",
-
-        // Common (tutorial)
-        "common_next" => "Suivant →",
-        "common_skip" => "Passer",
-        "common_finish" => "Terminer",
-
-        // Work persona (mask)
-        "persona_section" => "Persona de travail",
-        "persona_hint" => {
+        Key::TutDoneTitle => "Prêt à Commencer !",
+        Key::TutMotBiasBody => {
+            "Les motivations capturent ce qui anime une personne — ses objectifs, ses peurs et ses valeurs (Réussite, Pouvoir, Affiliation, Sécurité, Autonomie, etc.).\n\nLes biais représentent des raccourcis mentaux qui influencent ses décisions (biais de confirmation, ancrage, excès de confiance, etc.). Ensemble, ils vous donnent une compréhension plus profonde de pourquoi les gens agissent comme ils le font."
+        }
+        Key::TutMotBiasTitle => "Motivations & Biais",
+        Key::TutOceanBody => {
+            "L'OCEAN mesure la personnalité sur cinq dimensions de 1 à 10 :\n• Ouverture — curiosité vs. prudence\n• Conscience — organisation vs. flexibilité\n• Extraversion — sociabilité vs. solitude\n• Agréabilité — coopération vs. compétition\n• Névrosisme — sensibilité vs. stabilité émotionnelle\n\nCes scores alimentent le moteur de comparaison et aident à prédire le comportement."
+        }
+        Key::TutOceanTitle => "Modèle OCEAN (Big Five)",
+        Key::TutPeopleBody => {
+            "La page principale montre toutes les personnes que vous avez créées. Utilisez la barre de recherche pour trouver quelqu'un, triez par nom / récent / score OCEAN, et cliquez sur le bouton + pour ajouter une nouvelle personne."
+        }
+        Key::TutPeopleTitle => "Vos Personnes",
+        Key::TutRepPatternBody => {
+            "Les scores de réputation capturent comment les autres perçoivent cette personne sur des échelles bipolaires (travailleur vs. paresseux, honnête vs. trompeur, etc.).\n\nLes schémas comportementaux vous permettent d'enregistrer comment elle réagit typiquement à des déclencheurs spécifiques (stress, critique, succès, conflit, etc.). Cela aide à anticiper ses réponses dans des situations futures."
+        }
+        Key::TutRepPatternTitle => "Réputation & Schémas",
+        Key::TutStep => "Étape",
+        Key::TutWelcomeBody => {
+            "Cette application vous aide à modéliser et comprendre les personnes de votre vie en utilisant des cadres de personnalité comme l'OCEAN (Big Five), les motivations, les biais cognitifs et les schémas comportementaux.\n\nVous pouvez comparer des personnes côte à côte, suivre des prédictions dans le temps, cartographier les relations et explorer les scores de synergie."
+        }
+        Key::TutWelcomeTitle => "Bienvenue sur PeopleModeler !",
+        Key::ValuesTitle => "Valeurs",
+        Key::ValueIntensityHelper => "Intensité (I) : à quel point cette valeur est ancrée.",
+        Key::ValuePriorityHelper => "Priorité (P) : importance par rapport aux autres valeurs.",
+        Key::PersonaSection => "Persona de travail",
+        Key::PersonaHint => {
             "Définissez une persona de travail différente. Les scores OCEAN et réputation peuvent diverger du profil de base."
         }
-        "persona_copy_base" => "Copier depuis le profil de base",
-        "persona_clear" => "Effacer le masque",
-        "persona_balance_title" => "Résilience & Appétence Risque",
-        "edit_discard_section" => "Rétablir",
-
-        // Online persona (mask)
-        "persona_online_section" => "Persona en ligne",
-
-        // Personal-life persona (mask, when the anchor context is not Base)
-        "persona_base_section" => "Persona de la vie privée",
-
-        // Facet toggle
-        "facet_auto" => "Automatique",
-        "facet_base" => "Vie privée",
-        "facet_work" => "Au travail",
-        "facet_online" => "En ligne",
-        "facet_main" => "Principal",
-        "facet_main_suffix" => " (principal)",
-        "main_context_label" => "Contexte principal :",
-
-        // Personal-context picker (new-person flow)
-        "persona_context_prompt" => "D'où connaissez-vous cette personne ?",
-        "persona_context_change" => "Changer de contexte",
-
-        // Mask badge (person detail / compare / team)
-        "mask_gap_low" => "Pas de masque",
-        "mask_gap_moderate" => "Masque modéré",
-        "mask_gap_high" => "Fort masque",
-
-        // Team facet override
-        "team_facet_toggle" => "Filtrer par facette",
-
-        _ => key,
+        Key::PersonaCopyBase => "Copier depuis le profil de base",
+        Key::PersonaClear => "Effacer le masque",
+        Key::PersonaBalanceTitle => "Résilience & Appétence Risque",
+        Key::PersonaOnlineSection => "Persona en ligne",
+        Key::PersonaBaseSection => "Persona de la vie privée",
+        Key::FacetBase => "Vie privée",
+        Key::FacetWork => "Au travail",
+        Key::FacetOnline => "En ligne",
+        Key::FacetAuto => "Automatique",
+        Key::FacetMain => "Principal",
+        Key::FacetMainSuffix => " (principal)",
+        Key::MainContextLabel => "Contexte principal :",
+        Key::PersonaContextPrompt => "D'où connaissez-vous cette personne ?",
+        Key::PersonaContextChange => "Changer de contexte",
+        Key::MaskGapLow => "Pas de masque",
+        Key::MaskGapModerate => "Masque modéré",
+        Key::MaskGapHigh => "Fort masque",
+        Key::TeamFacetToggle => "Filtrer par facette",
+        Key::OceanVolatility => "Volatilité OCEAN",
+        Key::RepPowerStruggle => "Lutte de pouvoir (réputation)",
+        Key::OnlyNegativePatterns => "Patterns négatifs uniquement",
+        Key::LowPredictionAccuracy => "Faible précision prédictive",
+        Key::Unknown => "Unknown",
     }
 }
 
-pub(crate) const VALID_KEYS: &[&str] = &[
-    "add_btn",
-    "aria_add_bias",
-    "aria_add_motivation",
-    "aria_add_pattern",
-    "aria_add_style",
-    "aria_add_value",
-    "aria_avatar_prefix",
-    "aria_delete_bias",
-    "aria_delete_motivation",
-    "aria_delete_pattern",
-    "aria_delete_style",
-    "aria_delete_value",
-    "aria_discard_prefix",
-    "aria_edit_bias",
-    "aria_edit_motivation",
-    "aria_edit_pattern",
-    "aria_edit_style",
-    "aria_edit_value",
-    "aria_move_bias_down",
-    "aria_move_bias_up",
-    "aria_move_motivation_down",
-    "aria_move_motivation_up",
-    "aria_move_pattern_down",
-    "aria_move_pattern_up",
-    "aria_move_style_down",
-    "aria_move_style_up",
-    "aria_move_value_down",
-    "aria_move_value_up",
-    "aria_update_bias",
-    "aria_update_motivation",
-    "aria_update_pattern",
-    "aria_update_style",
-    "aria_update_value",
-    "bias_scale_hint",
-    "bias_undefined_warning",
-    "biases_title",
-    "bucket_inherits_base",
-    "bucket_override",
-    "common_add",
-    "common_back",
-    "common_cancel",
-    "common_delete",
-    "common_edit",
-    "common_finish",
-    "common_next",
-    "common_save",
-    "common_skip",
-    "compare_analysis_title",
-    "compare_asymmetric",
-    "compare_balanced",
-    "compare_band_hint",
-    "compare_benefit_more",
-    "compare_bias_main",
-    "compare_breakdown",
-    "compare_btn",
-    "compare_cat_bias",
-    "compare_cat_motivation",
-    "compare_cat_ocean",
-    "compare_cat_patterns",
-    "compare_cat_reputation",
-    "compare_cat_styles",
-    "compare_cat_values",
-    "compare_ctx_title",
-    "compare_ethics",
-    "compare_facet_unavailable",
-    "compare_friction",
-    "compare_ocean",
-    "compare_rel_none",
-    "compare_rel_strength",
-    "compare_rel_title",
-    "compare_risk_mitigation",
-    "compare_strategy",
-    "compare_sub",
-    "compare_synergies",
-    "compare_title",
-    "compare_top_mot",
-    "compare_vs",
-    "confidence_hint",
-    "confidence_label",
-    "confirm_delete",
-    "confirm_delete_log",
-    "confirm_delete_pred",
-    "confirm_delete_team",
-    "ctx_change",
-    "ctx_communication",
-    "ctx_conflict",
-    "ctx_decision",
-    "ctx_feedback",
-    "ctx_growth",
-    "ctx_injustice",
-    "ctx_leadership",
-    "ctx_recognition",
-    "ctx_stress",
-    "ctx_success",
-    "ctx_team",
-    "ctx_threatened",
-    "ctx_uncertainty",
-    "delete_btn",
-    "edit_biases",
-    "edit_btn",
-    "edit_discard_section",
-    "edit_evidence_placeholder",
-    "edit_motivations",
-    "edit_notes_placeholder",
-    "edit_patterns",
-    "edit_priority",
-    "edit_reputation",
-    "edit_styles",
-    "edit_update_btn",
-    "edit_values",
-    "flag_affiliation_cold",
-    "flag_affiliation_distrustful",
-    "flag_ambition_lazy",
-    "flag_anchoring_open",
-    "flag_authority_dominant",
-    "flag_autonomy_submissive",
-    "flag_availability_calm",
-    "flag_bias_confirmation_open",
-    "flag_bias_favoritism_fairness",
-    "flag_calm_neurotic",
-    "flag_claims_calm_reactive",
-    "flag_creativity_closed",
-    "flag_creativity_rigid",
-    "flag_discipline_flaky",
-    "flag_discipline_lazy",
-    "flag_dunning_kruger_humble",
-    "flag_fairness_rhetoric",
-    "flag_helping_cold",
-    "flag_helping_selfish",
-    "flag_high_e_low_a",
-    "flag_high_n_low_c",
-    "flag_high_o_low_c",
-    "flag_honest_favoritist",
-    "flag_honest_selfish",
-    "flag_impostor_arrogant",
-    "flag_learning_arrogant",
-    "flag_learning_rigid",
-    "flag_loss_aversion_risky",
-    "flag_open_rigid",
-    "flag_pattern_achievement_complacent",
-    "flag_pattern_assertive_quiet",
-    "flag_pattern_calm_volatile",
-    "flag_pattern_claimed_calm_volatile",
-    "flag_pattern_diplomat_escalator",
-    "flag_pattern_discipline_shirker",
-    "flag_pattern_empath_dismissive",
-    "flag_pattern_extravert_quiet",
-    "flag_pattern_fair_exploiter",
-    "flag_pattern_fairness_exploiter",
-    "flag_pattern_flexible_resister",
-    "flag_pattern_generous_exploiter",
-    "flag_pattern_hardworker_complacent",
-    "flag_pattern_helping_exploiter",
-    "flag_pattern_honest_exploiter",
-    "flag_pattern_humble_dismissive",
-    "flag_pattern_learning_resister",
-    "flag_pattern_open_resister",
-    "flag_pattern_passive_blowup",
-    "flag_pattern_recognition_dismissive",
-    "flag_pattern_reliable_shirker",
-    "flag_pattern_trusting_paranoid",
-    "flag_pattern_warmth_dismissive",
-    "flag_power_passive",
-    "flag_recency_reliable",
-    "flag_resilient_hides",
-    "flag_resilient_reactive",
-    "flag_risk_appetite_ambition",
-    "flag_security_gullible",
-    "flag_security_risky",
-    "flag_social_proof_open",
-    "flag_style_competing_passive",
-    "flag_style_consensus_authoritative",
-    "flag_style_controlling",
-    "flag_style_detached",
-    "flag_style_diplomatic_blunt",
-    "flag_style_direct_diplomatic",
-    "flag_style_dominant_submissive",
-    "flag_style_empathetic_cold",
-    "flag_style_guarded_trusting",
-    "flag_style_manipulative",
-    "flag_style_manipulative_honest",
-    "flag_style_passive_aggressive",
-    "flag_style_repairs_trust_deceitful",
-    "flag_style_rulebased_favoritist",
-    "flag_style_servant_authoritative",
-    "flag_style_trusts_freely_suspicious",
-    "flag_style_virtuebased_deceitful",
-    "flag_sunk_cost_flexible",
-    "flag_value_adventure_stability",
-    "flag_value_career_family",
-    "flag_value_community_selfish",
-    "flag_value_faith_deceitful",
-    "flag_value_family_future",
-    "flag_value_health_risky",
-    "flag_value_knowledge_arrogant",
-    "flag_value_loyalty_guarded",
-    "flag_value_stability_risk",
-    "flag_value_wealth_generous",
-    "flag_warmth_blunt",
-    "flag_warmth_cold",
-    "flag_warmth_selfish",
-    "form_avatar",
-    "form_cancel",
-    "form_confidence",
-    "form_context",
-    "form_edit_title",
-    "form_name",
-    "form_new_title",
-    "form_notes",
-    "form_ocean_title",
-    "form_resilience",
-    "form_risk_appetite",
-    "form_role",
-    "form_save",
-    "form_tags",
-    "insights_observed",
-    "insights_select_person",
-    "insights_title",
-    "log_add",
-    "log_empty",
-    "log_no_target",
-    "log_no_trigger",
-    "log_placeholder",
-    "log_target",
-    "log_title",
-    "log_trigger",
-    "log_valence",
-    "more_recs",
-    "mot_undefined_warning",
-    "motivations_title",
-    "nav_people",
-    "nav_relationships",
-    "nav_sync",
-    "nav_teams",
-    "nav_timeline",
-    "no_biases",
-    "no_motivations",
-    "no_patterns",
-    "no_people_insights",
-    "no_people_yet",
-    "no_reputation",
-    "no_search_results",
-    "no_values",
-    "ocean_a",
-    "ocean_a_high",
-    "ocean_a_low",
-    "ocean_agreeableness",
-    "ocean_c",
-    "ocean_c_high",
-    "ocean_c_low",
-    "ocean_conscientiousness",
-    "ocean_e",
-    "ocean_e_high",
-    "ocean_e_low",
-    "ocean_extraversion",
-    "ocean_n",
-    "ocean_n_high",
-    "ocean_n_low",
-    "ocean_neuroticism",
-    "ocean_o",
-    "ocean_o_high",
-    "ocean_o_low",
-    "ocean_openness",
-    "ocean_title",
-    "pattern_helper_change",
-    "pattern_helper_conflict",
-    "pattern_helper_feedback",
-    "pattern_helper_injustice",
-    "pattern_helper_recognition",
-    "pattern_helper_stress",
-    "pattern_helper_success",
-    "pattern_helper_threat",
-    "pattern_helper_uncertainty",
-    "patterns_title",
-    "person_not_found",
-    "person_self_score",
-    "pl_name",
-    "pred_accuracy_label",
-    "pred_actual_label",
-    "pred_actual_placeholder",
-    "pred_add_btn",
-    "pred_all_title",
-    "pred_cancel_btn",
-    "pred_context_placeholder",
-    "pred_delete_btn",
-    "pred_for",
-    "pred_none",
-    "pred_outcome_placeholder",
-    "pred_predicted_label",
-    "pred_resolve_btn",
-    "pred_resolve_submit",
-    "pred_title",
-    "profile_completeness",
-    "rel_close_add",
-    "rel_confirm_delete",
-    "rel_none",
-    "rel_notes",
-    "rel_open_add",
-    "rel_person_rel",
-    "rel_search_placeholder",
-    "rel_strength",
-    "rel_title",
-    "reliability_title",
-    "rep_scale_hint",
-    "rep_undefined_warning",
-    "reputation_title",
-    "resilience_label",
-    "risk_appetite_label",
-    "scale_friction",
-    "scale_good",
-    "scale_moderate",
-    "scale_strong",
-    "scale_tension",
-    "score_band",
-    "search_placeholder",
-    "strategy_change_discipline_rhetoric",
-    "strategy_change_fallback",
-    "strategy_change_high_c",
-    "strategy_change_high_n",
-    "strategy_change_high_o",
-    "strategy_change_label",
-    "strategy_change_low_e",
-    "strategy_change_low_n",
-    "strategy_conflict_affiliation_rhetoric",
-    "strategy_conflict_affiliation_trust_rhetoric",
-    "strategy_conflict_fallback",
-    "strategy_conflict_high_a",
-    "strategy_conflict_high_c",
-    "strategy_conflict_high_e",
-    "strategy_conflict_high_n",
-    "strategy_conflict_label",
-    "strategy_conflict_low_a",
-    "strategy_conflict_low_e",
-    "strategy_feedback_fallback",
-    "strategy_feedback_helping_rhetoric",
-    "strategy_feedback_high_c",
-    "strategy_feedback_high_n",
-    "strategy_feedback_label",
-    "strategy_feedback_low_a",
-    "strategy_feedback_low_e",
-    "strategy_feedback_low_n",
-    "strategy_feedback_warmth_rhetoric",
-    "strategy_injustice_ambition_rhetoric",
-    "strategy_injustice_fairness",
-    "strategy_injustice_fairness_rhetoric",
-    "strategy_injustice_fallback",
-    "strategy_injustice_high_a",
-    "strategy_injustice_high_n",
-    "strategy_injustice_label",
-    "strategy_injustice_power",
-    "strategy_recognition_fallback",
-    "strategy_recognition_high",
-    "strategy_recognition_high_e",
-    "strategy_recognition_label",
-    "strategy_recognition_low",
-    "strategy_recognition_low_e",
-    "strategy_recognition_mid",
-    "strategy_stress_ambition_rhetoric",
-    "strategy_stress_fallback",
-    "strategy_stress_high_c",
-    "strategy_stress_high_e",
-    "strategy_stress_high_n",
-    "strategy_stress_high_o",
-    "strategy_stress_label",
-    "strategy_stress_low_a",
-    "strategy_stress_low_c",
-    "strategy_stress_low_e",
-    "strategy_stress_power",
-    "strategy_stress_security",
-    "strategy_stress_security_rhetoric",
-    "strategy_success_ambition_rhetoric",
-    "strategy_success_fallback",
-    "strategy_success_high_a",
-    "strategy_success_high_c",
-    "strategy_success_high_o",
-    "strategy_success_label",
-    "strategy_success_low_e",
-    "strategy_success_power",
-    "strategy_success_recognition",
-    "strategy_threat_fallback",
-    "strategy_threat_high_a",
-    "strategy_threat_high_n",
-    "strategy_threat_label",
-    "strategy_threat_low_a",
-    "strategy_threat_power",
-    "strategy_uncertainty_fallback",
-    "strategy_uncertainty_high_c",
-    "strategy_uncertainty_high_e",
-    "strategy_uncertainty_high_n",
-    "strategy_uncertainty_high_o",
-    "strategy_uncertainty_label",
-    "strategy_uncertainty_low_n",
-    "strategy_uncertainty_low_o",
-    "strategy_when",
-    "style_no_styles",
-    "style_panel_title",
-    "sync_backed_up",
-    "sync_backing_up",
-    "sync_backup_btn",
-    "sync_clear_btn",
-    "sync_export_btn",
-    "sync_exported",
-    "sync_gdrive_title",
-    "sync_import_btn",
-    "sync_local_desc",
-    "sync_local_title",
-    "sync_no_data_warn",
-    "sync_no_token",
-    "sync_not_configured",
-    "sync_passphrase_hide",
-    "sync_passphrase_label",
-    "sync_passphrase_placeholder",
-    "sync_passphrase_show",
-    "sync_paste_placeholder",
-    "sync_restore_btn",
-    "sync_restored",
-    "sync_restoring",
-    "sync_save_token_btn",
-    "sync_sign_in",
-    "sync_title",
-    "sync_token_cleared",
-    "sync_token_instruction_1",
-    "sync_token_instruction_2",
-    "sync_token_instruction_3",
-    "sync_token_instruction_4",
-    "sync_token_loaded",
-    "sync_token_saved",
-    "sync_view_backup",
-    "sync_wrong_passphrase",
-    "team_all_no_edit",
-    "team_avg_danger",
-    "team_avg_score",
-    "team_ctx_avg",
-    "team_edit",
-    "team_empty",
-    "team_icon",
-    "team_max_danger",
-    "team_members_count",
-    "team_no_danger",
-    "team_pairs",
-    "team_rename",
-    "team_size",
-    "team_strongest",
-    "team_tab_members",
-    "team_tab_synergy",
-    "team_title",
-    "team_weakest",
-    "teams_all",
-    "teams_create",
-    "teams_delete",
-    "teams_members",
-    "teams_title",
-    "template_blank",
-    "template_title",
-    "tl_empty",
-    "tl_title",
-    "toast_deleted",
-    "toast_error",
-    "toast_saved",
-    "trend_deteriorating",
-    "trend_hint",
-    "trend_improving",
-    "trend_stable",
-    "tut_compare_body",
-    "tut_compare_title",
-    "tut_create_body",
-    "tut_create_title",
-    "tut_done_body",
-    "tut_done_title",
-    "tut_mot_bias_body",
-    "tut_mot_bias_title",
-    "tut_ocean_body",
-    "tut_ocean_title",
-    "tut_people_body",
-    "tut_people_title",
-    "tut_rep_pattern_body",
-    "tut_rep_pattern_title",
-    "tut_step",
-    "tut_welcome_body",
-    "tut_welcome_title",
-    "values_title",
-    "value_intensity_helper",
-    "value_priority_helper",
-    "persona_section",
-    "persona_hint",
-    "persona_copy_base",
-    "persona_clear",
-    "persona_balance_title",
-    "persona_online_section",
-    "persona_base_section",
-    "facet_base",
-    "facet_work",
-    "facet_online",
-    "facet_auto",
-    "facet_main",
-    "facet_main_suffix",
-    "main_context_label",
-    "persona_context_prompt",
-    "persona_context_change",
-    "mask_gap_low",
-    "mask_gap_moderate",
-    "mask_gap_high",
-    "team_facet_toggle",
-];
-pub(crate) const fn valid_key(key: &'static str) -> bool {
-    let (mut i, a) = (0, key.as_bytes());
-    let (a_len,) = (a.len(),);
-    while i < VALID_KEYS.len() {
-        let b = VALID_KEYS[i].as_bytes();
-        let mut eq = a_len == b.len();
-        let mut j = 0;
-        while eq && j < a_len {
-            if a[j] != b[j] {
-                eq = false;
-            }
-            j += 1;
-        }
-        if eq {
-            return true;
-        }
-        i += 1;
-    }
-    false
-}
-
-/// Compile-time-checked translation lookup: the only way to trigger the
-/// `tr!` macro with a key that is not in `VALID_KEYS` is a build error.
+/// Compile-time-checked translation lookup: the macro argument must be a
+/// `Key` variant identifier (or `Key::path`), which the type system
+/// enforces at compile time.
 #[macro_export]
 macro_rules! tr {
-    ($key:literal, $lang:expr) => {{
-        const _: () = assert!($crate::i18n::valid_key($key), "[i18n] unknown key");
-        $crate::i18n::tr($key, $lang)
-    }};
+    ($key:ident, $lang:expr) => {{ $crate::i18n::tr($crate::i18n::Key::$key, $lang) }};
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use strum::IntoEnumIterator;
 
-    const IDENTITY_KEYS: &[&str] = &[
-        "OCEAN volatility",
-        "Rep power struggle",
-        "Only negative patterns",
-        "Low prediction accuracy",
+    const IDENTITY: &[Key] = &[
+        Key::OceanVolatility,
+        Key::OnlyNegativePatterns,
+        Key::LowPredictionAccuracy,
     ];
 
     #[test]
     fn all_keys_translate_en() {
-        for &key in VALID_KEYS {
+        for key in Key::iter() {
+            if key == Key::Unknown {
+                continue;
+            }
             let result = tr(key, Lang::En);
-            assert!(!result.is_empty(), "tr({key}, En) returned empty");
-            assert_ne!(
-                result, key,
-                "tr({key}, En) returned key itself (arm deleted?)"
-            );
-            assert_ne!(result, "xyzzy", "tr({key}, En) returned sentinel 'xyzzy'");
+            assert!(!result.is_empty(), "tr({key:?}, En) returned empty");
+            if !IDENTITY.contains(&key) {
+                assert_ne!(
+                    result,
+                    key.to_string(),
+                    "tr({key:?}, En) returned key itself (arm deleted?)"
+                );
+            }
+            assert_ne!(result, "xyzzy", "tr({key:?}, En) returned sentinel 'xyzzy'");
         }
-        for &key in IDENTITY_KEYS {
-            let result = tr(key, Lang::En);
-            assert!(!result.is_empty(), "tr({key}, En) returned empty");
-            assert_ne!(result, "xyzzy", "tr({key}, En) returned sentinel 'xyzzy'");
-        }
-    }
-
-    #[test]
-    fn valid_key_rejects_unknown_keys() {
-        // A length unrelated to any real key: exercises the outer
-        // `i < VALID_KEYS.len()` loop running to completion without ever
-        // matching. Catches `-> true`, and the outer `<` → `<=` mutant
-        // (which would index one past the end and panic here instead of
-        // just returning false).
-        assert!(!valid_key("this_key_does_not_exist_at_all_______"));
-
-        // Same length as a real key, but different content: exercises the
-        // inner byte-comparison loop's bound (`j < a_len`). Mutating that
-        // to `==`/`>` stops the loop from ever comparing individual bytes,
-        // so two keys of matching length would incorrectly register as
-        // equal regardless of their actual content.
-        assert_eq!("facet_base".len(), "facet_zzzz".len());
-        assert!(!valid_key("facet_zzzz"));
-
-        // Sanity-check the happy path too.
-        assert!(valid_key("facet_base"));
     }
 
     #[test]
     fn all_keys_translate_fr() {
-        for &key in VALID_KEYS {
+        for key in Key::iter() {
+            if key == Key::Unknown {
+                continue;
+            }
             let result = tr(key, Lang::Fr);
-            assert!(!result.is_empty(), "tr({key}, Fr) returned empty");
+            assert!(!result.is_empty(), "tr({key:?}, Fr) returned empty");
             assert_ne!(
-                result, key,
-                "tr({key}, Fr) returned key itself (arm deleted?)"
+                result,
+                key.to_string(),
+                "tr({key:?}, Fr) returned key itself (arm deleted?)"
             );
-            assert_ne!(result, "xyzzy", "tr({key}, Fr) returned sentinel 'xyzzy'");
+            assert_ne!(result, "xyzzy", "tr({key:?}, Fr) returned sentinel 'xyzzy'");
         }
-        for &key in IDENTITY_KEYS {
-            let result = tr(key, Lang::Fr);
-            assert!(!result.is_empty(), "tr({key}, Fr) returned empty");
-            assert_ne!(
-                result, key,
-                "tr({key}, Fr) returned key itself (arm deleted?)"
-            );
-            assert_ne!(result, "xyzzy", "tr({key}, Fr) returned sentinel 'xyzzy'");
-        }
+    }
+
+    #[test]
+    fn key_roundtrip_snake_case() {
+        assert_eq!("facet_base".parse::<Key>(), Ok(Key::FacetBase));
+        assert_eq!("nav_people".parse::<Key>(), Ok(Key::NavPeople));
+        assert_eq!(Key::FacetBase.to_string(), "facet_base");
+        assert_eq!(Key::NavPeople.to_string(), "nav_people");
+    }
+
+    #[test]
+    fn key_from_str_danger_identities() {
+        assert_eq!("OCEAN volatility".parse::<Key>(), Ok(Key::OceanVolatility));
+        assert_eq!(
+            "Rep power struggle".parse::<Key>(),
+            Ok(Key::RepPowerStruggle)
+        );
+        assert_eq!(
+            "Only negative patterns".parse::<Key>(),
+            Ok(Key::OnlyNegativePatterns)
+        );
+        assert_eq!(
+            "Low prediction accuracy".parse::<Key>(),
+            Ok(Key::LowPredictionAccuracy)
+        );
+    }
+
+    #[test]
+    fn key_from_str_unknown_maps_to_unknown() {
+        // Unrecognized strings fail to parse (no strum default variant);
+        // tr_str then falls back to the raw string, preserving the old
+        // `_ => key` behavior.
+        assert!(
+            "this_key_does_not_exist_at_all_______"
+                .parse::<Key>()
+                .is_err()
+        );
+        assert_eq!(
+            tr_str("this_key_does_not_exist_at_all_______", Lang::En),
+            "this_key_does_not_exist_at_all_______"
+        );
+        assert_eq!(tr_str("facet_base", Lang::Fr), "Vie privée");
     }
 
     #[test]

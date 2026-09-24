@@ -8,10 +8,10 @@ use crate::i18n::Lang;
 #[component]
 pub fn TeamNew() -> Element {
     let lang = use_context::<Signal<Lang>>();
-    let form_title = crate::tr!("teams_create", lang());
-    let form_save = crate::tr!("common_save", lang());
-    let form_cancel = crate::tr!("common_cancel", lang());
-    let icon_label = crate::tr!("team_icon", lang());
+    let form_title = crate::tr!(TeamsCreate, lang());
+    let form_save = crate::tr!(CommonSave, lang());
+    let form_cancel = crate::tr!(CommonCancel, lang());
+    let icon_label = crate::tr!(TeamIcon, lang());
 
     let mut icon = use_signal(|| "🎯".to_string());
 
