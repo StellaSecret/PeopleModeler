@@ -62,10 +62,27 @@ pub const DRIVE_SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_API: &str = "https://www.googleapis.com/drive/v3/files";
 const UPLOAD_API: &str = "https://www.googleapis.com/upload/drive/v3/files";
 
-// Check HTTP response: if not 2xx, read body and return error with status + body
+// Determine whether a sync error means the OAuth token was rejected (401/403),
+// so the UI can offer a fresh sign-in instead of showing a raw HTTP error.
+pub const AUTH_ERR_PREFIX: &str = "AUTH_REQUIRED:";
+const NET_ERR_PREFIX: &str = "send: ";
+
+pub fn is_auth_error(err: &str) -> bool {
+    err.starts_with(AUTH_ERR_PREFIX)
+}
+
+pub fn is_network_error(err: &str) -> bool {
+    err.starts_with(NET_ERR_PREFIX)
+}
+
+// Check HTTP response: if not 2xx, return a classified error (marker prefix for
+// auth failures so callers can offer re-auth; body included otherwise).
 async fn check_response(resp: reqwest::Response) -> Result<reqwest::Response, String> {
     let status = resp.status();
     if !status.is_success() {
+        if status.as_u16() == 401 || status.as_u16() == 403 {
+            return Err(format!("{AUTH_ERR_PREFIX}{status}"));
+        }
         let body = resp.text().await.unwrap_or_default();
         return Err(format!("HTTP {status}: {body}"));
     }
@@ -555,6 +572,21 @@ mod tests {
     #[test]
     fn test_try_decrypt_restore_json_bytes_returns_none() {
         assert!(try_decrypt_restore(b"{\"valid\": true}", Some("pp")).is_none());
+    }
+
+    #[test]
+    fn test_is_auth_error_recognizes_401_and_403() {
+        assert!(is_auth_error(&format!("{AUTH_ERR_PREFIX}401")));
+        assert!(is_auth_error(&format!("{AUTH_ERR_PREFIX}403")));
+        assert!(!is_auth_error("HTTP 500: boom"));
+        assert!(!is_auth_error(""));
+    }
+
+    #[test]
+    fn test_is_network_error_recognizes_send_errors() {
+        assert!(is_network_error("send: timeout"));
+        assert!(!is_network_error("HTTP 500: boom"));
+        assert!(!is_network_error(""));
     }
 }
 

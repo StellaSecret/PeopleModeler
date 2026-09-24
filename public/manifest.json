@@ -1,0 +1,19 @@
+{
+  "id": "stellasecret-peoplemodeler",
+  "name": "People Modeler",
+  "short_name": "PeopleModeler",
+  "description": "Model people as systems: motivations, biases, behaviors.",
+  "start_url": "./spa.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080C14",
+  "theme_color": "#080C14",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

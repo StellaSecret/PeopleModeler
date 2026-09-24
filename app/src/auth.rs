@@ -2,6 +2,9 @@
 const TOKEN_KEY: &str = "pm_drive_token";
 
 #[cfg(target_arch = "wasm32")]
+const EXPIRY_KEY: &str = "pm_drive_token_exp";
+
+#[cfg(target_arch = "wasm32")]
 use std::sync::OnceLock;
 
 #[cfg(target_arch = "wasm32")]
@@ -20,6 +23,17 @@ pub fn on_token_received(cb: Box<dyn FnMut(&str)>) {
     TOKEN_LISTENERS.with(|listeners| {
         listeners.borrow_mut().push(cb);
     });
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn reset_token_listeners() {
+    TOKEN_LISTENERS.with(|listeners| {
+        listeners.borrow_mut().clear();
+    });
+}
+
+fn now_ms() -> i64 {
+    chrono::Utc::now().timestamp_millis()
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -43,11 +57,24 @@ pub fn start_oauth(client_id: &str, _redirect_uri: &str) {
     use wasm_bindgen::prelude::Closure;
 
     let cb = Closure::wrap(Box::new(move |resp: wasm_bindgen::JsValue| {
+        let has_error = js_sys::Reflect::get(&resp, &"error".into())
+            .ok()
+            .and_then(|e| e.as_string())
+            .is_some();
+        if has_error {
+            return;
+        }
         if let Some(token) = js_sys::Reflect::get(&resp, &"access_token".into())
             .ok()
             .and_then(|t| t.as_string())
         {
             set_token(&token);
+            if let Some(expires_in) = js_sys::Reflect::get(&resp, &"expires_in".into())
+                .ok()
+                .and_then(|e| e.as_f64())
+            {
+                set_expiry(now_ms() + (expires_in as i64) * 1000);
+            }
             TOKEN_LISTENERS.with(|listeners| {
                 for cb in listeners.borrow_mut().iter_mut() {
                     cb(&token);
@@ -177,18 +204,82 @@ pub fn clear_token() {
     }
 }
 
+pub fn get_expiry() -> Option<i64> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        use gloo_storage::Storage;
+        return gloo_storage::LocalStorage::get(EXPIRY_KEY).ok();
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = state_path(".pm_drive_token_exp")?;
+        std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| s.trim().parse::<i64>().ok())
+    }
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+pub fn set_expiry(ms: i64) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        use gloo_storage::Storage;
+        let _ = gloo_storage::LocalStorage::set(EXPIRY_KEY, ms);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if let Some(path) = state_path(".pm_drive_token_exp") {
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let _ = std::fs::write(&path, ms.to_string());
+        }
+    }
+}
+
+pub fn clear_expiry() {
+    #[cfg(target_arch = "wasm32")]
+    {
+        use gloo_storage::Storage;
+        gloo_storage::LocalStorage::delete(EXPIRY_KEY);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if let Some(path) = state_path(".pm_drive_token_exp") {
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+}
+
+pub fn token_expired() -> bool {
+    match get_expiry() {
+        Some(exp) if exp > 0 => exp <= now_ms(),
+        _ => false,
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 fn token_path() -> Option<std::path::PathBuf> {
+    state_path(".pm_drive_token")
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn state_path(name: &str) -> Option<std::path::PathBuf> {
+    state_dir().map(|dir| dir.join(name))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn state_dir() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "android")]
     {
-        let dir = crate::android_auth::get_files_dir()?;
-        return Some(dir.join(".pm_drive_token"));
+        return crate::android_auth::get_files_dir().map(|p| p.to_path_buf());
     }
 
     #[cfg(not(target_os = "android"))]
-    std::env::current_dir()
-        .ok()
-        .map(|p| p.join(".pm_drive_token"))
+    std::env::current_dir().ok()
 }
 
 #[cfg(test)]

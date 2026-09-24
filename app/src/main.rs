@@ -31,6 +31,7 @@ mod db;
 mod drive;
 mod i18n;
 mod pages;
+mod sync_meta;
 mod templates;
 mod theme;
 mod toast;
@@ -189,10 +190,16 @@ fn init_pwa() {
         let _ = head.append_child(&link);
     }
     if let Some(w) = web_sys::window() {
-        let _ = w
+        // Ask for updates to apply straight away (skipWaiting in the SW does the
+        // switching; here we just surface failure so it can't 404 silently).
+        let promise = w
             .navigator()
             .service_worker()
             .register("/PeopleModeler/sw.js");
+        let upd = wasm_bindgen_futures::JsFuture::from(promise);
+        dioxus::prelude::spawn(async move {
+            let _ = upd.await;
+        });
     }
 }
 

@@ -5,10 +5,28 @@ use crate::i18n::Lang;
 use dioxus::prelude::*;
 
 fn tr_error(err: String, lang: Lang) -> String {
+    if crate::drive::is_auth_error(&err) {
+        return crate::tr!(SyncTokenExpired, lang).to_string();
+    }
     match err.as_str() {
         "sync_wrong_passphrase" => crate::tr!(SyncWrongPassphrase, lang).to_string(),
+        _ if crate::drive::is_network_error(&err) => crate::tr!(SyncNetworkError, lang).to_string(),
         _ => err,
     }
+}
+
+fn fmt_timestamp(ms: i64) -> String {
+    if ms <= 0 {
+        return String::new();
+    }
+    match chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ms) {
+        Some(dt) => dt.format("%d %b %Y, %H:%M").to_string(),
+        None => String::new(),
+    }
+}
+
+fn now_ms() -> i64 {
+    chrono::Utc::now().timestamp_millis()
 }
 
 const ENV_CLIENT_ID: Option<&str> = option_env!("GOOGLE_CLIENT_ID");
@@ -244,6 +262,24 @@ fn spawn_async<F: std::future::Future<Output = ()> + 'static>(f: F) {
     dioxus::prelude::spawn(f);
 }
 
+fn do_sign_in(
+    cid: &'static str,
+    mut token: Signal<String>,
+    mut reauth: Signal<bool>,
+    busy: Signal<bool>,
+) {
+    if busy() {
+        return;
+    }
+    #[cfg(target_os = "android")]
+    crate::android_auth::TOKEN_SAVED.store(false, std::sync::atomic::Ordering::Release);
+    auth::clear_expiry();
+    auth::set_token("");
+    token.set(String::new());
+    reauth.set(false);
+    auth::start_oauth(cid, "https://stellasecret.github.io/PeopleModeler/spa.html");
+}
+
 #[component]
 pub fn SyncPage() -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -252,8 +288,29 @@ pub fn SyncPage() -> Element {
     let paste_buf = use_signal(String::new);
     let mut passphrase = use_signal(String::new);
     let mut show_pp = use_signal(|| false);
+    let mut busy = use_signal(|| false);
+    let mut busy_action = use_signal(String::new);
+    let mut reauth = use_signal(|| false);
+    let last_backup = use_signal(crate::sync_meta::last_backup_ms);
 
     let has_token = !token().is_empty();
+
+    // Register the token callback once per mount, not per sign-in click, so it
+    // cannot accumulate and so re-auth (e.g. after an expired token) updates the
+    // same signal without the user re-visiting the page.
+    #[cfg(target_arch = "wasm32")]
+    {
+        let mut t = token.clone();
+        let mut rr = reauth.clone();
+        use_hook(move || {
+            auth::reset_token_listeners();
+            auth::on_token_received(Box::new(move |new_token: &str| {
+                t.set(new_token.to_string());
+                rr.set(false);
+            }));
+            ()
+        });
+    }
 
     // On Android: poll for token written by JNI callback
     #[cfg(target_os = "android")]
@@ -310,6 +367,15 @@ pub fn SyncPage() -> Element {
     let restore_btn = crate::tr!(SyncRestoreBtn, lang());
     let no_data_warn = crate::tr!(SyncNoDataWarn, lang());
     let view_backup = crate::tr!(SyncViewBackup, lang());
+    let token_expired_msg = crate::tr!(SyncTokenExpired, lang());
+    let reauth_btn = crate::tr!(SyncReauth, lang());
+    let synced_row = {
+        let prefix = crate::tr!(SyncLastBackedUp, lang());
+        last_backup()
+            .map(fmt_timestamp)
+            .filter(|ts| !ts.is_empty())
+            .map(|ts| format!("{prefix}{ts}"))
+    };
 
     rsx! {
         div { class: "page",
@@ -324,19 +390,26 @@ pub fn SyncPage() -> Element {
                             p { class: "token-ok", "{token_loaded} ({mask_token(&token())})" }
                     button { class: "btn btn-small", aria_label: "{clear_btn}", onclick: move |_| {
                         auth::clear_token();
+                        auth::clear_expiry();
                         token.set(String::new());
+                        reauth.set(false);
                         status.set(crate::tr!(SyncTokenCleared, lang()).into());
                     }, "{clear_btn}" }
                         }
                     }
 
+                    if has_token && auth::token_expired() {
+                        p { class: "sync-expired", role: "alert", "{token_expired_msg}" }
+                    }
+
                     {token_paste_ui(lang(), has_token, paste_buf, token, status)}
 
                     div { class: "form-row passphrase-row",
-                        label { "{pp_label}" }
+                            label { "{pp_label}" }
                         div { class: "passphrase-input-group",
                             input {
                                 r#type: if show_pp() { "text" } else { "password" },
+                                aria_label: "{pp_label}",
                                 placeholder: "{pp_placeholder}",
                                 value: "{passphrase}",
                                 oninput: move |e| passphrase.set(e.value()),
@@ -347,59 +420,111 @@ pub fn SyncPage() -> Element {
                         }
                     }
 
-                    div { class: "sync-actions",
-                        button { class: "btn", aria_label: "{sign_in}", onclick: move |_| {
-                            let cid = drive_client_id();
-                            #[cfg(target_arch = "wasm32")]
-                            {
-                                let mut t = token.clone();
-                                auth::on_token_received(Box::new(move |new_token: &str| {
-                                    t.set(new_token.to_string());
-                                }));
-                            }
-                            #[cfg(target_os = "android")]
-                            {
-                                crate::android_auth::TOKEN_SAVED.store(false, std::sync::atomic::Ordering::Release);
-                            }
-                            auth::set_token("");
-                            auth::start_oauth(cid, "https://stellasecret.github.io/PeopleModeler/spa.html");
+                    div { class: "sync-actions", aria_busy: busy(),
+                        button { class: "btn", aria_label: "{sign_in}", disabled: busy(), onclick: move |_| {
+                            do_sign_in(drive_client_id(), token, reauth, busy);
                         }, "{sign_in}" }
 
-                        button { class: "btn", aria_label: "{backup_btn}", onclick: move |_| {
-                            if db::all_persons().is_empty() {
-                                status.set(no_data_warn.into());
-                                return;
-                            }
-                            let t = token();
-                            if t.is_empty() { status.set(crate::tr!(SyncNoToken, lang()).into()); return; }
-                            let pp = passphrase();
-                            let ll = lang();
-                            status.set(crate::tr!(SyncBackingUp, ll).into());
-                            let mut s = status;
-                            spawn_async(async move {
-                                let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
-                                match drive::drive_backup(&t, pp_ref).await {
-                                    Ok(id) => s.set(format!("{} (file id: {id})", crate::tr!(SyncBackedUp, ll))),
-                                    Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
+                        button {
+                            class: format!("btn{}", if busy_action() == "backup" { " is-loading" } else { "" }),
+                            aria_label: "{backup_btn}",
+                            disabled: busy(),
+                            onclick: move |_| {
+                                if busy() { return; }
+                                if db::all_persons().is_empty() {
+                                    status.set(no_data_warn.into());
+                                    return;
                                 }
-                            });
-                        }, "{backup_btn}" }
+                                let t = token();
+                                if t.is_empty() { status.set(crate::tr!(SyncNoToken, lang()).into()); return; }
+                                let pp = passphrase();
+                                let ll = lang();
+                                busy.set(true);
+                                busy_action.set("backup".to_string());
+                                reauth.set(false);
+                                status.set(crate::tr!(SyncBackingUp, ll).into());
 
-                        button { class: "btn", aria_label: "{restore_btn}", onclick: move |_| {
-                            let t = token();
-                            if t.is_empty() { status.set(crate::tr!(SyncNoToken, lang()).into()); return; }
-                            let pp = passphrase();
-                            let ll = lang();
-                            status.set(crate::tr!(SyncRestoring, ll).into());
-                            let mut s = status;
-                            spawn_async(async move {
-                                let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
-                                match drive::drive_restore(&t, pp_ref).await {
-                                    Ok(n) => s.set(format!("{} {} persons, {} relationships, {} teams from Drive", crate::tr!(SyncRestored, ll), n.persons, n.relationships, n.teams)),
-                                    Err(e) => s.set(format!("❌ {}", tr_error(e, ll))),
-                                }
-                            });
-                        }, "{restore_btn}" }
+                                let mut s = status;
+                                let mut b = busy;
+                                let mut ba = busy_action;
+                                let mut rr = reauth;
+                                let mut lb = last_backup;
+                                spawn_async(async move {
+                                    let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
+                                    match drive::drive_backup(&t, pp_ref).await {
+                                        Ok(id) => {
+                                            let ts = now_ms();
+                                            crate::sync_meta::set_last_backup_ms(ts);
+                                            lb.set(Some(ts));
+                                            s.set(format!("{} (file id: {id})", crate::tr!(SyncBackedUp, ll)));
+                                        }
+                                        Err(e) => {
+                                            if drive::is_auth_error(&e) {
+                                                rr.set(true);
+                                                s.set(crate::tr!(SyncTokenExpired, ll).into());
+                                            } else {
+                                                s.set(format!("❌ {}", tr_error(e, ll)));
+                                            }
+                                        }
+                                    }
+                                    b.set(false);
+                                    ba.set(String::new());
+                                });
+                            },
+                            "{backup_btn}"
+                        }
+
+                        button {
+                            class: format!("btn{}", if busy_action() == "restore" { " is-loading" } else { "" }),
+                            aria_label: "{restore_btn}",
+                            disabled: busy(),
+                            onclick: move |_| {
+                                if busy() { return; }
+                                let t = token();
+                                if t.is_empty() { status.set(crate::tr!(SyncNoToken, lang()).into()); return; }
+                                let pp = passphrase();
+                                let ll = lang();
+                                busy.set(true);
+                                busy_action.set("restore".to_string());
+                                reauth.set(false);
+                                status.set(crate::tr!(SyncRestoring, ll).into());
+
+                                let mut s = status;
+                                let mut b = busy;
+                                let mut ba = busy_action;
+                                let mut rr = reauth;
+                                spawn_async(async move {
+                                    let pp_ref: Option<&str> = if pp.is_empty() { None } else { Some(&pp) };
+                                    match drive::drive_restore(&t, pp_ref).await {
+                                        Ok(n) => s.set(format!("{} {} persons, {} relationships, {} teams from Drive", crate::tr!(SyncRestored, ll), n.persons, n.relationships, n.teams)),
+                                        Err(e) => {
+                                            if drive::is_auth_error(&e) {
+                                                rr.set(true);
+                                                s.set(crate::tr!(SyncTokenExpired, ll).into());
+                                            } else {
+                                                s.set(format!("❌ {}", tr_error(e, ll)));
+                                            }
+                                        }
+                                    }
+                                    b.set(false);
+                                    ba.set(String::new());
+                                });
+                            },
+                            "{restore_btn}"
+                        }
+                    }
+
+                    if reauth() {
+                        div { class: "sync-alert", role: "alert",
+                            p { "{token_expired_msg}" }
+                            button { class: "btn", disabled: busy(), onclick: move |_| {
+                                do_sign_in(drive_client_id(), token, reauth, busy);
+                            }, "{reauth_btn}" }
+                        }
+                    }
+
+                    if let Some(synced_txt) = synced_row {
+                        p { class: "sync-last", "{synced_txt}" }
                     }
                 } else {
                     p { "{not_configured}" }
@@ -434,7 +559,7 @@ pub fn SyncPage() -> Element {
                 {import_ui(lang(), status)}
             }
 
-            div { class: "sync-status",
+            div { class: "sync-status", role: "status", "aria-live": "polite",
                 if !status().is_empty() {
                     p { "{status}" }
                 }
@@ -540,6 +665,28 @@ mod tests {
         let url = "http://example.com/#access_token=abc=def";
         let result = parse_token_from_url(url);
         assert_eq!(result.as_deref(), Some("abc=def"));
+    }
+
+    #[test]
+    fn tr_error_auth_maps_to_expired() {
+        let result = tr_error(crate::drive::AUTH_ERR_PREFIX.to_string(), Lang::En);
+        assert!(result.contains("expired"), "got: {result}");
+    }
+
+    #[test]
+    fn tr_error_network_maps_to_network() {
+        let result = tr_error("send: connection refused".into(), Lang::En);
+        assert!(result.contains("Network"), "got: {result}");
+    }
+
+    #[test]
+    fn fmt_timestamp_formats_ms() {
+        assert!(fmt_timestamp(1_700_000_000_000).contains("2023"));
+    }
+
+    #[test]
+    fn fmt_timestamp_invalid_empty() {
+        assert_eq!(fmt_timestamp(0), "");
     }
 
     #[test]

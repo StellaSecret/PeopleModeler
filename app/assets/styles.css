@@ -580,6 +580,24 @@ fieldset.persona-balance legend{
   font-family:var(--font-mono)
 }
 
+/* ── sync state (expiry, reauth, last backed up, in-flight) ── */
+.sync-expired{color:var(--orange);font-size:0.82rem;margin:0.35rem 0}
+.sync-last{color:var(--text-muted);font-size:0.78rem;margin:0.55rem 0 0}
+.sync-alert{
+  display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;
+  margin-top:0.75rem;padding:0.6rem 0.9rem;border-radius:var(--radius);
+  background:rgba(255,193,7,0.12);border:1px solid rgba(255,193,7,0.45)
+}
+.sync-alert p{flex:1 1 auto;min-width:0;margin:0;font-size:0.85rem;color:var(--text)}
+.btn[disabled],.btn:disabled{opacity:0.55;cursor:not-allowed}
+.btn.is-loading{position:relative;color:transparent;pointer-events:none}
+.btn.is-loading::before{
+  content:"";position:absolute;top:50%;left:50%;width:1rem;height:1rem;
+  margin:-0.5rem 0 0 -0.5rem;border:2px solid var(--primary);border-top-color:transparent;
+  border-radius:50%;animation:pm-spin 0.7s linear infinite
+}
+@keyframes pm-spin{to{transform:rotate(360deg)}}
+
 /* ── ADD ROW (edit panels) ── */
 .add-row{display:flex;gap:0.4rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap}
 .add-row select{

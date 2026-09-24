@@ -493,8 +493,10 @@ pub enum Key {
     SyncExported,
     SyncGdriveTitle,
     SyncImportBtn,
+    SyncLastBackedUp,
     SyncLocalDesc,
     SyncLocalTitle,
+    SyncNetworkError,
     SyncNoDataWarn,
     SyncNoToken,
     SyncNotConfigured,
@@ -503,6 +505,7 @@ pub enum Key {
     SyncPassphrasePlaceholder,
     SyncPassphraseShow,
     SyncPastePlaceholder,
+    SyncReauth,
     SyncRestoreBtn,
     SyncRestored,
     SyncRestoring,
@@ -510,6 +513,7 @@ pub enum Key {
     SyncSignIn,
     SyncTitle,
     SyncTokenCleared,
+    SyncTokenExpired,
     SyncTokenInstruction1,
     SyncTokenInstruction2,
     SyncTokenInstruction3,
@@ -1282,8 +1286,10 @@ fn en(key: Key) -> &'static str {
         Key::SyncExported => "✅ Exported",
         Key::SyncGdriveTitle => "Google Drive Sync",
         Key::SyncImportBtn => "📤 Import JSON",
+        Key::SyncLastBackedUp => "Last backed up: ",
         Key::SyncLocalDesc => "Export all data as JSON or import from a previous backup.",
         Key::SyncLocalTitle => "Local Backup",
+        Key::SyncNetworkError => "❌ Network error — check your connection and try again.",
         Key::SyncNoDataWarn => "No people data to back up. Add people first!",
         Key::SyncNoToken => "No token. Sign in first.",
         Key::SyncNotConfigured => {
@@ -1294,6 +1300,7 @@ fn en(key: Key) -> &'static str {
         Key::SyncPassphrasePlaceholder => "Enter passphrase...",
         Key::SyncPassphraseShow => "Show",
         Key::SyncPastePlaceholder => "Paste the full redirect URL here",
+        Key::SyncReauth => "🔐 Sign in again",
         Key::SyncRestoreBtn => "☁ Restore from Drive",
         Key::SyncRestored => "✅ Restored",
         Key::SyncRestoring => "Restoring...",
@@ -1301,6 +1308,7 @@ fn en(key: Key) -> &'static str {
         Key::SyncSignIn => "🔐 Sign in with Google",
         Key::SyncTitle => "☁ Sync & Backup",
         Key::SyncTokenCleared => "Token cleared",
+        Key::SyncTokenExpired => "Your Google sign-in has expired. Sign in again to keep syncing.",
         Key::SyncTokenInstruction1 => "1. Tap 'Sign in with Google' — opens your browser",
         Key::SyncTokenInstruction2 => "2. Sign in and grant access",
         Key::SyncTokenInstruction3 => {
@@ -2087,10 +2095,12 @@ fn fr(key: Key) -> &'static str {
         Key::SyncExported => "✅ Exporté",
         Key::SyncGdriveTitle => "Synchronisation Google Drive",
         Key::SyncImportBtn => "📤 Importer JSON",
+        Key::SyncLastBackedUp => "Dernière sauvegarde : ",
         Key::SyncLocalDesc => {
             "Exportez toutes les données en JSON ou importez depuis une sauvegarde."
         }
         Key::SyncLocalTitle => "Sauvegarde locale",
+        Key::SyncNetworkError => "❌ Erreur réseau — vérifiez votre connexion et réessayez.",
         Key::SyncNoDataWarn => "Aucune personne à sauvegarder. Ajoutez des personnes d'abord !",
         Key::SyncNoToken => "Aucun jeton. Connectez-vous d'abord.",
         Key::SyncNotConfigured => {
@@ -2101,6 +2111,7 @@ fn fr(key: Key) -> &'static str {
         Key::SyncPassphrasePlaceholder => "Entrez la phrase de passe...",
         Key::SyncPassphraseShow => "Afficher",
         Key::SyncPastePlaceholder => "Collez l'URL de redirection complète ici",
+        Key::SyncReauth => "🔐 Se reconnecter",
         Key::SyncRestoreBtn => "☁ Restaurer depuis Drive",
         Key::SyncRestored => "✅ Restauré",
         Key::SyncRestoring => "Restauration en cours...",
@@ -2108,6 +2119,9 @@ fn fr(key: Key) -> &'static str {
         Key::SyncSignIn => "🔐 Connexion Google",
         Key::SyncTitle => "☁ Sync & Sauvegarde",
         Key::SyncTokenCleared => "Jeton effacé",
+        Key::SyncTokenExpired => {
+            "Votre connexion Google a expiré. Reconnectez-vous pour continuer la synchronisation."
+        }
         Key::SyncTokenInstruction1 => "1. Appuyez sur « Connexion Google » — le navigateur s'ouvre",
         Key::SyncTokenInstruction2 => "2. Connectez-vous et autorisez l'accès",
         Key::SyncTokenInstruction3 => {
