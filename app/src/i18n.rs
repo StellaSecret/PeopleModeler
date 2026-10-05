@@ -153,6 +153,7 @@ pub enum Key {
     CompareCatValues,
     CompareCtxTitle,
     CompareEthics,
+    CompareFacetFallback,
     CompareFacetUnavailable,
     CompareFriction,
     CompareOcean,
@@ -713,6 +714,9 @@ fn en(key: Key) -> &'static str {
         Key::CompareCtxTitle => "By situation",
         Key::CompareEthics => {
             "These are probabilistic models, not absolute truths. Use them to understand better, never to manipulate."
+        }
+        Key::CompareFacetFallback => {
+            "Neither context is fully defined for both people — scored on their shared arena: {}"
         }
         Key::CompareFacetUnavailable => "Not scoreable in this context — a persona is missing",
         Key::CompareFriction => "Friction Points",
@@ -1492,6 +1496,9 @@ fn fr(key: Key) -> &'static str {
         Key::CompareCtxTitle => "Par situation",
         Key::CompareEthics => {
             "Ce sont des modèles probabilistes, pas des vérités absolues. Utilisez-les pour mieux comprendre, jamais pour manipuler."
+        }
+        Key::CompareFacetFallback => {
+            "Aucun contexte n'est entièrement défini pour les deux — score calculé sur leur arène commune : {}"
         }
         Key::CompareFacetUnavailable => "Non calculable dans ce contexte — un persona manque",
         Key::CompareFriction => "Points de friction",

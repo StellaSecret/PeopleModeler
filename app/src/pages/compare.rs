@@ -3,7 +3,7 @@ use peoplemodeler_core::insights::InsightContext;
 use peoplemodeler_core::models::{BehaviorTrigger, FacetKind, Person, RelationType};
 
 use peoplemodeler_core::synergy::{
-    MaskBand, RelContext, Trend, compute_synergy_score_ctx, mask_gap_for, synergy_bands,
+    MaskBand, RelContext, Trend, compute_synergy_score_facet, mask_gap_for, synergy_bands,
 };
 
 use crate::db;
@@ -89,6 +89,18 @@ fn should_show_extra_strategies(n: usize) -> bool {
     n > 1
 }
 
+/// Arena to score a pair on: the relationship's own arena when both people have
+/// it, otherwise the first arena they share (`FacetKind::ALL` order). `None`
+/// means the two people have no arena in common — nothing is scoreable.
+fn shared_facet(a: &Person, b: &Person, requested: FacetKind) -> Option<FacetKind> {
+    if a.has_facet(requested) && b.has_facet(requested) {
+        return Some(requested);
+    }
+    FacetKind::ALL
+        .into_iter()
+        .find(|k| a.has_facet(*k) && b.has_facet(*k))
+}
+
 #[component]
 pub fn ComparePersons(id1: String, id2: String) -> Element {
     let lang = use_context::<Signal<Lang>>();
@@ -114,15 +126,19 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                 rtype,
                 strength: rel_strength().clamp(1, 10),
             });
-            let kind = ctx.map(|rc| rc.rtype.facet()).unwrap_or(FacetKind::Base);
+            let requested = ctx.map(|rc| rc.rtype.facet()).unwrap_or(FacetKind::Base);
             let na = a.name.clone();
             let nb = b.name.clone();
-            // `None` when the relationship's arena is not a defined context for
-            // either person (no arena persona, and not their primary facet).
-            let brk = compute_synergy_score_ctx(&a, &b, ctx.as_ref(), &a_preds, &b_preds);
-            let Some(brk) = brk else {
-                let missing = if a.has_facet(kind) { &nb } else { &na };
-                let facet_lbl = kind.label(cl);
+            // The relationship's arena is only a request: compare still works on any
+            // arena the two people share, so a single missing persona does not
+            // block the whole page. `None` only when no arena is common at all.
+            let kind = shared_facet(&a, &b, requested);
+            let brk = kind.and_then(|k| {
+                compute_synergy_score_facet(&a, &b, ctx.as_ref(), k, &a_preds, &b_preds)
+            });
+            let Some((kind, brk)) = kind.zip(brk) else {
+                let missing = if a.has_facet(requested) { &nb } else { &na };
+                let facet_lbl = requested.label(cl);
                 let unavailable = crate::tr!(CompareFacetUnavailable, lang());
                 return rsx! {
                     div { class: "page",
@@ -135,6 +151,9 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                     }
                 };
             };
+            let facet_fallback = (kind != requested).then(|| {
+                crate::tr!(CompareFacetFallback, lang()).replacen("{}", kind.label(cl), 1)
+            });
             let score = brk.total;
             let (pa, pb) = analysis_pair(&a, &b, kind);
             let (synergies, frictions, (top_strategy, all_strategies)) =
@@ -231,6 +250,9 @@ pub fn ComparePersons(id1: String, id2: String) -> Element {
                     button { class: "btn", onclick: move |_| nav.go_back(), "{back_btn}" }
                     h2 { "{compare_title}" }
                     p { class: "compare-sub", "{compare_sub}" }
+                    if let Some(note) = &facet_fallback {
+                        p { class: "compare-fallback-note wrap", "{note}" }
+                    }
 
                     div { class: "compare-grid",
                         div { class: "compare-card",
@@ -1218,6 +1240,67 @@ mod tests {
         );
         assert!(ba.private_persona.is_none(), "merged view strips masks");
         assert_eq!(ba.name, "a", "identity fields carried over");
+    }
+
+    // ── shared_facet (arena fallback) ──
+
+    #[test]
+    fn shared_facet_keeps_requested_when_both_have_it() {
+        assert_eq!(
+            shared_facet(&p("a"), &p("b"), FacetKind::Base),
+            Some(FacetKind::Base)
+        );
+    }
+
+    #[test]
+    fn shared_facet_falls_back_when_one_lacks_the_requested_arena() {
+        // Your case: the relationship maps to Base (Vie privée), but `a` is a
+        // work-primary with no private mask. Both still share Work.
+        let mut a = p("a");
+        a.primary_facet = FacetKind::Work;
+        let mut b = p("b");
+        b.persona = Some(PersonaMask::default());
+        assert_eq!(shared_facet(&a, &b, FacetKind::Base), Some(FacetKind::Work));
+    }
+
+    #[test]
+    fn shared_facet_prefers_all_order_among_several_shared() {
+        // a is work-primary but also defines a private mask, so Base and Work are
+        // both shared with b; ALL order puts Base first when Base is not requested.
+        let mut a = p("a");
+        a.primary_facet = FacetKind::Work;
+        a.persona = Some(PersonaMask::default());
+        a.private_persona = Some(PersonaMask::default());
+        let mut b = p("b");
+        b.persona = Some(PersonaMask::default());
+        assert_eq!(
+            shared_facet(&a, &b, FacetKind::Online),
+            Some(FacetKind::Base)
+        );
+        // The requested arena still wins over the ALL-order preference.
+        assert_eq!(shared_facet(&a, &b, FacetKind::Work), Some(FacetKind::Work));
+    }
+
+    #[test]
+    fn shared_facet_none_when_no_arena_is_common() {
+        // a lives only in Work, b only in Online: nothing to score on.
+        let mut a = p("a");
+        a.primary_facet = FacetKind::Work;
+        let mut b = p("b");
+        b.primary_facet = FacetKind::Online;
+        assert_eq!(shared_facet(&a, &b, FacetKind::Base), None);
+    }
+
+    #[test]
+    fn shared_facet_uses_online_when_both_have_it() {
+        let mut a = p("a");
+        a.online_persona = Some(PersonaMask::default());
+        let mut b = p("b");
+        b.online_persona = Some(PersonaMask::default());
+        assert_eq!(
+            shared_facet(&a, &b, FacetKind::Online),
+            Some(FacetKind::Online)
+        );
     }
 
     fn p(name: &str) -> Person {

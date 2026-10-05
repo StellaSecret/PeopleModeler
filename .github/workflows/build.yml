@@ -84,17 +84,92 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
     steps:
       - uses: actions/checkout@v7
+      # dioxus 0.7.9 (dx) strips the linked wasm with `rust-objcopy --strip-all`
+      # before running wasm-bindgen. Since the LLVM 23 bump (rustc 1.99),
+      # --strip-all removes wasm custom sections, wiping wasm-bindgen's
+      # metadata and failing dx build with "import of ... doesn't have an
+      # adapter listed". Pin to an LLVM 22 toolchain so dx can build.
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.97.1
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: Install system deps
-        run: apt update && apt install -y build-essential
+        # azure.archive.ubuntu.com (the default mirror baked into the runner
+        # image) has flaked with 502/proxy errors during installs. Retry the
+        # update, then fall back to archive.ubuntu.com, which serves the same
+        # package set.
+        run: |
+          for i in 1 2 3; do
+            if apt update; then
+              apt install -y build-essential
+              exit 0
+            fi
+            sleep 5
+          done
+          sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+          for f in /etc/apt/sources.list.d/*.sources; do
+            [ -f "$f" ] && sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' "$f"
+          done
+          apt update
+          apt install -y build-essential
       - name: Install Dioxus CLI
         run: |
           curl -sSLO https://github.com/DioxusLabs/dioxus/releases/download/v0.7.9/dx-x86_64-unknown-linux-gnu.tar.gz
           tar -xzf dx-x86_64-unknown-linux-gnu.tar.gz
           install -m 755 dx /usr/local/bin/dx
+      # dx 0.7.9 falls back to its own bundled wasm-bindgen CLI when none is
+      # on PATH, and that CLI is older than the crates in Cargo.lock. The
+      # mismatch surfaces as `import of '__wbg_abort_*' doesn't have an
+      # adapter listed` followed by a wasm-opt failure on a missing file, so
+      # pin the CLI to whatever the lock says and fail loudly if the lock
+      # drifts during resolution.
+      # Kept POSIX sh: these jobs run with `shell: sh -e {0}`, which is dash on
+      # the runner image, so `set -o pipefail` and other bashisms are fatal.
+      # curl writes to a temp file first so a failed download cannot be masked
+      # by tar exiting on empty input.
+      - name: Match wasm-bindgen CLI to Cargo.lock
+        run: |
+          set -eu
+          cargo fetch
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && [ -f Cargo.lock ]; then
+            # Only check if tracked; avoid any command that could trigger --no-index
+            if git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
+              if ! git diff --quiet -- Cargo.lock; then
+                echo "::error::Cargo.lock drifted during resolution; pinned wasm-bindgen versions would no longer agree"
+                git --no-pager diff --unified=0 -- Cargo.lock || true
+                exit 1
+              fi
+              if ! git diff --cached --quiet -- Cargo.lock 2>/dev/null; then
+                # index might not be used; ignore failure
+                :
+              fi
+            fi
+          fi
+          version=$(awk '/^name = "wasm-bindgen"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' Cargo.lock)
+          echo "Installing wasm-bindgen CLI ${version}"
+          mkdir -p "${HOME}/.cargo/bin" "${HOME}/.local/share/.dx/tools/wasm-bindgen-${version}"
+          archive=$(mktemp)
+          curl -sSfL -o "${archive}" "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/${version}/wasm-bindgen-${version}-x86_64-unknown-linux-musl.tar.gz"
+          tar -xzf "${archive}" -C "${HOME}/.cargo/bin" --strip-components=1
+          tar -xzf "${archive}" -C "${HOME}/.local/share/.dx/tools/wasm-bindgen-${version}" --strip-components=1
+          rm -f "${archive}"
+          # Remove any other cached wasm-bindgen CLI versions dx might pick
+          for d in "${HOME}/.local/share/.dx/tools"/wasm-bindgen-*; do
+            [ -d "${d}" ] || continue
+            case "${d}" in
+              *"wasm-bindgen-${version}") ;;
+              *) rm -rf "${d}" ;;
+            esac
+          done
+          # Also clean wasm-pack cache and any other cached wasm-bindgen binaries
+          rm -rf "${HOME}/.cache/.wasm-pack"/wasm-bindgen-* 2>/dev/null || true
+          rm -rf "${HOME}/.local/share/.dx/tools"/wasm-bindgen-*-[0-9a-f]* 2>/dev/null || true
+          # Ensure PATH has our binary first
+          export PATH="${HOME}/.cargo/bin:${PATH}"
+          echo "${HOME}/.cargo/bin" >> "${GITHUB_PATH}"
+          "${HOME}/.cargo/bin/wasm-bindgen" --version
+          echo "WASM_BINDGEN=${HOME}/.cargo/bin/wasm-bindgen" >> "${GITHUB_ENV}"
       - name: Build WASM
         run: dx build --release --package peoplemodeler-app --debug-symbols false --base-path /PeopleModeler
       - name: Install npm deps
@@ -234,6 +309,52 @@ jobs:
           curl -sSLO https://github.com/DioxusLabs/dioxus/releases/download/v0.7.9/dx-x86_64-unknown-linux-gnu.tar.gz
           tar -xzf dx-x86_64-unknown-linux-gnu.tar.gz
           install -m 755 dx /usr/local/bin/dx
+      # Kept POSIX sh: these jobs run with `shell: sh -e {0}`, which is dash on
+      # the runner image, so `set -o pipefail` and other bashisms are fatal.
+      # curl writes to a temp file first so a failed download cannot be masked
+      # by tar exiting on empty input.
+      - name: Match wasm-bindgen CLI to Cargo.lock
+        run: |
+          set -eu
+          cargo fetch
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && [ -f Cargo.lock ]; then
+            # Only check if tracked; avoid any command that could trigger --no-index
+            if git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
+              if ! git diff --quiet -- Cargo.lock; then
+                echo "::error::Cargo.lock drifted during resolution; pinned wasm-bindgen versions would no longer agree"
+                git --no-pager diff --unified=0 -- Cargo.lock || true
+                exit 1
+              fi
+              if ! git diff --cached --quiet -- Cargo.lock 2>/dev/null; then
+                # index might not be used; ignore failure
+                :
+              fi
+            fi
+          fi
+          version=$(awk '/^name = "wasm-bindgen"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' Cargo.lock)
+          echo "Installing wasm-bindgen CLI ${version}"
+          mkdir -p "${HOME}/.cargo/bin" "${HOME}/.local/share/.dx/tools/wasm-bindgen-${version}"
+          archive=$(mktemp)
+          curl -sSfL -o "${archive}" "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/${version}/wasm-bindgen-${version}-x86_64-unknown-linux-musl.tar.gz"
+          tar -xzf "${archive}" -C "${HOME}/.cargo/bin" --strip-components=1
+          tar -xzf "${archive}" -C "${HOME}/.local/share/.dx/tools/wasm-bindgen-${version}" --strip-components=1
+          rm -f "${archive}"
+          # Remove any other cached wasm-bindgen CLI versions dx might pick
+          for d in "${HOME}/.local/share/.dx/tools"/wasm-bindgen-*; do
+            [ -d "${d}" ] || continue
+            case "${d}" in
+              *"wasm-bindgen-${version}") ;;
+              *) rm -rf "${d}" ;;
+            esac
+          done
+          # Also clean wasm-pack cache and any other cached wasm-bindgen binaries
+          rm -rf "${HOME}/.cache/.wasm-pack"/wasm-bindgen-* 2>/dev/null || true
+          rm -rf "${HOME}/.local/share/.dx/tools"/wasm-bindgen-*-[0-9a-f]* 2>/dev/null || true
+          # Ensure PATH has our binary first
+          export PATH="${HOME}/.cargo/bin:${PATH}"
+          echo "${HOME}/.cargo/bin" >> "${GITHUB_PATH}"
+          "${HOME}/.cargo/bin/wasm-bindgen" --version
+          echo "WASM_BINDGEN=${HOME}/.cargo/bin/wasm-bindgen" >> "${GITHUB_ENV}"
       - name: Clean stale artifacts
         run: cargo clean -p peoplemodeler-app
       - name: Build Android APK (aarch64) — first pass (generates project)

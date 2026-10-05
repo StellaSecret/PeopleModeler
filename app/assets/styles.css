@@ -693,6 +693,12 @@ fieldset.persona-balance legend{
 .compare-card h3{font-family:var(--font-display);font-size:1.2rem;font-weight:800;margin-bottom:0.25rem}
 .compare-card>p{color:var(--text-muted);font-size:0.82rem;margin-bottom:1.25rem}
 .compare-sub{text-align:center;color:var(--text-muted);margin-bottom:2rem;font-size:0.88rem}
+.compare-fallback-note{
+  text-align:center;color:var(--text-dim);font-size:0.8rem;
+  margin:-1.5rem 0 1.5rem;padding:0.4rem 0.7rem;
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface2)
+}
 .compare-section{margin-bottom:1rem}
 .compare-section h4{font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.4rem}
 .compare-chip{display:inline-block;padding:0.3rem 0.85rem;border-radius:100px;font-size:0.8rem;font-family:var(--font-mono)}
