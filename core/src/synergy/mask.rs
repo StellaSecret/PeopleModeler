@@ -1,5 +1,5 @@
 use super::components::{
-    motivation_synergy_score, pattern_synergy, sim, style_synergy, value_similarity,
+    motivation_synergy_score, pattern_divergence, sim, style_synergy, value_similarity,
 };
 use crate::model_config::CFG;
 use crate::models::{FacetKind, Person, RepDim};
@@ -123,11 +123,7 @@ pub fn mask_gap_for(p: &Person, kind: FacetKind) -> Option<MaskGap> {
     );
 
     channel(
-        if base.behavioral_patterns.is_empty() && arena.behavioral_patterns.is_empty() {
-            0.0
-        } else {
-            1.0 - pattern_synergy(&base.behavioral_patterns, &arena.behavioral_patterns)
-        },
+        pattern_divergence(&base.behavioral_patterns, &arena.behavioral_patterns),
         CFG.base_weights.patterns,
         !base.behavioral_patterns.is_empty() || !arena.behavioral_patterns.is_empty(),
     );

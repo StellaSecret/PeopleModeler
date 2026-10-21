@@ -502,16 +502,7 @@ impl BehaviorTrigger {
             Self::Injustice => "⚖️",
         }
     }
-
-    /// Returns true for maladaptive triggers: Conflict, Stress, Threatened, Injustice.
-    pub fn is_negative(self) -> bool {
-        matches!(
-            self,
-            Self::Conflict | Self::Stress | Self::Threatened | Self::Injustice
-        )
-    }
 }
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Motivation {
     pub r#type: MotivationType,
@@ -605,6 +596,28 @@ pub enum BehaviorResponse {
 }
 
 impl BehaviorResponse {
+    /// Largest absolute tier score (tier 1 = +0.03, tier 7 = -0.03).
+    pub const MAX_ABS_SCORE: f64 = 0.03;
+    /// Tiers 6-7 (Bad / Maladaptive) score at or below this.
+    pub const MALADAPTIVE_MAX: f64 = -0.02;
+    /// Tiers 1-3 (Proactive / Constructive / Adaptive) score at or above this.
+    pub const CONSTRUCTIVE_MIN: f64 = 0.01;
+
+    /// Response quality normalized to [-1.0, 1.0] (0 = neutral tier).
+    pub fn quality_unit(self) -> f64 {
+        self.score() / Self::MAX_ABS_SCORE
+    }
+
+    /// True for the Bad and Maladaptive tiers.
+    pub fn is_maladaptive(self) -> bool {
+        self.score() <= Self::MALADAPTIVE_MAX
+    }
+
+    /// True for the Proactive, Constructive and Adaptive tiers.
+    pub fn is_constructive(self) -> bool {
+        self.score() >= Self::CONSTRUCTIVE_MIN
+    }
+
     pub fn serde_name(self) -> &'static str {
         match self {
             Self::RemainsCalm => "remains_calm",
@@ -1576,6 +1589,28 @@ mod tests {
         .unwrap_err();
         let msg = err.to_string();
         assert!(msg.contains("a behavior response variant"), "got: {msg}");
+    }
+
+    #[test]
+    fn response_quality_is_normalized() {
+        assert!((BehaviorResponse::RemainsCalm.quality_unit() - 1.0).abs() < 1e-9);
+        assert!((BehaviorResponse::Panics.quality_unit() + 1.0).abs() < 1e-9);
+        assert!(BehaviorResponse::BecomesQuiet.quality_unit().abs() < 1e-9);
+        // Tier 2 and tier 6 sit at two thirds of the scale.
+        assert!((BehaviorResponse::SeeksSupport.quality_unit() - 2.0 / 3.0).abs() < 1e-9);
+        assert!((BehaviorResponse::Overwhelmed.quality_unit() + 2.0 / 3.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn response_tier_boundaries() {
+        // Maladaptive starts at tier 6; tier 5 is only mild friction.
+        assert!(!BehaviorResponse::BecomesIrritable.is_maladaptive());
+        assert!(BehaviorResponse::Overwhelmed.is_maladaptive());
+        assert!(BehaviorResponse::Panics.is_maladaptive());
+        // Constructive ends at tier 3; tier 4 is neutral.
+        assert!(BehaviorResponse::Reflects.is_constructive());
+        assert!(!BehaviorResponse::BecomesQuiet.is_constructive());
+        assert!(!BehaviorResponse::Panics.is_constructive());
     }
 
     #[test]

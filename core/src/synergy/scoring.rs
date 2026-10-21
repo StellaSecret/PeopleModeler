@@ -246,16 +246,19 @@ pub(crate) fn compute_synergy_score_inner(
         0.0
     };
 
-    // --- Pattern danger: both persons have only negative triggers ---
+    // --- Pattern danger: both persons answer every trigger maladaptively ---
 
-    let has_negative_only = |patterns: &[BehavioralPattern]| -> bool {
-        !patterns.is_empty() && patterns.iter().all(|p| p.trigger.is_negative())
+    let has_maladaptive_only = |patterns: &[BehavioralPattern]| -> bool {
+        !patterns.is_empty()
+            && patterns
+                .iter()
+                .all(|p| p.predicted_behavior.is_maladaptive())
     };
     let pat_danger_penalty = if pat_active
-        && has_negative_only(&a.behavioral_patterns)
-        && has_negative_only(&b.behavioral_patterns)
+        && has_maladaptive_only(&a.behavioral_patterns)
+        && has_maladaptive_only(&b.behavioral_patterns)
     {
-        CFG.patterns.only_negative_penalty
+        CFG.patterns.maladaptive_only_penalty
     } else {
         0.0
     };
@@ -497,7 +500,7 @@ pub(crate) fn compute_synergy_score_inner(
         details.push("Rep power struggle");
     }
     if pat_danger_penalty > 0.0 {
-        details.push("Only negative patterns");
+        details.push("Only maladaptive patterns");
     }
     if history_penalty > 0.0 {
         details.push("Low prediction accuracy");

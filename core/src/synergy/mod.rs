@@ -11,9 +11,10 @@ use crate::insights::InsightContext;
 use crate::models::RelationType;
 
 pub use components::{
-    bias_adjustment, confidence_band, motivation_synergy, motivation_synergy_score,
-    pattern_adjustment, pattern_synergy, strength_band, style_synergy, trigger_synergy,
-    value_similarity, virtue_adjustment,
+    TriggerBehavior, bias_adjustment, confidence_band, motivation_synergy,
+    motivation_synergy_score, pattern_completeness_adjustment, pattern_divergence, pattern_synergy,
+    shared_trigger_value, solo_trigger_value, strength_band, style_synergy, value_similarity,
+    virtue_adjustment,
 };
 #[allow(unused_imports)]
 pub(crate) use components::{bias_count_bonus, motivation_count_penalty};
@@ -225,7 +226,7 @@ mod tests {
 
     /// A pair that's strong on every bucket except patterns: reactive,
     /// divergent triggers (Stress→Panics vs Conflict→Escalates) drive the
-    /// patterns bucket to 0 while OCEAN/Rep/Mot/Bias/Styles stay near 1.
+    /// patterns bucket down while OCEAN/Rep/Mot/Bias/Styles stay near 1.
     fn crisis_pair() -> (Person, Person) {
         let mut a = full_profile();
         let mut b = full_profile();
@@ -371,7 +372,11 @@ mod tests {
     fn test_per_context_collapses_under_stress() {
         let (a, b) = crisis_pair();
         let brk = compute_synergy_score(&a, &b);
-        assert!(brk.patterns < 0.1, "patterns bucket should be near 0");
+        assert!(
+            brk.patterns < 0.3,
+            "patterns bucket should stay low, got {}",
+            brk.patterns
+        );
         let stress = brk
             .per_context
             .iter()
@@ -613,12 +618,21 @@ mod tests {
     }
 
     #[test]
-    fn test_only_negative_patterns_zero_patterns_bucket() {
+    fn test_only_maladaptive_patterns_trigger_danger_penalty() {
         let (a, b) = crisis_pair();
         let brk = compute_synergy_score(&a, &b);
-        assert_eq!(
-            brk.patterns, 0.0,
-            "only-negative triggers must zero the patterns bucket"
+        // Both people record nothing but maladaptive answers: every trigger is
+        // solo, so the pair scores 0.25, minus the 0.05 danger penalty.
+        let expected = 0.25 - CFG.patterns.maladaptive_only_penalty;
+        assert!(
+            (brk.patterns - expected).abs() < 0.001,
+            "maladaptive-only pair must land on {expected}, got {}",
+            brk.patterns
+        );
+        assert!(
+            brk.danger_details.contains("maladaptive"),
+            "the danger detail must name the maladaptive patterns, got '{}'",
+            brk.danger_details
         );
     }
 
@@ -663,121 +677,105 @@ mod tests {
         );
     }
 
-    // --- trigger_synergy tests ---
+    // --- pattern behaviour tests (response-driven) ---
+
+    fn pat(trigger: BehaviorTrigger, response: BehaviorResponse) -> BehavioralPattern {
+        BehavioralPattern {
+            trigger,
+            predicted_behavior: response,
+            notes: String::new(),
+        }
+    }
 
     #[test]
-    fn test_trigger_same_change() {
+    fn test_shared_trigger_value_two_proactive_answers() {
+        let v = shared_trigger_value(
+            TriggerBehavior::of(BehaviorResponse::RemainsCalm),
+            TriggerBehavior::of(BehaviorResponse::FacilitatesResolution),
+        );
         assert!(
-            (trigger_synergy(BehaviorTrigger::Change, BehaviorTrigger::Change) - 0.3).abs() < 1e-9
+            (v - CFG.patterns.response_gain).abs() < 1e-9,
+            "two proactive answers must earn the full gain, got {v}"
         );
     }
 
     #[test]
-    fn test_trigger_same_feedback() {
+    fn test_shared_trigger_value_mixed_answers_are_neutral() {
+        let v = shared_trigger_value(
+            TriggerBehavior::of(BehaviorResponse::RemainsCalm),
+            TriggerBehavior::of(BehaviorResponse::Panics),
+        );
         assert!(
-            (trigger_synergy(BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) - 0.3).abs()
-                < 1e-9
+            v.abs() < 1e-9,
+            "a proactive/maladaptive pair must be neutral, got {v}"
         );
     }
 
     #[test]
-    fn test_trigger_same_success() {
+    fn test_shared_trigger_value_two_maladaptive_answers_penalised() {
+        let v = shared_trigger_value(
+            TriggerBehavior::of(BehaviorResponse::Panics),
+            TriggerBehavior::of(BehaviorResponse::Escalates),
+        );
+        let expected = -CFG.patterns.response_gain - CFG.patterns.maladaptive_pair_penalty;
         assert!(
-            (trigger_synergy(BehaviorTrigger::Success, BehaviorTrigger::Success) - 0.3).abs()
-                < 1e-9
+            (v - expected).abs() < 1e-9,
+            "mutual maladaptivity must add the pair penalty, got {v}"
         );
     }
 
     #[test]
-    fn test_trigger_same_conflict() {
+    fn test_shared_trigger_value_is_symmetric() {
+        let a = TriggerBehavior::of(BehaviorResponse::Overwhelmed);
+        let b = TriggerBehavior::of(BehaviorResponse::SeeksSupport);
         assert!(
-            (trigger_synergy(BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) - (-0.3)).abs()
-                < 1e-9
+            (shared_trigger_value(a, b) - shared_trigger_value(b, a)).abs() < 1e-9,
+            "the shared value must not depend on the order of the two people"
         );
     }
 
     #[test]
-    fn test_trigger_same_stress() {
+    fn test_solo_trigger_value_is_discounted() {
+        let v = solo_trigger_value(TriggerBehavior::of(BehaviorResponse::RemainsCalm));
+        let expected = CFG.patterns.response_gain * CFG.patterns.solo_weight;
         assert!(
-            (trigger_synergy(BehaviorTrigger::Stress, BehaviorTrigger::Stress) - (-0.2)).abs()
-                < 1e-9
+            (v - expected).abs() < 1e-9,
+            "a solo trigger must count less than a shared one, got {v}"
         );
     }
 
     #[test]
-    fn test_trigger_change_feedback() {
+    fn test_solo_maladaptive_trigger_drags_the_pair_down() {
+        let v = solo_trigger_value(TriggerBehavior::of(BehaviorResponse::Panics));
+        let expected = -CFG.patterns.response_gain * CFG.patterns.solo_weight;
         assert!(
-            (trigger_synergy(BehaviorTrigger::Change, BehaviorTrigger::Feedback) - 0.3).abs()
-                < 1e-9
-        );
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Feedback, BehaviorTrigger::Change) - 0.3).abs()
-                < 1e-9
+            (v - expected).abs() < 1e-9,
+            "a solo maladaptive answer must be the mirror of the proactive gain, got {v}"
         );
     }
 
     #[test]
-    fn test_trigger_conflict_stress() {
+    fn test_trigger_behavior_averages_answers_for_one_trigger() {
+        let p = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Panics),
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+        ];
+        let b = TriggerBehavior::recorded(&p, BehaviorTrigger::Stress).expect("recorded");
         assert!(
-            (trigger_synergy(BehaviorTrigger::Conflict, BehaviorTrigger::Stress) - (-0.3)).abs()
-                < 1e-9
+            b.quality.abs() < 1e-9,
+            "the mean of the two answers must be neutral, got {}",
+            b.quality
         );
         assert!(
-            (trigger_synergy(BehaviorTrigger::Stress, BehaviorTrigger::Conflict) - (-0.3)).abs()
-                < 1e-9
-        );
-    }
-
-    #[test]
-    fn test_trigger_change_stress() {
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Change, BehaviorTrigger::Stress) - (-0.2)).abs()
-                < 1e-9
-        );
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Stress, BehaviorTrigger::Change) - (-0.2)).abs()
-                < 1e-9
+            !b.all_maladaptive,
+            "one proactive answer means the trigger is not maladaptive-only"
         );
     }
 
     #[test]
-    fn test_trigger_conflict_uncertainty() {
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Conflict, BehaviorTrigger::Uncertainty) - (-0.2))
-                .abs()
-                < 1e-9
-        );
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Uncertainty, BehaviorTrigger::Conflict) - (-0.2))
-                .abs()
-                < 1e-9
-        );
-    }
-
-    #[test]
-    fn test_trigger_feedback_recognition() {
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Feedback, BehaviorTrigger::Recognition) - 0.2).abs()
-                < 1e-9
-        );
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Recognition, BehaviorTrigger::Feedback) - 0.2).abs()
-                < 1e-9
-        );
-    }
-
-    #[test]
-    fn test_trigger_default() {
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Uncertainty, BehaviorTrigger::Threatened) - 0.0)
-                .abs()
-                < 1e-9
-        );
-        assert!(
-            (trigger_synergy(BehaviorTrigger::Recognition, BehaviorTrigger::Threatened) - 0.0)
-                .abs()
-                < 1e-9
-        );
+    fn test_trigger_behavior_missing_trigger_is_none() {
+        let p = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        assert!(TriggerBehavior::recorded(&p, BehaviorTrigger::Conflict).is_none());
     }
 
     // --- motivation_synergy tests ---
@@ -1538,178 +1536,167 @@ mod tests {
 
     #[test]
     fn test_pattern_synergy_single() {
-        let a = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Change,
-            predicted_behavior: BehaviorResponse::EmbracesChange,
-            notes: String::new(),
-        }];
-        let b = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Change,
-            predicted_behavior: BehaviorResponse::EmbracesChange,
-            notes: String::new(),
-        }];
+        let a = vec![pat(
+            BehaviorTrigger::Change,
+            BehaviorResponse::EmbracesChange,
+        )];
+        let b = vec![pat(
+            BehaviorTrigger::Change,
+            BehaviorResponse::EmbracesChange,
+        )];
         let result = pattern_synergy(&a, &b);
         assert!((result - 1.0).abs() < 0.001, "got {}", result);
     }
 
     #[test]
-    fn test_pattern_synergy_negative_mean_unsaturated() {
-        let a = vec![
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::SeeksSupport,
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::SeeksSupport,
-                notes: String::new(),
-            },
-        ];
-        let b = vec![
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::SeeksSupport,
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::SeeksSupport,
-                notes: String::new(),
-            },
-        ];
+    fn test_pattern_synergy_two_maladaptive_answers_score_zero() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
         let result = pattern_synergy(&a, &b);
-        assert!((result - 0.1666666667).abs() < 0.001, "got {}", result);
+        assert!((result - 0.0).abs() < 0.001, "got {}", result);
     }
 
-    // --- Pattern adjustment tests ---
+    #[test]
+    fn test_pattern_synergy_mixed_answers_are_neutral() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        let result = pattern_synergy(&a, &b);
+        assert!((result - 0.5).abs() < 0.001, "got {}", result);
+    }
 
     #[test]
-    fn test_pattern_adjustment_empty() {
+    fn test_pattern_synergy_solo_triggers_are_discounted() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(
+            BehaviorTrigger::Conflict,
+            BehaviorResponse::FacilitatesResolution,
+        )];
+        let result = pattern_synergy(&a, &b);
+        // Both triggers are solo: 0.30 × 0.50 = 0.15 each → (0.15 + 0.3) / 0.6
+        assert!((result - 0.75).abs() < 0.001, "got {}", result);
+    }
+
+    #[test]
+    fn test_pattern_synergy_more_answers_never_dilute() {
+        // Same trigger, answered twice on each side: the trigger still counts
+        // once, so the score must not move.
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        let single = pattern_synergy(&a, &b);
+        let a2 = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Panics),
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Overwhelmed),
+        ];
+        let b2 = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Panics),
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Overwhelmed),
+        ];
+        let double = pattern_synergy(&a2, &b2);
+        assert!(
+            (double - single).abs() < 0.001,
+            "a second answer for the same trigger must not change the score: {double} vs {single}"
+        );
+    }
+
+    #[test]
+    fn test_pattern_synergy_extra_shared_trigger_keeps_the_score() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let one = pattern_synergy(&a, &b);
+        let a2 = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+            pat(
+                BehaviorTrigger::Conflict,
+                BehaviorResponse::FacilitatesResolution,
+            ),
+        ];
+        let b2 = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+            pat(
+                BehaviorTrigger::Conflict,
+                BehaviorResponse::FacilitatesResolution,
+            ),
+        ];
+        let two = pattern_synergy(&a2, &b2);
+        assert!((one - 1.0).abs() < 0.001, "got {}", one);
+        assert!(
+            (two - one).abs() < 0.001,
+            "a second shared proactive trigger must not lower the score: {two} vs {one}"
+        );
+    }
+
+    // --- pattern_divergence tests ---
+
+    #[test]
+    fn test_pattern_divergence_identical_answers() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        assert!((pattern_divergence(&a, &b) - 0.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_pattern_divergence_opposite_answers() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        assert!((pattern_divergence(&a, &b) - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_pattern_divergence_mixed_answers() {
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::BecomesQuiet)];
+        assert!((pattern_divergence(&a, &b) - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_pattern_divergence_skips_unshared_triggers() {
+        // Different triggers are missing evidence, not divergent behavior.
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Conflict, BehaviorResponse::Panics)];
+        assert!((pattern_divergence(&a, &b) - 0.0).abs() < 1e-9);
+        // No shared trigger at all → no divergence to report.
+        let empty: Vec<BehavioralPattern> = vec![];
+        assert!((pattern_divergence(&empty, &empty) - 0.0).abs() < 1e-9);
+    }
+
+    // --- Pattern completeness adjustment tests ---
+
+    #[test]
+    fn test_pattern_completeness_adjustment_empty() {
         let p: Vec<BehavioralPattern> = vec![];
-        let adj = pattern_adjustment(&p);
+        let adj = pattern_completeness_adjustment(&p);
         // 9 undefined triggers × −0.02 = −0.18
         assert!((adj + 0.18).abs() < 0.001, "empty adj: {}", adj);
     }
 
     #[test]
-    fn test_pattern_adjustment_best_response() {
-        // RemainsCalm is tier 1 (+0.03)
-        let p = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Stress,
-            predicted_behavior: BehaviorResponse::RemainsCalm,
-            notes: String::new(),
-        }];
-        let adj = pattern_adjustment(&p);
-        // +0.03 from RemainsCalm, 8 undefined × −0.02 = −0.16 → total −0.13
-        assert!((adj + 0.13).abs() < 0.001, "best adj: {}", adj);
+    fn test_pattern_completeness_adjustment_counts_missing_triggers_only() {
+        // The recorded answer itself no longer moves the adjustment: the
+        // response quality is scored by pattern_synergy.
+        let p = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let adj = pattern_completeness_adjustment(&p);
+        // 8 missing triggers × −0.02 = −0.16
+        assert!((adj + 0.16).abs() < 0.001, "best adj: {}", adj);
     }
 
     #[test]
-    fn test_pattern_adjustment_worst_response() {
-        // Panics is tier 7 (−0.03)
-        let p = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Stress,
-            predicted_behavior: BehaviorResponse::Panics,
-            notes: String::new(),
-        }];
-        let adj = pattern_adjustment(&p);
-        // −0.03 from Panics, 8 undefined × −0.02 = −0.16 → total −0.19
-        assert!((adj + 0.19).abs() < 0.001, "worst adj: {}", adj);
+    fn test_pattern_completeness_adjustment_full_coverage() {
+        let p: Vec<BehavioralPattern> = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| pat(*t, BehaviorResponse::RemainsCalm))
+            .collect();
+        let adj = pattern_completeness_adjustment(&p);
+        assert!(adj.abs() < 1e-9, "full coverage adj: {}", adj);
     }
 
     #[test]
-    fn test_pattern_adjustment_neutral_response() {
-        // BecomesQuiet is tier 4 (0.00)
-        let p = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Stress,
-            predicted_behavior: BehaviorResponse::BecomesQuiet,
-            notes: String::new(),
-        }];
-        let adj = pattern_adjustment(&p);
-        // 0.00 from BecomesQuiet, 8 undefined × −0.02 = −0.16 → total −0.16
-        assert!((adj + 0.16).abs() < 0.001, "neutral adj: {}", adj);
-    }
-
-    #[test]
-    fn test_pattern_adjustment_all_tiers() {
-        // One response from each tier
-        let p = vec![
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Success,
-                predicted_behavior: BehaviorResponse::CelebratesWithOthers, // +0.03
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Conflict,
-                predicted_behavior: BehaviorResponse::CommunicatesOpenly, // +0.02
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Uncertainty,
-                predicted_behavior: BehaviorResponse::SeeksData, // +0.01
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Recognition,
-                predicted_behavior: BehaviorResponse::SeeksMore, // 0.00
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Change,
-                predicted_behavior: BehaviorResponse::NeedsReassurance, // −0.01
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Threatened,
-                predicted_behavior: BehaviorResponse::Counterattacks, // −0.02
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Injustice,
-                predicted_behavior: BehaviorResponse::BecomesBitter, // −0.03
-                notes: String::new(),
-            },
-        ];
-        let adj = pattern_adjustment(&p);
-        // Sum of scores: 0.03+0.02+0.01+0.00−0.01−0.02−0.03 = 0.0
-        // 2 undefined triggers × −0.02 = −0.04 (Feedback, Stress)
-        assert!((adj + 0.04).abs() < 0.001, "all tiers adj: {}", adj);
-    }
-
-    #[test]
-    fn test_pattern_adjustment_mixed_scores() {
-        let p = vec![
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Success,
-                predicted_behavior: BehaviorResponse::CelebratesWithOthers, // +0.03
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Conflict,
-                predicted_behavior: BehaviorResponse::Escalates, // −0.03
-                notes: String::new(),
-            },
-        ];
-        let adj = pattern_adjustment(&p);
-        // +0.03 + (−0.03) = 0.0 from defined, 7 undefined × −0.02 = −0.14 → total −0.14
-        assert!((adj + 0.14).abs() < 0.001, "mixed adj: {}", adj);
-    }
-
-    #[test]
-    fn test_profile_pattern_adjustment_integration() {
-        // Change trigger self-pair: trigger_synergy(Change, Change) = +0.3
-        // raw_pat = ((0.3 + 0.3) / 0.6) = 1.0
-        // RemainsCalm score = +0.03, 8 missing × −0.02 = −0.16 → adj = −0.13
-        // adjusted = clamp(1.0 + (−0.13), 0, 1) = 0.87
+    fn test_profile_pattern_score_integration() {
+        // One proactive pattern on Change: the self-pair earns the full gain
+        // (raw 1.0), 8 missing triggers cost 8 × −0.02 = −0.16.
         let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
-        p.behavioral_patterns = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Change,
-            predicted_behavior: BehaviorResponse::RemainsCalm,
-            notes: String::new(),
-        }];
+        p.behavioral_patterns = vec![pat(BehaviorTrigger::Change, BehaviorResponse::RemainsCalm)];
         let pf = compute_person_profile(&p);
-        let expected = 0.87;
+        let expected = 0.84;
         assert!(
             (pf.patterns - expected).abs() < 0.001,
             "expected {expected}, got {}",
@@ -1718,27 +1705,32 @@ mod tests {
     }
 
     #[test]
+    fn test_profile_pattern_score_full_coverage_is_max() {
+        // Every trigger recorded, every answer proactive: the personal pattern
+        // score must reach the top of the scale.
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.behavioral_patterns = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| pat(*t, BehaviorResponse::RemainsCalm))
+            .collect();
+        let pf = compute_person_profile(&p);
+        assert!(
+            (pf.patterns - 1.0).abs() < 0.001,
+            "fully proactive profile: {}",
+            pf.patterns
+        );
+    }
+
+    #[test]
     fn test_profile_pattern_adjustment_all_negative() {
-        // All worst responses (−0.03 each) × 9 triggers = −0.27
-        // raw_pat varies, but each trigger is paired with itself in pattern_synergy
-        // We just verify patterns < 0.5 (baseline)
+        // Every recorded answer maladaptive: the self-pair bottoms out and
+        // the missing triggers cost more.
         let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         p.behavioral_patterns = vec![
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Stress,
-                predicted_behavior: BehaviorResponse::Panics,
-                notes: String::new(),
-            },
-            BehavioralPattern {
-                trigger: BehaviorTrigger::Conflict,
-                predicted_behavior: BehaviorResponse::Escalates,
-                notes: String::new(),
-            },
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Panics),
+            pat(BehaviorTrigger::Conflict, BehaviorResponse::Escalates),
         ];
         let pf = compute_person_profile(&p);
-        // Adjust: −0.03 + (−0.03) = −0.06 from defined, 7 missing × −0.02 = −0.14 → −0.20
-        // raw_pat ≈ 0.0 (self-pair Conflict×Conflict = −0.3, Stress×Stress = −0.2, cross = −0.3)
-        // adjusted ≈ clamp(0.0 + (−0.20), 0, 1) = 0.0
         assert!(
             (pf.patterns - 0.0).abs() < 0.001,
             "all negative: {}",
@@ -2235,7 +2227,7 @@ mod tests {
     // --- Pattern danger tests ---
 
     #[test]
-    fn test_pattern_danger_all_negative_triggers() {
+    fn test_pattern_danger_all_maladaptive_answers() {
         let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         a.behavioral_patterns = vec![
@@ -2258,13 +2250,13 @@ mod tests {
         let brk = compute_synergy_score(&a, &b);
         assert!(
             brk.danger > 0.0,
-            "all-negative triggers should produce danger: {}",
+            "all-maladaptive answers should produce danger: {}",
             brk.danger
         );
     }
 
     #[test]
-    fn test_pattern_danger_positive_trigger_no_penalty() {
+    fn test_pattern_danger_constructive_answer_no_penalty() {
         let mut a = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         let mut b = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
         a.behavioral_patterns = vec![BehavioralPattern {
@@ -2280,7 +2272,7 @@ mod tests {
         let brk = compute_synergy_score(&a, &b);
         assert!(
             brk.danger < 0.001,
-            "positive trigger should avoid pattern danger: {}",
+            "a constructive answer should avoid pattern danger: {}",
             brk.danger
         );
     }
@@ -3630,11 +3622,9 @@ mod tests {
             },
         ];
         let result = pattern_synergy(&a, &b);
-        // Same triggers: Change=0.3, Conflict=-0.3
-        // (Change,Change): syn=+0.3, w=1.0
-        // (Conflict,Conflict): syn=-0.3, w=1.0
-        // result = ((0.0 / 2.0) + 0.3) / 0.6 = 0.5
-        // Detailed math: let's just verify it's sensible
+        // Same triggers, different answers: Change is proactive on both sides
+        // (+0.30), Conflict is maladaptive on both sides (−0.30 once the pair
+        // penalty applies) → (0.0 + 0.3) / 0.6 = 0.5.
         assert!(
             (0.4..=0.9).contains(&result),
             "mixed pattern synergy: {}",
@@ -5655,12 +5645,28 @@ mod tests {
     }
 
     #[test]
-    fn test_trigger_synergy_all_entries_in_range() {
-        for (i, row) in CFG.patterns.trigger_synergy.iter().enumerate() {
-            for (j, &v) in row.iter().enumerate() {
-                assert!((-1.0..=1.0).contains(&v), "trigger[{}][{}] = {}", i, j, v);
-            }
-        }
+    fn test_pattern_config_knobs_in_range() {
+        let p = &CFG.patterns;
+        assert!(p.response_gain > 0.0, "response gain must be positive");
+        assert!(
+            p.solo_weight > 0.0 && p.solo_weight <= 1.0,
+            "solo weight must be a share of the shared value, got {}",
+            p.solo_weight
+        );
+        assert!(
+            p.maladaptive_pair_penalty >= 0.0,
+            "the maladaptive pair penalty must not be negative"
+        );
+        assert!(
+            p.norm_scale > 0.0,
+            "the normalization scale must be positive, got {}",
+            p.norm_scale
+        );
+        assert!(
+            (0.0..=1.0).contains(&p.default),
+            "the default pattern score must be a share, got {}",
+            p.default
+        );
     }
 
     #[test]
@@ -7129,23 +7135,16 @@ mod tests {
     }
 
     #[test]
-    fn test_danger_details_negative_patterns() {
+    fn test_danger_details_maladaptive_patterns() {
         let mut a = full_profile();
         let mut b = full_profile();
-        a.behavioral_patterns = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Stress,
-            predicted_behavior: BehaviorResponse::Panics,
-            notes: String::new(),
-        }];
-        b.behavioral_patterns = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Conflict,
-            predicted_behavior: BehaviorResponse::Escalates,
-            notes: String::new(),
-        }];
+        a.behavioral_patterns = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        b.behavioral_patterns = vec![pat(BehaviorTrigger::Conflict, BehaviorResponse::Escalates)];
         let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
         assert!(
-            bd.danger_details.contains("negative patterns"),
-            "both negative triggers → negative patterns detail"
+            bd.danger_details.contains("maladaptive patterns"),
+            "both maladaptive-only → maladaptive patterns detail, got '{}'",
+            bd.danger_details
         );
     }
 
@@ -9306,13 +9305,22 @@ mod tests {
         assert_eq!(pf0.total, 58, "full-profile total: {}", pf0.total);
 
         // Pattern trigger changed to a distinct non-zero bucket value.
-        p.behavioral_patterns = vec![BehavioralPattern {
-            trigger: BehaviorTrigger::Stress,
-            predicted_behavior: BehaviorResponse::SeeksSupport,
-            notes: String::new(),
-        }];
+        p.behavioral_patterns = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::SeeksSupport)];
         let pf1 = compute_person_profile(&p);
-        assert_eq!(pf1.total, 49, "modified-pattern total: {}", pf1.total);
+        assert_eq!(pf1.total, 59, "modified-pattern total: {}", pf1.total);
+
+        // The opposite answer: a maladaptive pattern must pull the total well
+        // below the proactive one, so a mutation of the pattern score cannot
+        // slip through.
+        p.behavioral_patterns = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        let pf1b = compute_person_profile(&p);
+        assert_eq!(pf1b.total, 43, "maladaptive-pattern total: {}", pf1b.total);
+        assert!(
+            pf1.total - pf1b.total >= 10,
+            "the recorded answer must move the total: {} vs {}",
+            pf1.total,
+            pf1b.total
+        );
 
         // Values bucket non-empty (val = 0.8) AND a rep dim in an adjustment
         // band (extreme-high at 8 or extreme-low) so mutations to
@@ -9647,7 +9655,7 @@ mod tests {
             notes: String::new(),
         }];
         let brk = compute_synergy_score(&a, &b);
-        // all-negative triggers → pat_danger_penalty = 0.05
+        // all-maladaptive answers → pat_danger_penalty = 0.05
         assert!(
             brk.patterns < 1.0,
             "pattern danger reduces patterns: {}",

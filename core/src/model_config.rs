@@ -7,7 +7,7 @@
 //! `validation.rs`.
 
 use crate::insights::InsightContext;
-use crate::models::{BehaviorTrigger, BiasType, MotivationType, RelationType};
+use crate::models::{BiasType, MotivationType, RelationType};
 
 /// Everything the model tunes, in one place.
 pub const CFG: ModelConfig = ModelConfig {
@@ -158,25 +158,24 @@ pub const CFG: ModelConfig = ModelConfig {
         },
     },
     patterns: PatternsConfig {
-        // Indexed by BehaviorTrigger::ALL order:
-        // [Stress, Conflict, Success, Uncertainty, Recognition, Threatened,
-        //  Change, Feedback, Injustice]
-        trigger_synergy: [
-            [-0.2, -0.3, 0.0, 0.0, 0.0, 0.0, -0.2, 0.0, -0.1], // Stress
-            [-0.3, -0.3, 0.0, -0.2, 0.0, 0.0, 0.0, 0.0, -0.1], // Conflict
-            [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],     // Success
-            [0.0, -0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.1],   // Uncertainty
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0],     // Recognition
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],     // Threatened
-            [-0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0],    // Change
-            [0.0, 0.0, 0.0, 0.0, 0.2, 0.0, 0.3, 0.3, 0.0],     // Feedback
-            [-0.1, -0.1, 0.0, -0.1, 0.0, 0.0, 0.0, 0.0, -0.2], // Injustice
-        ],
+        // The pattern bucket is driven by the *behavior* each person records
+        // for a trigger, not by the trigger itself: two people who both stay
+        // calm under stress are compatible, two who both panic are not.
+        //
+        // Credit for response quality on a trigger both people have. Must stay
+        // equal to `norm_offset`: the top of the normalization range is
+        // "both answers proactive".
+        response_gain: 0.30,
+        // Weight of a trigger only one of the two people has: the individual's
+        // own behavior counts, but less than a shared situation.
+        solo_weight: 0.50,
+        // Extra friction when both answer the same trigger maladaptively.
+        maladaptive_pair_penalty: 0.10,
         norm_offset: 0.3,
         norm_scale: 0.6,
         default: 0.5,
         undefined_penalty: 0.02,
-        only_negative_penalty: 0.05,
+        maladaptive_only_penalty: 0.05,
     },
     bias: BiasConfig {
         // Indexed by BiasType::ALL order.
@@ -349,18 +348,6 @@ impl ModelConfig {
         self.motivation.synergy[i][j]
     }
 
-    pub fn trigger_synergy(&self, a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
-        let i = BehaviorTrigger::ALL
-            .iter()
-            .position(|&t| t == a)
-            .expect("unknown trigger");
-        let j = BehaviorTrigger::ALL
-            .iter()
-            .position(|&t| t == b)
-            .expect("unknown trigger");
-        self.patterns.trigger_synergy[i][j]
-    }
-
     pub fn bias_modulation(&self, ty: BiasType) -> Option<(BiasTarget, f64)> {
         let i = BiasType::ALL
             .iter()
@@ -517,12 +504,18 @@ pub struct MotivationCountConfig {
 }
 
 pub struct PatternsConfig {
-    pub trigger_synergy: [[f64; 9]; 9],
+    /// Credit for response quality on a trigger both people have.
+    pub response_gain: f64,
+    /// Weight of a trigger only one of the two people has.
+    pub solo_weight: f64,
+    /// Extra friction when both answer the same trigger maladaptively.
+    pub maladaptive_pair_penalty: f64,
     pub norm_offset: f64,
     pub norm_scale: f64,
     pub default: f64,
     pub undefined_penalty: f64,
-    pub only_negative_penalty: f64,
+    /// Extra friction when both people record nothing but maladaptive answers.
+    pub maladaptive_only_penalty: f64,
 }
 
 /// Which component a shared bias type modulates.

@@ -2,7 +2,8 @@ use std::collections::HashSet;
 
 use crate::model_config::CFG;
 use crate::models::{
-    BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation, MotivationType, PersonalStyle,
+    BehaviorResponse, BehaviorTrigger, BehavioralPattern, Bias, BiasType, Motivation,
+    MotivationType, PersonalStyle,
 };
 
 /// Confidence band width (± points) from relationship strength (1-10).
@@ -127,13 +128,11 @@ pub(crate) fn bias_count_bonus(n: usize) -> f64 {
     CFG.bias.count_bonus.get(n).copied().unwrap_or(0.0)
 }
 
-pub fn pattern_adjustment(patterns: &[BehavioralPattern]) -> f64 {
+/// Completeness adjustment: every trigger with no recorded pattern is missing
+/// evidence, so it costs the person a little completeness credit.
+pub fn pattern_completeness_adjustment(patterns: &[BehavioralPattern]) -> f64 {
+    let defined: HashSet<BehaviorTrigger> = patterns.iter().map(|p| p.trigger).collect();
     let mut adj = 0.0;
-    let mut defined: HashSet<BehaviorTrigger> = HashSet::new();
-    for p in patterns {
-        defined.insert(p.trigger);
-        adj += p.predicted_behavior.score();
-    }
     for t in BehaviorTrigger::ALL {
         if !defined.contains(&t) {
             adj -= CFG.patterns.undefined_penalty;
@@ -142,27 +141,125 @@ pub fn pattern_adjustment(patterns: &[BehavioralPattern]) -> f64 {
     adj
 }
 
-pub fn trigger_synergy(a: BehaviorTrigger, b: BehaviorTrigger) -> f64 {
-    CFG.trigger_synergy(a, b)
+/// How one person behaves on one trigger.
+///
+/// A trigger can carry several recorded answers (same trigger, different
+/// notes), so the behavior is the *mean* quality of those answers; the
+/// trigger counts as maladaptive only when every answer for it is.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TriggerBehavior {
+    /// Mean response quality over the recorded answers, in [-1, 1].
+    pub quality: f64,
+    /// True when every recorded answer for the trigger is maladaptive.
+    pub all_maladaptive: bool,
 }
 
+impl TriggerBehavior {
+    /// Behavior of a single recorded answer.
+    pub fn of(response: BehaviorResponse) -> Self {
+        Self {
+            quality: response.quality_unit(),
+            all_maladaptive: response.is_maladaptive(),
+        }
+    }
+
+    /// Behavior recorded for a trigger, or `None` when nothing was recorded
+    /// for it.
+    pub fn recorded(patterns: &[BehavioralPattern], trigger: BehaviorTrigger) -> Option<Self> {
+        let mut sum = 0.0;
+        let mut n = 0.0;
+        let mut all_maladaptive = true;
+        for p in patterns.iter().filter(|p| p.trigger == trigger) {
+            sum += p.predicted_behavior.quality_unit();
+            n += 1.0;
+            all_maladaptive &= p.predicted_behavior.is_maladaptive();
+        }
+        if n == 0.0 {
+            None
+        } else {
+            Some(Self {
+                quality: sum / n,
+                all_maladaptive,
+            })
+        }
+    }
+}
+
+/// Value of a trigger **both** people have, in synergy units.
+///
+/// The recorded behavior drives the value: two proactive answers credit the
+/// pair, two maladaptive answers are friction, and a mixed pair is neutral.
+/// Two maladaptive answers on the same trigger get an extra penalty — mutual
+/// escalation is worse than two unrelated bad habits.
+pub fn shared_trigger_value(a: TriggerBehavior, b: TriggerBehavior) -> f64 {
+    let avg = (a.quality + b.quality) / 2.0;
+    let mut value = CFG.patterns.response_gain * avg;
+    if a.all_maladaptive && b.all_maladaptive {
+        value -= CFG.patterns.maladaptive_pair_penalty;
+    }
+    value
+}
+
+/// Value of a trigger only **one** of the two people has: the individual's own
+/// behavior counts, at a discount — an unshared situation is not shared
+/// friction, but a maladaptive answer still drags the pair down.
+pub fn solo_trigger_value(behavior: TriggerBehavior) -> f64 {
+    CFG.patterns.response_gain * behavior.quality * CFG.patterns.solo_weight
+}
+
+/// Behavioral synergy of two people.
+///
+/// Scored trigger by trigger over the union of both pattern sets: a trigger
+/// both have is a *shared* situation, a trigger only one has is *solo*. Each
+/// trigger counts once, so recording more behavior never dilutes the score.
 pub fn pattern_synergy(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f64 {
     let mut sum = 0.0;
     let mut count = 0.0f64;
-    for a in pa {
-        for b in pb {
-            let syn = trigger_synergy(a.trigger, b.trigger);
-            if syn == 0.0 {
-                continue;
+    for trigger in BehaviorTrigger::ALL {
+        let a = TriggerBehavior::recorded(pa, trigger);
+        let b = TriggerBehavior::recorded(pb, trigger);
+        match (a, b) {
+            (Some(x), Some(y)) => {
+                sum += shared_trigger_value(x, y);
+                count += 1.0;
             }
-            sum += syn;
-            count += 1.0;
+            (Some(x), None) => {
+                sum += solo_trigger_value(x);
+                count += 1.0;
+            }
+            (None, Some(y)) => {
+                sum += solo_trigger_value(y);
+                count += 1.0;
+            }
+            (None, None) => {}
         }
     }
     if count == 0.0 {
         CFG.patterns.default
     } else {
         ((sum / count + CFG.patterns.norm_offset) / CFG.patterns.norm_scale).clamp(0.0, 1.0)
+    }
+}
+
+/// Behavioral divergence between two pattern sets (0 = same answers, 1 = one
+/// proactive and the other maladaptive). Triggers only one side recorded are
+/// missing evidence, not divergent behavior, so they are skipped.
+pub fn pattern_divergence(pa: &[BehavioralPattern], pb: &[BehavioralPattern]) -> f64 {
+    let mut sum = 0.0;
+    let mut count = 0.0f64;
+    for trigger in BehaviorTrigger::ALL {
+        let a = TriggerBehavior::recorded(pa, trigger);
+        let b = TriggerBehavior::recorded(pb, trigger);
+        if let (Some(x), Some(y)) = (a, b) {
+            let diff = (x.quality - y.quality).abs();
+            sum += diff / 2.0;
+            count += 1.0;
+        }
+    }
+    if count == 0.0 {
+        0.0
+    } else {
+        (sum / count).clamp(0.0, 1.0)
     }
 }
 

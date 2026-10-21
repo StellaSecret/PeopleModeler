@@ -2246,73 +2246,36 @@ mod tests {
     }
 
     #[test]
-    fn test_pattern_trigger_synergy_signs() {
-        use crate::models::BehaviorTrigger;
-        // Verify all negative trigger synergy values
-        let neg_cases: Vec<(BehaviorTrigger, BehaviorTrigger, f64)> = vec![
-            (BehaviorTrigger::Stress, BehaviorTrigger::Stress, -0.2),
-            (BehaviorTrigger::Stress, BehaviorTrigger::Conflict, -0.3),
-            (BehaviorTrigger::Stress, BehaviorTrigger::Change, -0.2),
-            (BehaviorTrigger::Stress, BehaviorTrigger::Injustice, -0.1),
-            (BehaviorTrigger::Conflict, BehaviorTrigger::Stress, -0.3),
-            (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict, -0.3),
-            (
-                BehaviorTrigger::Conflict,
-                BehaviorTrigger::Uncertainty,
-                -0.2,
-            ),
-            (BehaviorTrigger::Conflict, BehaviorTrigger::Injustice, -0.1),
-            (
-                BehaviorTrigger::Uncertainty,
-                BehaviorTrigger::Conflict,
-                -0.2,
-            ),
-            (
-                BehaviorTrigger::Uncertainty,
-                BehaviorTrigger::Injustice,
-                -0.1,
-            ),
-            (BehaviorTrigger::Injustice, BehaviorTrigger::Stress, -0.1),
-            (BehaviorTrigger::Injustice, BehaviorTrigger::Conflict, -0.1),
-            (
-                BehaviorTrigger::Injustice,
-                BehaviorTrigger::Uncertainty,
-                -0.1,
-            ),
-            (BehaviorTrigger::Injustice, BehaviorTrigger::Injustice, -0.2),
-        ];
-        for (a, b, expected) in &neg_cases {
-            let actual = crate::synergy::trigger_synergy(*a, *b);
-            assert!(
-                (actual - expected).abs() < 0.001,
-                "{:?}×{:?}: expected {}, got {}",
-                a,
-                b,
-                expected,
-                actual
-            );
-        }
-        // Verify specific positive trigger synergy values
-        let pos_cases: Vec<(BehaviorTrigger, BehaviorTrigger, f64)> = vec![
-            (BehaviorTrigger::Success, BehaviorTrigger::Success, 0.3),
-            (BehaviorTrigger::Change, BehaviorTrigger::Change, 0.3),
-            (BehaviorTrigger::Change, BehaviorTrigger::Feedback, 0.3),
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Change, 0.3),
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback, 0.3),
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Recognition, 0.2),
-            (BehaviorTrigger::Recognition, BehaviorTrigger::Feedback, 0.2),
-        ];
-        for (a, b, expected) in &pos_cases {
-            let actual = crate::synergy::trigger_synergy(*a, *b);
-            assert!(
-                (actual - expected).abs() < 0.001,
-                "{:?}×{:?}: expected {}, got {}",
-                a,
-                b,
-                expected,
-                actual
-            );
-        }
+    fn test_pattern_response_drives_pair_score() {
+        use crate::models::{BehaviorResponse, BehaviorTrigger, BehavioralPattern};
+        let pat = |trigger: BehaviorTrigger, response: BehaviorResponse| BehavioralPattern {
+            trigger,
+            predicted_behavior: response,
+            notes: String::new(),
+        };
+        let proactive = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let maladaptive = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::Panics)];
+        // The trigger is the same on both sides: only the recorded answer
+        // decides how the pair scores.
+        let both_good = crate::synergy::pattern_synergy(&proactive, &proactive);
+        let mixed = crate::synergy::pattern_synergy(&proactive, &maladaptive);
+        let both_bad = crate::synergy::pattern_synergy(&maladaptive, &maladaptive);
+        assert!(
+            both_good > mixed && mixed > both_bad,
+            "response quality must order the pair score: {both_good} / {mixed} / {both_bad}"
+        );
+        assert!(
+            (both_good - 1.0).abs() < 0.001,
+            "two proactive answers must reach the top of the scale, got {both_good}"
+        );
+        assert!(
+            (mixed - 0.5).abs() < 0.001,
+            "a proactive/maladaptive pair must be neutral, got {mixed}"
+        );
+        assert!(
+            (both_bad - 0.0).abs() < 0.001,
+            "two maladaptive answers must bottom out, got {both_bad}"
+        );
     }
 
     #[test]

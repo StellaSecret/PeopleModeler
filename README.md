@@ -559,61 +559,71 @@ applies a moral adjustment to its motivation score based on virtues/vices:
 These adjustments are applied to the motivation score **in the profile** before
 any cross-person synergy computation.
 
-#### 4. Patterns (14%)
+#### 4. Patterns (16%)
 
-Pairs weighted by `conf_A × conf_B / 100`. Neutral pairs
-(synergy = 0.0) are skipped (same logic as motivations).
+The score is **response-aware**: what each person recorded for a trigger drives
+the score, not the trigger itself. Two people who both stay calm under stress
+are compatible; two who both panic are not.
 
-```
-avg = weighted_average(trigger_synergy(tA, tB), weights, skip_neutral)
-Patterns_raw = (avg + 0.3) / 0.6   → clamp [0, 1]
-```
+Scored trigger by trigger over the **union** of both pattern sets. A trigger
+both people have is *shared*, a trigger only one has is *solo*. Each trigger
+counts **once**, so recording more behavior never dilutes the score.
 
-Table `trigger_synergy(tA, tB)`:
+Response quality comes from the tier score of the recorded answer, normalized
+to [-1, 1]:
 
-| tA \ tB | Change | Feedback | Success | Conflict | Stress | Uncertainty | Recognition | Threatened | Injustice |
-|---|---|---|---|---|---|---|---|---|---|
-| **Change** | +0.3 | +0.3 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 |
-| **Feedback** | +0.3 | +0.3 | 0 | 0 | 0 | 0 | +0.2 | 0 | 0 |
-| **Success** | 0 | 0 | +0.3 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Conflict** | 0 | 0 | 0 | -0.3 | -0.3 | -0.2 | 0 | 0 | 0 |
-| **Stress** | -0.2 | 0 | 0 | -0.3 | -0.2 | 0 | 0 | 0 | 0 |
-| **Uncertainty** | 0 | 0 | 0 | -0.2 | 0 | 0 | 0 | 0 | 0 |
-| **Recognition** | 0 | +0.2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Threatened** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Injustice** | 0 | 0 | 0 | −0.1 | −0.1 | −0.1 | 0 | 0 | −0.2 |
+| Tier | Score | Quality | Color | Example responses |
+|---|---|---|---|---|
+| 1 | **+0.03** | +1.00 | ⭐ Proactive | RemainsCalm, FacilitatesResolution, EmbracesChange |
+| 2 | **+0.02** | +0.67 | 🟢 Constructive | SeeksSupport, CommunicatesOpenly, PlansAhead |
+| 3 | **+0.01** | +0.33 | 🟢 Adaptive | StaysFocused, SeeksCompromise, Reflects |
+| 4 | **0.00** | 0.00 | 🟡 Neutral | BecomesQuiet, WaitsForClarity, ResistsChange |
+| 5 | **−0.01** | −0.33 | 🟠 Mild friction | BecomesIrritable, OverPlans, RejectsFeedback |
+| 6 | **−0.02** | −0.67 | 🔴 Bad | Overwhelmed, BecomesDefensive, BecomesOverconfident |
+| 7 | **−0.03** | −1.00 | 🔴 Maladaptive | Panics, Escalates, Sabotages |
 
-##### Pattern Adjustment (individual profile)
-
-Before cross-person comparison, the individual pattern score is adjusted
-based on the quality of the **chosen response** (not the trigger or intensity).
-Each `BehaviorResponse` variant has a built-in score from −0.03 to +0.03
-in 7 tiers:
-
-| Tier | Score | Color | Example responses |
-|---|---|---|---|
-| 1 | **+0.03** | ⭐ Proactive | RemainsCalm, FacilitatesResolution, EmbracesChange |
-| 2 | **+0.02** | 🟢 Constructive | SeeksSupport, CommunicatesOpenly, PlansAhead |
-| 3 | **+0.01** | 🟢 Adaptive | StaysFocused, SeeksCompromise, Reflects |
-| 4 | **0.00** | 🟡 Neutral | BecomesQuiet, WaitsForClarity, ResistsChange |
-| 5 | **−0.01** | 🟠 Mild friction | BecomesIrritable, OverPlans, RejectsFeedback |
-| 6 | **−0.02** | 🔴 Bad | Overwhelmed, BecomesDefensive, BecomesOverconfident |
-| 7 | **−0.03** | 🔴 Maladaptive | Panics, Escalates, Sabotages |
-
-Each undefined trigger (not present in the person's vector) incurs −0.02.
+A trigger can carry several recorded answers: its quality is the **mean** of
+those answers, and it counts as maladaptive only when every answer for it is.
 
 ```
-Pat_adjusted = clamp(raw_pat + pattern_adjustment(&person.behavioral_patterns), 0, 1)
+shared = response_gain × (quality_A + quality_B) / 2      # both have the trigger
+       − maladaptive_pair_penalty   if both are maladaptive-only
+solo   = response_gain × quality × solo_weight             # only one has it
 ```
 
-The score is stored on `BehaviorResponse::score()` (see `core/src/models.rs`).
+With `response_gain = 0.30`, `solo_weight = 0.50`,
+`maladaptive_pair_penalty = 0.10`:
 
-**Patterns Danger Penalty** — when both persons have **only** negative
-triggers (Conflict, Stress, Threatened, Injustice), no positive pattern
-balances the relationship:
+| Situation | Value | Score |
+|---|---|---|
+| Both proactive (tier 1), same trigger | +0.30 | 1.00 |
+| One proactive (tier 1), one maladaptive (tier 7) | 0.00 | 0.50 |
+| Both maladaptive (tier 7), same trigger | −0.40 | 0.00 |
+| Different triggers, both proactive (tier 1) | +0.15 | 0.75 |
+| One maladaptive (tier 7), solo trigger | −0.15 | 0.25 |
 
 ```
-Patterns_penalty = 0.05 if both have only negative triggers
+Patterns_raw = (avg + norm_offset) / norm_scale   → clamp [0, 1]   # 0.3 / 0.6
+```
+
+##### Pattern completeness (individual profile)
+
+Each trigger without a recorded pattern is missing evidence and costs the
+person −0.02:
+
+```
+Pat_adjusted = clamp(raw_pat + pattern_completeness_adjustment(&person.behavioral_patterns), 0, 1)
+```
+
+The personal score is the self-pair of the same function
+(`pattern_synergy(person, person)`), so a fully recorded, constructive profile
+reaches 1.0.
+
+**Patterns Danger Penalty** — when both persons record **only** maladaptive
+answers, no constructive behavior balances the relationship:
+
+```
+Patterns_penalty = 0.05 if both have only maladaptive answers
                    0.00 otherwise
 ```
 

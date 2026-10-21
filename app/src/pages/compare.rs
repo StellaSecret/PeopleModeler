@@ -1,6 +1,8 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::insights::InsightContext;
-use peoplemodeler_core::models::{BehaviorTrigger, FacetKind, Person, RelationType};
+use peoplemodeler_core::models::{
+    BehaviorResponse, BehaviorTrigger, FacetKind, Person, RelationType,
+};
 
 use peoplemodeler_core::synergy::{
     MaskBand, RelContext, Trend, compute_synergy_score_facet, mask_gap_for, synergy_bands,
@@ -87,6 +89,50 @@ fn format_signed_delta(delta: i8) -> String {
 
 fn should_show_extra_strategies(n: usize) -> bool {
     n > 1
+}
+
+/// How two recorded answers to a situation reinforce each other.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PatternTone {
+    /// Both answers are constructive: the pair reinforces each other.
+    BothConstructive,
+    /// Both answers are maladaptive: the pair feeds each other's friction.
+    BothMaladaptive,
+    /// One answer carries the other.
+    Imbalanced,
+    /// Neither answer says much either way.
+    Neutral,
+}
+
+/// Reading of two recorded answers: the response drives it, not the trigger.
+fn pattern_tone(a: BehaviorResponse, b: BehaviorResponse) -> PatternTone {
+    match (
+        a.is_constructive(),
+        b.is_constructive(),
+        a.is_maladaptive(),
+        b.is_maladaptive(),
+    ) {
+        (true, true, _, _) => PatternTone::BothConstructive,
+        (_, _, true, true) => PatternTone::BothMaladaptive,
+        (true, _, _, true) | (_, true, true, _) => PatternTone::Imbalanced,
+        _ => PatternTone::Neutral,
+    }
+}
+
+/// Label of a behavior trigger, reusing the context labels the pattern editor
+/// already shows for the same nine triggers.
+fn trigger_label(t: BehaviorTrigger, lang: Lang) -> &'static str {
+    match t {
+        BehaviorTrigger::Stress => crate::tr!(CtxStress, lang),
+        BehaviorTrigger::Conflict => crate::tr!(CtxConflict, lang),
+        BehaviorTrigger::Success => crate::tr!(CtxSuccess, lang),
+        BehaviorTrigger::Uncertainty => crate::tr!(CtxUncertainty, lang),
+        BehaviorTrigger::Recognition => crate::tr!(CtxRecognition, lang),
+        BehaviorTrigger::Threatened => crate::tr!(CtxThreatened, lang),
+        BehaviorTrigger::Change => crate::tr!(CtxChange, lang),
+        BehaviorTrigger::Feedback => crate::tr!(CtxFeedback, lang),
+        BehaviorTrigger::Injustice => crate::tr!(CtxInjustice, lang),
+    }
 }
 
 /// Arena to score a pair on: the relationship's own arena when both people have
@@ -941,58 +987,43 @@ fn compare_analysis(
     // --- Behavioral Patterns ---
     if let (Some(pa), Some(pb)) = (a.behavioral_patterns.first(), b.behavioral_patterns.first()) {
         let cl = core_lang(lang);
+        let a_trigger = trigger_label(pa.trigger, lang);
+        let b_trigger = trigger_label(pb.trigger, lang);
         syn.push(if lang == Lang::Fr {
             format!(
-                "{na} réagit par «{}» | {nb} réagit par «{}»",
+                "{na} réagit par «{}» face à {a_trigger} | {nb} réagit par «{}» face à {b_trigger}",
                 pa.predicted_behavior.label_bare(cl),
                 pb.predicted_behavior.label_bare(cl)
             )
         } else {
             format!(
-                "{na} responds with «{}» | {nb} responds with «{}»",
+                "{na} responds with «{}» under {a_trigger} | {nb} responds with «{}» under {b_trigger}",
                 pa.predicted_behavior.label_bare(cl),
                 pb.predicted_behavior.label_bare(cl)
             )
         });
 
-        match (&pa.trigger, &pb.trigger) {
-            (BehaviorTrigger::Change, BehaviorTrigger::Change) => {
-                syn.push(if lang == Lang::Fr {
-                    "Tous deux s'adaptent au changement — organisation fluide".into()
-                } else {
-                    "Both adapt well to change — smooth transitions".into()
-                });
-            }
-            (BehaviorTrigger::Feedback, BehaviorTrigger::Feedback) => {
-                syn.push(if lang == Lang::Fr {
-                    "Tous deux réceptifs aux retours — culture d'amélioration continue".into()
-                } else {
-                    "Both receptive to feedback — culture of continuous improvement".into()
-                });
-            }
-            (BehaviorTrigger::Conflict, BehaviorTrigger::Conflict) => {
-                fri.push(if lang == Lang::Fr {
-                    "Tous deux conflictuels en situation tendue — risque d'escalade".into()
-                } else {
-                    "Both combative under tension — risk of escalation".into()
-                });
-            }
-            (BehaviorTrigger::Stress, BehaviorTrigger::Stress) => {
-                fri.push(if lang == Lang::Fr {
-                    "Tous deux stressés sous pression — anxiété contagieuse".into()
-                } else {
-                    "Both stressed under pressure — contagious anxiety".into()
-                });
-            }
-            (BehaviorTrigger::Change, BehaviorTrigger::Feedback)
-            | (BehaviorTrigger::Feedback, BehaviorTrigger::Change) => {
-                syn.push(if lang == Lang::Fr {
-                    "L'un s'adapte, l'autre apprend — duo qui évolue ensemble".into()
-                } else {
-                    "One adapts, one learns — a duo that grows together".into()
-                });
-            }
-            _ => {}
+        // The recorded answers drive the reading, not the trigger: two
+        // constructive answers reinforce each other, two maladaptive ones
+        // drag the pair down.
+        match pattern_tone(pa.predicted_behavior, pb.predicted_behavior) {
+            PatternTone::BothConstructive => syn.push(if lang == Lang::Fr {
+                "Les deux réagissent de façon constructive — des comportements qui se renforcent"
+                    .into()
+            } else {
+                "Both react constructively — behaviors that reinforce each other".into()
+            }),
+            PatternTone::BothMaladaptive => fri.push(if lang == Lang::Fr {
+                "Les deux réagissent maladroitement — risque d'escalade".into()
+            } else {
+                "Both react maladaptively — risk of escalation".into()
+            }),
+            PatternTone::Imbalanced => fri.push(if lang == Lang::Fr {
+                "Une personne gère la situation, l'autre non — réactions déséquilibrées".into()
+            } else {
+                "One copes with it, the other does not — unbalanced reactions".into()
+            }),
+            PatternTone::Neutral => {}
         }
     }
 
@@ -1098,37 +1129,47 @@ fn compare_analysis(
         });
     }
 
-    // --- Trigger-pair clash strategies ---
+    // --- Response-pair strategies ---
     if let (Some(pa), Some(pb)) = (a.behavioral_patterns.first(), b.behavioral_patterns.first()) {
-        let t_syn = peoplemodeler_core::synergy::trigger_synergy(pa.trigger, pb.trigger);
         let cl = core_lang(lang);
         let a_resp = pa.predicted_behavior.label_bare(cl);
         let b_resp = pb.predicted_behavior.label_bare(cl);
         let resp_info = format!(" ({na}: {a_resp} | {nb}: {b_resp})");
-        if t_syn < -0.1 {
-            str.push(if lang == Lang::Fr {
+        match pattern_tone(pa.predicted_behavior, pb.predicted_behavior) {
+            PatternTone::BothMaladaptive => str.push(if lang == Lang::Fr {
                 format!(
-                    "Risque de déclenchement mutuel — leurs réactions au stress s'amplifient{}",
+                    "Risque d'escalade mutuelle — leurs réactions s'amplifient{}",
                     resp_info
                 )
             } else {
                 format!(
-                    "Risk of mutual triggering — their stress responses amplify each other{}",
+                    "Risk of mutual escalation — their reactions amplify each other{}",
                     resp_info
                 )
-            });
-        } else if t_syn > 0.1 {
-            str.push(if lang == Lang::Fr {
+            }),
+            PatternTone::BothConstructive => str.push(if lang == Lang::Fr {
                 format!(
-                    "Complémentarité comportementale — leurs réactions s'équilibrent{}",
+                    "Complémentarité comportementale — leurs réactions se renforcent{}",
                     resp_info
                 )
             } else {
                 format!(
-                    "Natural behavioral complementarity — their responses balance each other{}",
+                    "Natural behavioral complementarity — their responses reinforce each other{}",
                     resp_info
                 )
-            });
+            }),
+            PatternTone::Imbalanced => str.push(if lang == Lang::Fr {
+                format!(
+                    "Réactions déséquilibrées — un côté doit porter l'autre{}",
+                    resp_info
+                )
+            } else {
+                format!(
+                    "Unbalanced reactions — one side has to carry the other{}",
+                    resp_info
+                )
+            }),
+            PatternTone::Neutral => {}
         }
     }
 
@@ -1691,7 +1732,8 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
-        assert!(syn.iter().any(|s| s.contains("adapt well to change")));
+        assert!(syn.iter().any(|s| s.contains("react constructively")));
+        assert!(syn.iter().any(|s| s.contains("under Change")));
     }
 
     #[test]
@@ -1709,7 +1751,8 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
-        assert!(syn.iter().any(|s| s.contains("continuous improvement")));
+        assert!(syn.iter().any(|s| s.contains("react constructively")));
+        assert!(syn.iter().any(|s| s.contains("under Feedback")));
     }
 
     #[test]
@@ -1745,7 +1788,7 @@ mod tests {
             notes: String::new(),
         }];
         let (_, fri, _) = compare_analysis(&a, &b, Lang::En);
-        assert!(fri.iter().any(|s| s.contains("contagious anxiety")));
+        assert!(fri.iter().any(|s| s.contains("react maladaptively")));
     }
 
     #[test]
@@ -1763,7 +1806,7 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
-        assert!(syn.iter().any(|s| s.contains("One adapts, one learns")));
+        assert!(syn.iter().any(|s| s.contains("react constructively")));
     }
 
     #[test]
@@ -1781,7 +1824,7 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
-        assert!(syn.iter().any(|s| s.contains("One adapts, one learns")));
+        assert!(syn.iter().any(|s| s.contains("react constructively")));
     }
 
     #[test]
@@ -1952,7 +1995,7 @@ mod tests {
             notes: String::new(),
         }];
         let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
-        assert!(str.iter().any(|s| s.contains("mutual triggering")));
+        assert!(str.iter().any(|s| s.contains("mutual escalation")));
     }
 
     #[test]
@@ -1973,23 +2016,26 @@ mod tests {
         assert!(str.iter().any(|s| s.contains("complementarity")));
     }
 
+    // ── Strategies: neutral answers ──
+
     #[test]
-    fn strategy_trigger_neutral() {
+    fn strategy_neutral_responses() {
         let mut a = p("A");
         let mut b = p("B");
         a.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Uncertainty,
-            predicted_behavior: BehaviorResponse::SeeksData,
+            predicted_behavior: BehaviorResponse::BecomesQuiet,
             notes: String::new(),
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Success,
-            predicted_behavior: BehaviorResponse::CelebratesWithOthers,
+            predicted_behavior: BehaviorResponse::StaysSilent,
             notes: String::new(),
         }];
         let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::En);
-        assert!(!str.iter().any(|s| s.contains("mutual triggering")));
+        assert!(!str.iter().any(|s| s.contains("mutual escalation")));
         assert!(!str.iter().any(|s| s.contains("complementarity")));
+        assert!(!str.iter().any(|s| s.contains("Unbalanced")));
     }
 
     // ── Empty fallbacks ──
@@ -2272,7 +2318,8 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
-        assert!(syn.iter().any(|s| s.contains("s'adaptent au changement")));
+        assert!(syn.iter().any(|s| s.contains("de façon constructive")));
+        assert!(syn.iter().any(|s| s.contains("face à Changement")));
     }
 
     #[test]
@@ -2290,7 +2337,8 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
-        assert!(syn.iter().any(|s| s.contains("amélioration continue")));
+        assert!(syn.iter().any(|s| s.contains("de façon constructive")));
+        assert!(syn.iter().any(|s| s.contains("face à Feedback")));
     }
 
     #[test]
@@ -2326,7 +2374,7 @@ mod tests {
             notes: String::new(),
         }];
         let (_, fri, _) = compare_analysis(&a, &b, Lang::Fr);
-        assert!(fri.iter().any(|s| s.contains("anxiété contagieuse")));
+        assert!(fri.iter().any(|s| s.contains("maladroitement")));
     }
 
     #[test]
@@ -2344,7 +2392,7 @@ mod tests {
             notes: String::new(),
         }];
         let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
-        assert!(syn.iter().any(|s| s.contains("évolue ensemble")));
+        assert!(syn.iter().any(|s| s.contains("de façon constructive")));
     }
 
     #[test]
@@ -2485,7 +2533,7 @@ mod tests {
             notes: String::new(),
         }];
         let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
-        assert!(str.iter().any(|s| s.contains("déclenchement mutuel")));
+        assert!(str.iter().any(|s| s.contains("escalade mutuelle")));
     }
 
     #[test]
@@ -2510,21 +2558,21 @@ mod tests {
     }
 
     #[test]
-    fn french_trigger_neutral() {
+    fn french_strategy_neutral_responses() {
         let mut a = p("A");
         let mut b = p("B");
         a.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Uncertainty,
-            predicted_behavior: BehaviorResponse::SeeksData,
+            predicted_behavior: BehaviorResponse::BecomesQuiet,
             notes: String::new(),
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Success,
-            predicted_behavior: BehaviorResponse::CelebratesWithOthers,
+            predicted_behavior: BehaviorResponse::StaysSilent,
             notes: String::new(),
         }];
         let (_, _, (_, str)) = compare_analysis(&a, &b, Lang::Fr);
-        assert!(!str.iter().any(|s| s.contains("déclenchement mutuel")));
+        assert!(!str.iter().any(|s| s.contains("escalade mutuelle")));
         assert!(
             !str.iter()
                 .any(|s| s.contains("Complémentarité comportementale"))
@@ -3802,15 +3850,15 @@ mod tests {
         );
     }
 
-    // ── Trigger synergy negative (line 998): t_syn < -0.1 ──
+    // ── Response pair negative (line 998): both answers maladaptive ──
 
     #[test]
-    fn trigger_synergy_negative() {
+    fn pattern_tone_maladaptive_pair_strategy() {
         let mut a = p("A");
         let mut b = p("B");
         a.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Conflict,
-            predicted_behavior: BehaviorResponse::RemainsCalm,
+            predicted_behavior: BehaviorResponse::Panics,
             notes: String::new(),
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
@@ -3820,16 +3868,16 @@ mod tests {
         }];
         let (_, _, (_, strats)) = compare_analysis(&a, &b, Lang::En);
         assert!(
-            strats.iter().any(|s| s.contains("mutual triggering")),
-            "expected trigger clash strategy, got: {:?}",
+            strats.iter().any(|s| s.contains("mutual escalation")),
+            "expected escalation strategy, got: {:?}",
             strats
         );
     }
 
-    // ── Trigger synergy positive (line 1010): t_syn > 0.1 ──
+    // ── Response pair positive: both answers constructive ──
 
     #[test]
-    fn trigger_synergy_positive() {
+    fn pattern_tone_constructive_pair_strategy() {
         let mut a = p("A");
         let mut b = p("B");
         a.behavioral_patterns = vec![BehavioralPattern {
@@ -3846,8 +3894,8 @@ mod tests {
         assert!(
             strats
                 .iter()
-                .any(|s| s.contains("complementarity") || s.contains("balance")),
-            "expected trigger complementarity strategy, got: {:?}",
+                .any(|s| s.contains("complementarity") || s.contains("reinforce")),
+            "expected complementarity strategy, got: {:?}",
             strats
         );
     }
@@ -4049,12 +4097,10 @@ mod tests {
         );
     }
 
-    // ── Trigger synergy boundary (line 1031): t_syn == -0.1 is NOT a clash ──
+    // ── Response pair boundary: a mixed pair is neither clash nor complement ──
 
     #[test]
-    fn trigger_synergy_exact_minus_point_one_no_strategy() {
-        // Conflict×Injustice resolves to exactly -0.1 (model_config
-        // trigger_synergy matrix), so the `< -0.1` guard must not fire.
+    fn pattern_tone_mixed_pair_is_neither_clash_nor_complement() {
         let mut a = p("A");
         let mut b = p("B");
         a.behavioral_patterns = vec![BehavioralPattern {
@@ -4064,14 +4110,52 @@ mod tests {
         }];
         b.behavioral_patterns = vec![BehavioralPattern {
             trigger: BehaviorTrigger::Injustice,
-            predicted_behavior: BehaviorResponse::SeeksRestoration,
+            predicted_behavior: BehaviorResponse::Panics,
             notes: String::new(),
         }];
         let (_, _, (_, strats)) = compare_analysis(&a, &b, Lang::En);
         assert!(
-            !strats.iter().any(|s| s.contains("mutual triggering")),
-            "exact -0.1 must not count as a clash, got: {:?}",
+            !strats.iter().any(|s| s.contains("mutual escalation")),
+            "a mixed pair must not read as an escalation, got: {:?}",
             strats
+        );
+        assert!(
+            !strats.iter().any(|s| s.contains("complementarity")),
+            "a mixed pair must not read as complementarity, got: {:?}",
+            strats
+        );
+        assert!(
+            strats.iter().any(|s| s.contains("Unbalanced")),
+            "a mixed pair must read as unbalanced, got: {:?}",
+            strats
+        );
+    }
+
+    // ── pattern_tone: the tier reading itself ──
+
+    #[test]
+    fn pattern_tone_reads_the_recorded_answers() {
+        assert_eq!(
+            pattern_tone(
+                BehaviorResponse::RemainsCalm,
+                BehaviorResponse::SeeksSupport
+            ),
+            PatternTone::BothConstructive
+        );
+        assert_eq!(
+            pattern_tone(BehaviorResponse::Panics, BehaviorResponse::Escalates),
+            PatternTone::BothMaladaptive
+        );
+        assert_eq!(
+            pattern_tone(BehaviorResponse::RemainsCalm, BehaviorResponse::Escalates),
+            PatternTone::Imbalanced
+        );
+        assert_eq!(
+            pattern_tone(
+                BehaviorResponse::BecomesQuiet,
+                BehaviorResponse::StaysSilent
+            ),
+            PatternTone::Neutral
         );
     }
 }

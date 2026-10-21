@@ -601,8 +601,8 @@ pub enum Key {
     OceanVolatility,
     #[strum(serialize = "Rep power struggle")]
     RepPowerStruggle,
-    #[strum(serialize = "Only negative patterns")]
-    OnlyNegativePatterns,
+    #[strum(serialize = "Only maladaptive patterns")]
+    OnlyMaladaptivePatterns,
     #[strum(serialize = "Low prediction accuracy")]
     LowPredictionAccuracy,
     Unknown,
@@ -633,7 +633,7 @@ pub fn tr_danger_details(details: &str, lang: Lang) -> String {
         match s {
             "OCEAN volatility" => Key::OceanVolatility,
             "Rep power struggle" => Key::RepPowerStruggle,
-            "Only negative patterns" => Key::OnlyNegativePatterns,
+            "Only maladaptive patterns" => Key::OnlyMaladaptivePatterns,
             "Low prediction accuracy" => Key::LowPredictionAccuracy,
             _ => Key::Unknown,
         }
@@ -1417,7 +1417,7 @@ fn en(key: Key) -> &'static str {
         Key::TeamFacetToggle => "Filter by facet",
         Key::OceanVolatility => "OCEAN volatility",
         Key::RepPowerStruggle => "Power struggle (Reputation)",
-        Key::OnlyNegativePatterns => "Only negative patterns",
+        Key::OnlyMaladaptivePatterns => "Only maladaptive patterns",
         Key::LowPredictionAccuracy => "Low prediction accuracy",
         Key::Unknown => "Unknown",
     }
@@ -2233,7 +2233,7 @@ fn fr(key: Key) -> &'static str {
         Key::TeamFacetToggle => "Filtrer par facette",
         Key::OceanVolatility => "Volatilité OCEAN",
         Key::RepPowerStruggle => "Lutte de pouvoir (réputation)",
-        Key::OnlyNegativePatterns => "Patterns négatifs uniquement",
+        Key::OnlyMaladaptivePatterns => "Réponses maladaptatives uniquement",
         Key::LowPredictionAccuracy => "Faible précision prédictive",
         Key::Unknown => "Unknown",
     }
@@ -2266,7 +2266,7 @@ mod tests {
 
     const IDENTITY: &[Key] = &[
         Key::OceanVolatility,
-        Key::OnlyNegativePatterns,
+        Key::OnlyMaladaptivePatterns,
         Key::LowPredictionAccuracy,
     ];
 
@@ -2322,8 +2322,8 @@ mod tests {
             Ok(Key::RepPowerStruggle)
         );
         assert_eq!(
-            "Only negative patterns".parse::<Key>(),
-            Ok(Key::OnlyNegativePatterns)
+            "Only maladaptive patterns".parse::<Key>(),
+            Ok(Key::OnlyMaladaptivePatterns)
         );
         assert_eq!(
             "Low prediction accuracy".parse::<Key>(),
@@ -2365,8 +2365,8 @@ mod tests {
             "Power struggle (Reputation)"
         );
         assert_eq!(
-            tr_danger_details("Only negative patterns", Lang::En),
-            "Only negative patterns"
+            tr_danger_details("Only maladaptive patterns", Lang::En),
+            "Only maladaptive patterns"
         );
         assert_eq!(
             tr_danger_details("Low prediction accuracy", Lang::En),
@@ -2385,8 +2385,8 @@ mod tests {
             "Lutte de pouvoir (réputation)"
         );
         assert_eq!(
-            tr_danger_details("Only negative patterns", Lang::Fr),
-            "Patterns négatifs uniquement"
+            tr_danger_details("Only maladaptive patterns", Lang::Fr),
+            "Réponses maladaptatives uniquement"
         );
         assert_eq!(
             tr_danger_details("Low prediction accuracy", Lang::Fr),
