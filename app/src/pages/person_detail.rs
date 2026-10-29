@@ -2,12 +2,15 @@ use dioxus::prelude::*;
 use peoplemodeler_core::models::{
     BehaviorTrigger, FacetKind, Person, Prediction, RelationType, Relationship, RepDim,
 };
-use peoplemodeler_core::synergy::{MaskBand, compute_person_profile, mask_gap_for, synergy_bands};
+use peoplemodeler_core::synergy::{
+    MaskBand, compute_person_profile, mask_gap_for, mindset_readout, synergy_bands,
+};
 
 use crate::Route;
 use crate::components::facet::FacetToggle;
 use crate::db;
 use crate::i18n::{Lang, core_lang};
+use crate::pages::insights::mindset_summary;
 use crate::pages::predictions::{PredictionList, format_date};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -101,6 +104,8 @@ pub fn PersonDetail(id: String) -> Element {
             let confirm_delete_person = crate::tr!(ConfirmDelete, lang());
             let confirm_delete_log = crate::tr!(ConfirmDeleteLog, lang());
             let no_pat = crate::tr!(NoPatterns, lang());
+            let pattern_mindset =
+                mindset_summary(&mindset_readout(&person.behavioral_patterns), lang());
             let log_title = crate::tr!(LogTitle, lang());
             let log_placeholder = crate::tr!(LogPlaceholder, lang());
             let log_add = crate::tr!(LogAdd, lang());
@@ -392,6 +397,9 @@ pub fn PersonDetail(id: String) -> Element {
                         }
                         div { class: "section",
                             h2 { "{pat_title}" }
+                            if let Some(summary) = pattern_mindset.clone() {
+                                p { class: "pattern-mindset", "{summary}" }
+                            }
                             for bp in &person.behavioral_patterns {
                             div { class: "pattern-item",
                                 strong { { crate::pages::insights::trigger_label(&bp.trigger, lang()) } }

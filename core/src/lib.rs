@@ -2279,6 +2279,35 @@ mod tests {
     }
 
     #[test]
+    fn test_pattern_score_pays_for_missing_coverage() {
+        use crate::model_config::CFG;
+        use crate::models::{BehaviorResponse, BehaviorTrigger, BehavioralPattern};
+        let pat = |trigger: BehaviorTrigger, response: BehaviorResponse| BehavioralPattern {
+            trigger,
+            predicted_behavior: response,
+            notes: String::new(),
+        };
+        let proactive = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        // One shared proactive trigger leaves eight situations unobserved.
+        let missing = 8.0 * CFG.patterns.undefined_penalty;
+        let one = crate::synergy::pattern_score(&proactive, &proactive);
+        assert!(
+            (one - (1.0 - missing)).abs() < 0.001,
+            "one shared answer must pay for its missing coverage, got {one}"
+        );
+        // Full coverage has nothing to pay for.
+        let full: Vec<BehavioralPattern> = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| pat(*t, BehaviorResponse::RemainsCalm))
+            .collect();
+        let top = crate::synergy::pattern_score(&full, &full);
+        assert!(
+            (top - 1.0).abs() < 0.001,
+            "full proactive coverage must reach the top, got {top}"
+        );
+    }
+
+    #[test]
     fn test_trajectory_half_life_ms() {
         use crate::model_config::CFG;
         let expected = 30.0 * 24.0 * 3600.0 * 1000.0;

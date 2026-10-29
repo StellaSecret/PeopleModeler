@@ -602,22 +602,40 @@ With `response_gain = 0.30`, `solo_weight = 0.50`,
 | Different triggers, both proactive (tier 1) | +0.15 | 0.75 |
 | One maladaptive (tier 7), solo trigger | −0.15 | 0.25 |
 
+The values above are the union score **before** the coverage adjustment below.
+
 ```
 Patterns_raw = (avg + norm_offset) / norm_scale   → clamp [0, 1]   # 0.3 / 0.6
 ```
 
-##### Pattern completeness (individual profile)
+##### Pattern coverage (individual and pair)
 
-Each trigger without a recorded pattern is missing evidence and costs the
-person −0.02:
+Evidence is only as good as what was recorded. Each side covers the distinct
+triggers it has; the pair's coverage is the mean of the two, and every trigger
+without evidence costs 0.02:
 
 ```
-Pat_adjusted = clamp(raw_pat + pattern_completeness_adjustment(&person.behavioral_patterns), 0, 1)
+evidence = (distinct_triggers(A) + distinct_triggers(B)) / 2
+Patterns_score = clamp(Patterns_raw − (9 − evidence) × 0.02, 0, 1)
 ```
 
-The personal score is the self-pair of the same function
-(`pattern_synergy(person, person)`), so a fully recorded, constructive profile
-reaches 1.0.
+A trigger answered twice counts once. One shared proactive answer therefore
+scores `1.00 − 8 × 0.02 = 0.84` instead of a perfect 1.00. The personal score
+is the self-pair of the same function (`pattern_score(person, person)`), so a
+person compared to themselves gets exactly their profile pattern score; a fully
+recorded, constructive profile reaches 1.0.
+
+##### Mindset readout (derived, not scored)
+
+The profile and compare pages summarize the recorded answers as a
+positive/negative mindset readout. It never feeds the score:
+
+- **adversity** = Stress, Conflict, Threatened, Injustice
+- **positive situations** = Success, Recognition
+- **neutral** = Change, Feedback, Uncertainty (counted only in `overall`)
+
+Each class averages the trigger qualities (−1 to 1) and reads as *constructive*
+(≥ +1/3), *maladaptive* (≤ −1/3), or *mixed* in between.
 
 **Patterns Danger Penalty** — when both persons record **only** maladaptive
 answers, no constructive behavior balances the relationship:
@@ -630,7 +648,7 @@ Patterns_penalty = 0.05 if both have only maladaptive answers
 Patterns final after modulation and penalty:
 
 ```
-Patterns_penalized = max(Patterns_raw - Patterns_penalty, 0)
+Patterns_penalized = max(Patterns_score - Patterns_penalty, 0)
 Patterns_final = min(Patterns_penalized × (1 + bias_modulations_Patterns), 1)
 ```
 

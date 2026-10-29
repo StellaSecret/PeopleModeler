@@ -11,10 +11,11 @@ use crate::insights::InsightContext;
 use crate::models::RelationType;
 
 pub use components::{
-    TriggerBehavior, bias_adjustment, confidence_band, motivation_synergy,
-    motivation_synergy_score, pattern_completeness_adjustment, pattern_divergence, pattern_synergy,
-    shared_trigger_value, solo_trigger_value, strength_band, style_synergy, value_similarity,
-    virtue_adjustment,
+    MINDSET_CONSTRUCTIVE_MIN, MINDSET_MALADAPTIVE_MAX, MindsetReadout, MindsetTone,
+    TriggerBehavior, bias_adjustment, confidence_band, distinct_trigger_count, mindset_readout,
+    mindset_tone, motivation_synergy, motivation_synergy_score, pattern_coverage_adjustment,
+    pattern_divergence, pattern_score, pattern_synergy, shared_trigger_value, solo_trigger_value,
+    strength_band, style_synergy, value_similarity, virtue_adjustment,
 };
 #[allow(unused_imports)]
 pub(crate) use components::{bias_count_bonus, motivation_count_penalty};
@@ -622,8 +623,10 @@ mod tests {
         let (a, b) = crisis_pair();
         let brk = compute_synergy_score(&a, &b);
         // Both people record nothing but maladaptive answers: every trigger is
-        // solo, so the pair scores 0.25, minus the 0.05 danger penalty.
-        let expected = 0.25 - CFG.patterns.maladaptive_only_penalty;
+        // solo, so the pair scores 0.25. Each side covers one trigger, so the
+        // pair pays 8 × −0.02 = −0.16 in coverage, then the 0.05 danger
+        // penalty.
+        let expected = 0.25 - 0.16 - CFG.patterns.maladaptive_only_penalty;
         assert!(
             (brk.patterns - expected).abs() < 0.001,
             "maladaptive-only pair must land on {expected}, got {}",
@@ -1659,34 +1662,194 @@ mod tests {
         assert!((pattern_divergence(&empty, &empty) - 0.0).abs() < 1e-9);
     }
 
-    // --- Pattern completeness adjustment tests ---
+    // --- Pattern coverage adjustment tests ---
 
     #[test]
-    fn test_pattern_completeness_adjustment_empty() {
+    fn test_pattern_coverage_adjustment_empty() {
         let p: Vec<BehavioralPattern> = vec![];
-        let adj = pattern_completeness_adjustment(&p);
+        let adj = pattern_coverage_adjustment(&p, &p);
         // 9 undefined triggers × −0.02 = −0.18
         assert!((adj + 0.18).abs() < 0.001, "empty adj: {}", adj);
     }
 
     #[test]
-    fn test_pattern_completeness_adjustment_counts_missing_triggers_only() {
-        // The recorded answer itself no longer moves the adjustment: the
-        // response quality is scored by pattern_synergy.
+    fn test_pattern_coverage_adjustment_counts_missing_triggers_only() {
+        // The recorded answer itself never moves the adjustment: the response
+        // quality is scored by pattern_synergy.
         let p = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
-        let adj = pattern_completeness_adjustment(&p);
+        let adj = pattern_coverage_adjustment(&p, &p);
         // 8 missing triggers × −0.02 = −0.16
         assert!((adj + 0.16).abs() < 0.001, "best adj: {}", adj);
     }
 
     #[test]
-    fn test_pattern_completeness_adjustment_full_coverage() {
+    fn test_pattern_coverage_adjustment_full_coverage() {
         let p: Vec<BehavioralPattern> = BehaviorTrigger::ALL
             .iter()
             .map(|t| pat(*t, BehaviorResponse::RemainsCalm))
             .collect();
-        let adj = pattern_completeness_adjustment(&p);
+        let adj = pattern_coverage_adjustment(&p, &p);
         assert!(adj.abs() < 1e-9, "full coverage adj: {}", adj);
+    }
+
+    #[test]
+    fn test_pattern_coverage_adjustment_uses_mean_of_both_records() {
+        let a: Vec<BehavioralPattern> = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| pat(*t, BehaviorResponse::RemainsCalm))
+            .collect();
+        let b = vec![pat(BehaviorTrigger::Change, BehaviorResponse::RemainsCalm)];
+        // Evidence = (9 + 1) / 2 = 5 → 4 missing × −0.02 = −0.08.
+        let adj = pattern_coverage_adjustment(&a, &b);
+        assert!((adj + 0.08).abs() < 0.001, "asymmetric adj: {}", adj);
+        // Symmetric in its arguments.
+        assert!((pattern_coverage_adjustment(&b, &a) - adj).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_pattern_coverage_counts_distinct_triggers_once() {
+        // Two answers on the same trigger cover one trigger, not two.
+        let a = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Panics),
+        ];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        assert_eq!(distinct_trigger_count(&a), 1);
+        let adj = pattern_coverage_adjustment(&a, &b);
+        assert!((adj + 0.16).abs() < 0.001, "duplicate adj: {}", adj);
+    }
+
+    // --- pattern_score tests ---
+
+    #[test]
+    fn test_pattern_score_single_shared_answer_cannot_reach_one() {
+        // One shared proactive trigger covers 1/9 of the set, so the pair pays
+        // for the 8 situations neither person recorded: 1.00 − 0.16.
+        let a = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let b = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let score = pattern_score(&a, &b);
+        assert!((score - 0.84).abs() < 0.001, "single shared: {}", score);
+    }
+
+    #[test]
+    fn test_pattern_score_full_coverage_reaches_one() {
+        let a: Vec<BehavioralPattern> = BehaviorTrigger::ALL
+            .iter()
+            .map(|t| pat(*t, BehaviorResponse::RemainsCalm))
+            .collect();
+        let score = pattern_score(&a, &a);
+        assert!((score - 1.0).abs() < 0.001, "full coverage: {}", score);
+    }
+
+    #[test]
+    fn test_pattern_score_self_comparison_matches_personal_profile() {
+        // Comparing a person to themselves must equal their profile score.
+        let mut p = make_person(Some(5), Some(5), Some(5), Some(5), Some(5));
+        p.behavioral_patterns = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+            pat(
+                BehaviorTrigger::Conflict,
+                BehaviorResponse::FacilitatesResolution,
+            ),
+        ];
+        let self_pair = pattern_score(&p.behavioral_patterns, &p.behavioral_patterns);
+        let profile = compute_person_profile(&p).patterns;
+        assert!(
+            (self_pair - profile).abs() < 1e-9,
+            "self-pair {self_pair} must match profile {profile}"
+        );
+    }
+
+    #[test]
+    fn test_pattern_score_empty_pair_is_personal_default_after_coverage() {
+        // No patterns at all: 0.5 default − 0.18 coverage = 0.32, matching the
+        // personal baseline.
+        let empty: Vec<BehavioralPattern> = vec![];
+        assert!((pattern_score(&empty, &empty) - 0.32).abs() < 0.001);
+    }
+
+    // --- mindset readout tests ---
+
+    #[test]
+    fn test_mindset_readout_empty() {
+        let empty: Vec<BehavioralPattern> = vec![];
+        let r = mindset_readout(&empty);
+        assert_eq!(r.samples, 0);
+        assert!(r.adversity.is_none());
+        assert!(r.positive.is_none());
+        assert!(r.overall.is_none());
+        assert!(r.adversity_tone().is_none());
+    }
+
+    #[test]
+    fn test_mindset_readout_groups_triggers() {
+        let p = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+            pat(BehaviorTrigger::Conflict, BehaviorResponse::Panics),
+            pat(
+                BehaviorTrigger::Success,
+                BehaviorResponse::CelebratesWithOthers,
+            ),
+            // Neutral triggers count toward `overall` only.
+            pat(BehaviorTrigger::Change, BehaviorResponse::BecomesQuiet),
+        ];
+        let r = mindset_readout(&p);
+        assert_eq!(r.samples, 4);
+        // Adversity: (1.0 + −1.0) / 2 = 0.0.
+        assert!((r.adversity.unwrap() - 0.0).abs() < 1e-9);
+        // Positive: tier 1 → 1.0.
+        assert!((r.positive.unwrap() - 1.0).abs() < 1e-9);
+        // Overall: (1.0 − 1.0 + 1.0 + 0.0) / 4 = 0.25.
+        assert!((r.overall.unwrap() - 0.25).abs() < 1e-9);
+        assert_eq!(r.adversity_tone(), Some(MindsetTone::Mixed));
+        assert_eq!(r.positive_tone(), Some(MindsetTone::Constructive));
+        assert_eq!(r.overall_tone(), Some(MindsetTone::Mixed));
+    }
+
+    #[test]
+    fn test_mindset_readout_averages_duplicate_answers() {
+        let p = vec![
+            pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm),
+            pat(BehaviorTrigger::Stress, BehaviorResponse::Panics),
+        ];
+        let r = mindset_readout(&p);
+        assert_eq!(r.samples, 1);
+        assert!(r.adversity.unwrap().abs() < 1e-9, "mean of +1 and −1");
+    }
+
+    #[test]
+    fn test_mindset_readout_single_adversity_answer_is_not_neutral() {
+        // Non-zero adversity sum so a flipped sum operation cannot hide behind 0.
+        let p = vec![pat(BehaviorTrigger::Stress, BehaviorResponse::RemainsCalm)];
+        let r = mindset_readout(&p);
+        assert!((r.adversity.unwrap() - 1.0).abs() < 1e-9);
+        assert_eq!(r.adversity_tone(), Some(MindsetTone::Constructive));
+        assert!(r.positive.is_none());
+    }
+
+    #[test]
+    fn test_mindset_tone_boundaries() {
+        assert_eq!(mindset_tone(1.0), MindsetTone::Constructive);
+        assert_eq!(
+            mindset_tone(MINDSET_CONSTRUCTIVE_MIN),
+            MindsetTone::Constructive
+        );
+        assert_eq!(mindset_tone(0.0), MindsetTone::Mixed);
+        assert_eq!(mindset_tone(0.5), MindsetTone::Constructive);
+        assert_eq!(mindset_tone(-0.5), MindsetTone::Maladaptive);
+        assert_eq!(
+            mindset_tone(MINDSET_MALADAPTIVE_MAX),
+            MindsetTone::Maladaptive
+        );
+        // Just inside the mixed band on either side.
+        assert_eq!(
+            mindset_tone(MINDSET_CONSTRUCTIVE_MIN - 1e-6),
+            MindsetTone::Mixed
+        );
+        assert_eq!(
+            mindset_tone(MINDSET_MALADAPTIVE_MAX + 1e-6),
+            MindsetTone::Mixed
+        );
     }
 
     #[test]
@@ -7376,7 +7539,7 @@ mod tests {
         }];
         let bd = compute_synergy_score_inner(&a, &b, None, &[], &[]);
         assert!(
-            !bd.danger_details.contains("negative patterns"),
+            !bd.danger_details.contains("maladaptive"),
             "one positive → no pattern danger"
         );
     }

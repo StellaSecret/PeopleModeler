@@ -1,5 +1,5 @@
 use super::components::{
-    confidence_band, motivation_synergy_score, pattern_synergy, sim, strength_band, style_synergy,
+    confidence_band, motivation_synergy_score, pattern_score, sim, strength_band, style_synergy,
     value_similarity,
 };
 use super::profile::{
@@ -241,7 +241,7 @@ pub(crate) fn compute_synergy_score_inner(
     // Patterns: all-pair weighted synergy
     let pat_active = !a.behavioral_patterns.is_empty() && !b.behavioral_patterns.is_empty();
     let raw_pat = if pat_active {
-        pattern_synergy(&a.behavioral_patterns, &b.behavioral_patterns)
+        pattern_score(&a.behavioral_patterns, &b.behavioral_patterns)
     } else {
         0.0
     };

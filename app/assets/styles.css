@@ -376,6 +376,7 @@ fieldset.section legend{
 .motivation-item strong{color:var(--cyan)}
 .bias-item strong{color:var(--primary)}
 .pattern-item strong{color:var(--purple)}
+.pattern-mindset{font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0.5rem;overflow-wrap:break-word}
 
 /* ── FORM ── */
 .form{display:flex;flex-direction:column;gap:0.5rem}

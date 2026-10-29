@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use peoplemodeler_core::models::{BehaviorTrigger, Person};
+use peoplemodeler_core::synergy::{MindsetReadout, MindsetTone};
 
 pub(crate) const ALL_TRIGGERS: [BehaviorTrigger; 9] = [
     BehaviorTrigger::Stress,
@@ -66,6 +67,64 @@ pub(crate) fn trigger_label(t: &BehaviorTrigger, lang: Lang) -> &'static str {
         BehaviorTrigger::Feedback => crate::tr!(StrategyFeedbackLabel, lang),
         BehaviorTrigger::Injustice => crate::tr!(StrategyInjusticeLabel, lang),
     }
+}
+
+/// Localized wording for a mindset tone.
+pub(crate) fn mindset_word(tone: MindsetTone, lang: Lang) -> &'static str {
+    match tone {
+        MindsetTone::Constructive => crate::tr!(MindsetConstructiveResponses, lang),
+        MindsetTone::Mixed => crate::tr!(MindsetMixedResponses, lang),
+        MindsetTone::Maladaptive => crate::tr!(MindsetMaladaptiveResponses, lang),
+    }
+}
+
+/// One-line readout of a person's recorded patterns, split into adversity and
+/// positive-situation handling. `None` when neither class has data.
+pub(crate) fn mindset_summary(readout: &MindsetReadout, lang: Lang) -> Option<String> {
+    let mut parts = Vec::new();
+    if let Some(tone) = readout.adversity_tone() {
+        parts.push(format!(
+            "{}: {}",
+            crate::tr!(MindsetAdversity, lang),
+            mindset_word(tone, lang)
+        ));
+    }
+    if let Some(tone) = readout.positive_tone() {
+        parts.push(format!(
+            "{}: {}",
+            crate::tr!(MindsetPositive, lang),
+            mindset_word(tone, lang)
+        ));
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" · "))
+    }
+}
+
+/// Compare line for two people's adversity handling. `None` unless both have
+/// at least one adversity answer.
+pub(crate) fn adversity_pair_line(
+    na: &str,
+    ra: &MindsetReadout,
+    nb: &str,
+    rb: &MindsetReadout,
+    lang: Lang,
+) -> Option<String> {
+    let ta = ra.adversity_tone()?;
+    let tb = rb.adversity_tone()?;
+    let label = crate::tr!(MindsetAdversity, lang);
+    let sep = if matches!(lang, Lang::Fr) {
+        " : "
+    } else {
+        ": "
+    };
+    Some(format!(
+        "{label} — {na}{sep}{}, {nb}{sep}{}",
+        mindset_word(ta, lang),
+        mindset_word(tb, lang)
+    ))
 }
 
 pub(crate) fn generate_insight(p: &Person, trigger: &BehaviorTrigger, lang: Lang) -> InsightOutput {
@@ -454,6 +513,82 @@ mod tests {
         assert!(!trigger_label(&BehaviorTrigger::Change, lang).is_empty());
         assert!(!trigger_label(&BehaviorTrigger::Feedback, lang).is_empty());
         assert!(!trigger_label(&BehaviorTrigger::Injustice, lang).is_empty());
+    }
+
+    fn readout(adversity: Option<f64>, positive: Option<f64>, samples: usize) -> MindsetReadout {
+        MindsetReadout {
+            adversity,
+            positive,
+            overall: adversity.or(positive),
+            samples,
+        }
+    }
+
+    #[test]
+    fn mindset_word_covers_all_tones_and_langs() {
+        assert_eq!(
+            mindset_word(MindsetTone::Constructive, Lang::En),
+            "constructive responses"
+        );
+        assert_eq!(
+            mindset_word(MindsetTone::Mixed, Lang::En),
+            "mixed responses"
+        );
+        assert_eq!(
+            mindset_word(MindsetTone::Maladaptive, Lang::En),
+            "maladaptive responses"
+        );
+        assert_eq!(
+            mindset_word(MindsetTone::Constructive, Lang::Fr),
+            "réponses constructives"
+        );
+        assert_eq!(
+            mindset_word(MindsetTone::Maladaptive, Lang::Fr),
+            "réponses maladaptatives"
+        );
+    }
+
+    #[test]
+    fn mindset_summary_none_without_data() {
+        assert_eq!(mindset_summary(&readout(None, None, 0), Lang::En), None);
+    }
+
+    #[test]
+    fn mindset_summary_lists_available_groups() {
+        let both = mindset_summary(&readout(Some(1.0), Some(-1.0), 2), Lang::En).unwrap();
+        assert_eq!(
+            both,
+            "Under adversity: constructive responses · In positive situations: maladaptive responses"
+        );
+        let only_adversity = mindset_summary(&readout(Some(0.0), None, 1), Lang::En).unwrap();
+        assert_eq!(only_adversity, "Under adversity: mixed responses");
+    }
+
+    #[test]
+    fn adversity_pair_line_requires_both_sides() {
+        let a = readout(Some(1.0), None, 1);
+        let b = readout(Some(-1.0), None, 1);
+        assert_eq!(
+            adversity_pair_line("Ann", &a, "Bob", &b, Lang::En).unwrap(),
+            "Under adversity — Ann: constructive responses, Bob: maladaptive responses"
+        );
+        assert_eq!(
+            adversity_pair_line("Ann", &a, "Bob", &readout(None, None, 0), Lang::En),
+            None
+        );
+        assert_eq!(
+            adversity_pair_line("Ann", &readout(None, None, 0), "Bob", &b, Lang::En),
+            None
+        );
+    }
+
+    #[test]
+    fn adversity_pair_line_french_spacing() {
+        let a = readout(Some(0.0), None, 1);
+        assert_eq!(
+            adversity_pair_line("Ann", &a, "Bob", &a, Lang::Fr).unwrap(),
+            "Face à l'adversité — Ann : réponses mitigées, Bob : réponses mitigées"
+        );
     }
 
     fn has(s: &[String], key: &str, lang: Lang) -> bool {

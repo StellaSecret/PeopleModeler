@@ -489,6 +489,27 @@ impl BehaviorTrigger {
         Self::Injustice,
     ];
 
+    /// Triggers that test how a person handles adversity.
+    pub const ADVERSITY: [Self; 4] = [
+        Self::Stress,
+        Self::Conflict,
+        Self::Threatened,
+        Self::Injustice,
+    ];
+
+    /// Triggers that test how a person handles something positive.
+    pub const POSITIVE: [Self; 2] = [Self::Success, Self::Recognition];
+
+    /// True when the trigger is an adversity situation.
+    pub fn is_adversity(self) -> bool {
+        Self::ADVERSITY.contains(&self)
+    }
+
+    /// True when the trigger is a positive situation.
+    pub fn is_positive_situation(self) -> bool {
+        Self::POSITIVE.contains(&self)
+    }
+
     pub fn emoji(&self) -> &'static str {
         match self {
             Self::Stress => "😰",
@@ -1611,6 +1632,41 @@ mod tests {
         assert!(BehaviorResponse::Reflects.is_constructive());
         assert!(!BehaviorResponse::BecomesQuiet.is_constructive());
         assert!(!BehaviorResponse::Panics.is_constructive());
+    }
+
+    #[test]
+    fn trigger_classes_partition_the_trigger_set() {
+        assert_eq!(BehaviorTrigger::ADVERSITY.len(), 4);
+        assert_eq!(BehaviorTrigger::POSITIVE.len(), 2);
+        for t in BehaviorTrigger::ALL {
+            let adversity = t.is_adversity();
+            let positive = t.is_positive_situation();
+            assert!(!(adversity && positive), "{t:?} cannot be both classes");
+            let classified =
+                BehaviorTrigger::ADVERSITY.contains(&t) || BehaviorTrigger::POSITIVE.contains(&t);
+            assert_eq!(
+                classified,
+                adversity || positive,
+                "{t:?} class membership must match its predicates"
+            );
+        }
+    }
+
+    #[test]
+    fn trigger_class_membership_is_exact() {
+        for t in BehaviorTrigger::ALL {
+            let expected_adversity = matches!(
+                t,
+                BehaviorTrigger::Stress
+                    | BehaviorTrigger::Conflict
+                    | BehaviorTrigger::Threatened
+                    | BehaviorTrigger::Injustice
+            );
+            let expected_positive =
+                matches!(t, BehaviorTrigger::Success | BehaviorTrigger::Recognition);
+            assert_eq!(t.is_adversity(), expected_adversity, "{t:?}");
+            assert_eq!(t.is_positive_situation(), expected_positive, "{t:?}");
+        }
     }
 
     #[test]

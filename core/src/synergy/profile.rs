@@ -1,7 +1,7 @@
 use super::PersonProfile;
 use super::components::{
     bias_adjustment, bias_count_bonus, confidence_band, motivation_count_penalty,
-    motivation_synergy_score, pattern_completeness_adjustment, pattern_synergy, style_synergy,
+    motivation_synergy_score, pattern_coverage_adjustment, pattern_score, style_synergy,
     value_self_score, virtue_adjustment,
 };
 use crate::model_config::CFG;
@@ -458,13 +458,13 @@ pub fn compute_person_profile(person: &Person) -> PersonProfile {
     let count_penalty = motivation_count_penalty(credited.len());
     let motivation = (base_mot + virtue - count_penalty).clamp(0.0, 1.0);
 
-    let raw_pat = if pat_active {
-        pattern_synergy(&person.behavioral_patterns, &person.behavioral_patterns)
+    let mut pat = if pat_active {
+        pattern_score(&person.behavioral_patterns, &person.behavioral_patterns)
     } else {
-        CFG.profile.default_patterns
+        (CFG.profile.default_patterns
+            + pattern_coverage_adjustment(&person.behavioral_patterns, &person.behavioral_patterns))
+        .clamp(0.0, 1.0)
     };
-    let mut pat =
-        (raw_pat + pattern_completeness_adjustment(&person.behavioral_patterns)).clamp(0.0, 1.0);
     if has_pattern_contradiction(&flags) {
         pat = pat.min(CFG.profile.contradiction_cap);
     }

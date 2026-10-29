@@ -5,11 +5,13 @@ use peoplemodeler_core::models::{
 };
 
 use peoplemodeler_core::synergy::{
-    MaskBand, RelContext, Trend, compute_synergy_score_facet, mask_gap_for, synergy_bands,
+    MaskBand, RelContext, Trend, compute_synergy_score_facet, mask_gap_for, mindset_readout,
+    synergy_bands,
 };
 
 use crate::db;
 use crate::i18n::{Lang, core_lang};
+use crate::pages::insights::adversity_pair_line;
 
 /// i18n key for a per-context compatibility score label.
 fn ctx_key(c: InsightContext) -> crate::i18n::Key {
@@ -1024,6 +1026,14 @@ fn compare_analysis(
                 "One copes with it, the other does not — unbalanced reactions".into()
             }),
             PatternTone::Neutral => {}
+        }
+
+        // Derived readout of how both handle adversity. It uses every recorded
+        // pattern, not just the first one shown above.
+        let readout_a = mindset_readout(&a.behavioral_patterns);
+        let readout_b = mindset_readout(&b.behavioral_patterns);
+        if let Some(line) = adversity_pair_line(&na, &readout_a, &nb, &readout_b, lang) {
+            syn.push(line);
         }
     }
 
@@ -4128,6 +4138,72 @@ mod tests {
             strats.iter().any(|s| s.contains("Unbalanced")),
             "a mixed pair must read as unbalanced, got: {:?}",
             strats
+        );
+    }
+
+    // ── Derived adversity readout (full pattern set, not just the first) ──
+
+    #[test]
+    fn adversity_line_uses_every_recorded_adversity_pattern() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Stress,
+                predicted_behavior: BehaviorResponse::RemainsCalm,
+                notes: String::new(),
+            },
+            BehavioralPattern {
+                trigger: BehaviorTrigger::Conflict,
+                predicted_behavior: BehaviorResponse::Escalates,
+                notes: String::new(),
+            },
+        ];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Threatened,
+            predicted_behavior: BehaviorResponse::StandsGround,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        // A averages proactive + maladaptive → mixed; B is proactive.
+        assert!(
+            syn.iter()
+                .any(|s| s == "Under adversity — A: mixed responses, B: constructive responses"),
+            "adversity line missing or wrong, got: {syn:?}"
+        );
+    }
+
+    #[test]
+    fn adversity_line_french_and_absent_without_data() {
+        let mut a = p("A");
+        let mut b = p("B");
+        a.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Stress,
+            predicted_behavior: BehaviorResponse::Panics,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::Fr);
+        assert!(
+            syn.iter().any(|s| s
+                == "Face à l'adversité — A : réponses maladaptatives, B : réponses maladaptatives"),
+            "French adversity line missing or wrong, got: {syn:?}"
+        );
+
+        // Positive-only data has no adversity readout → no line.
+        b.behavioral_patterns = vec![BehavioralPattern {
+            trigger: BehaviorTrigger::Success,
+            predicted_behavior: BehaviorResponse::CelebratesWithOthers,
+            notes: String::new(),
+        }];
+        let (syn, _, _) = compare_analysis(&a, &b, Lang::En);
+        assert!(
+            !syn.iter().any(|s| s.contains("Under adversity")),
+            "one-sided adversity data must not produce the line, got: {syn:?}"
         );
     }
 

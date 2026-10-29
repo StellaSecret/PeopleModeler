@@ -605,6 +605,11 @@ pub enum Key {
     OnlyMaladaptivePatterns,
     #[strum(serialize = "Low prediction accuracy")]
     LowPredictionAccuracy,
+    MindsetAdversity,
+    MindsetPositive,
+    MindsetConstructiveResponses,
+    MindsetMixedResponses,
+    MindsetMaladaptiveResponses,
     Unknown,
 }
 
@@ -1419,6 +1424,11 @@ fn en(key: Key) -> &'static str {
         Key::RepPowerStruggle => "Power struggle (Reputation)",
         Key::OnlyMaladaptivePatterns => "Only maladaptive patterns",
         Key::LowPredictionAccuracy => "Low prediction accuracy",
+        Key::MindsetAdversity => "Under adversity",
+        Key::MindsetPositive => "In positive situations",
+        Key::MindsetConstructiveResponses => "constructive responses",
+        Key::MindsetMixedResponses => "mixed responses",
+        Key::MindsetMaladaptiveResponses => "maladaptive responses",
         Key::Unknown => "Unknown",
     }
 }
@@ -2235,6 +2245,11 @@ fn fr(key: Key) -> &'static str {
         Key::RepPowerStruggle => "Lutte de pouvoir (réputation)",
         Key::OnlyMaladaptivePatterns => "Réponses maladaptatives uniquement",
         Key::LowPredictionAccuracy => "Faible précision prédictive",
+        Key::MindsetAdversity => "Face à l'adversité",
+        Key::MindsetPositive => "Dans les situations positives",
+        Key::MindsetConstructiveResponses => "réponses constructives",
+        Key::MindsetMixedResponses => "réponses mitigées",
+        Key::MindsetMaladaptiveResponses => "réponses maladaptatives",
         Key::Unknown => "Unknown",
     }
 }
