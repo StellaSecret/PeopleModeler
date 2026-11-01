@@ -3,9 +3,7 @@ name: Mutation Tests
 on:
   workflow_dispatch: {}
 
-permissions:
-  contents: read
-  actions: read
+permissions: {}
 
 concurrency:
   group: mutants-${{ github.ref }}
@@ -15,6 +13,8 @@ jobs:
   cargo-mutants:
     name: "Mutation Tests (${{ matrix.name }})"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: mutation-tests
     strategy:
       fail-fast: false
