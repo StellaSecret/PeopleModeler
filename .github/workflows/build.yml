@@ -7,15 +7,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-  security-events: write
-  actions: read
-  pages: write
-  id-token: write
-
-env:
-  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+permissions: {}
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -26,10 +18,13 @@ jobs:
   scan-secrets:
     name: Secret Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
         with:
@@ -52,8 +47,12 @@ jobs:
   supply-chain:
     name: Supply Chain (cargo-deny)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
@@ -63,8 +62,12 @@ jobs:
   rust-core:
     name: Rust Core (test + WASM check)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -80,10 +83,14 @@ jobs:
     name: Build WASM
     needs: [rust-core, supply-chain]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       # dioxus 0.7.9 (dx) strips the linked wasm with `rust-objcopy --strip-all`
       # before running wasm-bindgen. Since the LLVM 23 bump (rustc 1.99),
       # --strip-all removes wasm custom sections, wiping wasm-bindgen's
@@ -188,6 +195,8 @@ jobs:
     name: Playwright Tests (shard ${{ matrix.shard }}/2)
     needs: [web-build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
     strategy:
@@ -196,6 +205,8 @@ jobs:
         shard: [1, 2]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Download WASM build
         uses: actions/download-artifact@v8
         with:
@@ -221,20 +232,27 @@ jobs:
   # ── ANDROID BUILD (Dioxus Mobile) ────────────────────
   build-android:
     name: Build Android APK + AAB
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [scan-secrets, rust-core, supply-chain]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment: build
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
       - uses: Swatinem/rust-cache@v2
-      - name: Cache Android debug keystore
-        uses: actions/cache@v6
+      # keytool lives in the JDK, so install it before any keystore handling.
+      # The old keystore cache hid this ordering bug by restoring the file.
+      - name: Set up JDK
+        uses: actions/setup-java@v6
         with:
-          path: ~/.android/debug.keystore
-          key: android-debug-keystore-v1
+          distribution: temurin
+          java-version: 17
       - name: Setup stable debug keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -242,16 +260,18 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
+          set -e
+          umask 077
           DEST="$HOME/.android/debug.keystore"
           mkdir -p "$HOME/.android"
           SP="${KEYSTORE_PASSWORD:-android}"
           KP="${KEY_PASSWORD:-android}"
           ALIAS_RAW="${KEY_ALIAS}"
           ALIAS="${ALIAS_RAW:-androiddebugkey}"
-          echo "--- Keystore setup: SP=$SP KP=$KP ALIAS=$ALIAS"
+          echo "--- Keystore setup ---"
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Decoding base64 keystore (${#KEYSTORE_BASE64} chars)..."
-            echo "$KEYSTORE_BASE64" | base64 -d > "$DEST.tmp"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$DEST.tmp"
             SZ=$(stat -c%s "$DEST.tmp" 2>/dev/null || echo 0)
             echo "Decoded file size: $SZ bytes"
             # Try to read the keystore directly
@@ -271,8 +291,9 @@ jobs:
             fi
             rm -f "$DEST.tmp"
           elif [ -f "$DEST" ]; then
-            echo "Keystore restored from cache"
+            echo "Keystore already present"
           else
+            echo "::warning::KEYSTORE_BASE64 is empty; generating a throwaway debug keystore (artifacts will not use the release key)"
             keytool -genkey -v -keystore "$DEST" \
               -alias "$ALIAS" -storepass "$SP" -keypass "$KP" \
               -keyalg RSA -keysize 2048 -validity 10000 \
@@ -285,11 +306,10 @@ jobs:
               | grep -E "SHA1|Alias name:|Erweiterte|Extended|Eintragsart|Entry type:" || \
               echo "WARNING: Could not verify keystore fingerprint"
           fi
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 17
+          if [ ! -f "$DEST" ]; then
+            echo "::error::Android keystore could not be created/decoded (check KEYSTORE_BASE64/passwords in the build environment)"
+            exit 1
+          fi
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
@@ -362,6 +382,8 @@ jobs:
       - name: Remove first-pass APK (no overlays)
         run: find target/dx -name "*.apk" -delete 2>/dev/null || true
       - name: Overlay custom Android resources (icons, themes, OAuth strings)
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
           RES_DIR=$(find target/dx -type d -path "*/app/src/main/res" 2>/dev/null | head -1)
           if [ -n "$RES_DIR" ] && [ -d "app/res" ]; then
@@ -546,14 +568,23 @@ jobs:
   # ── DEPLOY WEB TO GITHUB PAGES ────────────────────────
   deploy-web:
     name: Deploy to GitHub Pages
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [playwright-tests]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Download WASM build
         uses: actions/download-artifact@v8
         with:
@@ -604,10 +635,15 @@ jobs:
   # ── RELEASE (Android + Web) ──────────────────────────
   release:
     name: Create Release
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [playwright-tests, build-android]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment: release
+    concurrency:
+      group: release
+      cancel-in-progress: false
     steps:
       - name: Download Android APK
         uses: actions/download-artifact@v8
