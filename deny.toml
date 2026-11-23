@@ -28,9 +28,9 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 version = 2
 yanked = "deny"
 ignore = [
-    # Add RUSTSEC IDs here only with a comment explaining why the
-    # advisory doesn't apply (e.g. the vulnerable code path is unused,
-    # or wasm32 isn't affected) and a link to the upstream issue/fix.
+    # chrono 0.4 is flagged unmaintained (RUSTSEC-2026-0543) with no
+    # patched release; all uses are timestamp conversion/formatting only.
+    { id = "RUSTSEC-2026-0543", reason = "No safe upgrade; chrono 0.4 remains maintained enough for timestamp-only usage. Tracked for migration to jiff/time." },
 ]
 
 [licenses]
